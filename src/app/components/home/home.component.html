@@ -1,0 +1,13 @@
+<head>
+  <title>Home</title>
+</head>
+<div class="d-flex">
+  <div class="flex-grow-1 main-panel">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <a class="navbar-brand nav-item mr-5">Home</a>
+      <app-settings class="nav-item"></app-settings>
+      <app-loading-spinner [show]="isLoading" class="nav-item mx-2"></app-loading-spinner>
+    </nav>
+    <app-repo-view></app-repo-view>
+  </div>
+</div>

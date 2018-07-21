@@ -1,0 +1,28 @@
+<button class="btn btn-secondary center-text-vertical mx-2"
+        (click)="copyTempSettings()">
+  <i class="material-icons">settings</i>
+</button>
+<div class="dialog-container" *ngIf="showSettingsDialog">
+  <div class="dialog-window card">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Settings</h5>
+        <button type="button" class="close" (click)="cancelChanges()">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      <div class="modal-body">
+          <div class="pretty p-switch p-fill mx-2">
+            <input type="checkbox" [(ngModel)]="advanced"/>
+            <div class="state">
+              <label>Advanced</label>
+            </div>
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" (click)="saveSettings()">Save</button>
+        <button class="btn btn-secondary" (click)="cancelChanges()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

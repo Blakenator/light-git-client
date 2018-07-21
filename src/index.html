@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base href="./">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+  <link href="./assets/fa/css/fontawesome-all.css" rel="stylesheet">
+</head>
+<body>
+<script>
+  window.setTheme = (theme) => {
+    var head = document.head;
+    var THEME_STYLE = 'themeStyle';
+    if (document.getElementById(THEME_STYLE)) {
+      head.removeChild(document.getElementById(THEME_STYLE));
+    }
+    var link = document.createElement("link");
+
+    link.type = "text/css";
+    link.rel = "stylesheet";
+    link.id = THEME_STYLE;
+    link.href = './assets/' + theme + '.min.css';
+
+    head.insertBefore(link, head.firstChild);
+  };
+  window.setTheme('light');
+</script>
+<app-root>Loading...</app-root>
+</body>
+</html>
