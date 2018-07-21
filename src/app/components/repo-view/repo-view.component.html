@@ -1,0 +1,9 @@
+<h1>{{repo.name}}</h1>
+<h2>locals</h2>
+<ul>
+  <li *ngFor="let b of repo.localBranches">{{b.name}}</li>
+</ul>
+<h2>remotes</h2>
+<ul>
+  <li *ngFor="let b of repo.remoteBranches">{{b.name}}</li>
+</ul>

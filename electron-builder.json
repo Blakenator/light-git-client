@@ -1,0 +1,50 @@
+{
+  "productName": "light-git-client",
+  "directories": {
+    "output": "app-builds"
+  },
+  "files": [
+    "**/*",
+    "!*.ts",
+    "!*.code-workspace",
+    "!LICENSE.md",
+    "!package.json",
+    "!package-lock.json",
+    "!src/",
+    "!e2e/",
+    "!hooks/",
+    "!.angular-cli.json",
+    "!_config.yml",
+    "!karma.conf.js",
+    "!tsconfig.json",
+    "!tslint.json"
+  ],
+  "win": {
+    "icon": "dist",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Blakenator",
+        "repo": "light-git-client"
+      }
+    ],
+    "target": [
+      "nsis",
+      "portable",
+      "7z",
+      "zip"
+    ]
+  },
+  "mac": {
+    "icon": "dist",
+    "target": [
+      "dmg"
+    ]
+  },
+  "linux": {
+    "icon": "dist",
+    "target": [
+      "AppImage"
+    ]
+  }
+}
