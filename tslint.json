@@ -86,8 +86,7 @@
       "ignore-bound-class-methods"
     ],
     "triple-equals": [
-      true,
-      "allow-null-check"
+      false
     ],
     "typedef-whitespace": [
       true,

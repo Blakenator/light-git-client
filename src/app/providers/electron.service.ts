@@ -4,6 +4,7 @@ import {Injectable} from '@angular/core';
 import {ipcRenderer, remote, webFrame} from 'electron';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import {ElectronResponse} from "../../../shared/electron-response";
 
 @Injectable()
 export class ElectronService {
@@ -15,20 +16,6 @@ export class ElectronService {
   fs: typeof fs;
   isElectron = () => {
     return window && window.process && window.process.type;
-  };
-  rpc = (functionName: string, functionParams: any[], callback: Function) => {
-    this.ipcRenderer.send(functionName, [functionName, ...functionParams]);
-    this.ipcRenderer.on(functionName + 'reply', (event, args) => {
-      // console.log(args);
-      callback(args);
-      this.ipcRenderer.removeAllListeners(functionName + 'reply');
-    });
-  };
-  listen = (functionName: string, callback: Function) => {
-    this.ipcRenderer.on(functionName + 'reply', (event, args) => {
-      // console.log(args);
-      callback(args);
-    });
   };
 
   constructor() {
@@ -42,4 +29,26 @@ export class ElectronService {
       this.fs = window.require('fs');
     }
   }
+
+  rpc(functionName: string, functionParams: any[]): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this.ipcRenderer.send(functionName, [functionName, ...functionParams]);
+      this.ipcRenderer.on(functionName + 'reply', (event, args: ElectronResponse) => {
+        // console.log(args);
+        if (args.success) {
+          resolve(args.content);
+        } else {
+          reject(args.content);
+        }
+        this.ipcRenderer.removeAllListeners(functionName + 'reply');
+      });
+    });
+  }
+
+  listen(functionName: string, callback: (result: any) => any) {
+    this.ipcRenderer.on(functionName + 'reply', (event, args: ElectronResponse) => {
+      // console.log(args);
+      callback(args.content);
+    });
+  };
 }

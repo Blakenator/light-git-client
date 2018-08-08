@@ -1,0 +1,40 @@
+.commit-area {
+  padding: 1em;
+}
+
+.diff-viewer {
+  height: calc(100vh - 4.5rem);
+  overflow-y: auto;
+
+  @media (min-width: 576px) {
+    max-width: 41vw;
+  }
+  @media (min-width: 768px) {
+    max-width: 58vw;
+  }
+}
+
+.state {
+  display: inline-block;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.change-body {
+  max-height: 50vh;
+  overflow: auto;
+  table {
+    width: 100%;
+  }
+}
+
+.branch-container {
+  max-height: 30vh;
+  overflow: auto;
+}
+
+.branch {
+  padding: .2em;
+}

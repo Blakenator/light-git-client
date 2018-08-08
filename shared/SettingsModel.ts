@@ -1,25 +1,16 @@
 export class SettingsModel {
-  public baseLibraryFolder: string;
-  public steamId: string;
-  public displaySize: number;
   public darkMode: boolean;
-  public useDetailedDescription: boolean;
-  public friendsExpanded: boolean;
-  public advancedAccountName: string;
+  public openRepos: string[];
+  public tabNames: string[];
+  public activeTab: number;
 
-  constructor(baseLibraryFolder: string = 'C:\\Program Files (x86)\\Steam\\steamapps\\',
-              steamId: string = '76561197960435530',
-              darkMode: boolean = false,
-              useDetailedDescription: boolean = false,
-              displaySize: number = 0,
-              friendsExpanded: boolean = true,
-              advancedAccountName: string = '') {
-    this.baseLibraryFolder = baseLibraryFolder;
-    this.steamId = steamId;
+  constructor(darkMode: boolean = false,
+              openRepos: string[] = [''],
+              tabNames: string[] = [''],
+              activeTab: number = 0) {
     this.darkMode = darkMode;
-    this.useDetailedDescription = useDetailedDescription;
-    this.displaySize = displaySize;
-    this.friendsExpanded = friendsExpanded;
-    this.advancedAccountName = advancedAccountName;
+    this.openRepos = openRepos;
+    this.tabNames = tabNames;
+    this.activeTab = activeTab;
   }
 }

@@ -44,6 +44,8 @@ html, body {
 }
 
 .btn {
+  vertical-align: middle;
+  display: inline-flex;
   border-radius: $border-radius;
   box-shadow: $material-shadow;
 }
@@ -193,6 +195,7 @@ body {
   font-size: 1.15em;
   padding: 0.23em;
 }
+
 .cover-img {
   min-width: 100%;
   object-fit: cover;

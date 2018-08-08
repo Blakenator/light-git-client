@@ -1,6 +1,7 @@
 import {Injectable} from '@angular/core';
 import {ElectronService} from './electron.service';
 import {SettingsModel} from '../../../shared/SettingsModel';
+import {Channels} from "../../../shared/Channels";
 
 @Injectable()
 export class SettingsService {
@@ -9,7 +10,8 @@ export class SettingsService {
   constructor(private electronService: ElectronService) {
   }
 
-  updateSettings(settings, callback: Function = () => {}) {
+  updateSettings(settings, callback: Function = () => {
+  }) {
     this.settings = Object.assign(new SettingsModel(), settings);
     callback();
   }
@@ -17,19 +19,19 @@ export class SettingsService {
   loadSettings(callback: Function = () => {
   }) {
     if (this.settings === undefined) {
-      this.electronService.rpc('loadSettings', [], settings => this.updateSettings(settings, callback));
+      this.electronService.rpc(Channels.LOADSETTINGS, []).then(settings => this.updateSettings(settings, callback));
     }
   }
 
   listenSettings(callback: Function = () => {
   }) {
     if (this.settings === undefined) {
-      this.electronService.listen('settingsChanged', settings => this.updateSettings(settings, callback));
+      this.electronService.listen(Channels.SETTINGSCHANGED, settings => this.updateSettings(settings, callback));
     }
   }
 
   saveSettings(tempSettings: SettingsModel = this.settings) {
-    this.electronService.rpc('saveSettings', [tempSettings], () => {
+    this.electronService.rpc(Channels.SAVESETTINGS, [tempSettings]).then(() => {
     });
     this.settings = tempSettings;
   }

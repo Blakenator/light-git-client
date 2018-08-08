@@ -1,5 +1,6 @@
 {
-  "productName": "light-git-client",
+  "productName": "Light Git",
+  "appId": "com.blakestacks.light-git-client",
   "directories": {
     "output": "app-builds"
   },
@@ -8,7 +9,7 @@
     "!*.ts",
     "!*.code-workspace",
     "!LICENSE.md",
-    "!package.json",
+    "package.json",
     "!package-lock.json",
     "!src/",
     "!e2e/",
@@ -33,7 +34,9 @@
       "portable",
       "7z",
       "zip"
-    ]
+    ],
+    "publisherName": "Blake Stacks",
+    "certificateFile": "/signing/codesign.pfx"
   },
   "mac": {
     "icon": "dist",

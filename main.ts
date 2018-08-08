@@ -5,17 +5,20 @@ import * as fs from 'fs';
 import {SettingsModel} from './shared/SettingsModel';
 import {autoUpdater} from 'electron-updater';
 import {RepositoryModel} from "./shared/Repository.model";
-import {BranchModel} from "./shared/Branch.model";
 import {GitClient} from "./git/GitClient";
+import {Channels} from "./shared/Channels";
+import {ElectronResponse} from "./shared/electron-response";
 
 const opn = require('opn');
+const notifier = require('node-notifier');
+const version = require('./package.json');
 
 let win, serve;
 const args = process.argv.slice(1);
 serve = args.some(val => val === '--serve');
 
 function createWindow() {
-  autoUpdater.checkForUpdatesAndNotify();
+  checkForUpdates();
 
   const electronScreen = screen;
   const size = electronScreen.getPrimaryDisplay().workAreaSize;
@@ -79,42 +82,80 @@ function getSettingsPath() {
 }
 
 function defaultReply(event, args) {
-  event.sender.send(getReplyChannel(args), undefined);
+  event.sender.send(getReplyChannel(args), new ElectronResponse(undefined));
 }
 
 function stopWatchingSettings() {
   isWatchingSettingsDir.close();
 }
 
-function loadRepoInfo(repoPath: string, callback: (repo: RepositoryModel) => void) {
-  new GitClient(repoPath).openRepo().then(repo => {
-    let promises = [];
-    let info = new RepositoryModel();
-    info.name = path.dirname(repoPath);
-    info.path = repoPath;
-    promises.push(repo.getRemotes().then(remotes => info.remotes = remotes));
-    promises.push(repo.getReferences(TYPE.LISTALL).then(branches => {
-      info.localBranches = branches.filter(x => x.isBranch() && !x.isRemote()).map(x => {
-        let branchModel = new BranchModel();
-        branchModel.name = x.name();
-        branchModel.reference = x;
-        return branchModel;
-      });
-      info.remoteBranches = branches.filter(x => x.isBranch() && x.isRemote()).map(x => {
-        let branchModel = new BranchModel();
-        branchModel.name = x.name();
-        branchModel.reference = x;
-        return branchModel;
-      });
-    }));
-    Promise.all(promises).then(values => {
-      callback(info);
-    }).catch(console.log);
-  });
+function loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
+  gitClients[repoPath] = new GitClient(repoPath);
+  loadedRepos[repoPath] = gitClients[repoPath].openRepo();
+  return loadedRepos[repoPath];
 }
 
-var isWatchingSettingsDir;
+function handleGitPromise(p: Promise<any>, event: { sender: { send: (channel: string, content: any) => {} } }, args: any[]) {
+  p.then(content => event.sender.send(getReplyChannel(args), new ElectronResponse(content)))
+    .catch(content => event.sender.send(getReplyChannel(args), new ElectronResponse(content, false)));
+}
+
+function checkForUpdates() {
+  autoUpdater.checkForUpdates();
+}
+
+
+let updateDownloaded = false;
+let userInitiatedUpdate = false;
+let isWatchingSettingsDir;
+let loadedRepos: { [key: number]: Promise<RepositoryModel> } = {};
+let gitClients: { [key: string]: GitClient } = {};
+const iconFile = './src/favicon.512x512.png';
+const notificationTitle = "Light Git";
 try {
+
+  app.setAppUserModelId("com.blakestacks.light-git-client");
+  app.setAsDefaultProtocolClient("light-git");
+
+  autoUpdater.on('update-not-available', info => {
+    if (userInitiatedUpdate) {
+      notifier.notify({
+        title: notificationTitle,
+        message: 'You\'re currently running the latest version (' + info.version + ')! Enjoy!',
+        icon: iconFile
+      });
+    }
+    userInitiatedUpdate = false;
+  });
+  autoUpdater.on('update-available', info => {
+    if (!updateDownloaded) {
+
+      notifier.notify({
+        title: notificationTitle,
+        message: 'Version ' + info.version + ' is now available and is being downloaded',
+        icon: iconFile
+      });
+      userInitiatedUpdate = false;
+    }
+  });
+  autoUpdater.on('update-downloaded', info => {
+    if (!updateDownloaded) {
+      notifier.notify({
+        title: notificationTitle,
+        message: 'Version ' + info.version + ' will install the next time you start the app',
+        icon: iconFile,
+        wait: true
+      });
+      userInitiatedUpdate = false;
+      updateDownloaded = true;
+    }
+  });
+
+  setInterval(() => {
+    if (!updateDownloaded) {
+      checkForUpdates();
+    }
+  }, 60 * 60 * 1000);
   // This method will be called when Electron has finished
   // initialization and is ready to create browser windows.
   // Some APIs can only be used after this event occurs.
@@ -137,7 +178,8 @@ try {
       createWindow();
     }
   });
-  ipcMain.on('openUrl', (event, args) => {
+
+  ipcMain.on(Channels.OPENURL, (event, args) => {
     let url = args[1];
     if (args.length > 2) {
       opn(url, {app: args[2]});
@@ -146,32 +188,110 @@ try {
     }
     defaultReply(event, args);
   });
-  ipcMain.on('openFolder', (event, args) => {
+
+  ipcMain.on(Channels.OPENFOLDER, (event, args) => {
     let url = args[1];
     shell.openItem(url);
     defaultReply(event, args);
   });
-  ipcMain.on('loadSettings', (event, args) => {
+
+  ipcMain.on(Channels.LOADSETTINGS, (event, args) => {
     loadSettings((settings) => {
-      event.sender.send(getReplyChannel(args), settings);
+      event.sender.send(getReplyChannel(args), new ElectronResponse(settings));
     });
 
     if (!isWatchingSettingsDir) {
       isWatchingSettingsDir = fs.watch(getSettingsPath(), (eventInfo, filename) => {
         loadSettings((settings) => {
-          event.sender.send(getReplyChannel(['settingsChanged']), settings);
+          event.sender.send(getReplyChannel([Channels.SETTINGSCHANGED]), new ElectronResponse(settings));
         });
       });
     }
   });
-  ipcMain.on('saveSettings', (event, args) => {
+
+  ipcMain.on(Channels.SAVESETTINGS, (event, args) => {
     saveSettings(args[1]);
     defaultReply(event, args);
   });
-  ipcMain.on('loadRepo', (event, args) => {
-    loadRepoInfo("C:/Users/blake/Documents/projects/material-steam", repo => {
-      event.sender.send(getReplyChannel(args), repo);
-    });
+
+  ipcMain.on(Channels.LOADREPO, (event, args) => {
+    handleGitPromise(loadRepoInfo(args[1]), event, args);
+  });
+
+  ipcMain.on(Channels.GETFILECHANGES, (event, args) => {
+    handleGitPromise(gitClients[args[1]].getChanges(), event, args);
+  });
+
+  ipcMain.on(Channels.GITSTAGE, (event, args) => {
+    handleGitPromise(gitClients[args[1]].stage(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.GITUNSTAGE, (event, args) => {
+    handleGitPromise(gitClients[args[1]].unstage(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.OPENTERMINAL, (event, args) => {
+    gitClients[args[1]].openTerminal();
+    defaultReply(event, args);
+  });
+
+  ipcMain.on(Channels.GETFILEDIFF, (event, args) => {
+    handleGitPromise(gitClients[args[1]].getDiff(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.COMMIT, (event, args) => {
+    handleGitPromise(gitClients[args[1]].commit(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.GETCOMMITHISTORY, (event, args) => {
+    handleGitPromise(gitClients[args[1]].getCommitHistory(), event, args);
+  });
+
+  ipcMain.on(Channels.CHECKOUT, (event, args) => {
+    handleGitPromise(gitClients[args[1]].checkout(args[2], args[3], args[4]), event, args);
+  });
+
+  ipcMain.on(Channels.UNDOFILECHANGES, (event, args) => {
+    handleGitPromise(gitClients[args[1]].undoFileChanges(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.PUSH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].pushBranch(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.PULL, (event, args) => {
+    handleGitPromise(gitClients[args[1]].pull(), event, args);
+  });
+
+  ipcMain.on(Channels.GETBRANCHES, (event, args) => {
+    handleGitPromise(gitClients[args[1]].getBranches(), event, args);
+  });
+
+  ipcMain.on(Channels.MERGE, (event, args) => {
+    handleGitPromise(gitClients[args[1]].merge(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.HARDRESET, (event, args) => {
+    handleGitPromise(gitClients[args[1]].hardReset(), event, args);
+  });
+
+  ipcMain.on(Channels.DELETEFILES, (event, args) => {
+    let promises = [];
+    let files: string[] = args[2];
+    for (let f of files) {
+      promises.push(new Promise((resolve, reject) => {
+        let path1 = path.join(args[1], f);
+        console.log(path1);
+        fs.unlink(path1, err => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      }));
+    }
+    handleGitPromise(Promise.all(promises), event, args);
   });
 } catch (e) {
   // Catch Error

@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -21,8 +21,8 @@
     "build:dev": "npm run build -- -c dev",
     "build:prod": "npm run build -- -c production",
     "ng:serve": "del-cli dist/**/* && ng build --watch",
-    "electron:tsc": "tsc",
-    "electron:serve": "nodemon --watch src --watch dist --watch main.ts -e ts,html,scss --exec \"npm run electron:tsc && electron .\"",
+    "electron:tsc": "tsc main.ts --lib es5,es6,dom || echo",
+    "electron:serve": "nodemon --watch src --watch shared --watch git --watch dist --watch main.ts -e ts,html,scss --exec \"npm run electron:tsc && electron .\"",
     "electron:local": "npm run build:prod && electron .",
     "electron:linux": "npm run build:prod && npx electron-builder build --linux",
     "electron:windows": "npm run build:prod && npx electron-builder build --windows",
@@ -34,9 +34,10 @@
     "codelyzer": "^4.4.2",
     "electron-log": "^2.2.14",
     "electron-updater": "^2.21.10",
+    "node-notifier": "^5.2.1",
     "nodemon": "^1.17.5",
     "opn": "^5.3.0",
-    "pretty-checkbox": "^3.0.3",
+    "pretty-checkbox": "^3.0.3"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "0.6.8",

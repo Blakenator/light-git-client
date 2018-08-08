@@ -1,0 +1,12 @@
+<div>
+  <label>Match on:
+    <select class="form-control" [(ngModel)]="matchingSelection">
+      <option value="words">Words</option>
+      <option value="lines">Lines</option>
+      <option value="none">None</option>
+    </select>
+  </label>
+</div>
+<div [innerHtml]="getDiffHtml()" *ngIf="diffString">
+
+</div>

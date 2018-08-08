@@ -1,0 +1,9 @@
+<label>Repo Path
+  <input class="form-control" (keyup.enter)="readyClicked()" [(ngModel)]="repoPath"/>
+</label>
+<!--<label class="btn btn-light">-->
+  <!--<input class="form-control d-none" (onchange)="doBrowse($event)" type="file" webkitdirectory directory-->
+         <!--[(ngModel)]="repoPath"/>-->
+  <!--Browse-->
+<!--</label>-->
+<button class="btn btn-success" (click)="readyClicked()">Load</button>

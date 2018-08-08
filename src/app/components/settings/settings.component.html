@@ -12,12 +12,20 @@
         </button>
       </div>
       <div class="modal-body">
-          <div class="pretty p-switch p-fill mx-2">
-            <input type="checkbox" [(ngModel)]="advanced"/>
-            <div class="state">
-              <label>Advanced</label>
-            </div>
+        <div class="pretty p-switch p-fill mx-2">
+          <input type="checkbox" [(ngModel)]="tempSettings.darkMode"/>
+          <div class="state">
+            <label>{{tempSettings.darkMode?'dark':'light'}}</label>
           </div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="pretty p-switch p-fill mx-2">
+          <input type="checkbox" [(ngModel)]="advanced"/>
+          <div class="state">
+            <label>Advanced</label>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-success" (click)="saveSettings()">Save</button>

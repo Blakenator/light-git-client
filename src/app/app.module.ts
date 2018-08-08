@@ -22,6 +22,11 @@ import {SettingsComponent} from './components/settings/settings.component';
 import {SettingsService} from './providers/settings.service';
 import {LoadingSpinnerComponent} from './components/loading-spinner/loading-spinner.component';
 import { RepoViewComponent } from './components/repo-view/repo-view.component';
+import { ChangeListComponent } from './components/change-list/change-list.component';
+import { DiffViewerComponent } from './components/diff-viewer/diff-viewer.component';
+import { CommitHistoryComponent } from './components/commit-history/commit-history.component';
+import { ErrorMessageComponent } from './components/error-message/error-message.component';
+import { NewTabPageComponent } from './components/new-tab-page/new-tab-page.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -37,6 +42,11 @@ export function HttpLoaderFactory(http: HttpClient) {
     SettingsComponent,
     LoadingSpinnerComponent,
     RepoViewComponent,
+    ChangeListComponent,
+    DiffViewerComponent,
+    CommitHistoryComponent,
+    ErrorMessageComponent,
+    NewTabPageComponent,
   ],
   imports: [
     BrowserModule,
