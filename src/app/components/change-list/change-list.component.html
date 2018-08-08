@@ -1,0 +1,47 @@
+<table>
+  <thead>
+  <tr>
+    <th>
+      <div class="pretty p-icon p-curve">
+        <input type="checkbox" [(ngModel)]="selectAll" (change)="toggleSelectAll()"/>
+        <div class="state">
+          <i class="icon material-icons">check</i>
+          <label></label>
+        </div>
+      </div>
+    </th>
+    <th></th>
+    <th>
+      File
+    </th>
+    <th></th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr *ngFor="let c of changes" (click)="onSelectChanged.emit();selectedChanges[c.file]=!selectedChanges[c.file]" class="change">
+    <td>
+      <div class="pretty p-icon p-curve">
+        <input type="checkbox" (change)="onSelectChanged.emit()" [(ngModel)]="selectedChanges[c.file]"/>
+        <div class="state">
+          <i class="icon material-icons">check</i>
+          <label></label>
+        </div>
+      </div>
+    </td>
+    <td>
+      <i class="fas fa-{{getChangeType(c)}}"></i>
+    </td>
+    <td>
+      {{c.file}}
+    </td>
+    <td class="btn-group">
+      <button class="btn btn-outline-warning" (click)="undoFileClicked(c.file)"><i class="fa fa-undo"></i></button>
+      <button class="btn btn-outline-success" (click)="mergeClicked(c.file)" *ngIf="isMergeConflict(c.change)">
+        <i class="material-icons">merge_type</i>
+      </button>
+      <button class="btn btn-outline-danger" (click)="deleteClicked(c.file)"><i class="material-icons">delete</i>
+      </button>
+    </td>
+  </tr>
+  </tbody>
+</table>

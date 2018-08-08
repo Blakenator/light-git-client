@@ -1,0 +1,21 @@
+<div class="dialog-container" *ngIf="errorMessage&&errorMessage.error">
+  <div class="dialog-window card">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title center-text-vertical"><i class="material-icons">error</i> An Error Occurred</h5>
+        <button type="button" class="close" (click)="close()">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>An error occurred while executing the command:</p>
+        <pre>
+          {{errorMessage.error}}
+        </pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="close()">Ok</button>
+      </div>
+    </div>
+  </div>
+</div>

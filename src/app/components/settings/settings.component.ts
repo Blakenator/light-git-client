@@ -21,6 +21,7 @@ export class SettingsComponent implements OnInit {
   ngOnInit() {
     let callback = () => {
       this.tempSettings = this.settingsService.settings;
+      (<any>window).setTheme(this.settingsService.settings.darkMode?'dark':'light');
     };
     this.settingsService.loadSettings(callback);
     this.settingsService.listenSettings(callback);
