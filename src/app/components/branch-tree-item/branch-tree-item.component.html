@@ -1,0 +1,49 @@
+<div>
+  <div (click)="toggleChildrenVisible()" *ngIf="currentPath" class="folder">
+    <i [ngClass]="{fa:true,'fa-caret-right':!showChildren,'fa-caret-down':showChildren}"></i>
+    <span>{{getDisplayPath()}}</span>
+  </div>
+  <div *ngIf="showChildren" [ngClass]="{children:currentPath}">
+    <div *ngFor="let b of leaves | filterObject : 'name' : filter" class="branch">
+      <div *ngIf="isLocal">
+      <span [ngClass]="{'bold':b.isCurrentBranch}">
+            {{getLeafName(b.name)}} ({{b.trackingPath}}) -
+            {{b.ahead||0}} <i class="fas fa-arrow-up"></i>
+            {{b.behind||0}} <i class="fas fa-arrow-down"></i>
+          </span>
+        <button class="btn btn-light btn-sm"
+                (click)="onCheckoutClicked.emit(b.name)"
+                title="Checkout"
+                *ngIf="!b.isCurrentBranch">
+          <i class="fa fa-shopping-cart"></i>
+        </button>
+        <button class="btn btn-light btn-sm" (click)="onPullClicked.emit()" *ngIf="b.isCurrentBranch" title="Pull">
+          <i class="fa fa-arrow-down"></i>
+        </button>
+        <button class="btn btn-light btn-sm" (click)="onPushClicked.emit(b.name)" title="Push"><i class="fa fa-arrow-up"></i>
+        </button>
+        <button class="btn btn-danger btn-sm" (click)="onDeleteClicked.emit(b.name)" title="Delete"><i class="fa fa-trash"></i>
+        </button>
+      </div>
+      <div *ngIf="!isLocal">
+        <span>{{getLeafName(b.name)}}</span>
+        <button class="btn btn-light btn-sm"
+                (click)="onCheckoutClicked.emit(b.name)"
+                *ngIf="!isRemoteAlreadyCheckedOut(b.name)">
+          <i class="fa fa-cart-arrow-down"></i>
+        </button>
+      </div>
+    </div>
+    <div *ngFor="let info of children">
+      <app-branch-tree-item [branches]="info.branches"
+                            [currentPath]="getChildPath(info.path)"
+                            [filter]="filter"
+                            [isLocal]="isLocal"
+                            (onCheckoutClicked)="onCheckoutClicked.emit($event)"
+                            (onPushClicked)="onPushClicked.emit($event)"
+                            (onPullClicked)="onPullClicked.emit()"
+                            (onDeleteClicked)="onDeleteClicked.emit($event)"
+                            [localBranches]="localBranches"></app-branch-tree-item>
+    </div>
+  </div>
+</div>

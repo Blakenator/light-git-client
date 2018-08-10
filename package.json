@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -20,7 +20,7 @@
     "build": "npm run electron:tsc && ng build",
     "build:dev": "npm run build -- -c dev",
     "build:prod": "npm run build -- -c production",
-    "ng:serve": "del-cli dist/**/* && ng build --watch",
+    "ng:serve": "del-cli dist/**/* && ng build --watch \r\n",
     "electron:tsc": "tsc main.ts --lib es5,es6,dom || echo",
     "electron:serve": "nodemon --watch src --watch shared --watch git --watch dist --watch main.ts -e ts,html,scss --exec \"npm run electron:tsc && electron .\"",
     "electron:local": "npm run build:prod && electron .",

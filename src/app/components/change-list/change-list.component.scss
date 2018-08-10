@@ -1,8 +1,25 @@
-.change{
-  &:hover{
-    background-color: rgba(128,128,128,.2);
+.change {
+
+  &:hover {
+    background-color: rgba(128, 128, 128, .2);
   }
-  &:active{
-    background-color: rgba(100,100,190,.2);
+  &:active {
+    background-color: rgba(100, 100, 190, .2);
   }
+}
+
+.change-filename {
+  max-height: 1.5em;
+  overflow-y: hidden;
+  transition: max-height .5s;
+
+  &:hover {
+    max-height: 10em;
+    overflow-y: auto;
+  }
+}
+
+.table td {
+  padding: .5rem;
+  vertical-align: middle;
 }

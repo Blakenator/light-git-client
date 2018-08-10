@@ -1,0 +1,16 @@
+.children {
+  margin-left: .5em;
+  border-left: dotted .1em rgba(128, 128, 128, .3);
+  padding-left: .5em;
+}
+
+.branch {
+  padding: .2em;
+  &:hover {
+    background-color: rgba(128, 128, 128, .3);
+  }
+}
+
+.folder {
+  cursor: pointer;
+}

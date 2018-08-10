@@ -29,6 +29,8 @@ export class ChangeListComponent implements OnInit {
         return 'minus';
       case ChangeType.MergeConflict:
         return 'exclamation-triangle';
+      case ChangeType.Rename:
+        return 'registered';
       case ChangeType.Modified:
       default:
         return 'pen-square';
@@ -59,5 +61,10 @@ export class ChangeListComponent implements OnInit {
 
   deleteClicked(file: string) {
     this.onDeleteClicked.emit([file]);
+  }
+
+  toggleSelect(file: string) {
+    this.selectedChanges[file] = !this.selectedChanges[file];
+    this.onSelectChanged.emit();
   }
 }

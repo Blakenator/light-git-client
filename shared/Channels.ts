@@ -20,4 +20,5 @@ export namespace Channels {
   export const MERGE = "merge";
   export const DELETEFILES = "deleteFiles";
   export const HARDRESET = "hardReset";
+  export const DELETEBRANCH = "deleteBranch";
 }
