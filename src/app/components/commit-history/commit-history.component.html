@@ -13,7 +13,9 @@
     <td [title]="c.message">{{c.message.length>300 ? c.message.substring(0,300) + '...': c.message}}</td>
     <td [title]="c.authorName">{{c.authorName}}</td>
     <td [title]="c.authorEmail">{{c.authorEmail}}</td>
-    <td [title]="c.authorDate | date">{{c.authorDate | date}}</td>
+    <td [title]="c.authorDate | date : 'full'">
+      {{c.authorDate | date : 'short'}}
+    </td>
     <td [title]="c.hash">{{c.hash.substr(0,8)}}</td>
   </tr>
   </tbody>

@@ -1,71 +1,80 @@
-<head>
+<head *ngIf="repo">
   <title>Light Git - {{repo.name}} - {{getCurrentBranch().name}}</title>
 </head>
 <div *ngIf="repo" (focus)="getFileChanges()" class="row">
   <div class="col-sm-7 col-md-5 d-flex flex-column ">
     <h1>{{repo.name}}
-      <button class="btn btn-primary" (click)="openTerminal()"><i class="fas fa-terminal"></i></button>
-      <button class="btn btn-primary" (click)="openFolder()"><i class="fas fa-folder-open"></i></button>
+      <span class="d-inline-block btn-group">
+        <button class="btn btn-primary" (click)="openTerminal()"><i class="fas fa-terminal"></i></button>
+        <button class="btn btn-info" (click)="openFolder()"><i class="fas fa-folder-open"></i></button>
+        <button class="btn btn-primary" (click)="getFileChanges()"><i class="fas fa-sync-alt"></i></button>
+        <button class="btn btn-warning" (click)="hardReset()">
+          <i class="fa fa-undo"></i>
+          Undo All
+        </button>
+      </span>
     </h1>
-    <h3>locals</h3>
-    <div class="branch-container">
-      <div *ngFor="let b of repo.localBranches" class="branch btn-light">
-        <span [ngClass]="{'bold':b.isCurrentBranch}">
-          {{b.name}} ({{b.trackingPath}}) -
-          {{b.ahead||0}} <i class="fas fa-arrow-up"></i>
-          {{b.behind||0}} <i class="fas fa-arrow-down"></i>
-        </span>
-        <button class="btn btn-light" (click)="checkout(b.name,false)" title="Checkout" *ngIf="!b.isCurrentBranch">
-          <i class="fa fa-cart-arrow-down"></i>
-        </button>
-        <button class="btn btn-light" (click)="pull()" *ngIf="b.isCurrentBranch" title="Pull">
-          <i class="fa fa-arrow-down"></i>
-        </button>
-        <button class="btn btn-light" (click)="push(b.name,false)" title="Push"><i class="fa fa-arrow-up"></i></button>
+    <div class="card">
+      <div class="card-header form-inline">Locals
+        <input class="ml-2 form-control"
+               placeholder="Filter..."
+               [(ngModel)]="localBranchFilter">
+      </div>
+      <div class="card-body branch-container">
+        <app-branch-tree-item [isLocal]="true"
+                              [filter]="localBranchFilter"
+                              [branches]="repo.localBranches"
+                              (onCheckoutClicked)="checkout($event,false)"
+                              (onPushClicked)="push($event,false)"
+                              (onPullClicked)="pull()"
+                              (onDeleteClicked)="deleteBranch($event)"></app-branch-tree-item>
       </div>
     </div>
-    <h3>remotes</h3>
-    <div class="branch-container">
-      <div *ngFor="let b of repo.remoteBranches" class="branch btn-light">
-        <span>{{b.name}}</span>
-        <button class="btn btn-light" (click)="checkout(b.name,true)" *ngIf="!isRemoteAlreadyCheckedOut(b.name)">
-          <i class="fa fa-download"></i></button>
+    <div class="card">
+      <div class="card-header form-inline">Remotes
+        <input class="ml-2 form-control"
+               placeholder="Filter..."
+               [(ngModel)]="remoteBranchFilter">
       </div>
-    </div>
-    <div class="btn-group">
-      <button class="btn btn-primary" (click)="getFileChanges()"><i class="fas fa-sync-alt"></i></button>
-      <button class="btn btn-warning" (click)="hardReset()">
-        <i class="fa fa-undo"></i>
-        Undo All
-      </button>
+      <div class="card-body">
+        <app-branch-tree-item [isLocal]="false"
+                              [filter]="remoteBranchFilter"
+                              [branches]="repo.remoteBranches"
+                              (onCheckoutClicked)="checkout($event,true)"
+                              [localBranches]="repo.localBranches"></app-branch-tree-item>
+      </div>
     </div>
     <div *ngIf="changes" class="flex-grow-1">
       <div class="card">
-        <p class="card-header">Unstaged Changes ({{changes.unstagedChanges.length}})
-          <button class="btn btn-secondary" (click)="stageAll()">Stage All</button>
-          <button class="btn btn-secondary" (click)="stageSelected()">Stage Selected</button>
+        <p class="card-header">staged changes ({{changes.stagedChanges.length}})
+          <button class="btn btn-secondary" (click)="unstageAll()" title="Unstage All">
+            <i class="fa fa-angle-double-down"></i></button>
+          <button class="btn btn-secondary" (click)="unstageSelected()" title="Unstage Selected">
+            <i class="fa fa-angle-down"></i></button>
         </p>
-        <div class="card-body change-body">
-          <app-change-list [changes]="changes.unstagedChanges"
-                           [selectedChanges]="selectedUnstagedChanges"
-                           (onSelectChanged)="getFileDiff()"
+        <div class="change-body">
+          <app-change-list [changes]="changes.stagedChanges"
+                           [selectedChanges]="selectedStagedChanges"
+                           (onSelectChanged)="getFileDiff();showDiff=true"
                            (onUndoFileClicked)="undoFileChanges($event)"
                            (onMergeClicked)="merge($event)"
                            (onDeleteClicked)="deleteClicked($event)"></app-change-list>
         </div>
       </div>
       <div class="card">
-        <p class="card-header">staged changes ({{changes.stagedChanges.length}})
-          <button class="btn btn-secondary" (click)="unstageAll()">Unstage All</button>
-          <button class="btn btn-secondary" (click)="unstageSelected()">Unstage Selected</button>
+        <p class="card-header">Unstaged Changes ({{changes.unstagedChanges.length}})
+          <button class="btn btn-secondary" (click)="stageAll()" title="Stage All"><i class="fa fa-angle-double-up"></i>
+          </button>
+          <button class="btn btn-secondary" (click)="stageSelected()" title="Stage Selected">
+            <i class="fa fa-angle-up"></i></button>
         </p>
-        <div class="card-body change-body">
-          <app-change-list [changes]="changes.stagedChanges"
-                           [selectedChanges]="selectedStagedChanges"
-                           (onSelectChanged)="getFileDiff()"
+        <div class="change-body">
+          <app-change-list [changes]="changes.unstagedChanges"
+                           [selectedChanges]="selectedUnstagedChanges"
+                           (onSelectChanged)="getFileDiff();showDiff=true"
                            (onUndoFileClicked)="undoFileChanges($event)"
                            (onMergeClicked)="merge($event)"
-                           (onDeleteClicked)="deleteClicked($event)"></app-change-list>
+                           (onDeleteClicked)="deleteBranch($event)"></app-change-list>
         </div>
       </div>
     </div>
@@ -94,9 +103,11 @@
           </div>
         </div>
       </div>
-      <div class="card-body">
-        <app-diff-viewer *ngIf="showDiff" [diffString]="diffString"></app-diff-viewer>
-        <app-commit-history *ngIf="!showDiff" [commitHistory]="commitHistory"></app-commit-history>
+      <div>
+        <div class="card-body" *ngIf="showDiff">
+          <app-diff-viewer [diffString]="diffString"></app-diff-viewer>
+        </div>
+        <app-commit-history [commitHistory]="commitHistory" *ngIf="!showDiff"></app-commit-history>
       </div>
     </div>
   </div>

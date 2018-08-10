@@ -1,4 +1,4 @@
-<table>
+<table class="table table-striped">
   <thead>
   <tr>
     <th>
@@ -18,29 +18,32 @@
   </tr>
   </thead>
   <tbody>
-  <tr *ngFor="let c of changes" (click)="onSelectChanged.emit();selectedChanges[c.file]=!selectedChanges[c.file]" class="change">
+  <tr *ngFor="let c of changes"
+      (click)="toggleSelect(c.file)"
+      class="change">
     <td>
-      <div class="pretty p-icon p-curve">
-        <input type="checkbox" (change)="onSelectChanged.emit()" [(ngModel)]="selectedChanges[c.file]"/>
-        <div class="state">
-          <i class="icon material-icons">check</i>
-          <label></label>
-        </div>
-      </div>
+      <i [ngClass]="{far:true,'fa-check-square':selectedChanges[c.file],'fa-square':!selectedChanges[c.file]}"></i>
     </td>
     <td>
       <i class="fas fa-{{getChangeType(c)}}"></i>
     </td>
     <td>
-      {{c.file}}
+      <div class="change-filename" [title]="c.file">
+        {{c.file}}
+      </div>
     </td>
-    <td class="btn-group">
-      <button class="btn btn-outline-warning" (click)="undoFileClicked(c.file)"><i class="fa fa-undo"></i></button>
-      <button class="btn btn-outline-success" (click)="mergeClicked(c.file)" *ngIf="isMergeConflict(c.change)">
-        <i class="material-icons">merge_type</i>
-      </button>
-      <button class="btn btn-outline-danger" (click)="deleteClicked(c.file)"><i class="material-icons">delete</i>
-      </button>
+    <td class="center-text-vertical">
+      <div class="btn-group">
+        <button class="btn btn-outline-warning btn-sm" (click)="undoFileClicked(c.file)">
+          <i class="fa fa-undo"></i>
+        </button>
+        <button class="btn btn-outline-success btn-sm" (click)="mergeClicked(c.file)" *ngIf="isMergeConflict(c.change)">
+          <i class="material-icons">merge_type</i>
+        </button>
+        <button class="btn btn-outline-danger btn-sm" (click)="deleteClicked(c.file)">
+          <i class="material-icons">delete</i>
+        </button>
+      </div>
     </td>
   </tr>
   </tbody>

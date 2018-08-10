@@ -59,6 +59,7 @@ function getReplyChannel(arg) {
 }
 
 function saveSettings(settingsModel: SettingsModel) {
+  Object.assign(settingsModel, settingsModel);
   fs.writeFileSync(getSettingsPath(), JSON.stringify(settingsModel), {encoding: 'utf8'});
 }
 
@@ -68,12 +69,14 @@ function loadSettings(callback: Function) {
       if (err) {
         throw err;
       }
-      callback(Object.assign(new SettingsModel(), JSON.parse(data)));
+      const res = Object.assign(new SettingsModel(), JSON.parse(data));
+      Object.assign(settings, res);
+      callback(res);
     });
   } else {
-    let settingsModel = new SettingsModel();
-    saveSettings(settingsModel);
-    callback(settingsModel);
+    Object.assign(settings, new SettingsModel());
+    saveSettings(settings);
+    callback(settings);
   }
 }
 
@@ -90,7 +93,7 @@ function stopWatchingSettings() {
 }
 
 function loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
-  gitClients[repoPath] = new GitClient(repoPath);
+  gitClients[repoPath] = new GitClient(repoPath, settings);
   loadedRepos[repoPath] = gitClients[repoPath].openRepo();
   return loadedRepos[repoPath];
 }
@@ -106,6 +109,7 @@ function checkForUpdates() {
 
 
 let updateDownloaded = false;
+let settings: SettingsModel = new SettingsModel();
 let userInitiatedUpdate = false;
 let isWatchingSettingsDir;
 let loadedRepos: { [key: number]: Promise<RepositoryModel> } = {};
@@ -273,6 +277,10 @@ try {
 
   ipcMain.on(Channels.HARDRESET, (event, args) => {
     handleGitPromise(gitClients[args[1]].hardReset(), event, args);
+  });
+
+  ipcMain.on(Channels.DELETEBRANCH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].deleteBranch(args[2]), event, args);
   });
 
   ipcMain.on(Channels.DELETEFILES, (event, args) => {

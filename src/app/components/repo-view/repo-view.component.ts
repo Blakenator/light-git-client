@@ -23,6 +23,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   showDiff = false;
   errorMessage: { error: string };
   @Input() repoPath = "C:/Users/blake/Documents/projects/test-repo";
+  localBranchFilter: string;
+  remoteBranchFilter: string;
   private interval;
 
   constructor(private electronService: ElectronService,
@@ -90,6 +92,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.electronService.rpc(Channels.GETBRANCHES, [this.repo.path,]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
   }
 
+  deleteBranch(branch) {
+    this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path,branch]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
+  }
+
   openTerminal() {
     this.electronService.rpc(Channels.OPENTERMINAL, [this.repo.path,]).then(ignore => {
     });
@@ -103,6 +109,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   getFileDiff() {
     let unstaged = Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).join(' ');
     let staged = Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).join(' ');
+    if (!staged.trim() && !unstaged.trim()) {
+      unstaged = '.';
+      staged = '.';
+    }
     this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]).then(diff => {
       this.diffString = diff;
       this.applicationRef.tick();
@@ -186,6 +196,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   getCurrentBranch(): BranchModel {
     return this.repo.localBranches.find(x => x.isCurrentBranch);
+  }
+
+  getBranchName(branch: BranchModel) {
+    return branch.name;
   }
 
   private clearSelectedChanges() {

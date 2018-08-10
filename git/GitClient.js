@@ -8,8 +8,9 @@ var CommitSummary_model_1 = require("../shared/CommitSummary.model");
 var command_history_model_1 = require("../shared/command-history.model");
 var exec = require('child_process').exec;
 var GitClient = /** @class */ (function () {
-    function GitClient(workingDir) {
+    function GitClient(workingDir, settings) {
         this.workingDir = workingDir;
+        this.settings = settings;
         this.commandHistory = [];
     }
     GitClient.prototype.getCommandHistory = function () {
@@ -31,7 +32,7 @@ var GitClient = /** @class */ (function () {
             var result = new Commit_model_1.CommitModel();
             var promises = [];
             var changeList = /^(.)(.)\s*(.*)$/gm;
-            promises.push(_this.execute("git status --porcelain", "Get Status").then(function (text) {
+            promises.push(_this.execute(_this.settings.gitPath + "  status --porcelain", "Get Status").then(function (text) {
                 var match = changeList.exec(text);
                 while (match) {
                     if (match[1] !== Commit_model_1.ChangeType.Untracked && match[1] !== ' ') {
@@ -57,72 +58,85 @@ var GitClient = /** @class */ (function () {
     GitClient.prototype.stage = function (file) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.execute("git add " + file, "Stage File").then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); });
+            _this.execute(_this.settings.gitPath + " add -- " + file, "Stage File").then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); });
         });
     };
     GitClient.prototype.unstage = function (file) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.execute("git undoFileChanges " + file, "Unstage File").then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); });
+            _this.execute(_this.settings.gitPath + " reset -- " + file, "Unstage File").then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); });
+        });
+    };
+    GitClient.prototype.deleteBranch = function (branch) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            console.log(_this.settings.gitPath + " branch -d -- " + branch);
+            _this.execute(_this.settings.gitPath + " branch -d -- " + branch, "Delete Branch").then(function (text) { return _this.getBranches().then(resolve)["catch"](reject); });
         });
     };
     GitClient.prototype.openTerminal = function () {
-        this.execute("start bash --login", "Open Terminal").then(console.log);
+        this.execute("start " + this.settings.bashPath + " --login", "Open Terminal").then(console.log);
     };
     GitClient.prototype.getDiff = function (unstaged, staged) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.execute("git diff " + unstaged + " && git diff --staged " + staged, "Get Diff").then(resolve)["catch"](reject);
+            var command = [];
+            if (unstaged.trim()) {
+                command.push(_this.settings.gitPath + " diff -- " + unstaged);
+            }
+            if (staged.trim()) {
+                command.push(_this.settings.gitPath + " diff --staged -- " + staged);
+            }
+            _this.execute(command.join(' && '), "Get Diff").then(resolve)["catch"](reject);
         });
     };
     GitClient.prototype.commit = function (message, push) {
         var _this = this;
         return new Promise(function (resolve, reject) {
             var s = message.replace(/\"/g, "").replace(/\r?\n/g, '" -m "');
-            _this.execute("sh -c 'git commit -m \"" + s + "\"" + (push ? "' && git push" : ""), "Commit").then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); });
+            _this.execute(_this.settings.bashPath + " -c '" + _this.settings.gitPath + "  commit -m \"" + s + "\"" + (push ? "' && " + _this.settings.gitPath + "  push" : ""), "Commit").then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); });
         });
     };
     GitClient.prototype.checkout = function (tag, toNewBranch, branchName) {
         var _this = this;
         if (branchName === void 0) { branchName = ''; }
         return new Promise(function (resolve, reject) {
-            _this.execute("git checkout " + tag + (toNewBranch ? " -b " + (branchName || tag.replace('origin/', '')) : ""), "Checkout")
+            _this.execute(_this.settings.gitPath + " checkout " + tag + (toNewBranch ? " -b " + (branchName || tag.replace('origin/', '')) : ""), "Checkout")
                 .then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); })["catch"](reject);
         });
     };
     GitClient.prototype.undoFileChanges = function (file, revision) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.execute("git checkout " + (revision || 'HEAD') + ' -- ' + file, "Undo File Changes")
+            _this.execute(_this.settings.gitPath + " checkout " + (revision || 'HEAD') + ' -- ' + file, "Undo File Changes")
                 .then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); })["catch"](reject);
         });
     };
     GitClient.prototype.hardReset = function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.execute("git reset --hard", "Hard Reset/Undo All")
+            _this.execute(_this.settings.gitPath + " reset --hard", "Hard Reset/Undo All")
                 .then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); })["catch"](reject);
         });
     };
     GitClient.prototype.merge = function (file, tool) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            console.log("git mergetool --tool=" + (tool || 'meld') + file);
-            _this.execute("git mergetool --tool=" + (tool || 'meld') + ' ' + file, "Resolve Merge Conflict")
+            _this.execute(_this.settings.gitPath + " mergetool --tool=" + (tool || 'meld') + ' ' + file, "Resolve Merge Conflict")
                 .then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); })["catch"](reject);
         });
     };
     GitClient.prototype.pushBranch = function (branch, force) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.execute("git push origin " + (branch ? branch + ':' + branch : '') + (force ? ' --force' : ''), "Push")
+            _this.execute(_this.settings.gitPath + " push origin " + (branch ? branch + ':' + branch : '') + (force ? ' --force' : ''), "Push")
                 .then(function (text) { return _this.getChanges().then(resolve)["catch"](reject); })["catch"](reject);
         });
     };
     GitClient.prototype.pull = function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.execute("git pull", "Pull")
+            _this.execute(_this.settings.gitPath + " pull", "Pull")
                 .then(function (text) {
                 console.log(text);
                 _this.getChanges().then(resolve)["catch"](reject);
@@ -134,7 +148,7 @@ var GitClient = /** @class */ (function () {
     GitClient.prototype.getCommitHistory = function () {
         var _this = this;
         return new Promise((function (resolve, reject) {
-            _this.execute("git log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%B\"\n", "Get Commit History").then(function (text) {
+            _this.execute(_this.settings.gitPath + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%B\"\n", "Get Commit History").then(function (text) {
                 var result = [];
                 var branchList = /\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|([^|]*)/g;
                 var match = branchList.exec(text);
@@ -158,7 +172,7 @@ var GitClient = /** @class */ (function () {
             var result = new Repository_model_1.RepositoryModel();
             var promises = [];
             var branchList = /^(\*)?\s*(\S+)\s+(\S+)\s+(\[\s*(\S+?)(\s*:\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\s*(.*)?$/gm;
-            promises.push(_this.execute("git branch -v -v", "Get Local Branches").then(function (text) {
+            promises.push(_this.execute(_this.settings.gitPath + " branch -v -v", "Get Local Branches").then(function (text) {
                 var match = branchList.exec(text);
                 while (match) {
                     var branchModel = new Branch_model_1.BranchModel();
@@ -180,7 +194,8 @@ var GitClient = /** @class */ (function () {
                     match = branchList.exec(text);
                 }
             }));
-            promises.push(_this.execute("git branch -r -v -v", "Get Remote Branches").then(function (text) {
+            promises.push(_this.execute(_this.settings.gitPath + "  fetch", "Fetch Remote Branches"));
+            promises.push(_this.execute(_this.settings.gitPath + " branch -r -v -v", "Get Remote Branches").then(function (text) {
                 var match = branchList.exec(text);
                 while (match) {
                     var branchModel = new Branch_model_1.BranchModel();
