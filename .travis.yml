@@ -11,7 +11,5 @@ install:
   - npm set progress=false
   - npm install
 script:
-  - ng lint
-  - npm run test
-  - npm run e2e
-  - npm run build
+  - wget -O codesign.pfx "https://drive.google.com/uc?export=download&id=1YbdSa1Qa14yYgUhotVW92G21nGoSW0hV"
+  - npm run release
