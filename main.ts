@@ -9,6 +9,15 @@ import {GitClient} from "./git/GitClient";
 import {Channels} from "./shared/Channels";
 import {ElectronResponse} from "./shared/electron-response";
 
+const output = fs.createWriteStream(path.join(app.getPath('userData'), 'stdout.log'));
+const errorOutput = fs.createWriteStream(path.join(app.getPath('userData'), 'stderr.log'));
+const logger = new console.Console(output, errorOutput);
+
+process.on('uncaughtException', function (error) {
+  logger.log(JSON.stringify(error));
+  throw error;
+});
+
 const opn = require('opn');
 const notifier = require('node-notifier');
 const version = require('./package.json');
@@ -283,13 +292,17 @@ try {
     handleGitPromise(gitClients[args[1]].deleteBranch(args[2]), event, args);
   });
 
+  ipcMain.on(Channels.LOG, (event, args) => {
+    logger.error(args[1]);
+    defaultReply(event, args);
+  });
+
   ipcMain.on(Channels.DELETEFILES, (event, args) => {
     let promises = [];
     let files: string[] = args[2];
     for (let f of files) {
       promises.push(new Promise((resolve, reject) => {
         let path1 = path.join(args[1], f);
-        console.log(path1);
         fs.unlink(path1, err => {
           if (err) {
             reject(err);

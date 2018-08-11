@@ -2,7 +2,7 @@ import 'zone.js/dist/zone-mix';
 import 'reflect-metadata';
 import '../polyfills';
 import {BrowserModule} from '@angular/platform-browser';
-import {NgModule} from '@angular/core';
+import {ErrorHandler, NgModule} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 
 import {HttpClient, HttpClientModule} from '@angular/common/http';
@@ -30,6 +30,7 @@ import {NewTabPageComponent} from './components/new-tab-page/new-tab-page.compon
 import {FilterObjectPipe, FilterPipe} from './directives/filter.pipe';
 import {BranchTreeItemComponent} from './components/branch-tree-item/branch-tree-item.component';
 import {FileInputComponent} from './components/common/file-input/file-input.component';
+import {GlobalErrorHandlerService} from "./components/common/global-error-handler.service";
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -68,7 +69,11 @@ export function HttpLoaderFactory(http: HttpClient) {
       }
     })
   ],
-  providers: [ElectronService, SettingsService],
+  providers: [ElectronService, SettingsService,
+    {
+      provide: ErrorHandler,
+      useClass: GlobalErrorHandlerService
+    }],
   bootstrap: [AppComponent]
 })
 export class AppModule {

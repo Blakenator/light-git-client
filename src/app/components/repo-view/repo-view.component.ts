@@ -1,4 +1,4 @@
-import {ApplicationRef, Component, HostListener, Input, OnDestroy, OnInit} from '@angular/core';
+import {ApplicationRef, Component, ErrorHandler, HostListener, Input, OnDestroy, OnInit} from '@angular/core';
 import {ElectronService} from "../../providers/electron.service";
 import {SettingsService} from "../../providers/settings.service";
 import {RepositoryModel} from "../../../../shared/Repository.model";
@@ -6,6 +6,7 @@ import {CommitModel} from "../../../../shared/Commit.model";
 import {Channels} from "../../../../shared/Channels";
 import {CommitSummaryModel} from "../../../../shared/CommitSummary.model";
 import {BranchModel} from "../../../../shared/Branch.model";
+import {GlobalErrorHandlerService} from "../common/global-error-handler.service";
 
 @Component({
   selector: 'app-repo-view',
@@ -25,11 +26,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   @Input() repoPath = "C:/Users/blake/Documents/projects/test-repo";
   localBranchFilter: string;
   remoteBranchFilter: string;
+  globalErrorHandlerService: GlobalErrorHandlerService;
   private interval;
 
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
+              errorHandler: ErrorHandler,
               public applicationRef: ApplicationRef) {
+    this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
   }
 
   ngOnInit() {
@@ -93,7 +97,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   deleteBranch(branch) {
-    this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path,branch]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branch]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
   }
 
   openTerminal() {
@@ -133,6 +137,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.electronService.rpc(Channels.COMMIT, [this.repo.path, this.changes.description, this.commitAndPush]).then(changes => {
       this.handleFileChanges(changes);
       this.getCommitHistory();
+      this.changes.description = '';
     }).catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
