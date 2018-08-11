@@ -21,4 +21,5 @@ export namespace Channels {
   export const DELETEFILES = "deleteFiles";
   export const HARDRESET = "hardReset";
   export const DELETEBRANCH = "deleteBranch";
+  export const LOG = "log";
 }

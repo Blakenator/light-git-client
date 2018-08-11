@@ -8,9 +8,9 @@ import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 export class FileInputComponent implements OnInit {
   @Input() isFolder = false;
   @Input() allowMultiple = false;
-  @Input() filter:string[]= ['*'];
+  @Input() filter: string[] = ['*'];
   @Input() label = '';
-  @Input() filePath = '';
+  @Input() filePath: { path: string };
   @Output() onEnterKeyPressed = new EventEmitter<string>();
 
   constructor() {
@@ -21,8 +21,7 @@ export class FileInputComponent implements OnInit {
 
   changeFilePath($event) {
     if ($event.target.files.length > 0) {
-      this.filePath = Object.values(<{ [key: number]: { path: string } }>$event.target.files).map(x => x.path).join(",");
-      console.log($event);
+      this.filePath.path = Object.values(<{ [key: number]: { path: string } }>$event.target.files).map(x => x.path).join(",");
     }
   }
 }
