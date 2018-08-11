@@ -222,6 +222,16 @@ try {
     }
   });
 
+  ipcMain.on(Channels.CHECKFORUPDATES, (event, args) => {
+    userInitiatedUpdate = true;
+    checkForUpdates();
+    defaultReply(event, args);
+  });
+
+  ipcMain.on(Channels.GETVERSION, (event, args) => {
+    event.sender.send(getReplyChannel(args), new ElectronResponse(version.version));
+  });
+
   ipcMain.on(Channels.SAVESETTINGS, (event, args) => {
     saveSettings(args[1]);
     defaultReply(event, args);
