@@ -12,6 +12,13 @@
         </button>
       </div>
       <div class="modal-body">
+        <p>
+          Light Git v{{version}}
+          <button class="btn btn-sm btn-primary" (click)="checkForUpdates()">
+            Check for Updates
+            <i class="fa fa-sync"></i>
+          </button>
+        </p>
         <div class="pretty p-switch p-fill mx-2">
           <input type="checkbox" [(ngModel)]="tempSettings.darkMode"/>
           <div class="state">

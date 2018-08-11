@@ -22,4 +22,6 @@ export namespace Channels {
   export const HARDRESET = "hardReset";
   export const DELETEBRANCH = "deleteBranch";
   export const LOG = "log";
+  export const GETVERSION = "getVersion";
+  export const CHECKFORUPDATES = "checkForUpdates";
 }
