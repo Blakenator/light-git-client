@@ -19,6 +19,8 @@ jobs:
     steps:
       - checkout
 
+      - run: sudo apt-get install software-properties-common python-software-properties
+
       - run: sudo dpkg --add-architecture i386
 
       - run: sudo add-apt-repository -y ppa:ubuntu-wine/ppa
