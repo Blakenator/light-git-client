@@ -1,4 +1,14 @@
-import {ApplicationRef, Component, ErrorHandler, HostListener, Input, OnDestroy, OnInit} from '@angular/core';
+import {
+  ApplicationRef,
+  Component,
+  ErrorHandler,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnDestroy,
+  OnInit,
+  Output
+} from '@angular/core';
 import {ElectronService} from "../../providers/electron.service";
 import {SettingsService} from "../../providers/settings.service";
 import {RepositoryModel} from "../../../../shared/Repository.model";
@@ -27,6 +37,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   localBranchFilter: string;
   remoteBranchFilter: string;
   globalErrorHandlerService: GlobalErrorHandlerService;
+  isLoading = false;
+  @Output() onLoadingChange = new EventEmitter<boolean>();
   private interval;
 
   constructor(private electronService: ElectronService,
@@ -134,10 +146,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (this.changes.stagedChanges.length == 0) {
       return;
     }
+    this.setLoading(true);
     this.electronService.rpc(Channels.COMMIT, [this.repo.path, this.changes.description, this.commitAndPush]).then(changes => {
       this.handleFileChanges(changes);
       this.getCommitHistory();
       this.changes.description = '';
+      this.setLoading(false);
     }).catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
@@ -226,5 +240,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   private handleErrorMessage(content: string) {
     this.errorMessage = {error: content};
+    this.setLoading(false);
+  }
+
+  private setLoading(val: boolean) {
+    this.isLoading = val;
+    this.onLoadingChange.emit(val);
   }
 }
