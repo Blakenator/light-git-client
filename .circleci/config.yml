@@ -1,3 +1,10 @@
+dependencies:
+    pre:
+        - sudo dpkg --add-architecture i386
+        - sudo add-apt-repository -y ppa:ubuntu-wine/ppa
+        - sudo apt-get update
+        - echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+        - sudo apt-get install -y wine
 # Javascript Node CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-javascript/ for more details
@@ -32,6 +39,8 @@ jobs:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
+
+      - run: wget -O codesign.pfx "https://drive.google.com/uc?export=download&id=1YbdSa1Qa14yYgUhotVW92G21nGoSW0hV"
 
       - run: npm run release
 
