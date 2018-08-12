@@ -24,4 +24,8 @@ export namespace Channels {
   export const LOG = "log";
   export const GETVERSION = "getVersion";
   export const CHECKFORUPDATES = "checkForUpdates";
+  export const DELETEWORKTREE = "deleteWorktree";
+  export const MINIMIZE = "minimize";
+  export const RESTORE = "restoreWindow";
+  export const CLOSEWINDOW = "closeWindow";
 }

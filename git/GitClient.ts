@@ -5,6 +5,7 @@ import * as path from "path";
 import {CommitSummaryModel} from "../shared/CommitSummary.model";
 import {CommandHistoryModel} from "../shared/command-history.model";
 import {SettingsModel} from "../shared/SettingsModel";
+import {WorktreeModel} from "../shared/worktree.model";
 
 const exec = require('child_process').exec;
 
@@ -71,8 +72,13 @@ export class GitClient {
 
   deleteBranch(branch: string) {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      console.log(this.settings.gitPath + " branch -d -- " + branch);
       this.execute(this.settings.gitPath + " branch -d -- " + branch, "Delete Branch").then(text => this.getBranches().then(resolve).catch(reject));
+    });
+  }
+
+  deleteWorktree(worktree: string) {
+    return new Promise<RepositoryModel>((resolve, reject) => {
+      this.execute(this.settings.gitPath + " worktree remove " + worktree, "Delete Worktree").then(text => this.getBranches().then(resolve).catch(reject));
     });
   }
 
@@ -196,7 +202,21 @@ export class GitClient {
           match = branchList.exec(text);
         }
       }));
-      promises.push(this.execute(this.settings.gitPath + "  fetch", "Fetch Remote Branches"));
+      promises.push(this.execute(this.settings.gitPath + " worktree list --porcelain", "Get Worktrees").then(text => {
+        let worktreeList = /^worktree\s+(.+?)$\s*(bare|(HEAD\s+(\S+)$\s*(detached|branch\s+(.+?)$)))/gmi;
+        let match = worktreeList.exec(text);
+        while (match) {
+          let worktreeModel = new WorktreeModel();
+          worktreeModel.name = path.basename(match[1]);
+          worktreeModel.path = match[1];
+          worktreeModel.currentBranch = match[6].replace('refs/heads/', '') || match[5];
+          worktreeModel.currentHash = match[4] || match[2];
+
+          result.worktrees.push(worktreeModel);
+          match = worktreeList.exec(text);
+        }
+      }));
+      promises.push(this.execute(this.settings.gitPath + " fetch", "Fetch Remote Branches"));
       promises.push(this.execute(this.settings.gitPath + " branch -r -v -v", "Get Remote Branches").then(text => {
         let match = branchList.exec(text);
         while (match) {
@@ -209,7 +229,11 @@ export class GitClient {
           match = branchList.exec(text);
         }
       }));
-      Promise.all(promises).then(ignore => resolve(result)).catch(ignore => reject(result));
+      Promise.all(promises).then(ignore => {
+        let currentBranchPath = result.localBranches.find(x => x.isCurrentBranch).name;
+        result.worktrees[result.worktrees.findIndex(x => x.currentBranch == currentBranchPath)].isCurrent = true;
+        resolve(result);
+      }).catch(ignore => reject(result));
     }));
   }
 

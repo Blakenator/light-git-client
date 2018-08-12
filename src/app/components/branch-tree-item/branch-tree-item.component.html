@@ -6,32 +6,45 @@
   <div *ngIf="showChildren" [ngClass]="{children:currentPath}">
     <div *ngFor="let b of leaves | filterObject : 'name' : filter" class="branch">
       <div *ngIf="isLocal">
-      <span [ngClass]="{'bold':b.isCurrentBranch}">
-            {{getLeafName(b.name)}} ({{b.trackingPath}}) -
+      <span [ngClass]="{'bold':b.isCurrentBranch,'text-muted':checkedOutOtherWorktree(b)}">
+            {{getLeafName(b.name)}}&nbsp;
+            <small *ngIf="checkedOutOtherWorktree(b)"
+                   [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
+              <i class="fa fa-lock"></i>
+            </small>
+            <i *ngIf="b.trackingPath">({{b.trackingPath}})</i>&nbsp;-
             {{b.ahead||0}} <i class="fas fa-arrow-up"></i>
             {{b.behind||0}} <i class="fas fa-arrow-down"></i>
           </span>
-        <button class="btn btn-light btn-sm"
-                (click)="onCheckoutClicked.emit(b.name)"
-                title="Checkout"
-                *ngIf="!b.isCurrentBranch">
-          <i class="fa fa-shopping-cart"></i>
-        </button>
-        <button class="btn btn-light btn-sm" (click)="onPullClicked.emit()" *ngIf="b.isCurrentBranch" title="Pull">
-          <i class="fa fa-arrow-down"></i>
-        </button>
-        <button class="btn btn-light btn-sm" (click)="onPushClicked.emit(b.name)" title="Push"><i class="fa fa-arrow-up"></i>
-        </button>
-        <button class="btn btn-danger btn-sm" (click)="onDeleteClicked.emit(b.name)" title="Delete"><i class="fa fa-trash"></i>
-        </button>
+        <div class="d-inline-block ml-3">
+          <button class="btn btn-light btn-sm"
+                  (click)="onCheckoutClicked.emit(b.name)"
+                  title="Checkout"
+                  *ngIf="!b.isCurrentBranch"
+                  [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null"
+                  [disabled]="checkedOutOtherWorktree(b)">
+            <i class="fa fa-shopping-cart"></i>
+          </button>
+          <button class="btn btn-light btn-sm" (click)="onPullClicked.emit()" *ngIf="b.isCurrentBranch" title="Pull">
+            <i class="fa fa-arrow-down"></i>
+          </button>
+          <button class="btn btn-light btn-sm" (click)="onPushClicked.emit(b.name)" title="Push">
+            <i class="fa fa-arrow-up"></i>
+          </button>
+          <button class="btn btn-danger btn-sm" (click)="onDeleteClicked.emit(b.name)" title="Delete">
+            <i class="fa fa-trash"></i>
+          </button>
+        </div>
       </div>
       <div *ngIf="!isLocal">
         <span>{{getLeafName(b.name)}}</span>
-        <button class="btn btn-light btn-sm"
-                (click)="onCheckoutClicked.emit(b.name)"
-                *ngIf="!isRemoteAlreadyCheckedOut(b.name)">
-          <i class="fa fa-cart-arrow-down"></i>
-        </button>
+        <div class="d-inline-block ml-3">
+          <button class="btn btn-light btn-sm"
+                  (click)="onCheckoutClicked.emit(b.name)"
+                  *ngIf="!isRemoteAlreadyCheckedOut(b.name)">
+            <i class="fa fa-cart-arrow-down"></i>
+          </button>
+        </div>
       </div>
     </div>
     <div *ngFor="let info of children">
@@ -43,7 +56,8 @@
                             (onPushClicked)="onPushClicked.emit($event)"
                             (onPullClicked)="onPullClicked.emit()"
                             (onDeleteClicked)="onDeleteClicked.emit($event)"
-                            [localBranches]="localBranches"></app-branch-tree-item>
+                            [localBranches]="localBranches"
+                            [worktrees]="worktrees"></app-branch-tree-item>
     </div>
   </div>
 </div>

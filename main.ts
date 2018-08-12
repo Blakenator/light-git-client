@@ -37,7 +37,7 @@ function createWindow() {
     x: 0,
     y: 0,
     width: size.width,
-    height: size.height
+    height: size.height,
   });
 
   if (serve) {
@@ -203,7 +203,7 @@ try {
   });
 
   ipcMain.on(Channels.OPENFOLDER, (event, args) => {
-    let url = args[1];
+    let url = args[2] || args[1];
     shell.openItem(url);
     defaultReply(event, args);
   });
@@ -300,6 +300,26 @@ try {
 
   ipcMain.on(Channels.DELETEBRANCH, (event, args) => {
     handleGitPromise(gitClients[args[1]].deleteBranch(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.DELETEWORKTREE, (event, args) => {
+    handleGitPromise(gitClients[args[1]].deleteWorktree(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.CLOSEWINDOW, (event, args) => {
+    win.close();
+  });
+
+  ipcMain.on(Channels.MINIMIZE, (event, args) => {
+    win.minimize();
+  });
+
+  ipcMain.on(Channels.RESTORE, (event, args) => {
+    if (win.isMaximized()) {
+      win.restore();
+    } else {
+      win.maximize();
+    }
   });
 
   ipcMain.on(Channels.LOG, (event, args) => {

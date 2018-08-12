@@ -39,6 +39,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   globalErrorHandlerService: GlobalErrorHandlerService;
   isLoading = false;
   @Output() onLoadingChange = new EventEmitter<boolean>();
+  worktreeFilter: string;
   private interval;
 
   constructor(private electronService: ElectronService,
@@ -49,16 +50,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.electronService.rpc(Channels.LOADREPO, [this.repoPath]).then(repo => {
-      this.repo = new RepositoryModel().copy(repo);
-      this.getFileChanges();
-      this.getCommitHistory();
-      this.applicationRef.tick();
-      this.interval = setInterval(() => {
-        this.getFileChanges();
-        this.getBranchChanges();
-      }, 1000 * 60 * 5);
-    });
+    this.loadRepo();
   }
 
   ngOnDestroy() {
@@ -70,7 +62,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.getFileChanges();
     this.getBranchChanges();
   }
-
 
   stageAll() {
     this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, '.']).then(changes => this.handleFileChanges(changes)).catch(err => this.handleErrorMessage(err));
@@ -117,8 +108,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     });
   }
 
-  openFolder() {
-    this.electronService.rpc(Channels.OPENFOLDER, [this.repo.path,]).then(ignore => {
+  openFolder(path: string = '') {
+    this.electronService.rpc(Channels.OPENFOLDER, [this.repo.path, path]).then(ignore => {
     });
   }
 
@@ -219,6 +210,37 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   getBranchName(branch: BranchModel) {
     return branch.name;
+  }
+
+  deleteWorktree(w) {
+    this.electronService.rpc(Channels.DELETEWORKTREE, [this.repo.path, w.name])
+      .then(changes => this.handleBranchChanges(changes))
+      .catch(err => this.handleErrorMessage(err));
+    this.clearSelectedChanges();
+  }
+
+  toggleExpandState(key: string) {
+    this.settingsService.settings.expandStates[key] = !this.settingsService.settings.expandStates[key];
+    this.settingsService.saveSettings();
+  }
+
+  getExpandState(key: string) {
+    return this.settingsService.settings.expandStates[key];
+  }
+
+  private loadRepo(path: string = '') {
+    this.repoPath = path || this.repoPath;
+    this.electronService.rpc(Channels.LOADREPO, [this.repoPath]).then(repo => {
+      this.repo = new RepositoryModel().copy(repo);
+      console.log(this.repo);
+      this.getFileChanges();
+      this.getCommitHistory();
+      this.applicationRef.tick();
+      this.interval = setInterval(() => {
+        this.getFileChanges();
+        this.getBranchChanges();
+      }, 1000 * 60 * 5);
+    });
   }
 
   private clearSelectedChanges() {

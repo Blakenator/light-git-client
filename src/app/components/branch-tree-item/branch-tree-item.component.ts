@@ -1,5 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {BranchModel} from "../../../../shared/Branch.model";
+import {WorktreeModel} from "../../../../shared/worktree.model";
 
 @Component({
   selector: 'app-branch-tree-item',
@@ -8,6 +9,7 @@ import {BranchModel} from "../../../../shared/Branch.model";
 })
 export class BranchTreeItemComponent implements OnInit {
   @Input() localBranches: BranchModel[];
+  @Input() worktrees: WorktreeModel[];
   @Input() isLocal: boolean;
   @Input() currentPath = '';
   @Input() filter = '';
@@ -78,5 +80,9 @@ export class BranchTreeItemComponent implements OnInit {
 
   isRemoteAlreadyCheckedOut(branch: string) {
     return this.localBranches.filter(x => x.name == branch.replace('origin/', '')).length > 0;
+  }
+
+  checkedOutOtherWorktree(b: BranchModel) {
+    return this.worktrees.find(x => x.currentBranch == b.name && !x.isCurrent);
   }
 }
