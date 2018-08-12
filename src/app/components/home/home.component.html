@@ -1,37 +1,35 @@
-<div class="d-flex">
-  <div class="flex-grow-1 main-panel">
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-      <a class="navbar-brand nav-item mr-5">Home</a>
-      <app-settings class="nav-item"></app-settings>
-      <app-loading-spinner [show]="isLoading" class="nav-item mx-2"></app-loading-spinner>
-      <div class="tab-container btn-group nav-item">
-        <button *ngFor="let t of tabs"
-                (click)="changeTab(t)"
-                [ngClass]="{'btn center-text-vertical':true,'btn-primary':t==activeTab,'btn-light':t!=activeTab}">
-          <span class="pr-1 center-text-vertical">
-            <span *ngIf="editingTab!=t">{{tabNames[t]}}</span>
-            <input class="form-control"
-                   autofocus
-                   *ngIf="editingTab==t"
-                   [(ngModel)]="tabNames[t]"
-                   (change)="saveOpenRepos()"
-                   (click)="editClick($event,t)"/>
-          </span>
-          <span class="ml-2 pl-1 close-tab" (click)="editClick($event,t)"><i class="material-icons">edit</i></span>
-          <span class="ml-2 pl-1 close-tab" (click)="closeTab(t)"><i class="material-icons">close</i></span>
-        </button>
-        <button class="btn btn-secondary" (click)="addTab()">
-          <i class="material-icons">add</i>
-        </button>
-      </div>
-    </nav>
-    <div class="main-body">
-      <div class="tab-container">
-        <app-new-tab-page (onReady)="loadRepo($event)" *ngIf="!repoPaths[activeTab]"></app-new-tab-page>
-        <app-repo-view *ngIf="repoPaths[activeTab]"
-                       [repoPath]="repoPaths[activeTab]"
-                       (onLoadingChange)="isLoading=$event"></app-repo-view>
-      </div>
+<div class="d-flex flex-column main-panel">
+  <nav class="navbar navbar-expand-lg navbar-light bg-light d-flex">
+    <a class="navbar-brand nav-item mr-5">Home</a>
+    <app-settings class="nav-item"></app-settings>
+    <app-loading-spinner [show]="isLoading" class="nav-item mx-2"></app-loading-spinner>
+    <div class="tab-container btn-group nav-item flex-grow-1">
+      <button *ngFor="let t of tabs"
+              (click)="changeTab(t)"
+              [ngClass]="{'btn center-text-vertical':true,'btn-primary':t==activeTab,'btn-light':t!=activeTab}">
+        <span class="pr-1 center-text-vertical">
+          <span *ngIf="editingTab!=t">{{tabNames[t]}}</span>
+          <input class="form-control"
+                 autofocus
+                 *ngIf="editingTab==t"
+                 [(ngModel)]="tabNames[t]"
+                 (change)="saveOpenRepos()"
+                 (click)="editClick($event,t)"/>
+        </span>
+        <span class="ml-2 pl-1 close-tab" (click)="editClick($event,t)"><i class="material-icons">edit</i></span>
+        <span class="ml-2 pl-1 close-tab" (click)="closeTab(t)"><i class="material-icons">close</i></span>
+      </button>
+      <button class="btn btn-secondary" (click)="addTab()">
+        <i class="material-icons">add</i>
+      </button>
+    </div>
+  </nav>
+  <div class="main-body flex-grow-1">
+    <div class="">
+      <app-new-tab-page (onReady)="loadRepo($event)" *ngIf="!repoPaths[activeTab]"></app-new-tab-page>
+      <app-repo-view *ngIf="repoPaths[activeTab]"
+                     [repoPath]="repoPaths[activeTab]"
+                     (onLoadingChange)="isLoading=$event"></app-repo-view>
     </div>
   </div>
 </div>

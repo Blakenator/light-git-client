@@ -2,6 +2,7 @@ import {ApplicationRef, Component, OnInit} from '@angular/core';
 import {ElectronService} from '../../providers/electron.service';
 import {HttpClient} from '@angular/common/http';
 import {SettingsService} from '../../providers/settings.service';
+import {Channels} from "../../../../shared/Channels";
 
 @Component({
   selector: 'app-home',

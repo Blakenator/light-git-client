@@ -6,6 +6,7 @@ var Commit_model_1 = require("../shared/Commit.model");
 var path = require("path");
 var CommitSummary_model_1 = require("../shared/CommitSummary.model");
 var command_history_model_1 = require("../shared/command-history.model");
+var worktree_model_1 = require("../shared/worktree.model");
 var exec = require('child_process').exec;
 var GitClient = /** @class */ (function () {
     function GitClient(workingDir, settings) {
@@ -70,8 +71,13 @@ var GitClient = /** @class */ (function () {
     GitClient.prototype.deleteBranch = function (branch) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            console.log(_this.settings.gitPath + " branch -d -- " + branch);
             _this.execute(_this.settings.gitPath + " branch -d -- " + branch, "Delete Branch").then(function (text) { return _this.getBranches().then(resolve)["catch"](reject); });
+        });
+    };
+    GitClient.prototype.deleteWorktree = function (worktree) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.execute(_this.settings.gitPath + " worktree remove " + worktree, "Delete Worktree").then(function (text) { return _this.getBranches().then(resolve)["catch"](reject); });
         });
     };
     GitClient.prototype.openTerminal = function () {
@@ -194,7 +200,20 @@ var GitClient = /** @class */ (function () {
                     match = branchList.exec(text);
                 }
             }));
-            promises.push(_this.execute(_this.settings.gitPath + "  fetch", "Fetch Remote Branches"));
+            promises.push(_this.execute(_this.settings.gitPath + " worktree list --porcelain", "Get Worktrees").then(function (text) {
+                var worktreeList = /^worktree\s+(.+?)$\s*(bare|(HEAD\s+(\S+)$\s*(detached|branch\s+(.+?)$)))/gmi;
+                var match = worktreeList.exec(text);
+                while (match) {
+                    var worktreeModel = new worktree_model_1.WorktreeModel();
+                    worktreeModel.name = path.basename(match[1]);
+                    worktreeModel.path = match[1];
+                    worktreeModel.currentBranch = match[6].replace('refs/heads/', '') || match[5];
+                    worktreeModel.currentHash = match[4] || match[2];
+                    result.worktrees.push(worktreeModel);
+                    match = worktreeList.exec(text);
+                }
+            }));
+            promises.push(_this.execute(_this.settings.gitPath + " fetch", "Fetch Remote Branches"));
             promises.push(_this.execute(_this.settings.gitPath + " branch -r -v -v", "Get Remote Branches").then(function (text) {
                 var match = branchList.exec(text);
                 while (match) {
@@ -206,7 +225,11 @@ var GitClient = /** @class */ (function () {
                     match = branchList.exec(text);
                 }
             }));
-            Promise.all(promises).then(function (ignore) { return resolve(result); })["catch"](function (ignore) { return reject(result); });
+            Promise.all(promises).then(function (ignore) {
+                var currentBranchPath = result.localBranches.find(function (x) { return x.isCurrentBranch; }).name;
+                result.worktrees[result.worktrees.findIndex(function (x) { return x.currentBranch == currentBranchPath; })].isCurrent = true;
+                resolve(result);
+            })["catch"](function (ignore) { return reject(result); });
         }));
     };
     GitClient.prototype.execute = function (command, name) {

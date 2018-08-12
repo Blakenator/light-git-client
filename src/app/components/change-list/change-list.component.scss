@@ -20,6 +20,14 @@
 }
 
 .table td {
-  padding: .5rem;
+  padding: .2rem;
   vertical-align: middle;
+
+  &:first-child {
+    cursor: pointer;
+  }
+}
+
+th:first-child {
+  max-width: 1em;
 }

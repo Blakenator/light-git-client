@@ -1,0 +1,24 @@
+.hidden-until-hover {
+  max-width: 7em;
+  white-space: nowrap;
+  transition: max-width .5s ease-in-out, padding-right .5s;
+  overflow: hidden;
+  background: -webkit-linear-gradient(0deg, #000 80%, rgba(0, 0, 0, 0));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  &:hover {
+    max-width: 15em;
+    transition-delay: .5s;
+    padding-right: 2em;
+  }
+}
+
+.vertical-content-hidden {
+  max-height: 2.5em;
+  transition: max-height .5s ease-in-out;
+  overflow: hidden;
+  &:hover {
+    max-height: 10em;
+    overflow-y: auto;
+  }
+}

@@ -1,5 +1,51 @@
 @import "../../../styles";
 
-.close-tab:hover{
-  color: rgba(128,128,128,.5);
+.close-tab:hover {
+  color: rgba(128, 128, 128, .5);
+}
+
+.close-tab {
+  margin-bottom: -.3em;
+}
+
+.tab-container {
+  margin-top: -1em;
+  margin-bottom: -1em;
+  height: 4em;
+  padding: .2em;
+  overflow-x: auto;
+  &::-webkit-scrollbar {
+    height: 0;
+  }
+}
+
+.navbar {
+  //margin-bottom: 1em;
+}
+
+.main-body {
+  max-height: calc(100vh - 4.5em);
+  overflow-y: auto;
+}
+
+.main-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.window-functions .btn {
+  box-shadow: $material-shadow-inset;
+  font-size: .7em;
+  height: 1.5rem;
+  width: 1.5rem;
+  color: transparent;
+  padding: .1em;
+  margin-right: .2em;
+
+  &:hover {
+    color: inherit;
+  }
 }

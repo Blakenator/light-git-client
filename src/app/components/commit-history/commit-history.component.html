@@ -3,20 +3,23 @@
   <tr>
     <th>Message</th>
     <th>Author</th>
-    <th>Author Email</th>
-    <th>Author Date</th>
+    <th>Email</th>
+    <th>Date</th>
     <th>Hash</th>
   </tr>
   </thead>
   <tbody>
   <tr *ngFor="let c of commitHistory">
-    <td [title]="c.message">{{c.message.length>300 ? c.message.substring(0,300) + '...': c.message}}</td>
-    <td [title]="c.authorName">{{c.authorName}}</td>
-    <td [title]="c.authorEmail">{{c.authorEmail}}</td>
-    <td [title]="c.authorDate | date : 'full'">
+    <td>
+      <div class="vertical-content-hidden">{{c.message}}
+      </div>
+    </td>
+    <td class="hidden-until-hover" [title]="c.authorName">{{c.authorName}}</td>
+    <td class="hidden-until-hover" [title]="c.authorEmail">{{c.authorEmail}}</td>
+    <td class="hidden-until-hover" [title]="c.authorDate | date : 'full'">
       {{c.authorDate | date : 'short'}}
     </td>
-    <td [title]="c.hash">{{c.hash.substr(0,8)}}</td>
+    <td class="hidden-until-hover" [title]="c.hash">{{c.hash.substr(0,8)}}</td>
   </tr>
   </tbody>
 </table>
