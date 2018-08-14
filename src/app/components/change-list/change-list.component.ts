@@ -15,6 +15,7 @@ export class ChangeListComponent implements OnInit {
   @Output() onDeleteClicked = new EventEmitter<string[]>();
 
   selectAll = false;
+  lastClicked: string;
 
   constructor() {
   }
@@ -63,8 +64,22 @@ export class ChangeListComponent implements OnInit {
     this.onDeleteClicked.emit([file]);
   }
 
-  toggleSelect(file: string) {
+  toggleSelect(file: string, $event: MouseEvent) {
     this.selectedChanges[file] = !this.selectedChanges[file];
+    if (!this.lastClicked) {
+      this.lastClicked = file;
+    } else if (this.selectedChanges[this.lastClicked]) {
+      if ($event.shiftKey) {
+        const lastClickedIndex = this.changes.findIndex(c => c.file == this.lastClicked);
+        const thisClickedIndex = this.changes.findIndex(c => c.file == file);
+        for (let c of this.changes.slice(Math.min(thisClickedIndex, lastClickedIndex), Math.max(thisClickedIndex, lastClickedIndex))) {
+          this.selectedChanges[c.file] = true;
+        }
+      } else {
+        this.lastClicked = file;
+      }
+    }
+    this.selectAll = this.changes.every(x => this.selectedChanges[x.file]);
     this.onSelectChanged.emit();
   }
 }

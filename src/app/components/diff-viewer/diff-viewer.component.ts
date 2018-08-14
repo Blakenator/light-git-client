@@ -1,4 +1,5 @@
 import {Component, Input, OnInit} from '@angular/core';
+import {CommitSummaryModel} from "../../../../shared/CommitSummary.model";
 
 declare var Diff2Html;
 
@@ -9,6 +10,7 @@ declare var Diff2Html;
 })
 export class DiffViewerComponent implements OnInit {
   @Input() diffString: string;
+  @Input() diffCommitInfo: CommitSummaryModel;
   matchingSelection = "words";
 
   constructor() {

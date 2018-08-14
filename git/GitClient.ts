@@ -6,13 +6,23 @@ import {CommitSummaryModel} from "../shared/CommitSummary.model";
 import {CommandHistoryModel} from "../shared/command-history.model";
 import {SettingsModel} from "../shared/SettingsModel";
 import {WorktreeModel} from "../shared/worktree.model";
+import {logger} from "codelyzer/util/logger";
+import {StashModel} from "../shared/stash.model";
 
 const exec = require('child_process').exec;
 
 export class GitClient {
+  static logger: Console;
+  static settings: SettingsModel;
   private commandHistory: CommandHistoryModel[] = [];
 
-  constructor(private workingDir: string, public settings: SettingsModel) {
+  constructor(private workingDir: string) {
+  }
+
+  getCommitDiff(commitHash: any): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      this.execute(this.getGitPath() + ' diff ' + commitHash + "~ " + commitHash, "Get Diff for Commit").then(resolve).catch(reject);
+    });
   }
 
   getCommandHistory(): CommandHistoryModel[] {
@@ -34,7 +44,7 @@ export class GitClient {
       let result = new CommitModel();
       let promises = [];
       let changeList = /^(.)(.)\s*(.*)$/gm;
-      promises.push(this.execute(this.settings.gitPath + "  status --porcelain", "Get Status").then(text => {
+      promises.push(this.execute(this.getGitPath() + "  status --porcelain", "Get Status").then(text => {
         let match = changeList.exec(text);
         while (match) {
           if (match[1] !== ChangeType.Untracked && match[1] !== ' ') {
@@ -60,40 +70,40 @@ export class GitClient {
 
   stage(file: string) {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " add -- " + file, "Stage File").then(text => this.getChanges().then(resolve).catch(reject));
+      this.execute(this.getGitPath() + " add -- " + file, "Stage File").then(text => this.getChanges().then(resolve).catch(reject));
     });
   }
 
   unstage(file: string) {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " reset -- " + file, "Unstage File").then(text => this.getChanges().then(resolve).catch(reject));
+      this.execute(this.getGitPath() + " reset -- " + file, "Unstage File").then(text => this.getChanges().then(resolve).catch(reject));
     });
   }
 
   deleteBranch(branch: string) {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " branch -d -- " + branch, "Delete Branch").then(text => this.getBranches().then(resolve).catch(reject));
+      this.execute(this.getGitPath() + " branch -d -- " + branch, "Delete Branch").then(text => this.getBranches().then(resolve).catch(reject));
     });
   }
 
   deleteWorktree(worktree: string) {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " worktree remove " + worktree, "Delete Worktree").then(text => this.getBranches().then(resolve).catch(reject));
+      this.execute(this.getGitPath() + " worktree remove " + worktree, "Delete Worktree").then(text => this.getBranches().then(resolve).catch(reject));
     });
   }
 
   openTerminal() {
-    this.execute("start " + this.settings.bashPath + " --login", "Open Terminal").then(console.log);
+    this.execute("start " + GitClient.settings.bashPath + " --login", "Open Terminal").then(console.log);
   }
 
   getDiff(unstaged: string, staged: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       let command = [];
       if (unstaged.trim()) {
-        command.push(this.settings.gitPath + " diff -- " + unstaged);
+        command.push(this.getGitPath() + " diff -- " + unstaged);
       }
       if (staged.trim()) {
-        command.push(this.settings.gitPath + " diff --staged -- " + staged);
+        command.push(this.getGitPath() + " diff --staged -- " + staged);
       }
       this.execute(command.join(' && '), "Get Diff").then(resolve).catch(reject);
     });
@@ -102,48 +112,69 @@ export class GitClient {
   commit(message: string, push: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
       let s = message.replace(/\"/g, "").replace(/\r?\n/g, '" -m "');
-      this.execute(this.settings.bashPath + " -c '" + this.settings.gitPath + "  commit -m \"" + s + "\"" + (push ? "' && " + this.settings.gitPath + "  push" : ""), "Commit").then(text => this.getChanges().then(resolve).catch(reject));
+      this.execute(this.getBashedGit() + "  commit -m \"" + s + "\"" + (push ? "' && " + this.getGitPath() + "  push" : ""), "Commit").then(text => this.getChanges().then(resolve).catch(reject));
     });
   }
 
   checkout(tag: string, toNewBranch: boolean, branchName: string = ''): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " checkout " + tag + (toNewBranch ? " -b " + (branchName || tag.replace('origin/', '')) : ""), "Checkout")
+      this.execute(this.getGitPath() + " checkout " + tag + (toNewBranch ? " -b " + (branchName || tag.replace('origin/', '')) : ""), "Checkout")
         .then(text => this.getChanges().then(resolve).catch(reject)).catch(reject);
     });
   }
 
   undoFileChanges(file: string, revision: string): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " checkout " + (revision || 'HEAD') + ' -- ' + file, "Undo File Changes")
+      this.execute(this.getGitPath() + " checkout " + (revision || 'HEAD') + ' -- ' + file, "Undo File Changes")
         .then(text => this.getChanges().then(resolve).catch(reject)).catch(reject);
     });
   }
 
   hardReset(): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " reset --hard", "Hard Reset/Undo All")
+      this.execute(this.getGitPath() + " reset --hard", "Hard Reset/Undo All")
         .then(text => this.getChanges().then(resolve).catch(reject)).catch(reject);
     });
   }
 
   merge(file: string, tool: string): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " mergetool --tool=" + (tool || 'meld') + ' ' + file, "Resolve Merge Conflict")
+      this.execute(this.getGitPath() + " mergetool --tool=" + (tool || 'meld') + ' ' + file, "Resolve Merge Conflict")
+        .then(text => this.getChanges().then(resolve).catch(reject)).catch(reject);
+    });
+  }
+
+  stash(unstagedOnly: boolean): Promise<CommitModel> {
+    return new Promise<CommitModel>((resolve, reject) => {
+      this.execute(this.getBashedGit() + " stash" + (unstagedOnly ? ' -k -u' : ''), "Stash Changes")
+        .then(text => this.getChanges().then(resolve).catch(reject)).catch(reject);
+    });
+  }
+
+  applyStash(index: number): Promise<CommitModel> {
+    return new Promise<CommitModel>((resolve, reject) => {
+      this.execute(this.getBashedGit() + " stash apply --index " + index, "Apply Stashed Changes")
+        .then(text => this.getChanges().then(resolve).catch(reject)).catch(reject);
+    });
+  }
+
+  deleteStash(index: number): Promise<CommitModel> {
+    return new Promise<CommitModel>((resolve, reject) => {
+      this.execute(this.getBashedGit() + " stash drop stash@{" + index + '}', "Delete Stash")
         .then(text => this.getChanges().then(resolve).catch(reject)).catch(reject);
     });
   }
 
   pushBranch(branch: string, force: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " push origin " + (branch ? branch + ':' + branch : '') + (force ? ' --force' : ''), "Push")
+      this.execute(this.getGitPath() + " push origin " + (branch ? branch + ':' + branch : '') + (force ? ' --force' : ''), "Push")
         .then(text => this.getChanges().then(resolve).catch(reject)).catch(reject);
     });
   }
 
   pull(): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.settings.gitPath + " pull", "Pull")
+      this.execute(this.getGitPath() + " pull", "Pull")
         .then(text => {
           console.log(text);
           this.getChanges().then(resolve).catch(reject);
@@ -156,7 +187,7 @@ export class GitClient {
 
   getCommitHistory(): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
-      this.execute(this.settings.gitPath + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%B\"\n", "Get Commit History").then(text => {
+      this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%B\"\n", "Get Commit History").then(text => {
         let result = [];
         let branchList = /\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|([^|]*)/g;
         let match = branchList.exec(text);
@@ -180,7 +211,7 @@ export class GitClient {
       let result = new RepositoryModel();
       let promises = [];
       let branchList = /^(\*)?\s*(\S+)\s+(\S+)\s+(\[\s*(\S+?)(\s*:\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\s*(.*)?$/gm;
-      promises.push(this.execute(this.settings.gitPath + " branch -v -v", "Get Local Branches").then(text => {
+      promises.push(this.execute(this.getGitPath() + " branch -v -v", "Get Local Branches").then(text => {
         let match = branchList.exec(text);
         while (match) {
           let branchModel = new BranchModel();
@@ -202,7 +233,7 @@ export class GitClient {
           match = branchList.exec(text);
         }
       }));
-      promises.push(this.execute(this.settings.gitPath + " worktree list --porcelain", "Get Worktrees").then(text => {
+      promises.push(this.execute(this.getGitPath() + " worktree list --porcelain", "Get Worktrees").then(text => {
         let worktreeList = /^worktree\s+(.+?)$\s*(bare|(HEAD\s+(\S+)$\s*(detached|branch\s+(.+?)$)))/gmi;
         let match = worktreeList.exec(text);
         while (match) {
@@ -216,8 +247,22 @@ export class GitClient {
           match = worktreeList.exec(text);
         }
       }));
-      promises.push(this.execute(this.settings.gitPath + " fetch", "Fetch Remote Branches"));
-      promises.push(this.execute(this.settings.gitPath + " branch -r -v -v", "Get Remote Branches").then(text => {
+      promises.push(this.execute(this.getBashedGit() + " stash list", "Get Stashes").then(text => {
+        let stashList = /^stash@{(\d+)}:\s+(WIP on|On)\s+(.+):\s+(\S+)\s+(.*)$/gmi;
+        let match = stashList.exec(text);
+        while (match) {
+          let stashModel = new StashModel();
+          stashModel.index = +match[1];
+          stashModel.branchName = match[3];
+          stashModel.stashedAtHash = match[4];
+          stashModel.message = match[5];
+
+          result.stashes.push(stashModel);
+          match = stashList.exec(text);
+        }
+      }));
+      promises.push(this.execute(this.getGitPath() + " fetch", "Fetch Remote Branches"));
+      promises.push(this.execute(this.getGitPath() + " branch -r -v -v", "Get Remote Branches").then(text => {
         let match = branchList.exec(text);
         while (match) {
           let branchModel = new BranchModel();
@@ -233,8 +278,16 @@ export class GitClient {
         let currentBranchPath = result.localBranches.find(x => x.isCurrentBranch).name;
         result.worktrees[result.worktrees.findIndex(x => x.currentBranch == currentBranchPath)].isCurrent = true;
         resolve(result);
-      }).catch(ignore => reject(result));
+      }).catch(ignore => reject(ignore));
     }));
+  }
+
+  private getBashedGit() {
+    return GitClient.settings.bashPath + " -c '" + this.getGitPath();
+  }
+
+  private getGitPath() {
+    return GitClient.settings.gitPath.replace(/\s/g, '^ ');
   }
 
   private execute(command: string, name: string): Promise<string> {
@@ -245,7 +298,7 @@ export class GitClient {
         if (!error) {
           resolve(stdout);
         } else {
-          console.log("Err: " + error + " | " + stderr);
+          logger.error("Err: " + error + " | " + stderr);
           reject(stderr);
         }
       });

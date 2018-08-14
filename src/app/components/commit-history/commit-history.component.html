@@ -6,6 +6,7 @@
     <th>Email</th>
     <th>Date</th>
     <th>Hash</th>
+    <th></th>
   </tr>
   </thead>
   <tbody>
@@ -20,6 +21,11 @@
       {{c.authorDate | date : 'short'}}
     </td>
     <td class="hidden-until-hover" [title]="c.hash">{{c.hash.substr(0,8)}}</td>
+    <td>
+      <button class="btn btn-sm btn-outline-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
+        <i class="fa fa-eye"></i>
+      </button>
+    </td>
   </tr>
   </tbody>
 </table>

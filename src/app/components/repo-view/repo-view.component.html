@@ -2,12 +2,12 @@
   <title>Light Git - {{repo.name}} - {{getCurrentBranch().name}}</title>
 </head>
 <div *ngIf="repo" (focus)="getFileChanges()" class="row">
-  <div class="col-sm-7 col-md-5 d-flex flex-column ">
+  <div class="col-sm-4 col-md-3 d-flex flex-column ">
     <h1>{{repo.name}}
       <span class="d-inline-block btn-group">
         <button class="btn btn-primary" (click)="openTerminal()"><i class="fas fa-terminal"></i></button>
         <button class="btn btn-info" (click)="openFolder()"><i class="fas fa-folder-open"></i></button>
-        <button class="btn btn-primary" (click)="getFileChanges()"><i class="fas fa-sync-alt"></i></button>
+        <button class="btn btn-primary" (click)="getFileChanges(false)"><i class="fas fa-sync-alt"></i></button>
         <button class="btn btn-warning" (click)="hardReset()">
           <i class="fa fa-undo"></i>
           Undo All
@@ -73,6 +73,34 @@
         </div>
       </div>
     </div>
+    <div class="card">
+      <div class="card-header form-inline" (click)="toggleExpandState('stashes')">
+        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('stashes'),'fa-caret-down':getExpandState('stashes')}"></i>
+        Stashes
+        <input class="ml-2 form-control"
+               placeholder="Filter..."
+               [(ngModel)]="stashFilter" (click)="$event.stopPropagation()">
+        <div class="btn-group d-inline-block">
+          <button class="btn btn-sm btn-secondary" title="Stash Unstaged Changes" (click)="stash(true);$event.stopPropagation()"><i class="fa fa-box"></i></button>
+          <button class="btn btn-sm btn-secondary" title="Stash All Changes" (click)="stash(false);$event.stopPropagation()"><i class="fa fa-boxes"></i></button>
+        </div>
+      </div>
+      <div class="card-body" *ngIf="getExpandState('stashes')">
+        <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter">
+          <span>{{s.index}}: {{s.message}}</span>
+          <div class="d-inline-block ml-3">
+            <button class="btn btn-light btn-sm" (click)="applyStash(s.index)" title="Apply Stash">
+              <i class="fa fa-box-open"></i>
+            </button>
+            <button class="btn btn-danger btn-sm" (click)="deleteStash(s.index)" title="Delete Stash">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4 col-md-4 d-flex flex-column ">
     <div *ngIf="changes" class="flex-grow-1">
       <div class="card">
         <div class="card-header" (click)="toggleExpandState('staged')">
@@ -90,7 +118,7 @@
         <div class="change-body" *ngIf="getExpandState('staged')">
           <app-change-list [changes]="changes.stagedChanges"
                            [selectedChanges]="selectedStagedChanges"
-                           (onSelectChanged)="getFileDiff();showDiff=true"
+                           (onSelectChanged)="selectionChanged()"
                            (onUndoFileClicked)="undoFileChanges($event)"
                            (onMergeClicked)="merge($event)"
                            (onDeleteClicked)="deleteClicked($event)"></app-change-list>
@@ -111,7 +139,7 @@
         <div class="change-body" *ngIf="getExpandState('unstaged')">
           <app-change-list [changes]="changes.unstagedChanges"
                            [selectedChanges]="selectedUnstagedChanges"
-                           (onSelectChanged)="getFileDiff();showDiff=true"
+                           (onSelectChanged)="selectionChanged()"
                            (onUndoFileClicked)="undoFileChanges($event)"
                            (onMergeClicked)="merge($event)"
                            (onDeleteClicked)="deleteBranch($event)"></app-change-list>
@@ -135,7 +163,7 @@
       </div>
     </div>
   </div>
-  <div *ngIf="changes" class="col-sm-5 col-md-7 diff-viewer">
+  <div *ngIf="changes" class="col-sm-4 col-md-5 diff-viewer">
     <div class="card">
       <div class="card-header">
         <div class="pretty p-switch p-fill mx-2">
@@ -148,9 +176,11 @@
       </div>
       <div>
         <div class="card-body" *ngIf="showDiff">
-          <app-diff-viewer [diffString]="diffString"></app-diff-viewer>
+          <app-diff-viewer [diffString]="diffString" [diffCommitInfo]="diffCommitInfo"></app-diff-viewer>
         </div>
-        <app-commit-history [commitHistory]="commitHistory" *ngIf="!showDiff"></app-commit-history>
+        <app-commit-history [commitHistory]="commitHistory"
+                            *ngIf="!showDiff"
+                            (onClickCommitDiff)="viewCommitDiff($event)"></app-commit-history>
       </div>
     </div>
   </div>

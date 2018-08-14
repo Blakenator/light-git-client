@@ -10,8 +10,10 @@ export class FileInputComponent implements OnInit {
   @Input() allowMultiple = false;
   @Input() filter: string[] = ['*'];
   @Input() label = '';
-  @Input() filePath: { path: string };
+  @Input() removeQuotes = true;
+  @Input() filePath = '';
   @Output() onEnterKeyPressed = new EventEmitter<string>();
+  @Output() onPathChanged = new EventEmitter<string>();
 
   constructor() {
   }
@@ -19,9 +21,18 @@ export class FileInputComponent implements OnInit {
   ngOnInit() {
   }
 
-  changeFilePath($event) {
-    if ($event.target.files.length > 0) {
-      this.filePath.path = Object.values(<{ [key: number]: { path: string } }>$event.target.files).map(x => x.path).join(",");
+  changeFilePath($event?) {
+    if ($event && $event.target.files.length > 0) {
+      this.filePath = Object.values(<{ [key: number]: { path: string } }>$event.target.files).map(x => x.path).join(",");
     }
+    this.onPathChanged.emit(this.getFormattedFile());
+  }
+
+  enterKeyPressed() {
+    this.onEnterKeyPressed.emit(this.getFormattedFile());
+  }
+
+  private getFormattedFile() {
+    return this.removeQuotes ? this.filePath.replace('"', '') : this.filePath;
   }
 }

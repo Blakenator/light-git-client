@@ -6,7 +6,7 @@
   <div *ngIf="showChildren" [ngClass]="{children:currentPath}">
     <div *ngFor="let b of leaves | filterObject : 'name' : filter" class="branch">
       <div *ngIf="isLocal">
-      <span [ngClass]="{'bold':b.isCurrentBranch,'text-muted':checkedOutOtherWorktree(b)}">
+        <span [ngClass]="{'bold':b.isCurrentBranch,'text-muted':checkedOutOtherWorktree(b)}">
             {{getLeafName(b.name)}}&nbsp;
             <small *ngIf="checkedOutOtherWorktree(b)"
                    [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
@@ -15,8 +15,8 @@
             <i *ngIf="b.trackingPath">({{b.trackingPath}})</i>&nbsp;-
             {{b.ahead||0}} <i class="fas fa-arrow-up"></i>
             {{b.behind||0}} <i class="fas fa-arrow-down"></i>
-          </span>
-        <div class="d-inline-block ml-3">
+        </span>
+        <div class="d-inline-block ml-3 float-right">
           <button class="btn btn-light btn-sm"
                   (click)="onCheckoutClicked.emit(b.name)"
                   title="Checkout"
@@ -38,7 +38,7 @@
       </div>
       <div *ngIf="!isLocal">
         <span>{{getLeafName(b.name)}}</span>
-        <div class="d-inline-block ml-3">
+        <div class="d-inline-block ml-3 float-right">
           <button class="btn btn-light btn-sm"
                   (click)="onCheckoutClicked.emit(b.name)"
                   *ngIf="!isRemoteAlreadyCheckedOut(b.name)">

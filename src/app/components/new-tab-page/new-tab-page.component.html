@@ -1,5 +1,6 @@
 <app-file-input [label]="'Repo Path'"
                 [filePath]="repoPath"
                 [isFolder]="true"
-                (onEnterKeyPressed)="readyClicked()"></app-file-input>
+                (onEnterKeyPressed)="readyClicked()"
+                (onPathChanged)="repoPath=$event"></app-file-input>
 <button class="btn btn-success" (click)="readyClicked()">Load</button>

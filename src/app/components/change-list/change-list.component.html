@@ -19,7 +19,7 @@
   </thead>
   <tbody>
   <tr *ngFor="let c of changes"
-      (click)="toggleSelect(c.file)"
+      (click)="toggleSelect(c.file,$event)"
       class="change">
     <td>
       <i [ngClass]="{far:true,'fa-check-square':selectedChanges[c.file],'fa-square':!selectedChanges[c.file]}"></i>

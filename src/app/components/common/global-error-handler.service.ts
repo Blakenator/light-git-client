@@ -10,12 +10,12 @@ export class GlobalErrorHandlerService implements ErrorHandler {
   }
 
   handleError(error: any): void {
-    console.log(error);
+    console.error(error);
     const errorText = error.stack || JSON.stringify(error);
     new ElectronService().rpc(Channels.LOG, [errorText]);
-    if ((errorText) != (this.error.stack || JSON.stringify(this.error))) {
-      alert(errorText);
-    }
+    // if ((errorText) != (this.error.stack || JSON.stringify(this.error))) {
+    //   alert(errorText);
+    // }
     this.error = error;
   }
 }

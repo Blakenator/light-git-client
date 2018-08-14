@@ -12,10 +12,12 @@ import {ElectronResponse} from "./shared/electron-response";
 const output = fs.createWriteStream(path.join(app.getPath('userData'), 'stdout.log'));
 const errorOutput = fs.createWriteStream(path.join(app.getPath('userData'), 'stderr.log'));
 const logger = new console.Console(output, errorOutput);
+GitClient.logger = logger;
 
 process.on('uncaughtException', function (error) {
-  logger.log(JSON.stringify(error));
-  throw error;
+  logger.error(JSON.stringify(error));
+  console.error(error);
+  // throw error;
 });
 
 const opn = require('opn');
@@ -69,6 +71,7 @@ function getReplyChannel(arg) {
 
 function saveSettings(settingsModel: SettingsModel) {
   Object.assign(settingsModel, settingsModel);
+  GitClient.settings = settingsModel;
   fs.writeFileSync(getSettingsPath(), JSON.stringify(settingsModel), {encoding: 'utf8'});
 }
 
@@ -80,11 +83,13 @@ function loadSettings(callback: Function) {
       }
       const res = Object.assign(new SettingsModel(), JSON.parse(data));
       Object.assign(settings, res);
+      GitClient.settings = res;
       callback(res);
     });
   } else {
     Object.assign(settings, new SettingsModel());
     saveSettings(settings);
+    GitClient.settings = settings;
     callback(settings);
   }
 }
@@ -102,7 +107,7 @@ function stopWatchingSettings() {
 }
 
 function loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
-  gitClients[repoPath] = new GitClient(repoPath, settings);
+  gitClients[repoPath] = new GitClient(repoPath);
   loadedRepos[repoPath] = gitClients[repoPath].openRepo();
   return loadedRepos[repoPath];
 }
@@ -306,6 +311,22 @@ try {
     handleGitPromise(gitClients[args[1]].deleteWorktree(args[2]), event, args);
   });
 
+  ipcMain.on(Channels.COMMITDIFF, (event, args) => {
+    handleGitPromise(gitClients[args[1]].getCommitDiff(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.STASH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].stash(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.APPLYSTASH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].applyStash(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.DELETESTASH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].deleteStash(args[2]), event, args);
+  });
+
   ipcMain.on(Channels.CLOSEWINDOW, (event, args) => {
     win.close();
   });
@@ -323,6 +344,7 @@ try {
   });
 
   ipcMain.on(Channels.LOG, (event, args) => {
+    logger.error(new Date().toLocaleString() + ' ------------------------------------------------');
     logger.error(args[1]);
     defaultReply(event, args);
   });
