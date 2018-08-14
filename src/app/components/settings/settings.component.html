@@ -25,8 +25,12 @@
             <label>{{tempSettings.darkMode?'dark':'light'}}</label>
           </div>
         </div>
-        <app-file-input [filePath]="tempSettings.gitPath" [label]="'Git Path'"></app-file-input>
-        <app-file-input [filePath]="tempSettings.bashPath" [label]="'Bash Path'"></app-file-input>
+        <app-file-input [filePath]="tempSettings.gitPath"
+                        (onPathChanged)="tempSettings.gitPath=$event"
+                        [label]="'Git Path'"></app-file-input>
+        <app-file-input [filePath]="tempSettings.bashPath"
+                        (onPathChanged)="tempSettings.bashPath=$event"
+                        [label]="'Bash Path'"></app-file-input>
       </div>
       <div class="modal-body">
         <div class="pretty p-switch p-fill mx-2">

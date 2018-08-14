@@ -1,4 +1,4 @@
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {CommitSummaryModel} from "../../../../shared/CommitSummary.model";
 
 @Component({
@@ -8,6 +8,7 @@ import {CommitSummaryModel} from "../../../../shared/CommitSummary.model";
 })
 export class CommitHistoryComponent implements OnInit {
   @Input() commitHistory: CommitSummaryModel[];
+  @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
 
   constructor() {
   }
@@ -15,4 +16,7 @@ export class CommitHistoryComponent implements OnInit {
   ngOnInit() {
   }
 
+  getCommitDiff(commit: CommitSummaryModel) {
+    this.onClickCommitDiff.emit(commit);
+  }
 }

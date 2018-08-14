@@ -14,3 +14,9 @@
 .folder {
   cursor: pointer;
 }
+
+.branch > div::after {
+  clear: both;
+  content: "";
+  display: block;
+}

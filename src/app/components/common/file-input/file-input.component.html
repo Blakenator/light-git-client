@@ -2,9 +2,9 @@
   <label>
     {{label}}
     <input class="form-control"
-           [(ngModel)]="filePath.path"
-           (keyup.enter)="onEnterKeyPressed.emit(filePath.path)"
-           (change)="changeFilePath($event)"/>
+           [(ngModel)]="filePath"
+           (keyup.enter)="enterKeyPressed()"
+           (change)="changeFilePath()"/>
   </label>
   <label class="btn btn-light">
     <input class="form-control d-none"

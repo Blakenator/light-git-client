@@ -17,6 +17,8 @@ import {Channels} from "../../../../shared/Channels";
 import {CommitSummaryModel} from "../../../../shared/CommitSummary.model";
 import {BranchModel} from "../../../../shared/Branch.model";
 import {GlobalErrorHandlerService} from "../common/global-error-handler.service";
+import {StashModel} from "../../../../shared/stash.model";
+import {WorktreeModel} from "../../../../shared/worktree.model";
 
 @Component({
   selector: 'app-repo-view',
@@ -40,6 +42,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   isLoading = false;
   @Output() onLoadingChange = new EventEmitter<boolean>();
   worktreeFilter: string;
+  diffCommitInfo: CommitSummaryModel;
+  stashFilter: string;
   private interval;
 
   constructor(private electronService: ElectronService,
@@ -47,6 +51,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               errorHandler: ErrorHandler,
               public applicationRef: ApplicationRef) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
+  }
+
+  getStashFilterText(stash: StashModel) {
+    return stash.branchName + stash.message + stash.branchName;
   }
 
   ngOnInit() {
@@ -59,8 +67,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   @HostListener('window:focus', ['$event'])
   onFocus(event: any): void {
-    this.getFileChanges();
-    this.getBranchChanges();
+    if (this.repo) {
+      this.getFileChanges();
+      this.getBranchChanges();
+    }
   }
 
   stageAll() {
@@ -91,8 +101,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  getFileChanges() {
-    this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path,]).then(changes => this.handleFileChanges(changes)).catch(err => this.handleErrorMessage(err));
+  getFileChanges(keepDiffCommitSelection: boolean = true) {
+    if (!this.repo) {
+      return;
+    }
+    this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path,]).then(changes => this.handleFileChanges(changes, keepDiffCommitSelection)).catch(err => this.handleErrorMessage(err));
   }
 
   getBranchChanges() {
@@ -105,12 +118,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   openTerminal() {
     this.electronService.rpc(Channels.OPENTERMINAL, [this.repo.path,]).then(ignore => {
-    });
+    }).catch(err => this.handleErrorMessage(err));
   }
 
   openFolder(path: string = '') {
     this.electronService.rpc(Channels.OPENFOLDER, [this.repo.path, path]).then(ignore => {
-    });
+    }).catch(err => this.handleErrorMessage(err));
   }
 
   getFileDiff() {
@@ -187,6 +200,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
+  stash(onlyUnstaged: boolean) {
+    this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged]).then(changes => {
+      this.handleFileChanges(changes);
+      this.getBranchChanges();
+    })
+      .catch(err => this.handleErrorMessage(err));
+    this.clearSelectedChanges();
+  }
+
   hardReset() {
     this.electronService.rpc(Channels.HARDRESET, [this.repo.path]).then(changes => this.handleFileChanges(changes))
       .catch(err => this.handleErrorMessage(err));
@@ -228,19 +250,50 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     return this.settingsService.settings.expandStates[key];
   }
 
+  selectionChanged() {
+    this.getFileDiff();
+    this.diffCommitInfo = undefined;
+    this.showDiff = true;
+  }
+
+  viewCommitDiff(commit: CommitSummaryModel) {
+    this.electronService.rpc(Channels.COMMITDIFF, [this.repo.path, commit.hash]).then(diff => {
+      this.diffString = diff;
+      this.showDiff = true;
+      this.diffCommitInfo = commit;
+      this.applicationRef.tick();
+    }).catch(err => this.handleErrorMessage(err));
+  }
+
+  applyStash(index: number) {
+    this.electronService.rpc(Channels.APPLYSTASH, [this.repo.path, index]).then(changes => {
+      this.handleFileChanges(changes);
+      this.getBranchChanges();
+    }).catch(err => this.handleErrorMessage(err));
+    this.clearSelectedChanges();
+  }
+
+  deleteStash(index: number) {
+    this.electronService.rpc(Channels.DELETESTASH, [this.repo.path, index]).then(changes => {
+      this.handleFileChanges(changes);
+      this.getBranchChanges();
+    }).catch(err => this.handleErrorMessage(err));
+    this.clearSelectedChanges();
+  }
+
   private loadRepo(path: string = '') {
     this.repoPath = path || this.repoPath;
     this.electronService.rpc(Channels.LOADREPO, [this.repoPath]).then(repo => {
       this.repo = new RepositoryModel().copy(repo);
-      console.log(this.repo);
-      this.getFileChanges();
+      console.log(repo);
+      this.getFileChanges(false);
       this.getCommitHistory();
       this.applicationRef.tick();
       this.interval = setInterval(() => {
         this.getFileChanges();
         this.getBranchChanges();
       }, 1000 * 60 * 5);
-    });
+    }).catch(err => this.handleErrorMessage(err));
   }
 
   private clearSelectedChanges() {
@@ -248,15 +301,20 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.selectedStagedChanges = {};
   }
 
-  private handleFileChanges(changes: CommitModel) {
+  private handleFileChanges(changes: CommitModel, keepDiffCommitSelection: boolean = true) {
     this.changes = Object.assign(new CommitModel(), changes, {description: this.changes ? this.changes.description : ''});
-    this.getFileDiff();
+    if (!keepDiffCommitSelection) {
+      this.getFileDiff();
+      this.diffCommitInfo = undefined;
+    }
     this.applicationRef.tick();
   }
 
   private handleBranchChanges(changes: RepositoryModel) {
     this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
     this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
+    this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
+    this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.applicationRef.tick();
   }
 

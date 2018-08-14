@@ -28,4 +28,8 @@ export namespace Channels {
   export const MINIMIZE = "minimize";
   export const RESTORE = "restoreWindow";
   export const CLOSEWINDOW = "closeWindow";
+  export const COMMITDIFF = "commitDiff";
+  export const STASH = "stash";
+  export const APPLYSTASH = "applyStash";
+  export const DELETESTASH = "deleteStash";
 }

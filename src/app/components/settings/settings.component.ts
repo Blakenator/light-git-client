@@ -31,6 +31,7 @@ export class SettingsComponent implements OnInit {
   }
 
   saveSettings() {
+    console.log(this.tempSettings);
     this.settingsService.saveSettings(this.tempSettings);
     this.tempSettings = this.settingsService.settings;
     this.showSettingsDialog = false;

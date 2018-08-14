@@ -6,7 +6,7 @@ import {Component, EventEmitter, OnInit, Output} from '@angular/core';
   styleUrls: ['./new-tab-page.component.scss']
 })
 export class NewTabPageComponent implements OnInit {
-  repoPath = {path:''};
+  repoPath = '';
   @Output() onReady = new EventEmitter<string>();
 
   constructor() {
@@ -16,6 +16,6 @@ export class NewTabPageComponent implements OnInit {
   }
 
   readyClicked() {
-    this.onReady.emit(this.repoPath.path.replace(/["']/g, ''));
+    this.onReady.emit(this.repoPath.replace(/["']/g, ''));
   }
 }

@@ -25,7 +25,7 @@ import {RepoViewComponent} from './components/repo-view/repo-view.component';
 import {ChangeListComponent} from './components/change-list/change-list.component';
 import {DiffViewerComponent} from './components/diff-viewer/diff-viewer.component';
 import {CommitHistoryComponent} from './components/commit-history/commit-history.component';
-import {ErrorMessageComponent} from './components/error-message/error-message.component';
+import {ErrorMessageComponent} from './components/common/error-message/error-message.component';
 import {NewTabPageComponent} from './components/new-tab-page/new-tab-page.component';
 import {FilterObjectPipe, FilterPipe} from './directives/filter.pipe';
 import {BranchTreeItemComponent} from './components/branch-tree-item/branch-tree-item.component';
