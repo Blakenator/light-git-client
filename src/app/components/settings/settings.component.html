@@ -31,12 +31,19 @@
         <app-file-input [filePath]="tempSettings.bashPath"
                         (onPathChanged)="tempSettings.bashPath=$event"
                         [label]="'Bash Path'"></app-file-input>
-      </div>
-      <div class="modal-body">
         <div class="pretty p-switch p-fill mx-2">
           <input type="checkbox" [(ngModel)]="advanced"/>
           <div class="state">
             <label>Advanced</label>
+          </div>
+        </div>
+        <div *ngIf="advanced">
+          <label>Command timeout</label>
+          <div class="input-group">
+            <input class="form-control form-control-sm" [(ngModel)]="tempSettings.commandTimeoutSeconds">
+            <div class="input-group-append">
+              <span class="input-group-text">s</span>
+            </div>
           </div>
         </div>
       </div>

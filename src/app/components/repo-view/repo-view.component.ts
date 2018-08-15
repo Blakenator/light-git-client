@@ -116,6 +116,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branch]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
   }
 
+  renameBranch(branch: { oldName: string, newName: string }) {
+    this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
+  }
+
   openTerminal() {
     this.electronService.rpc(Channels.OPENTERMINAL, [this.repo.path,]).then(ignore => {
     }).catch(err => this.handleErrorMessage(err));

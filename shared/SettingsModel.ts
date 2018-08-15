@@ -6,6 +6,7 @@ export class SettingsModel {
   public gitPath: string;
   public bashPath: string;
   public expandStates: { [key: string]: boolean };
+  public commandTimeoutSeconds: number;
 
   constructor(darkMode: boolean = false,
               openRepos: string[] = [''],
@@ -13,6 +14,7 @@ export class SettingsModel {
               activeTab: number = 0,
               gitPath: string = 'git',
               bashPath: string = 'bash',
+              commandTimeoutSeconds: number = 10,
               expandStates: { [key: string]: boolean } = {}) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
@@ -21,5 +23,6 @@ export class SettingsModel {
     this.gitPath = gitPath;
     this.bashPath = bashPath;
     this.expandStates = expandStates;
+    this.commandTimeoutSeconds = commandTimeoutSeconds;
   }
 }
