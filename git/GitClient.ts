@@ -86,6 +86,12 @@ export class GitClient {
     });
   }
 
+  renameBranch(oldName: string, newName: string) {
+    return new Promise<RepositoryModel>((resolve, reject) => {
+      this.execute(this.getGitPath() + " branch -m " + oldName + " " + newName, "Rename Branch").then(text => this.getBranches().then(resolve).catch(reject));
+    });
+  }
+
   deleteWorktree(worktree: string) {
     return new Promise<RepositoryModel>((resolve, reject) => {
       this.execute(this.getGitPath() + " worktree remove " + worktree, "Delete Worktree").then(text => this.getBranches().then(resolve).catch(reject));
@@ -211,7 +217,7 @@ export class GitClient {
       let result = new RepositoryModel();
       let promises = [];
       let branchList = /^(\*)?\s*(\S+)\s+(\S+)\s+(\[\s*(\S+?)(\s*:\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\s*(.*)?$/gm;
-      promises.push(this.execute(this.getGitPath() + " branch -v -v", "Get Local Branches").then(text => {
+      promises.push(this.execute(this.getGitPath() + " branch -v -v --track", "Get Local Branches").then(text => {
         let match = branchList.exec(text);
         while (match) {
           let branchModel = new BranchModel();
@@ -221,7 +227,7 @@ export class GitClient {
           branchModel.lastCommitText = match[13];
           branchModel.trackingPath = match[5];
           if (match[8] === 'ahead') {
-            branchModel.ahead = +match[8];
+            branchModel.ahead = +match[9];
             if (match[11] === 'behind') {
               branchModel.behind = +match[12];
             }
@@ -278,21 +284,23 @@ export class GitClient {
         let currentBranchPath = result.localBranches.find(x => x.isCurrentBranch).name;
         result.worktrees[result.worktrees.findIndex(x => x.currentBranch == currentBranchPath)].isCurrent = true;
         resolve(result);
-      }).catch(ignore => reject(ignore));
+      }).catch(ignore => {
+        reject(ignore);
+      });
     }));
   }
 
   private getBashedGit() {
-    return GitClient.settings.bashPath + " -c '" + this.getGitPath();
+    return '"' + GitClient.settings.bashPath.replace(/\\/g, '\\\\\\\\') + "\" -c '" + this.getGitPath();
   }
 
   private getGitPath() {
-    return GitClient.settings.gitPath.replace(/\s/g, '^ ');
+    return '"' + GitClient.settings.gitPath.replace(/\\/g, '\\\\\\\\') + '"';
   }
 
   private execute(command: string, name: string): Promise<string> {
     let start = new Date();
-    return new Promise<string>((resolve, reject) => {
+    return Promise.race([new Promise<string>((resolve, reject) => {
       exec(command, {cwd: this.workingDir}, (error, stdout, stderr) => {
         this.commandHistory.push(new CommandHistoryModel(name, command, stderr, stdout, start, new Date().getTime() - start.getTime()));
         if (!error) {
@@ -302,6 +310,12 @@ export class GitClient {
           reject(stderr);
         }
       });
-    });
+    }), new Promise<string>((resolve, reject) => {
+      setTimeout(() => {
+        reject('command timed out (>' + GitClient.settings.commandTimeoutSeconds + 's): ' + command +
+          '\n\nEither adjust the timeout in the Settings menu or ' +
+          '\nfind the root cause of the timeout');
+      }, GitClient.settings.commandTimeoutSeconds * 1000);
+    })]);
   }
 }

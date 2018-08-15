@@ -9,8 +9,8 @@ import {GitClient} from "./git/GitClient";
 import {Channels} from "./shared/Channels";
 import {ElectronResponse} from "./shared/electron-response";
 
-const output = fs.createWriteStream(path.join(app.getPath('userData'), 'stdout.log'));
-const errorOutput = fs.createWriteStream(path.join(app.getPath('userData'), 'stderr.log'));
+const output = fs.createWriteStream(path.join(app.getPath('userData'), 'stdout.log',), {flags: 'a'});
+const errorOutput = fs.createWriteStream(path.join(app.getPath('userData'), 'stderr.log'), {flags: 'a'});
 const logger = new console.Console(output, errorOutput);
 GitClient.logger = logger;
 
@@ -325,6 +325,10 @@ try {
 
   ipcMain.on(Channels.DELETESTASH, (event, args) => {
     handleGitPromise(gitClients[args[1]].deleteStash(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.RENAMEBRANCH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].renameBranch(args[2], args[3]), event, args);
   });
 
   ipcMain.on(Channels.CLOSEWINDOW, (event, args) => {

@@ -20,3 +20,16 @@
   content: "";
   display: block;
 }
+
+.edit-btn {
+  cursor: pointer;
+  margin-bottom: -.3em;
+
+  &:hover {
+    color: rgba(128, 128, 128, .5);
+  }
+}
+
+.bold {
+  font-weight: bold;
+}

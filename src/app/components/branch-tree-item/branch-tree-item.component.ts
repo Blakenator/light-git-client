@@ -17,9 +17,11 @@ export class BranchTreeItemComponent implements OnInit {
   @Output() onPushClicked = new EventEmitter<string>();
   @Output() onDeleteClicked = new EventEmitter<string>();
   @Output() onPullClicked = new EventEmitter<any>();
+  @Output() onBranchRename = new EventEmitter<{ oldName: string, newName: string }>();
   showChildren = true;
   leaves: BranchModel[];
   children;
+  activeRenames: { [key: string]: string } = {};
 
   constructor() {
   }
@@ -84,5 +86,18 @@ export class BranchTreeItemComponent implements OnInit {
 
   checkedOutOtherWorktree(b: BranchModel) {
     return this.worktrees.find(x => x.currentBranch == b.name && !x.isCurrent);
+  }
+
+  renameBranch(originalName: string) {
+    this.onBranchRename.emit({oldName: originalName, newName: this.activeRenames[originalName]});
+    this.cancelRename(originalName);
+  }
+
+  cancelRename(branchName: string) {
+    delete(this.activeRenames[branchName]);
+  }
+
+  startRename(branchName: string) {
+    this.activeRenames[branchName] = branchName;
   }
 }

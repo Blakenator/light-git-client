@@ -5,12 +5,20 @@
   <div class="col-sm-4 col-md-3 d-flex flex-column ">
     <h1>{{repo.name}}
       <span class="d-inline-block btn-group">
-        <button class="btn btn-primary" (click)="openTerminal()"><i class="fas fa-terminal"></i></button>
-        <button class="btn btn-info" (click)="openFolder()"><i class="fas fa-folder-open"></i></button>
-        <button class="btn btn-primary" (click)="getFileChanges(false)"><i class="fas fa-sync-alt"></i></button>
-        <button class="btn btn-warning" (click)="hardReset()">
+        <button class="btn btn-primary"
+                (click)="openTerminal()"
+                title="Open Bash Terminal at Repo Root"><i class="fas fa-terminal"></i></button>
+        <button class="btn btn-info"
+                (click)="openFolder()"
+                title="Open Folder at Repo Root"><i class="fas fa-folder-open"></i></button>
+        <button class="btn btn-primary"
+                (click)="getFileChanges(false)"
+                title="Refresh All Changes (local and remote)"><i class="fas fa-sync-alt"></i></button>
+        <button class="btn btn-warning"
+                (click)="hardReset()"
+                title="Discard All Changes Since the Last Commit (CAN'T UNDO!)">
           <i class="fa fa-undo"></i>
-          Undo All
+          Discard All
         </button>
       </span>
     </h1>
@@ -30,7 +38,8 @@
                               (onPushClicked)="push($event,false)"
                               (onPullClicked)="pull()"
                               (onDeleteClicked)="deleteBranch($event)"
-                              [worktrees]="repo.worktrees"></app-branch-tree-item>
+                              [worktrees]="repo.worktrees"
+                              (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
       </div>
     </div>
     <div class="card">
@@ -81,8 +90,12 @@
                placeholder="Filter..."
                [(ngModel)]="stashFilter" (click)="$event.stopPropagation()">
         <div class="btn-group d-inline-block">
-          <button class="btn btn-sm btn-secondary" title="Stash Unstaged Changes" (click)="stash(true);$event.stopPropagation()"><i class="fa fa-box"></i></button>
-          <button class="btn btn-sm btn-secondary" title="Stash All Changes" (click)="stash(false);$event.stopPropagation()"><i class="fa fa-boxes"></i></button>
+          <button class="btn btn-sm btn-secondary"
+                  title="Stash Unstaged Changes"
+                  (click)="stash(true);$event.stopPropagation()"><i class="fa fa-box"></i></button>
+          <button class="btn btn-sm btn-secondary"
+                  title="Stash All Changes"
+                  (click)="stash(false);$event.stopPropagation()"><i class="fa fa-boxes"></i></button>
         </div>
       </div>
       <div class="card-body" *ngIf="getExpandState('stashes')">

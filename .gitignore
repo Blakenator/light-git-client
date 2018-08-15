@@ -6,6 +6,8 @@
 /out-tsc
 /app-builds
 main.js
+/Git/*.js
+/Shared/*.js
 
 # dependencies
 /node_modules
