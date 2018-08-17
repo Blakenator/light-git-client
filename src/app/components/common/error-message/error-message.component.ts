@@ -20,6 +20,8 @@ export class ErrorMessageComponent implements OnInit {
   }
 
   getErrorMessage() {
-    return typeof this.errorMessage.error == 'object' ? JSON.stringify(this.errorMessage.error) : this.errorMessage.error;
+    return typeof this.errorMessage.error == 'object' ?
+      (JSON.stringify(this.errorMessage.error) == '{}' ? (<any>this.errorMessage.error).toString() : JSON.stringify(this.errorMessage.error)) :
+      this.errorMessage.error;
   }
 }

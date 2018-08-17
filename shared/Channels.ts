@@ -33,4 +33,5 @@ export namespace Channels {
   export const APPLYSTASH = "applyStash";
   export const DELETESTASH = "deleteStash";
   export const RENAMEBRANCH = "renameBranch";
+  export const FETCH = "fetch";
 }

@@ -2,7 +2,7 @@ import {ApplicationRef, Component, OnInit} from '@angular/core';
 import {ElectronService} from '../../providers/electron.service';
 import {HttpClient} from '@angular/common/http';
 import {SettingsService} from '../../providers/settings.service';
-import {Channels} from "../../../../shared/Channels";
+import {RepositoryModel} from "../../../../shared/Repository.model";
 
 @Component({
   selector: 'app-home',
@@ -16,6 +16,7 @@ export class HomeComponent implements OnInit {
   repoPaths: string[] = [''];
   tabNames: string[] = [''];
   editingTab = -1;
+  repoCache: { [key: string]: RepositoryModel } = {};
 
   constructor(private electronService: ElectronService,
               public settingsService: SettingsService,
@@ -29,6 +30,9 @@ export class HomeComponent implements OnInit {
       this.activeTab = this.settingsService.settings.activeTab;
       this.tabNames = this.settingsService.settings.tabNames.map((x, index) => x || this.basename(this.settingsService.settings.openRepos[index]));
       this.tabs = [...this.repoPaths.keys()];
+      this.repoPaths.forEach((p) => {
+        this.repoCache[p] = new RepositoryModel();
+      });
     });
   }
 

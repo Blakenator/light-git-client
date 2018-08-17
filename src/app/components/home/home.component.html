@@ -29,7 +29,8 @@
       <app-new-tab-page (onReady)="loadRepo($event)" *ngIf="!repoPaths[activeTab]"></app-new-tab-page>
       <app-repo-view *ngIf="repoPaths[activeTab]"
                      [repoPath]="repoPaths[activeTab]"
-                     (onLoadingChange)="isLoading=$event"></app-repo-view>
+                     (onLoadingChange)="isLoading=$event"
+                     [repoCache]="repoCache[repoPaths[activeTab]]"></app-repo-view>
     </div>
   </div>
 </div>

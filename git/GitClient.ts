@@ -86,6 +86,12 @@ export class GitClient {
     });
   }
 
+  fetch() {
+    return new Promise<RepositoryModel>((resolve, reject) => {
+      this.execute(this.getGitPath() + " fetch", "Fetch Remote Branches").then(text => this.getBranches().then(resolve).catch(reject));
+    });
+  }
+
   renameBranch(oldName: string, newName: string) {
     return new Promise<RepositoryModel>((resolve, reject) => {
       this.execute(this.getGitPath() + " branch -m " + oldName + " " + newName, "Rename Branch").then(text => this.getBranches().then(resolve).catch(reject));
@@ -267,7 +273,6 @@ export class GitClient {
           match = stashList.exec(text);
         }
       }));
-      promises.push(this.execute(this.getGitPath() + " fetch", "Fetch Remote Branches"));
       promises.push(this.execute(this.getGitPath() + " branch -r -v -v", "Get Remote Branches").then(text => {
         let match = branchList.exec(text);
         while (match) {

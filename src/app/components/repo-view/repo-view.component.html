@@ -50,7 +50,7 @@
                placeholder="Filter..."
                [(ngModel)]="remoteBranchFilter" (click)="$event.stopPropagation()">
       </div>
-      <div class="card-body" *ngIf="getExpandState('remotes')">
+      <div class="card-body branch-container" *ngIf="getExpandState('remotes')">
         <app-branch-tree-item [isLocal]="false"
                               [filter]="remoteBranchFilter"
                               [branches]="repo.remoteBranches"
@@ -67,7 +67,7 @@
                placeholder="Filter..."
                [(ngModel)]="worktreeFilter" (click)="$event.stopPropagation()">
       </div>
-      <div class="card-body" *ngIf="getExpandState('worktrees')">
+      <div class="card-body branch-container" *ngIf="getExpandState('worktrees')">
         <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter">
           <span [title]="w.path" [ngClass]="{'bold':w.isCurrent}">{{w.name}}</span>
           <div class="d-inline-block ml-3">
@@ -98,7 +98,7 @@
                   (click)="stash(false);$event.stopPropagation()"><i class="fa fa-boxes"></i></button>
         </div>
       </div>
-      <div class="card-body" *ngIf="getExpandState('stashes')">
+      <div class="card-body branch-container" *ngIf="getExpandState('stashes')">
         <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter">
           <span>{{s.index}}: {{s.message}}</span>
           <div class="d-inline-block ml-3">
@@ -128,7 +128,7 @@
               <i class="fa fa-angle-down"></i></button>
           </div>
         </div>
-        <div class="change-body" *ngIf="getExpandState('staged')">
+        <div class="change-body branch-container" *ngIf="getExpandState('staged')">
           <app-change-list [changes]="changes.stagedChanges"
                            [selectedChanges]="selectedStagedChanges"
                            (onSelectChanged)="selectionChanged()"
@@ -149,7 +149,7 @@
               <i class="fa fa-angle-up"></i></button>
           </div>
         </div>
-        <div class="change-body" *ngIf="getExpandState('unstaged')">
+        <div class="change-body branch-container" *ngIf="getExpandState('unstaged')">
           <app-change-list [changes]="changes.unstagedChanges"
                            [selectedChanges]="selectedUnstagedChanges"
                            (onSelectChanged)="selectionChanged()"

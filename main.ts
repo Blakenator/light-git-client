@@ -319,6 +319,10 @@ try {
     handleGitPromise(gitClients[args[1]].stash(args[2]), event, args);
   });
 
+  ipcMain.on(Channels.FETCH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].fetch(), event, args);
+  });
+
   ipcMain.on(Channels.APPLYSTASH, (event, args) => {
     handleGitPromise(gitClients[args[1]].applyStash(args[2]), event, args);
   });
