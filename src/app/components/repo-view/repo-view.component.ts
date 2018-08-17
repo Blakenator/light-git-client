@@ -36,6 +36,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   showDiff = false;
   errorMessage: { error: string };
   @Input() repoPath = "C:/Users/blake/Documents/projects/test-repo";
+  @Input() repoCache: RepositoryModel;
   localBranchFilter: string;
   remoteBranchFilter: string;
   globalErrorHandlerService: GlobalErrorHandlerService;
@@ -245,6 +246,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
+  fetch() {
+    this.electronService.rpc(Channels.FETCH, [this.repo.path])
+      .then(changes => this.handleBranchChanges(changes))
+      .catch(err => this.handleErrorMessage(err));
+  }
+
   toggleExpandState(key: string) {
     this.settingsService.settings.expandStates[key] = !this.settingsService.settings.expandStates[key];
     this.settingsService.saveSettings();
@@ -287,11 +294,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   private loadRepo(path: string = '') {
     this.repoPath = path || this.repoPath;
+    this.repo = this.repoCache;
     this.electronService.rpc(Channels.LOADREPO, [this.repoPath]).then(repo => {
       this.repo = new RepositoryModel().copy(repo);
-      console.log(repo);
+      Object.assign(this.repoCache, this.repo || {});
       this.getFileChanges(false);
       this.getCommitHistory();
+      this.fetch();
       this.applicationRef.tick();
       this.interval = setInterval(() => {
         this.getFileChanges();
@@ -319,6 +328,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
+    Object.assign(this.repoCache, this.repo || {});
     this.applicationRef.tick();
   }
 
