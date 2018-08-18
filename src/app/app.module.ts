@@ -31,6 +31,7 @@ import {FilterObjectPipe, FilterPipe} from './directives/filter.pipe';
 import {BranchTreeItemComponent} from './components/branch-tree-item/branch-tree-item.component';
 import {FileInputComponent} from './components/common/file-input/file-input.component';
 import {GlobalErrorHandlerService} from "./components/common/global-error-handler.service";
+import {InfiniteScrollModule} from "ngx-infinite-scroll";
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -60,6 +61,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     BrowserModule,
     FormsModule,
     HttpClientModule,
+    InfiniteScrollModule,
     AppRoutingModule,
     TranslateModule.forRoot({
       loader: {

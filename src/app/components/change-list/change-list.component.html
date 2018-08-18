@@ -29,7 +29,10 @@
     </td>
     <td>
       <div class="change-filename" [title]="c.file">
-        {{c.file}}
+        <div class="d-inline-block" *ngFor="let part of c.file.split('/'); let i=index">
+          <span class="badge badge-light">{{part}}</span>
+          <span *ngIf="i<c.file.split('/').length-1">/</span>
+        </div>
       </div>
     </td>
     <td class="center-text-vertical">

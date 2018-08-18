@@ -1,31 +1,43 @@
-<table class="table table-striped">
-  <thead>
-  <tr>
-    <th>Message</th>
-    <th>Author</th>
-    <th>Email</th>
-    <th>Date</th>
-    <th>Hash</th>
-    <th></th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr *ngFor="let c of commitHistory">
-    <td>
-      <div class="vertical-content-hidden">{{c.message}}
-      </div>
-    </td>
-    <td class="hidden-until-hover" [title]="c.authorName">{{c.authorName}}</td>
-    <td class="hidden-until-hover" [title]="c.authorEmail">{{c.authorEmail}}</td>
-    <td class="hidden-until-hover" [title]="c.authorDate | date : 'full'">
-      {{c.authorDate | date : 'short'}}
-    </td>
-    <td class="hidden-until-hover" [title]="c.hash">{{c.hash.substr(0,8)}}</td>
-    <td>
-      <button class="btn btn-sm btn-outline-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
-        <i class="fa fa-eye"></i>
-      </button>
-    </td>
-  </tr>
-  </tbody>
-</table>
+<div class="commit-wrapper"
+     infinite-scroll
+     [scrollWindow]="false"
+     (scrolled)="scrolled(true)"
+     (scrolledUp)="scrolled(false)">
+  <table class="table table-striped">
+    <thead>
+    <tr>
+      <th>Message</th>
+      <th>Author</th>
+      <th class="d-none d-sm-table-cell">Email</th>
+      <th>Date</th>
+      <th>Hash</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let c of commitHistory | slice : 0 : scrollOffset+numPerPage">
+      <td>
+        <div class="vertical-content-hidden">
+          <div [ngClass]="{'badge ml-1':true,'badge-info':!tag.startsWith('tag: ')&&!tag.startsWith('origin/'),'badge-warning':tag.startsWith('tag: '),'badge-primary':tag.startsWith('origin/')}"
+               *ngFor="let tag of c.currentTags">
+            <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
+            {{tag.replace('tag: ','')}}
+          </div>
+          {{c.message}}
+        </div>
+      </td>
+      <td class="hidden-until-hover" [title]="c.authorName">{{c.authorName}}</td>
+      <td class="hidden-until-hover d-none d-sm-table-cell" [title]="c.authorEmail">{{c.authorEmail}}</td>
+      <td class="hidden-until-hover" [title]="c.authorDate | date : 'full'">
+        {{c.authorDate | date : 'short'}}
+      </td>
+      <td class="hidden-until-hover" [title]="c.hash">{{c.hash.substr(0,8)}}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
+          <i class="fa fa-eye"></i>
+        </button>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>

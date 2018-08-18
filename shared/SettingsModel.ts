@@ -5,6 +5,7 @@ export class SettingsModel {
   public activeTab: number;
   public gitPath: string;
   public bashPath: string;
+  public showTrackingPath: boolean;
   public expandStates: { [key: string]: boolean };
   public commandTimeoutSeconds: number;
 
@@ -15,7 +16,8 @@ export class SettingsModel {
               gitPath: string = 'git',
               bashPath: string = 'bash',
               commandTimeoutSeconds: number = 10,
-              expandStates: { [key: string]: boolean } = {}) {
+              expandStates: { [key: string]: boolean } = {},
+              showTrackingPath: boolean = false) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
     this.tabNames = tabNames;
@@ -24,5 +26,10 @@ export class SettingsModel {
     this.bashPath = bashPath;
     this.expandStates = expandStates;
     this.commandTimeoutSeconds = commandTimeoutSeconds;
+    this.showTrackingPath = showTrackingPath;
+  }
+
+  static sanitizePath(path) {
+    return '"' + path.replace(/\\/g, '\\\\\\\\') + '"';
   }
 }

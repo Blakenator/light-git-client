@@ -21,22 +21,27 @@ export class SettingsComponent implements OnInit {
   }
 
   ngOnInit() {
-    let callback = () => {
-      if (this.tempSettings && this.tempSettings.darkMode != this.settingsService.settings.darkMode) {
-        (<any>window).setTheme(this.tempSettings.darkMode ? 'dark' : 'light');
+    let callback = (set = false) => {
+      if ((this.tempSettings && this.tempSettings.darkMode != this.settingsService.settings.darkMode) || set) {
+        (<any>window).setTheme(this.settingsService.settings.darkMode ? 'dark' : 'light');
       }
       this.tempSettings = this.settingsService.settings;
     };
-    this.settingsService.loadSettings(callback);
-    this.settingsService.listenSettings(callback);
+    this.settingsService.loadSettings(() => callback(true));
+    this.settingsService.listenSettings(() => callback());
     this.electronService.rpc(Channels.GETVERSION, []).then(version => this.version = version);
   }
 
   saveSettings() {
+    this.setThemeTemp();
     this.settingsService.saveSettings(this.tempSettings);
     this.tempSettings = this.settingsService.settings;
     this.showSettingsDialog = false;
     setTimeout(() => this.onSaveAction.emit(this.tempSettings), 100);
+  }
+
+  setThemeTemp() {
+    (<any>window).setTheme(this.tempSettings.darkMode ? 'dark' : 'light');
   }
 
   copyTempSettings() {

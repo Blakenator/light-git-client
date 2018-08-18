@@ -14,6 +14,7 @@
                  *ngIf="editingTab==t"
                  [(ngModel)]="tabNames[t]"
                  (change)="saveOpenRepos()"
+                 (keypress.space)="$event.stopPropagation()"
                  (click)="editClick($event,t)"/>
         </span>
         <span class="ml-2 pl-1 close-tab" (click)="editClick($event,t)"><i class="material-icons">edit</i></span>
