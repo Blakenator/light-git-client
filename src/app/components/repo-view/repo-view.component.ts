@@ -71,6 +71,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (this.repo) {
       this.getFileChanges();
       this.getBranchChanges();
+      this.getCommitHistory();
     }
   }
 
@@ -106,6 +107,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (!this.repo) {
       return;
     }
+    this.getBranchChanges();
+    this.fetch();
+    this.getCommitHistory();
     this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path,]).then(changes => this.handleFileChanges(changes, keepDiffCommitSelection)).catch(err => this.handleErrorMessage(err));
   }
 
@@ -232,7 +236,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getCurrentBranch(): BranchModel {
-    return this.repo.localBranches.find(x => x.isCurrentBranch);
+    return this.repo.localBranches.find(x => x.isCurrentBranch) || new BranchModel();
   }
 
   getBranchName(branch: BranchModel) {
@@ -264,7 +268,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   selectionChanged() {
     this.getFileDiff();
     this.diffCommitInfo = undefined;
-    this.showDiff = true;
+    setTimeout(()=>this.showDiff=true,300);
   }
 
   viewCommitDiff(commit: CommitSummaryModel) {

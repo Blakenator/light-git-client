@@ -4,4 +4,5 @@ export class CommitSummaryModel {
   public authorEmail:string;
   public authorDate:Date;
   public message:string;
+  public currentTags:string[];
 }

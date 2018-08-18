@@ -105,7 +105,8 @@ export class GitClient {
   }
 
   openTerminal() {
-    this.execute("start " + GitClient.settings.bashPath + " --login", "Open Terminal").then(console.log);
+    const command = "start \"Bash Command Window\" " + this.getBashPath() + " --login";
+    this.execute(command, "Open Terminal").then(console.log);
   }
 
   getDiff(unstaged: string, staged: string): Promise<string> {
@@ -199,9 +200,10 @@ export class GitClient {
 
   getCommitHistory(): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
-      this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%B\"\n", "Get Commit History").then(text => {
+      this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n", "Get Commit History").then(text => {
+      // this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n --all --full-history", "Get Commit History").then(text => {
         let result = [];
-        let branchList = /\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|([^|]*)/g;
+        let branchList = /\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)?\|([^|]*)/g;
         let match = branchList.exec(text);
         while (match) {
           let commitSummary = new CommitSummaryModel();
@@ -209,7 +211,10 @@ export class GitClient {
           commitSummary.authorName = match[2];
           commitSummary.authorEmail = match[3];
           commitSummary.authorDate = new Date(Date.parse(match[4]));
-          commitSummary.message = match[5];
+          if (match[5]) {
+            commitSummary.currentTags = match[5].split(',').map(x => x.trim());
+          }
+          commitSummary.message = match[6];
           result.push(commitSummary);
           match = branchList.exec(text);
         }
@@ -296,11 +301,15 @@ export class GitClient {
   }
 
   private getBashedGit() {
-    return '"' + GitClient.settings.bashPath.replace(/\\/g, '\\\\\\\\') + "\" -c '" + this.getGitPath();
+    return this.getBashPath() + " -c '" + this.getGitPath();
   }
 
   private getGitPath() {
-    return '"' + GitClient.settings.gitPath.replace(/\\/g, '\\\\\\\\') + '"';
+    return SettingsModel.sanitizePath(GitClient.settings.gitPath);
+  }
+
+  private getBashPath() {
+    return SettingsModel.sanitizePath(GitClient.settings.bashPath);
   }
 
   private execute(command: string, name: string): Promise<string> {
@@ -311,7 +320,9 @@ export class GitClient {
         if (!error) {
           resolve(stdout);
         } else {
-          logger.error("Err: " + error + " | " + stderr);
+          const msg = "Err: " + error + " | " + stderr;
+          console.error(msg);
+          logger.error(msg);
           reject(stderr);
         }
       });

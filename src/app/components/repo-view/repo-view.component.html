@@ -1,8 +1,8 @@
 <head *ngIf="repo">
   <title>Light Git - {{repo.name}} - {{getCurrentBranch().name}}</title>
 </head>
-<div *ngIf="repo" (focus)="getFileChanges()" class="row">
-  <div class="col-sm-4 col-md-3 d-flex flex-column ">
+<div *ngIf="repo" (focus)="getFileChanges()" class="row full-width">
+  <div class="col-sm col-md-3 d-flex flex-column mb-1">
     <h1>{{repo.name}}
       <span class="d-inline-block btn-group">
         <button class="btn btn-primary"
@@ -113,7 +113,7 @@
       </div>
     </div>
   </div>
-  <div class="col-sm-4 col-md-4 d-flex flex-column ">
+  <div class="col-sm col-md-4 d-flex flex-column mb-1">
     <div *ngIf="changes" class="flex-grow-1">
       <div class="card">
         <div class="card-header" (click)="toggleExpandState('staged')">
@@ -176,12 +176,12 @@
       </div>
     </div>
   </div>
-  <div *ngIf="changes" class="col-sm-4 col-md-5 diff-viewer">
+  <div *ngIf="changes" class="col-sm-12 col-md-5 diff-viewer">
     <div class="card">
       <div class="card-header">
         <div class="pretty p-switch p-fill mx-2">
           <input type="checkbox" [(ngModel)]="showDiff" (change)="applicationRef.tick()"/>
-          <label>Commit History</label>
+          <label>Branch Commit History</label>
           <div class="state ml-2">
             <label>Diff</label>
           </div>

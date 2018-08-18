@@ -1,19 +1,21 @@
-<div>
-  <div *ngIf="diffCommitInfo" class="card-body"><p class="text-muted">{{diffCommitInfo.hash}}</p>
-    <p>{{diffCommitInfo.authorName}} &lt;{{diffCommitInfo.authorEmail}}&gt;
-      @ {{diffCommitInfo.authorDate | date : 'short'}} </p>
-    <div>{{diffCommitInfo.message}}</div>
+<div class="diff-container">
+  <div>
+    <div *ngIf="diffCommitInfo" class="card-body"><p class="text-muted">{{diffCommitInfo.hash}}</p>
+      <p>{{diffCommitInfo.authorName}} &lt;{{diffCommitInfo.authorEmail}}&gt;
+        @ {{diffCommitInfo.authorDate | date : 'short'}} </p>
+      <div>{{diffCommitInfo.message}}</div>
+    </div>
+    <div class="form-inline">
+      <label>Match on:
+        <select class="form-control" [(ngModel)]="matchingSelection">
+          <option value="words">Words</option>
+          <option value="lines">Lines</option>
+          <option value="none">None</option>
+        </select>
+      </label>
+    </div>
   </div>
-  <div class="form-inline">
-    <label>Match on:
-      <select class="form-control" [(ngModel)]="matchingSelection">
-        <option value="words">Words</option>
-        <option value="lines">Lines</option>
-        <option value="none">None</option>
-      </select>
-    </label>
-  </div>
-</div>
-<div [innerHtml]="getDiffHtml()" *ngIf="diffString">
+  <div [innerHtml]="getDiffHtml()" *ngIf="diffString">
 
+  </div>
 </div>

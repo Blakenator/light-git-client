@@ -1,6 +1,7 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {BranchModel} from "../../../../shared/Branch.model";
 import {WorktreeModel} from "../../../../shared/worktree.model";
+import {SettingsService} from "../../providers/settings.service";
 
 @Component({
   selector: 'app-branch-tree-item',
@@ -23,7 +24,7 @@ export class BranchTreeItemComponent implements OnInit {
   children;
   activeRenames: { [key: string]: string } = {};
 
-  constructor() {
+  constructor(public settingsService: SettingsService) {
   }
 
   _branches: BranchModel[];

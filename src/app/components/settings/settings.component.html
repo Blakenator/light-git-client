@@ -20,9 +20,15 @@
           </button>
         </p>
         <div class="pretty p-switch p-fill mx-2">
-          <input type="checkbox" [(ngModel)]="tempSettings.darkMode"/>
+          <input type="checkbox" [(ngModel)]="tempSettings.darkMode" (change)="setThemeTemp()"/>
           <div class="state">
-            <label>{{tempSettings.darkMode?'dark':'light'}}</label>
+            <label>{{tempSettings.darkMode?'Dark':'Light'}} Mode</label>
+          </div>
+        </div>
+        <div class="pretty p-switch p-fill mx-2">
+          <input type="checkbox" [(ngModel)]="tempSettings.showTrackingPath"/>
+          <div class="state">
+            <label>Show branch tracking path</label>
           </div>
         </div>
         <app-file-input [filePath]="tempSettings.gitPath"

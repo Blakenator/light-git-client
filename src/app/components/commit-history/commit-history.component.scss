@@ -3,13 +3,9 @@
   white-space: nowrap;
   transition: max-width .5s ease-in-out, padding-right .5s;
   overflow: hidden;
-  background: -webkit-linear-gradient(0deg, #000 80%, rgba(0, 0, 0, 0));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   &:hover {
     max-width: 15em;
     transition-delay: .5s;
-    padding-right: 2em;
   }
 }
 
@@ -25,4 +21,19 @@
 
 td .btn {
   margin: -1.5em 0;
+}
+
+.commit-wrapper {
+  height: calc(100vh - 8rem);
+  overflow-y: auto;
+}
+
+.badge-info {
+  padding-top: .4em;
+  padding-bottom: .4em;
+}
+
+.badge {
+  padding-left: .6em;
+  padding-right: .6em;
 }
