@@ -9,16 +9,17 @@ import {
   OnInit,
   Output
 } from '@angular/core';
-import {ElectronService} from "../../providers/electron.service";
-import {SettingsService} from "../../providers/settings.service";
-import {RepositoryModel} from "../../../../shared/Repository.model";
-import {CommitModel} from "../../../../shared/Commit.model";
-import {Channels} from "../../../../shared/Channels";
-import {CommitSummaryModel} from "../../../../shared/CommitSummary.model";
-import {BranchModel} from "../../../../shared/Branch.model";
-import {GlobalErrorHandlerService} from "../common/global-error-handler.service";
-import {StashModel} from "../../../../shared/stash.model";
-import {WorktreeModel} from "../../../../shared/worktree.model";
+import {ElectronService} from '../../providers/electron.service';
+import {SettingsService} from '../../providers/settings.service';
+import {RepositoryModel} from '../../../../shared/Repository.model';
+import {CommitModel} from '../../../../shared/Commit.model';
+import {Channels} from '../../../../shared/Channels';
+import {CommitSummaryModel} from '../../../../shared/CommitSummary.model';
+import {BranchModel} from '../../../../shared/Branch.model';
+import {GlobalErrorHandlerService} from '../common/global-error-handler.service';
+import {StashModel} from '../../../../shared/stash.model';
+import {WorktreeModel} from '../../../../shared/worktree.model';
+import {DiffModel} from '../../../../shared/diff.model';
 
 @Component({
   selector: 'app-repo-view',
@@ -30,12 +31,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   changes: CommitModel;
   selectedUnstagedChanges: { [key: string]: boolean } = {};
   selectedStagedChanges: { [key: string]: boolean } = {};
-  diffString = "";
+  diffHeaders: DiffModel[] = [];
   commitAndPush = false;
   commitHistory: CommitSummaryModel[] = [];
   showDiff = false;
   errorMessage: { error: string };
-  @Input() repoPath = "C:/Users/blake/Documents/projects/test-repo";
+  @Input() repoPath = 'C:/Users/blake/Documents/projects/test-repo';
   @Input() repoCache: RepositoryModel;
   localBranchFilter: string;
   remoteBranchFilter: string;
@@ -45,6 +46,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   worktreeFilter: string;
   diffCommitInfo: CommitSummaryModel;
   stashFilter: string;
+  stagedChangesFilter: string;
+  unstagedChangesFilter: string;
+  showCreateBranch = false;
+  showCreateStash = false;
+  stashOnlyUnstaged = true;
   private interval;
 
   constructor(private electronService: ElectronService,
@@ -76,7 +82,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   stageAll() {
-    this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, '.']).then(changes => this.handleFileChanges(changes)).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, '.'])
+        .then(changes => this.handleFileChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
@@ -85,12 +93,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     let arg = Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).join(' ');
-    this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, arg]).then(changes => this.handleFileChanges(changes)).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, arg])
+        .then(changes => this.handleFileChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
   unstageAll() {
-    this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, '.']).then(changes => this.handleFileChanges(changes)).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, '.'])
+        .then(changes => this.handleFileChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
@@ -99,7 +111,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     let arg = Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).join(' ');
-    this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, arg]).then(changes => this.handleFileChanges(changes)).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, arg])
+        .then(changes => this.handleFileChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
@@ -110,19 +124,27 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.getBranchChanges();
     this.fetch();
     this.getCommitHistory();
-    this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path,]).then(changes => this.handleFileChanges(changes, keepDiffCommitSelection)).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path,])
+        .then(changes => this.handleFileChanges(changes, keepDiffCommitSelection))
+        .catch(err => this.handleErrorMessage(err));
   }
 
   getBranchChanges() {
-    this.electronService.rpc(Channels.GETBRANCHES, [this.repo.path,]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.GETBRANCHES, [this.repo.path,])
+        .then(changes => this.handleBranchChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
   }
 
-  deleteBranch(branch) {
-    this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branch]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
+  deleteBranch(branch: string) {
+    this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branch])
+        .then(changes => this.handleBranchChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
   }
 
   renameBranch(branch: { oldName: string, newName: string }) {
-    this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName]).then(changes => this.handleBranchChanges(changes)).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName])
+        .then(changes => this.handleBranchChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
   }
 
   openTerminal() {
@@ -143,7 +165,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       staged = '.';
     }
     this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]).then(diff => {
-      this.diffString = diff;
+      this.diffHeaders = diff;
       this.applicationRef.tick();
     }).catch(err => this.handleErrorMessage(err));
   }
@@ -160,12 +182,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     this.setLoading(true);
-    this.electronService.rpc(Channels.COMMIT, [this.repo.path, this.changes.description, this.commitAndPush]).then(changes => {
-      this.handleFileChanges(changes);
-      this.getCommitHistory();
-      this.changes.description = '';
-      this.setLoading(false);
-    }).catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.COMMIT, [this.repo.path, this.changes.description, this.commitAndPush])
+        .then(changes => {
+          this.handleFileChanges(changes);
+          this.getCommitHistory();
+          this.changes.description = '';
+          this.setLoading(false);
+        })
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
@@ -196,31 +220,38 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   deleteClicked(files: string[]) {
-    this.electronService.rpc(Channels.DELETEFILES, [this.repo.path, files]).then(changes => {
-      this.handleFileChanges(changes);
+    this.electronService.rpc(Channels.DELETEFILES, [this.repo.path, files]).then(() => {
+      this.getFileChanges(true);
+      this.getFileDiff();
       this.getBranchChanges();
     }).catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
   merge(file: string) {
-    this.electronService.rpc(Channels.MERGE, [this.repo.path, file, 'sourcetree']).then(changes => this.handleFileChanges(changes))
-      .catch(err => this.handleErrorMessage(err));
+    this.electronService.rpc(Channels.MERGE, [this.repo.path, file, 'sourcetree'])
+        .then(changes => this.handleFileChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
   stash(onlyUnstaged: boolean) {
-    this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged]).then(changes => {
+    this.stashOnlyUnstaged = onlyUnstaged;
+    this.showCreateStash = true;
+  }
+
+  createStash(stashName: string) {
+    this.electronService.rpc(Channels.STASH, [this.repo.path, this.stashOnlyUnstaged, stashName]).then(changes => {
       this.handleFileChanges(changes);
       this.getBranchChanges();
     })
-      .catch(err => this.handleErrorMessage(err));
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
   hardReset() {
     this.electronService.rpc(Channels.HARDRESET, [this.repo.path]).then(changes => this.handleFileChanges(changes))
-      .catch(err => this.handleErrorMessage(err));
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
@@ -245,15 +276,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   deleteWorktree(w) {
     this.electronService.rpc(Channels.DELETEWORKTREE, [this.repo.path, w.name])
-      .then(changes => this.handleBranchChanges(changes))
-      .catch(err => this.handleErrorMessage(err));
+        .then(changes => this.handleBranchChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
   }
 
   fetch() {
     this.electronService.rpc(Channels.FETCH, [this.repo.path])
-      .then(changes => this.handleBranchChanges(changes))
-      .catch(err => this.handleErrorMessage(err));
+        .then(changes => this.handleBranchChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
   }
 
   toggleExpandState(key: string) {
@@ -268,12 +299,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   selectionChanged() {
     this.getFileDiff();
     this.diffCommitInfo = undefined;
-    setTimeout(()=>this.showDiff=true,300);
+    setTimeout(() => this.showDiff = true, 300);
   }
 
   viewCommitDiff(commit: CommitSummaryModel) {
     this.electronService.rpc(Channels.COMMITDIFF, [this.repo.path, commit.hash]).then(diff => {
-      this.diffString = diff;
+      this.diffHeaders = diff;
       this.showDiff = true;
       this.diffCommitInfo = commit;
       this.applicationRef.tick();
@@ -294,6 +325,19 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.getBranchChanges();
     }).catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
+  }
+
+  createBranch(branchName: string) {
+    this.electronService.rpc(Channels.CREATEBRANCH, [this.repo.path, branchName])
+        .then(changes => {
+          this.handleBranchChanges(changes);
+          this.getCommitHistory();
+        })
+        .catch(err => this.handleErrorMessage(err));
+  }
+
+  getCreateStashDefaultText() {
+    return (this.repo.localBranches.find(x => x.isCurrentBranch) || new BranchModel()).lastCommitText;
   }
 
   private loadRepo(path: string = '') {
@@ -319,7 +363,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   private handleFileChanges(changes: CommitModel, keepDiffCommitSelection: boolean = true) {
-    this.changes = Object.assign(new CommitModel(), changes, {description: this.changes ? this.changes.description : ''});
+    this.changes = Object.assign(new CommitModel(),
+      changes,
+      {description: this.changes ? this.changes.description : ''});
     if (!keepDiffCommitSelection) {
       this.getFileDiff();
       this.diffCommitInfo = undefined;

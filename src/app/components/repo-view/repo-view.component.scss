@@ -39,6 +39,17 @@
   margin: 0;
 }
 
+.stash-message {
+  max-height: 4em;
+  overflow-y: hidden;
+  transition: max-height .5s;
+  padding-top: .5em;
+  &:hover {
+    max-height: 10em;
+    overflow-y: auto;
+  }
+}
+
 ///////////////////////small///////////////////////
 .card-body {
   padding: .3em;

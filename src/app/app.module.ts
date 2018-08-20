@@ -32,6 +32,8 @@ import {BranchTreeItemComponent} from './components/branch-tree-item/branch-tree
 import {FileInputComponent} from './components/common/file-input/file-input.component';
 import {GlobalErrorHandlerService} from "./components/common/global-error-handler.service";
 import {InfiniteScrollModule} from "ngx-infinite-scroll";
+import { InputModalComponent } from './components/common/input-modal/input-modal.component';
+import {HighlightModule} from 'ngx-highlightjs';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -56,6 +58,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     FilterObjectPipe,
     BranchTreeItemComponent,
     FileInputComponent,
+    InputModalComponent,
   ],
   imports: [
     BrowserModule,
@@ -63,6 +66,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     HttpClientModule,
     InfiniteScrollModule,
     AppRoutingModule,
+    HighlightModule.forRoot(),
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,

@@ -49,7 +49,10 @@
           <button class="btn btn-light btn-sm" (click)="onPushClicked.emit(b.name)" title="Push">
             <i class="fa fa-arrow-up"></i>
           </button>
-          <button class="btn btn-danger btn-sm" (click)="onDeleteClicked.emit(b.name)" title="Delete">
+          <button class="btn btn-danger btn-sm"
+                  (click)="onDeleteClicked.emit(b.name)"
+                  title="Delete"
+                  *ngIf="!b.isCurrentBranch">
             <i class="fa fa-trash"></i>
           </button>
         </div>

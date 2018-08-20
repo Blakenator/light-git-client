@@ -12,6 +12,7 @@
     "package.json",
     "!package-lock.json",
     "!src/",
+    "src/*.png",
     "!e2e/",
     "!hooks/",
     "!.angular-cli.json",

@@ -8,6 +8,7 @@ import {ChangeType, LightChange} from "../../../../shared/Commit.model";
 })
 export class ChangeListComponent implements OnInit {
   @Input() changes: LightChange[];
+  @Input() changeFilter = '';
   @Input() selectedChanges: { [key: string]: boolean } = {};
   @Output() onSelectChanged = new EventEmitter<any>();
   @Output() onUndoFileClicked = new EventEmitter<string>();

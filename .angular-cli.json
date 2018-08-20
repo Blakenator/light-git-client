@@ -24,7 +24,6 @@
         "assets/diff2html.min.css"
       ],
       "scripts": [
-        "assets/diff2html.js"
       ],
       "environmentSource": "environments/environment.ts",
       "environments": {

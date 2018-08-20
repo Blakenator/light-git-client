@@ -4,10 +4,10 @@ import * as url from 'url';
 import * as fs from 'fs';
 import {SettingsModel} from './shared/SettingsModel';
 import {autoUpdater} from 'electron-updater';
-import {RepositoryModel} from "./shared/Repository.model";
-import {GitClient} from "./git/GitClient";
-import {Channels} from "./shared/Channels";
-import {ElectronResponse} from "./shared/electron-response";
+import {RepositoryModel} from './shared/Repository.model';
+import {GitClient} from './git/GitClient';
+import {Channels} from './shared/Channels';
+import {ElectronResponse} from './shared/electron-response';
 
 const output = fs.createWriteStream(path.join(app.getPath('userData'), 'stdout.log',), {flags: 'a'});
 const errorOutput = fs.createWriteStream(path.join(app.getPath('userData'), 'stderr.log'), {flags: 'a'});
@@ -41,6 +41,7 @@ function createWindow() {
     width: size.width,
     height: size.height,
   });
+  win.maximize();
 
   if (serve) {
     require('electron-reload')(__dirname, {
@@ -114,13 +115,12 @@ function loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
 
 function handleGitPromise(p: Promise<any>, event: { sender: { send: (channel: string, content: any) => {} } }, args: any[]) {
   p.then(content => event.sender.send(getReplyChannel(args), new ElectronResponse(content)))
-    .catch(content => event.sender.send(getReplyChannel(args), new ElectronResponse(content, false)));
+   .catch(content => event.sender.send(getReplyChannel(args), new ElectronResponse(content, false)));
 }
 
 function checkForUpdates() {
   autoUpdater.checkForUpdates();
 }
-
 
 let updateDownloaded = false;
 let settings: SettingsModel = new SettingsModel();
@@ -129,11 +129,11 @@ let isWatchingSettingsDir;
 let loadedRepos: { [key: number]: Promise<RepositoryModel> } = {};
 let gitClients: { [key: string]: GitClient } = {};
 const iconFile = './src/favicon.512x512.png';
-const notificationTitle = "Light Git";
+const notificationTitle = 'Light Git';
 try {
 
-  app.setAppUserModelId("com.blakestacks.light-git-client");
-  app.setAsDefaultProtocolClient("light-git");
+  app.setAppUserModelId('com.blakestacks.light-git-client');
+  app.setAsDefaultProtocolClient('light-git');
 
   autoUpdater.on('update-not-available', info => {
     if (userInitiatedUpdate) {
@@ -316,7 +316,7 @@ try {
   });
 
   ipcMain.on(Channels.STASH, (event, args) => {
-    handleGitPromise(gitClients[args[1]].stash(args[2]), event, args);
+    handleGitPromise(gitClients[args[1]].stash(args[2], args[3] || ''), event, args);
   });
 
   ipcMain.on(Channels.FETCH, (event, args) => {
@@ -333,6 +333,10 @@ try {
 
   ipcMain.on(Channels.RENAMEBRANCH, (event, args) => {
     handleGitPromise(gitClients[args[1]].renameBranch(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.CREATEBRANCH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].createBranch(args[2]), event, args);
   });
 
   ipcMain.on(Channels.CLOSEWINDOW, (event, args) => {

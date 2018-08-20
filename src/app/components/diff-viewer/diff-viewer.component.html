@@ -15,7 +15,27 @@
       </label>
     </div>
   </div>
-  <div [innerHtml]="getDiffHtml()" *ngIf="diffString">
-
+  <div *ngIf="diffHeaders">
+    <div *ngFor="let header of diffHeaders" class="card">
+      <div class="card-header">
+        {{header.fromFilename}}
+        <span [class]="'tag '+getHeaderTag(header)">{{getHeaderTag(header)}}</span>
+      </div>
+      <div class="diff-header">
+        <div *ngFor="let hunk of header.hunks" class="d-flex hunk">
+          <div class="linenumber-block">
+            <div *ngFor="let line of hunk.lines" class="d-flex">
+              <div class="linenumber">{{!getAddition(line)?line.fromLineNumber:'-'}}</div>
+              <div class="linenumber">{{!getDeletion(line)?line.toLineNumber:'-'}}</div>
+              <div [ngClass]="{'line-overlay':true, 'addition':getAddition(line),'deletion':getDeletion(line), 'd-none':!getAddition(line)&&!getDeletion(line)}">
+              </div>
+            </div>
+          </div>
+          <div class="code-line-block flex-grow-1">
+            <pre><code highlight [code]="getHunkCode(hunk)"></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
