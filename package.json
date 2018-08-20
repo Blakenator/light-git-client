@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -34,6 +34,9 @@
     "codelyzer": "^4.4.2",
     "electron-log": "^2.2.14",
     "electron-updater": "^2.21.10",
+    "highlight.js": "^9.12.0",
+    "ng-diff-match-patch": "^3.0.1",
+    "ngx-highlightjs": "^2.1.1",
     "ngx-infinite-scroll": "^6.0.1",
     "node-notifier": "^5.2.1",
     "nodemon": "^1.17.5",

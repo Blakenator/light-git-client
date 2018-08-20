@@ -26,6 +26,10 @@
       <div class="card-header form-inline" (click)="toggleExpandState('locals')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('locals'),'fa-caret-down':getExpandState('locals')}"></i>
         Locals
+        <button class="btn btn-primary btn-sm mx-1"
+                (click)="showCreateBranch=true; $event.stopPropagation()"
+                title="Create branch off current HEAD">
+          <i class="fa fa-code-branch"></i></button>
         <input class="ml-2 form-control"
                placeholder="Filter..."
                [(ngModel)]="localBranchFilter" (click)="$event.stopPropagation()">
@@ -99,8 +103,11 @@
         </div>
       </div>
       <div class="card-body branch-container" *ngIf="getExpandState('stashes')">
-        <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter">
-          <span>{{s.index}}: {{s.message}}</span>
+        <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter" class="d-flex">
+          <div class="stash-message">
+            <span class="badge badge-info">{{s.index}}</span>
+            : {{s.message}}
+          </div>
           <div class="d-inline-block ml-3">
             <button class="btn btn-light btn-sm" (click)="applyStash(s.index)" title="Apply Stash">
               <i class="fa fa-box-open"></i>
@@ -116,7 +123,7 @@
   <div class="col-sm col-md-4 d-flex flex-column mb-1">
     <div *ngIf="changes" class="flex-grow-1">
       <div class="card">
-        <div class="card-header" (click)="toggleExpandState('staged')">
+        <div class="card-header form-inline" (click)="toggleExpandState('staged')">
           <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('staged'),'fa-caret-down':getExpandState('staged')}"></i>
           Staged Changes ({{changes.stagedChanges.length}})
           <div class="d-inline-block ml-3">
@@ -127,6 +134,9 @@
                     title="Unstage Selected">
               <i class="fa fa-angle-down"></i></button>
           </div>
+          <input class="ml-2 form-control"
+                 placeholder="Filter..."
+                 [(ngModel)]="stagedChangesFilter" (click)="$event.stopPropagation()">
         </div>
         <div class="change-body branch-container" *ngIf="getExpandState('staged')">
           <app-change-list [changes]="changes.stagedChanges"
@@ -134,11 +144,12 @@
                            (onSelectChanged)="selectionChanged()"
                            (onUndoFileClicked)="undoFileChanges($event)"
                            (onMergeClicked)="merge($event)"
-                           (onDeleteClicked)="deleteClicked($event)"></app-change-list>
+                           (onDeleteClicked)="deleteClicked($event)"
+                           [changeFilter]="stagedChangesFilter"></app-change-list>
         </div>
       </div>
       <div class="card">
-        <div class="card-header" (click)="toggleExpandState('unstaged')">
+        <div class="card-header form-inline" (click)="toggleExpandState('unstaged')">
           <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('unstaged'),'fa-caret-down':getExpandState('unstaged')}"></i>
           Unstaged Changes ({{changes.unstagedChanges.length}})
           <div class="d-inline-block ml-3">
@@ -148,6 +159,9 @@
             <button class="btn btn-secondary" (click)="stageSelected();$event.stopPropagation()" title="Stage Selected">
               <i class="fa fa-angle-up"></i></button>
           </div>
+          <input class="ml-2 form-control"
+                 placeholder="Filter..."
+                 [(ngModel)]="unstagedChangesFilter" (click)="$event.stopPropagation()">
         </div>
         <div class="change-body branch-container" *ngIf="getExpandState('unstaged')">
           <app-change-list [changes]="changes.unstagedChanges"
@@ -155,7 +169,8 @@
                            (onSelectChanged)="selectionChanged()"
                            (onUndoFileClicked)="undoFileChanges($event)"
                            (onMergeClicked)="merge($event)"
-                           (onDeleteClicked)="deleteBranch($event)"></app-change-list>
+                           (onDeleteClicked)="deleteClicked($event)"
+                           [changeFilter]="unstagedChangesFilter"></app-change-list>
         </div>
       </div>
     </div>
@@ -189,7 +204,7 @@
       </div>
       <div>
         <div class="card-body" *ngIf="showDiff">
-          <app-diff-viewer [diffString]="diffString" [diffCommitInfo]="diffCommitInfo"></app-diff-viewer>
+          <app-diff-viewer [diffHeaders]="diffHeaders" [diffCommitInfo]="diffCommitInfo"></app-diff-viewer>
         </div>
         <app-commit-history [commitHistory]="commitHistory"
                             *ngIf="!showDiff"
@@ -197,5 +212,22 @@
       </div>
     </div>
   </div>
+  <app-error-message [errorMessage]="errorMessage"></app-error-message>
+  <app-input-modal [show]="showCreateBranch"
+                   modalTitle="Create Branch"
+                   message="Create branch off current HEAD"
+                   validPattern="[a-zA-Z0-9/-]*[a-zA-Z0-9-]"
+                   invalidMessage="Please enter a valid branch name"
+                   inputPlaceholder="Branch name..."
+                   (onClickOk)="createBranch($event)"
+                   (onClickCancel)="showCreateBranch=false"></app-input-modal>
+  <app-input-modal [show]="showCreateStash"
+                   [modalTitle]="'Stash '+(stashOnlyUnstaged?'Unstaged':'All')+' Changes'"
+                   message="Please enter a name for the stash"
+                   validPattern='^[^\"]*$'
+                   invalidMessage="Stash name cannot include double quotes"
+                   inputPlaceholder="Stash name..."
+                   [defaultText]="getCreateStashDefaultText()"
+                   (onClickOk)="createStash($event)"
+                   (onClickCancel)="showCreateStash=false"></app-input-modal>
 </div>
-<app-error-message [errorMessage]="errorMessage"></app-error-message>

@@ -1,3 +1,5 @@
+@import "../../../styles";
+
 .card-body {
   border-bottom: .1em solid rgba(128, 128, 128, .3);
   //margin-bottom: .5em;
@@ -11,4 +13,75 @@
 .diff-container {
   height: calc(100vh - 8rem);
   overflow-y: auto;
+}
+
+.linenumber-block {
+  font-size: 87.5%;
+  padding: .7em .5em .5em;
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  > div {
+    flex-grow: 1;
+  }
+  .linenumber {
+    text-align: right;
+    flex-grow: 1;
+    margin-bottom: -.005em;
+    padding-left: 1em;
+    min-width: 3em;
+  }
+}
+
+.code-line-block {
+  pre {
+    margin: 0;
+  }
+}
+
+.addition {
+  background-color: rgba(0, 255, 0, .3);
+}
+
+.deletion {
+  background-color: rgba(255, 0, 0, .3);
+}
+
+.hunk {
+  overflow-x: auto;
+  margin-top: .5em;
+}
+
+.line-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1.43em;
+  margin-top: -.1em;
+}
+
+.tag {
+  color: white;
+  padding: .7em;
+  border-radius: $border-radius;
+}
+
+.Changed {
+  background-color: rgba(222, 143, 31, 0.6);
+}
+
+.Moved {
+  background-color: rgba(24, 35, 222, 0.6);
+}
+
+.Renamed {
+  background-color: rgba(203, 24, 222, 0.6);
+}
+
+.Added {
+  background-color: rgba(63, 222, 36, 0.6);
+}
+
+.Deleted {
+  background-color: rgba(222, 35, 14, 0.6);
 }
