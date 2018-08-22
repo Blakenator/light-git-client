@@ -6,6 +6,7 @@ export class SettingsModel {
   public gitPath: string;
   public bashPath: string;
   public showTrackingPath: boolean;
+  public commitMessageAutocomplete: boolean;
   public expandStates: { [key: string]: boolean };
   public commandTimeoutSeconds: number;
 
@@ -17,7 +18,8 @@ export class SettingsModel {
               bashPath: string = 'bash',
               commandTimeoutSeconds: number = 10,
               expandStates: { [key: string]: boolean } = {},
-              showTrackingPath: boolean = false) {
+              showTrackingPath: boolean = false,
+              commitMessageAutcomplete: boolean = false) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
     this.tabNames = tabNames;
@@ -27,6 +29,7 @@ export class SettingsModel {
     this.expandStates = expandStates;
     this.commandTimeoutSeconds = commandTimeoutSeconds;
     this.showTrackingPath = showTrackingPath;
+    this.commitMessageAutocomplete = commitMessageAutcomplete;
   }
 
   static sanitizePath(path) {

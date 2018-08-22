@@ -182,11 +182,21 @@
         </div>
       </div>
       <div class="d-flex flex-row bg-light">
-        <textarea class="form-control flex-grow-1 mt-1"
-                  [(ngModel)]="changes.description"
-                  placeholder="Commit message"
-                  [disabled]="isLoading"
-                  (keyup.control.enter)="commit()"></textarea>
+        <div class="dropup flex-grow-1 mt-1">
+          <textarea class="form-control"
+                    [(ngModel)]="changes.description"
+                    placeholder="Commit message"
+                    [disabled]="isLoading"
+                    (keyup.control.enter)="commit()"
+                    (keyup)="setCurrentCursorPosition($event)"></textarea>
+          <div class="dropdown-menu show" *ngIf="suggestions.length>0">
+            <a [ngClass]="{'dropdown-item':true,'active':i==selectedAutocopleteItem}"
+               *ngFor="let s of suggestions; let i = index"
+               (click)="chooseAutocomleteItem(false,i)">{{s}}</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" (click)="suggestions=[]">Hide Suggestions</a>
+          </div>
+        </div>
         <button class="btn btn-success" (click)="commit()" [disabled]="isLoading">Commit</button>
       </div>
     </div>

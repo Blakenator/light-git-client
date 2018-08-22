@@ -28,6 +28,12 @@
             <label>Show branch tracking path</label>
           </div>
         </div>
+        <div class="pretty p-switch p-fill mx-2">
+          <input type="checkbox" [(ngModel)]="tempSettings.commitMessageAutocomplete"/>
+          <div class="state">
+            <label>Show autocomplete when typing commit message</label>
+          </div>
+        </div>
         <app-file-input [filePath]="tempSettings.gitPath"
                         (onPathChanged)="tempSettings.gitPath=$event"
                         [label]="'Git Path'"></app-file-input>

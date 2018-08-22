@@ -20,6 +20,7 @@ import {GlobalErrorHandlerService} from '../common/global-error-handler.service'
 import {StashModel} from '../../../../shared/stash.model';
 import {WorktreeModel} from '../../../../shared/worktree.model';
 import {DiffModel} from '../../../../shared/diff.model';
+import {FilterPipe} from '../../directives/filter.pipe';
 
 @Component({
   selector: 'app-repo-view',
@@ -51,7 +52,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   showCreateBranch = false;
   showCreateStash = false;
   stashOnlyUnstaged = true;
+  selectedAutocopleteItem = 0;
+  suggestions: string[] = [];
+  positionInAutoComplete: number;
   private interval;
+  private currentCommitCursorPosition: number;
 
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
@@ -76,6 +81,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   onFocus(event: any): void {
     if (this.repo) {
       this.getFileChanges();
+      this.getFileDiff();
       this.getBranchChanges();
       this.getCommitHistory();
     }
@@ -186,7 +192,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         .then(changes => {
           this.handleFileChanges(changes);
           this.getCommitHistory();
+          this.getFileDiff();
           this.changes.description = '';
+          this.showDiff = false;
           this.setLoading(false);
         })
         .catch(err => this.handleErrorMessage(err));
@@ -338,6 +346,113 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   getCreateStashDefaultText() {
     return (this.repo.localBranches.find(x => x.isCurrentBranch) || new BranchModel()).lastCommitText;
+  }
+
+  getFilenameChunks(filename: string) {
+    return filename.replace('->', '/->/').split('/');
+  }
+
+  getCommitSuggestions() {
+    let partial = this.changes.description;
+    if (!partial || !this.settingsService.settings.commitMessageAutocomplete) {
+      this.suggestions = [];
+      return [];
+    }
+
+    let lastWord, index = 0;
+    let arr = partial.split(/[\s,]/);
+    for (let i = 0; i < arr.length; i++) {
+      if (index >= this.currentCommitCursorPosition) {
+        break;
+      }
+      this.positionInAutoComplete = this.currentCommitCursorPosition - index;
+      lastWord = arr[i];
+      index += arr[i].length;
+    }
+    if (!lastWord || !lastWord.trim() || lastWord.trim().length < 5) {
+      this.suggestions = [];
+      return [];
+    }
+    let optionsSet: { [key: string]: number } = {};
+    this.changes.stagedChanges.forEach(x =>
+      this.getFilenameChunks(x.file)
+          .forEach(y => optionsSet[y] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
+    this.changes.unstagedChanges.forEach(x =>
+      this.getFilenameChunks(x.file)
+          .forEach(y => optionsSet[y] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
+
+    const currentBranchName = this.getCurrentBranch().name;
+    this.getFilenameChunks(currentBranchName)
+        .forEach(y => optionsSet[y] = this.levenshtein(currentBranchName, lastWord));
+    console.log(optionsSet);
+    const result = Object.keys(optionsSet)
+                         // .sort((a, b) => optionsSet[a] - optionsSet[b])
+                         .filter(x => FilterPipe.fuzzyFilter(lastWord.toLowerCase(),
+                           x.toLocaleLowerCase()) || optionsSet[x] < lastWord.length / 3)
+                         .slice(0, 5);
+    this.suggestions = result;
+    return result;
+  }
+
+  setCurrentCursorPosition($event, suggestions) {
+    this.currentCommitCursorPosition = $event.target.selectionStart;
+
+    if (['Enter', 'ArrowUp', 'ArrowDown', 'Escape'].indexOf($event.key) < 0) {
+      this.getCommitSuggestions();
+    }
+    if (this.suggestions.length == 0) {
+      return;
+    }
+    $event.stopPropagation();
+    if ($event.key == 'Enter') {
+      this.currentCommitCursorPosition--;
+      this.chooseAutocomleteItem(true);
+    } else if ($event.key == 'ArrowUp') {
+      this.selectedAutocopleteItem = Math.max(0, this.selectedAutocopleteItem - 1);
+    } else if ($event.key == 'ArrowDown') {
+      this.selectedAutocopleteItem = Math.min(this.suggestions.length, this.selectedAutocopleteItem + 1);
+    } else if ($event.key == 'Escape') {
+      this.suggestions = [];
+    }
+  }
+
+  chooseAutocomleteItem(removeEnter: boolean, item?: number) {
+    this.selectedAutocopleteItem = item || this.selectedAutocopleteItem;
+    this.changes.description = this.changes.description.substring(0, this.currentCommitCursorPosition - this.positionInAutoComplete) +
+      this.suggestions[this.selectedAutocopleteItem] +
+      this.changes.description.substring(this.currentCommitCursorPosition + (removeEnter ? 1 : 0));
+    this.selectedAutocopleteItem = 0;
+    this.suggestions = [];
+  }
+
+  private levenshtein(a: string, b: string): number {
+    let tmp;
+    if (a.length === 0) {
+      return b.length;
+    }
+    if (b.length === 0) {
+      return a.length;
+    }
+    if (a.length > b.length) {
+      tmp = a;
+      a = b;
+      b = tmp;
+    }
+
+    let i, j, res, alen = a.length, blen = b.length, row = Array(alen);
+    for (i = 0; i <= alen; i++) {
+      row[i] = i;
+    }
+
+    for (i = 1; i <= blen; i++) {
+      res = i;
+      for (j = 1; j <= alen; j++) {
+        tmp = row[j - 1];
+        row[j - 1] = res;
+        res = b[i - 1] === a[j - 1] ? tmp : Math.min(tmp + 1, Math.min(res + 1, row[j] + 1));
+      }
+    }
+    return res;
   }
 
   private loadRepo(path: string = '') {
