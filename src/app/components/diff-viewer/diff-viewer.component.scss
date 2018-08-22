@@ -30,6 +30,10 @@
     margin-bottom: -.005em;
     padding-left: 1em;
     min-width: 3em;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
 }
 
@@ -58,6 +62,7 @@
   right: 0;
   height: 1.43em;
   margin-top: -.1em;
+  pointer-events: none;
 }
 
 .tag {
@@ -84,4 +89,8 @@
 
 .Deleted {
   background-color: rgba(222, 35, 14, 0.6);
+}
+
+.card-header .badge {
+  font-size: 1.1em;
 }

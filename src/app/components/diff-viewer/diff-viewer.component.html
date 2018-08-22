@@ -17,9 +17,17 @@
   </div>
   <div *ngIf="diffHeaders">
     <div *ngFor="let header of diffHeaders" class="card">
-      <div class="card-header">
-        {{header.fromFilename}}
-        <span [class]="'tag '+getHeaderTag(header)">{{getHeaderTag(header)}}</span>
+      <div class="card-header d-flex">
+        <div class="flex-grow-1">
+          <div class="d-inline-block"
+               *ngFor="let part of header.toFilename.replace('->','/->/').split('/'); let i=index">
+            <span class="badge badge-light">{{part}}</span>
+            <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
+          </div>
+        </div>
+        <div class="flex-grow-0 center-text-vertical">
+          <span [class]="'tag '+getHeaderTag(header)">{{getHeaderTag(header)}}</span>
+        </div>
       </div>
       <div class="diff-header">
         <div *ngFor="let hunk of header.hunks" class="d-flex hunk">

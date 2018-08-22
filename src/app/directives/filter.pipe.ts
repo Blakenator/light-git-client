@@ -6,19 +6,19 @@ import {Pipe, PipeTransform} from '@angular/core';
 export class FilterPipe implements PipeTransform {
   /**
    * Used from React Material's Autocomplete code
-   * @param searchText haystack
-   * @param key needle
+   * @param needle haystack
+   * @param haystack needle
    * @returns {boolean} was the needle fuzzy found in the haystack
    */
-  static fuzzyFilter(searchText, key) {
+  static fuzzyFilter(needle, haystack): boolean {
     let searchTextIndex = 0;
-    for (let index = 0; index < key.length; index++) {
-      if (key[index] === searchText[searchTextIndex]) {
+    for (let index = 0; index < haystack.length; index++) {
+      if (haystack[index] === needle[searchTextIndex]) {
         searchTextIndex += 1;
       }
     }
 
-    return searchTextIndex === searchText.length;
+    return searchTextIndex === needle.length;
   }
 
   transform(items: any[], searchText: string): any[] {

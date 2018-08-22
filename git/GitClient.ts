@@ -97,7 +97,7 @@ export class GitClient {
 
   fetch() {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' fetch', 'Fetch Remote Branches')
+      this.execute(this.getGitPath() + ' fetch -p', 'Fetch Remote Branches')
           .then(text => this.getBranches().then(resolve).catch(reject))
           .catch(reject)
           .catch(reject);
