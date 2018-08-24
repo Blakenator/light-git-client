@@ -119,6 +119,24 @@
         </div>
       </div>
     </div>
+    <div class="card">
+      <div class="card-header form-inline" (click)="toggleExpandState('command-history')">
+        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('command-history'),'fa-caret-down':getExpandState('command-history')}"></i>
+        Command History
+        <input class="ml-2 form-control"
+               placeholder="Filter..."
+               [(ngModel)]="commandHistoryFilter" (click)="$event.stopPropagation()">
+      </div>
+      <div class="card-body branch-container"
+           *ngIf="getExpandState('command-history') && commandHistory">
+        <div *ngFor="let c of commandHistory.reverse() | filterObject : getCommandHistoryFilterableText : commandHistoryFilter">
+          <span><i>{{c.name}}</i> ({{c.durationMs}}ms @ {{c.executedAt | date : 'mediumTime'}})</span>
+          <pre>$ {{c.command}}</pre>
+          <pre class="p-2 bg-light">{{c.errorOutput||c.output}}</pre>
+          <hr/>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="col-sm col-md-4 d-flex flex-column mb-1">
     <div *ngIf="changes" class="flex-grow-1">

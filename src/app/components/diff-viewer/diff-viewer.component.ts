@@ -1,6 +1,7 @@
 import {Component, Input, OnInit} from '@angular/core';
 import {CommitSummaryModel} from '../../../../shared/CommitSummary.model';
 import {DiffHunkModel, DiffLineModel, DiffModel, LineState} from '../../../../shared/diff.model';
+import {SettingsService} from '../../providers/settings.service';
 
 @Component({
   selector: 'app-diff-viewer',
@@ -12,7 +13,7 @@ export class DiffViewerComponent implements OnInit {
   @Input() diffCommitInfo: CommitSummaryModel;
   matchingSelection = 'words';
 
-  constructor() {
+  constructor(public settingsService: SettingsService) {
   }
 
   ngOnInit() {
@@ -46,5 +47,9 @@ export class DiffViewerComponent implements OnInit {
       header.toFilename.lastIndexOf('/'))) {
       return 'Renamed';
     }
+  }
+
+  saveSettings() {
+    setTimeout(() => this.settingsService.saveSettings(), 100);
   }
 }

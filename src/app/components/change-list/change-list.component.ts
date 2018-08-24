@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {ChangeType, LightChange} from "../../../../shared/Commit.model";
+import {ChangeType, LightChange} from '../../../../shared/Commit.model';
 
 @Component({
   selector: 'app-change-list',
@@ -67,19 +67,15 @@ export class ChangeListComponent implements OnInit {
 
   toggleSelect(file: string, $event: MouseEvent) {
     this.selectedChanges[file] = !this.selectedChanges[file];
-    if (!this.lastClicked) {
-      this.lastClicked = file;
-    } else if (this.selectedChanges[this.lastClicked]) {
-      if ($event.shiftKey) {
-        const lastClickedIndex = this.changes.findIndex(c => c.file == this.lastClicked);
-        const thisClickedIndex = this.changes.findIndex(c => c.file == file);
-        for (let c of this.changes.slice(Math.min(thisClickedIndex, lastClickedIndex), Math.max(thisClickedIndex, lastClickedIndex))) {
-          this.selectedChanges[c.file] = true;
-        }
-      } else {
-        this.lastClicked = file;
+    if ($event.shiftKey) {
+      const lastClickedIndex = this.changes.findIndex(c => c.file == this.lastClicked);
+      const thisClickedIndex = this.changes.findIndex(c => c.file == file);
+      for (let c of this.changes.slice(Math.min(thisClickedIndex, lastClickedIndex),
+        Math.max(thisClickedIndex, lastClickedIndex))) {
+        this.selectedChanges[c.file] = true;
       }
     }
+    this.lastClicked = file;
     this.selectAll = this.changes.every(x => this.selectedChanges[x.file]);
     this.onSelectChanged.emit();
   }
