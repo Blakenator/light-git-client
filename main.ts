@@ -331,6 +331,10 @@ try {
     handleGitPromise(gitClients[args[1]].deleteStash(args[2]), event, args);
   });
 
+  ipcMain.on(Channels.GETCOMMANDHISTORY, (event, args) => {
+    handleGitPromise(gitClients[args[1]].getCommandHistory(), event, args);
+  });
+
   ipcMain.on(Channels.RENAMEBRANCH, (event, args) => {
     handleGitPromise(gitClients[args[1]].renameBranch(args[2], args[3]), event, args);
   });

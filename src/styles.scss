@@ -109,8 +109,15 @@ body {
   transform: translateY(-50%);
   margin: auto;
   max-height: 60%;
-  overflow-y: auto;
   box-shadow: $material-dialog-shadow;
+  .modal-content {
+    display: flex;
+    flex-direction: column;
+    .modal-body {
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+  }
 }
 
 .rounded {

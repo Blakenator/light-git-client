@@ -20,16 +20,20 @@ export class GitClient {
   constructor(private workingDir: string) {
   }
 
-  getCommitDiff(commitHash: any): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' diff ' + commitHash + '~ ' + commitHash, 'Get Diff for Commit')
-          .then(resolve)
+  getCommitDiff(commitHash: any): Promise<DiffModel[]> {
+    return new Promise<DiffModel[]>((resolve, reject) => {
+      this.execute(this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + commitHash + '~ ' + commitHash,
+        'Get Diff for Commit')
+          .then(text => {
+            console.log(text);
+            resolve(this.parseDiffString(text));
+          })
           .catch(reject);
     });
   }
 
-  getCommandHistory(): CommandHistoryModel[] {
-    return this.commandHistory;
+  getCommandHistory(): Promise<CommandHistoryModel[]> {
+    return Promise.resolve(this.commandHistory);
   }
 
   openRepo(): Promise<RepositoryModel> {
@@ -99,8 +103,13 @@ export class GitClient {
     return new Promise<RepositoryModel>((resolve, reject) => {
       this.execute(this.getGitPath() + ' fetch -p', 'Fetch Remote Branches')
           .then(text => this.getBranches().then(resolve).catch(reject))
-          .catch(reject)
-          .catch(reject);
+          .catch((error: string) => {
+            if (error.indexOf('cannot lock ref')) {
+              this.execute(this.getGitPath() + ' gc --prune=now', 'Git Active Repo Garbage Cleanup')
+                  .then(text => this.getBranches().then(resolve).catch(reject))
+                  .catch(reject);
+            }
+          });
     });
   }
 
@@ -137,61 +146,13 @@ export class GitClient {
     return new Promise<DiffModel[]>((resolve, reject) => {
       let command = [];
       if (unstaged.trim()) {
-        command.push(this.getGitPath() + ' diff -- ' + unstaged);
+        command.push(this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' -- ' + unstaged);
       }
       if (staged.trim()) {
-        command.push(this.getGitPath() + ' diff --staged -- ' + staged);
+        command.push(this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' --staged -- ' + staged);
       }
       this.execute(command.join(' && '), 'Get Diff').then(text => {
-        let diffHeader = /^diff --git a\/(\S+) b\/(\S+)(\r?\n(?!@@).*)*((\r?\n(?!diff).*)*)/gm;
-        let hunk = /\s*@@ -(\d+),(\d+) \+(\d+),(\d+) @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
-        let line = /^(\+|-| )(.*)$/gm;
-        let headerMatch = diffHeader.exec(text);
-        let result: DiffModel[] = [];
-        while (headerMatch) {
-          let header = new DiffModel();
-          header.fromFilename = headerMatch[1];
-          header.toFilename = headerMatch[2];
-          // console.log(header);
-          let hunkMatch = hunk.exec(headerMatch[4]);
-          while (hunkMatch) {
-            let h = new DiffHunkModel();
-            let startTo = +hunkMatch[1];
-            let startFrom = +hunkMatch[3];
-            h.fromStartLine = startFrom;
-            h.toStartLine = startTo;
-            h.fromNumLines = +hunkMatch[2];
-            h.toNumLines = +hunkMatch[4];
-            // console.log('---', h);
-            let lineMatch = line.exec(hunkMatch[5]);
-            while (lineMatch) {
-              let l = new DiffLineModel();
-              if (lineMatch[1] == ' ') {
-                l.state = LineState.SAME;
-                l.fromLineNumber = startFrom++;
-                l.toLineNumber = startTo++;
-                l.text = lineMatch[2];
-              } else if (lineMatch[1] == '+') {
-                l.state = LineState.ADDED;
-                l.fromLineNumber = startFrom;
-                l.toLineNumber = startTo++;
-                l.text = lineMatch[2];
-              } else {
-                l.state = LineState.REMOVED;
-                l.fromLineNumber = startFrom++;
-                l.toLineNumber = startTo;
-                l.text = lineMatch[2];
-              }
-              // console.log('------', l);
-              h.lines.push(l);
-              lineMatch = line.exec(hunkMatch[5]);
-            }
-            header.hunks.push(h);
-            hunkMatch = hunk.exec(headerMatch[4]);
-          }
-          result.push(header);
-          headerMatch = diffHeader.exec(text);
-        }
+        let result = this.parseDiffString(text);
         resolve(result);
       }).catch(reject);
 
@@ -382,6 +343,59 @@ export class GitClient {
         reject(ignore);
       });
     }));
+  }
+
+  private parseDiffString(text: string): DiffModel[] {
+    let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)(\r?\n(?!@@).*)+((\r?\n(?!diff).*)*)/gm;
+    let hunk = /\s*@@ -(\d+),(\d+) \+(\d+)(,(\d+))? @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
+    let line = /^([+\- ])(.*)$/gm;
+    let headerMatch = diffHeader.exec(text);
+    let result: DiffModel[] = [];
+    while (headerMatch) {
+      let header = new DiffModel();
+      header.fromFilename = headerMatch[1];
+      header.toFilename = headerMatch[3];
+      let hunkMatch = hunk.exec(headerMatch[6]);
+      while (hunkMatch) {
+        let h = new DiffHunkModel();
+        let startTo = +hunkMatch[1];
+        let startFrom = +hunkMatch[3];
+        h.fromStartLine = startFrom;
+        h.toStartLine = startTo;
+        h.fromNumLines = +hunkMatch[2];
+        h.toNumLines = +hunkMatch[5];
+        let lineMatch = line.exec(hunkMatch[6]);
+        // console.log(hunkMatch[6]);
+        while (lineMatch) {
+          // console.log(lineMatch);
+          let l = new DiffLineModel();
+          if (lineMatch[1] == ' ') {
+            l.state = LineState.SAME;
+            l.fromLineNumber = startFrom++;
+            l.toLineNumber = startTo++;
+            l.text = lineMatch[2];
+          } else if (lineMatch[1] == '+') {
+            l.state = LineState.ADDED;
+            l.fromLineNumber = startFrom;
+            l.toLineNumber = startTo++;
+            l.text = lineMatch[2];
+          } else {
+            l.state = LineState.REMOVED;
+            l.fromLineNumber = startFrom++;
+            l.toLineNumber = startTo;
+            l.text = lineMatch[2];
+          }
+          // console.log('------', l);
+          h.lines.push(l);
+          lineMatch = line.exec(hunkMatch[6]);
+        }
+        header.hunks.push(h);
+        hunkMatch = hunk.exec(headerMatch[6]);
+      }
+      result.push(header);
+      headerMatch = diffHeader.exec(text);
+    }
+    return result;
   }
 
   private getBashedGit() {

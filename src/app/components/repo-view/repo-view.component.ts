@@ -21,6 +21,7 @@ import {StashModel} from '../../../../shared/stash.model';
 import {WorktreeModel} from '../../../../shared/worktree.model';
 import {DiffModel} from '../../../../shared/diff.model';
 import {FilterPipe} from '../../directives/filter.pipe';
+import {CommandHistoryModel} from '../../../../shared/command-history.model';
 
 @Component({
   selector: 'app-repo-view',
@@ -49,12 +50,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   stashFilter: string;
   stagedChangesFilter: string;
   unstagedChangesFilter: string;
+  commandHistoryFilter: string;
   showCreateBranch = false;
   showCreateStash = false;
   stashOnlyUnstaged = true;
   selectedAutocopleteItem = 0;
   suggestions: string[] = [];
   positionInAutoComplete: number;
+  commandHistory: CommandHistoryModel[];
   private interval;
   private currentCommitCursorPosition: number;
 
@@ -237,7 +240,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   merge(file: string) {
-    this.electronService.rpc(Channels.MERGE, [this.repo.path, file, 'sourcetree'])
+    this.electronService.rpc(Channels.MERGE, [this.repo.path, file, this.settingsService.settings.mergetool])
         .then(changes => this.handleFileChanges(changes))
         .catch(err => this.handleErrorMessage(err));
     this.clearSelectedChanges();
@@ -292,6 +295,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   fetch() {
     this.electronService.rpc(Channels.FETCH, [this.repo.path])
         .then(changes => this.handleBranchChanges(changes))
+        .catch(err => this.handleErrorMessage(err));
+  }
+
+  getCommandHistory() {
+    this.electronService.rpc(Channels.GETCOMMANDHISTORY, [this.repo.path])
+        .then(history => {
+          this.commandHistory = [];
+          this.applicationRef.tick();
+          this.commandHistory = history;
+          this.applicationRef.tick();
+        })
         .catch(err => this.handleErrorMessage(err));
   }
 
@@ -425,6 +439,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.suggestions = [];
   }
 
+  getCommandHistoryFilterableText(command: CommandHistoryModel) {
+    return command.name + command.command;
+  }
+
   private levenshtein(a: string, b: string): number {
     let tmp;
     if (a.length === 0) {
@@ -485,6 +503,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.getFileDiff();
       this.diffCommitInfo = undefined;
     }
+    this.getCommandHistory();
     this.applicationRef.tick();
   }
 
@@ -494,6 +513,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     Object.assign(this.repoCache, this.repo || {});
+    this.getCommandHistory();
     this.applicationRef.tick();
   }
 

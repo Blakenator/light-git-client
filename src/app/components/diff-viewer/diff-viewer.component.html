@@ -13,6 +13,13 @@
           <option value="none">None</option>
         </select>
       </label>
+
+      <div class="pretty p-switch p-fill mx-2" (click)="saveSettings()">
+        <input type="checkbox" [(ngModel)]="settingsService.settings.diffIgnoreWhitespace"/>
+        <div class="state">
+          <label>Ignore Whitespace</label>
+        </div>
+      </div>
     </div>
   </div>
   <div *ngIf="diffHeaders">
@@ -25,7 +32,7 @@
             <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
           </div>
         </div>
-        <div class="flex-grow-0 center-text-vertical">
+        <div class="flex-grow-0 center-text-vertical tag-container">
           <span [class]="'tag '+getHeaderTag(header)">{{getHeaderTag(header)}}</span>
         </div>
       </div>
