@@ -9,6 +9,7 @@ import {WorktreeModel} from '../shared/worktree.model';
 import {logger} from 'codelyzer/util/logger';
 import {StashModel} from '../shared/stash.model';
 import {DiffHunkModel, DiffLineModel, DiffModel, LineState} from '../shared/diff.model';
+import {ConfigItemModel} from '../shared/config-item.model';
 
 const exec = require('child_process').exec;
 
@@ -34,6 +35,35 @@ export class GitClient {
 
   getCommandHistory(): Promise<CommandHistoryModel[]> {
     return Promise.resolve(this.commandHistory);
+  }
+
+  getConfigItems(): Promise<ConfigItemModel[]> {
+    return new Promise<ConfigItemModel[]>((resolve, reject) => {
+      this.execute(this.getGitPath() + ' config --list --show-origin', 'Get Config Items').then(text => {
+        // console.log(text);
+        let configItem = /^(.*?)\t(.*)=(.*)$/gm;
+        let match = configItem.exec(text);
+        let result: ConfigItemModel[] = [];
+        while (match) {
+          // console.log(match);
+          result.push(new ConfigItemModel(match[2], match[3], match[1]));
+          match = configItem.exec(text);
+        }
+        resolve(result);
+      }).catch(reject);
+    });
+  }
+
+  setConfigItem(item: ConfigItemModel): Promise<ConfigItemModel[]> {
+    return new Promise<ConfigItemModel[]>((resolve, reject) => {
+      const command = this.getBashedGit() + ' config --replace-all ' +
+        (item.sourceFile.trim() ? '--file ' + item.sourceFile.replace(/^.*?:/, '') + ' ' : '') +
+        (item.value ? '' : '--unset ') + item.key + ' ' + ('"' + item.value + '"' || '');
+      console.log(command);
+      this.execute(command, 'Set Config Item')
+          .then(text => this.getConfigItems().then(resolve).catch(reject))
+          .catch(reject);
+    });
   }
 
   openRepo(): Promise<RepositoryModel> {
@@ -94,6 +124,14 @@ export class GitClient {
   deleteBranch(branch: string) {
     return new Promise<RepositoryModel>((resolve, reject) => {
       this.execute(this.getGitPath() + ' branch -d -- ' + branch, 'Delete Branch')
+          .then(text => this.getBranches().then(resolve).catch(reject))
+          .catch(reject);
+    });
+  }
+
+  mergeBranch(branch: string) {
+    return new Promise<RepositoryModel>((resolve, reject) => {
+      this.execute(this.getGitPath() + ' merge -- ' + branch, 'Merge Branch into Current Branch')
           .then(text => this.getBranches().then(resolve).catch(reject))
           .catch(reject);
     });
@@ -414,17 +452,17 @@ export class GitClient {
     let start = new Date();
     return Promise.race([new Promise<string>((resolve, reject) => {
       exec(command, {cwd: this.workingDir}, (error, stdout, stderr) => {
-        this.commandHistory.push(new CommandHistoryModel(name,
+        const commandHistoryModel = new CommandHistoryModel(name,
           command,
           stderr,
           stdout,
-          start, new Date().getTime() - start.getTime()));
+          start, new Date().getTime() - start.getTime());
+        this.commandHistory.push(commandHistoryModel);
         if (!error) {
           resolve(stdout);
         } else {
-          const msg = 'Err: ' + error + ' | ' + stderr;
-          console.error(msg);
-          logger.error(msg);
+          console.error(JSON.stringify(commandHistoryModel));
+          logger.error(JSON.stringify(commandHistoryModel));
           reject(stderr);
         }
       });

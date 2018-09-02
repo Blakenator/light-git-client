@@ -50,6 +50,16 @@
   }
 }
 
+.command-output {
+  max-height: 6em;
+  overflow-y: hidden;
+  transition: max-height .5s;
+  &:hover {
+    max-height: 20em;
+    overflow-y: auto;
+  }
+}
+
 ///////////////////////small///////////////////////
 .card-body {
   padding: .3em;

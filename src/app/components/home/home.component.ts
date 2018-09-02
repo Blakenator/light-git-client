@@ -2,7 +2,8 @@ import {ApplicationRef, Component, OnInit} from '@angular/core';
 import {ElectronService} from '../../providers/electron.service';
 import {HttpClient} from '@angular/common/http';
 import {SettingsService} from '../../providers/settings.service';
-import {RepositoryModel} from "../../../../shared/Repository.model";
+import {RepositoryModel} from '../../../../shared/Repository.model';
+import {GitService} from '../../providers/git.service';
 
 @Component({
   selector: 'app-home',
@@ -21,7 +22,8 @@ export class HomeComponent implements OnInit {
   constructor(private electronService: ElectronService,
               public settingsService: SettingsService,
               private http: HttpClient,
-              private applicationRef: ApplicationRef) {
+              private applicationRef: ApplicationRef,
+              private gitService: GitService) {
   }
 
   ngOnInit() {
@@ -32,7 +34,9 @@ export class HomeComponent implements OnInit {
       this.tabs = [...this.repoPaths.keys()];
       this.repoPaths.forEach((p) => {
         this.repoCache[p] = new RepositoryModel();
+        this.repoCache[p].path = this.repoPaths[p];
       });
+      this.gitService.repo = this.repoCache[this.activeTab];
     });
   }
 
@@ -76,6 +80,7 @@ export class HomeComponent implements OnInit {
     this.settingsService.settings.tabNames = this.tabNames;
     this.settingsService.settings.openRepos = this.repoPaths;
     this.editingTab = -1;
+    this.gitService.repo = this.repoCache[this.activeTab];
     this.settingsService.saveSettings();
   }
 

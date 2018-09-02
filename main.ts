@@ -323,6 +323,18 @@ try {
     handleGitPromise(gitClients[args[1]].fetch(), event, args);
   });
 
+  ipcMain.on(Channels.GETCONFIGITEMS, (event, args) => {
+    handleGitPromise(gitClients[args[1]].getConfigItems(), event, args);
+  });
+
+  ipcMain.on(Channels.SETCONFIGITEM, (event, args) => {
+    handleGitPromise(gitClients[args[1]].setConfigItem(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.MERGEBRANCH, (event, args) => {
+    handleGitPromise(gitClients[args[1]].mergeBranch(args[2]), event, args);
+  });
+
   ipcMain.on(Channels.APPLYSTASH, (event, args) => {
     handleGitPromise(gitClients[args[1]].applyStash(args[2]), event, args);
   });

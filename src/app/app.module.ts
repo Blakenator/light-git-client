@@ -34,6 +34,7 @@ import {GlobalErrorHandlerService} from "./components/common/global-error-handle
 import {InfiniteScrollModule} from "ngx-infinite-scroll";
 import { InputModalComponent } from './components/common/input-modal/input-modal.component';
 import {HighlightModule} from 'ngx-highlightjs';
+import { GitConfigComponent } from './components/git-config/git-config.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -59,6 +60,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     BranchTreeItemComponent,
     FileInputComponent,
     InputModalComponent,
+    GitConfigComponent,
   ],
   imports: [
     BrowserModule,

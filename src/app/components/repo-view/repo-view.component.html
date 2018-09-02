@@ -42,6 +42,7 @@
                               (onPushClicked)="push($event,false)"
                               (onPullClicked)="pull()"
                               (onDeleteClicked)="deleteBranch($event)"
+                              (onMergeClicked)="mergeBranch($event)"
                               [worktrees]="repo.worktrees"
                               (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
       </div>
@@ -128,11 +129,15 @@
                [(ngModel)]="commandHistoryFilter" (click)="$event.stopPropagation()">
       </div>
       <div class="card-body branch-container"
-           *ngIf="getExpandState('command-history') && commandHistory">
-        <div *ngFor="let c of commandHistory.reverse() | filterObject : getCommandHistoryFilterableText : commandHistoryFilter">
+           *ngIf="getExpandState('command-history') && commandHistory"
+           infinite-scroll
+           [scrollWindow]="false"
+           (scrolled)="maxCommandsVisible=maxCommandsVisible + commandsPerPage"
+           (scrolledUp)="maxCommandsVisible=commandsPerPage">
+        <div *ngFor="let c of commandHistory.reverse() | filterObject : getCommandHistoryFilterableText : commandHistoryFilter | slice : 0 : maxCommandsVisible">
           <span><i>{{c.name}}</i> ({{c.durationMs}}ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
-          <pre class="p-2 bg-light">{{c.errorOutput||c.output}}</pre>
+          <pre class="p-2 bg-light command-output">{{c.errorOutput||c.output}}</pre>
           <hr/>
         </div>
       </div>
@@ -252,7 +257,7 @@
   <app-input-modal [show]="showCreateStash"
                    [modalTitle]="'Stash '+(stashOnlyUnstaged?'Unstaged':'All')+' Changes'"
                    message="Please enter a name for the stash"
-                   validPattern='^[^\"]*$'
+                   validPattern='^[^\\"]*$'
                    invalidMessage="Stash name cannot include double quotes"
                    inputPlaceholder="Stash name..."
                    [defaultText]="getCreateStashDefaultText()"
