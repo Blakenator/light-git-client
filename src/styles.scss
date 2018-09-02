@@ -79,6 +79,10 @@ html, body {
   background: transparent;
 }
 
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
   border-radius: .2em;
   background-color: rgba(128, 128, 128, .3);
@@ -197,6 +201,10 @@ body {
 
 .modal-content, .modal-footer, .modal-header {
   border: none;
+}
+
+.modal-header {
+  flex-shrink: 0;
 }
 
 .image-fit {

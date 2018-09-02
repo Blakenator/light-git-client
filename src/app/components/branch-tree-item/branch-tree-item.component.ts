@@ -17,6 +17,7 @@ export class BranchTreeItemComponent implements OnInit {
   @Output() onCheckoutClicked = new EventEmitter<string>();
   @Output() onPushClicked = new EventEmitter<string>();
   @Output() onDeleteClicked = new EventEmitter<string>();
+  @Output() onMergeClicked = new EventEmitter<string>();
   @Output() onPullClicked = new EventEmitter<any>();
   @Output() onBranchRename = new EventEmitter<{ oldName: string, newName: string }>();
   showChildren = true;

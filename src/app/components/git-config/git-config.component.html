@@ -1,0 +1,59 @@
+<button class="btn btn-secondary center-text-vertical mx-2" title="Git Config"
+        (click)="show()">
+  <i class="fa fa-wrench"></i>
+</button>
+<div class="dialog-container" *ngIf="showWindow">
+  <div class="dialog-window card">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Git Config</h5>
+      </div>
+      <div class="modal-body">
+        <input class="form-control" [(ngModel)]="filter" placeholder="Filter...">
+        <table class="table table-striped">
+          <thead>
+          <tr>
+            <th>Key</th>
+            <th>Value</th>
+            <th>Location</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let item of items | filterObject : 'key' : filter">
+            <td class="editable-item" (click)="startEdit(item,true)">
+              <span *ngIf="!isEditing(item) || !clickedKey">{{item.key}}</span>
+              <input class="form-control"
+                     *ngIf="isEditing(item) && clickedKey"
+                     (keyup.enter)="saveConfigItem(item)"
+                     (blur)="saveConfigItem(item)"
+                     (keydown.tab)="clickedKey=false"
+                     (keydown.escape)="cancelEdit()"
+                     [(ngModel)]="editedItem.key"
+                     autofocus>
+            </td>
+            <td class="editable-item" (click)="startEdit(item,false)">
+              <span *ngIf="!isEditing(item)|| clickedKey">{{item.value}}</span>
+              <input class="form-control"
+                     *ngIf="isEditing(item) && !clickedKey"
+                     (keyup.enter)="saveConfigItem()"
+                     (blur)="saveConfigItem()"
+                     (keydown.shift.tab)="clickedKey=true"
+                     (keydown.escape)="cancelEdit()"
+                     [(ngModel)]="editedItem.value"
+                     autofocus>
+            </td>
+            <td>{{getConfigFileDisplay(item.sourceFile)}}</td>
+          </tr>
+          <tr class="editable-item" (click)="newItem()">
+            <td class="text-muted" colspan="3">New Item...</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="close()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<app-error-message [errorMessage]="errorMessage"></app-error-message>

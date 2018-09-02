@@ -1,6 +1,9 @@
 export namespace Channels {
   export const GETFILECHANGES = "getFileChanges";
   export const GETBRANCHES= "getBranches";
+  export const MERGEBRANCH= "mergeBranch";
+  export const GETCONFIGITEMS= "getConfigItems";
+  export const SETCONFIGITEM= "setConfigItem";
   export const GETFILEDIFF = "getFileDiff";
   export const LOADSETTINGS = "loadSettings";
   export const SAVESETTINGS = "saveSettings";

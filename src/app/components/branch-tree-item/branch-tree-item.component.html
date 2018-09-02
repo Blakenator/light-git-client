@@ -29,17 +29,19 @@
                  [(ngModel)]="activeRenames[b.name]">
           <div class="input-group-append">
             <button class="btn btn-sm btn-light"
-                    (click)="cancelRename(b.name)"><i class="fa fa-times-circle"></i></button>
-            <button class="btn btn-sm btn-success" (click)="renameBranch(b.name)"><i class="fa fa-check"></i></button>
+                    title="Cancel rename"
+                    (click)="cancelRename(b.name)">
+              <i class="fa fa-times-circle"></i>
+            </button>
+            <button class="btn btn-sm btn-success" title="Rename local branch" (click)="renameBranch(b.name)"><i class="fa fa-check"></i></button>
           </div>
         </div>
         <div *ngIf="!activeRenames[b.name]" class="d-inline-block ml-3 float-right">
-          <button class="btn btn-info btn-sm" (click)="startRename(b.name)"><i class="material-icons">edit</i></button>
+          <button class="btn btn-info btn-sm" (click)="startRename(b.name)" title="Rename local branch"><i class="material-icons">edit</i></button>
           <button class="btn btn-light btn-sm"
                   (click)="onCheckoutClicked.emit(b.name)"
-                  title="Checkout"
                   *ngIf="!b.isCurrentBranch"
-                  [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null"
+                  [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':'Checkout'"
                   [disabled]="checkedOutOtherWorktree(b)">
             <i class="fa fa-shopping-cart"></i>
           </button>
@@ -48,6 +50,12 @@
           </button>
           <button class="btn btn-light btn-sm" (click)="onPushClicked.emit(b.name)" title="Push">
             <i class="fa fa-arrow-up"></i>
+          </button>
+          <button class="btn btn-light btn-sm"
+                  (click)="onMergeClicked.emit(b.name)"
+                  *ngIf="!b.isCurrentBranch"
+                  title="Merge Branch into Current Branch">
+            <i class="fa fa-code-branch merge-branch-icon"></i>
           </button>
           <button class="btn btn-danger btn-sm"
                   (click)="onDeleteClicked.emit(b.name)"
@@ -77,6 +85,7 @@
                             (onPushClicked)="onPushClicked.emit($event)"
                             (onPullClicked)="onPullClicked.emit()"
                             (onDeleteClicked)="onDeleteClicked.emit($event)"
+                            (onMergeClicked)="onMergeClicked.emit($event)"
                             [localBranches]="localBranches"
                             [worktrees]="worktrees"
                             (onBranchRename)="onBranchRename.emit($event)"></app-branch-tree-item>
