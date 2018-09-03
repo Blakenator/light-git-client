@@ -24,7 +24,7 @@
         </div>
         <div *ngIf="activeRenames[b.name]" class="input-group input-group-sm">
           <input class="form-control"
-                 autofocus
+                 [autofocus]
                  (keyup.enter)="renameBranch(b.name)"
                  [(ngModel)]="activeRenames[b.name]">
           <div class="input-group-append">

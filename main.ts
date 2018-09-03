@@ -343,6 +343,10 @@ try {
     handleGitPromise(gitClients[args[1]].deleteStash(args[2]), event, args);
   });
 
+  ipcMain.on(Channels.CHANGEHUNK, (event, args) => {
+    handleGitPromise(gitClients[args[1]].changeHunk(path.join(args[1], args[2]), args[3], args[4]), event, args);
+  });
+
   ipcMain.on(Channels.GETCOMMANDHISTORY, (event, args) => {
     handleGitPromise(gitClients[args[1]].getCommandHistory(), event, args);
   });

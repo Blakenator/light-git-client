@@ -1,7 +1,9 @@
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {CommitSummaryModel} from '../../../../shared/CommitSummary.model';
 import {DiffHunkModel, DiffLineModel, DiffModel, LineState} from '../../../../shared/diff.model';
 import {SettingsService} from '../../providers/settings.service';
+import {GitService} from '../../providers/git.service';
+import {CommitModel} from '../../../../shared/Commit.model';
 
 @Component({
   selector: 'app-diff-viewer',
@@ -12,8 +14,14 @@ export class DiffViewerComponent implements OnInit {
   @Input() diffHeaders: DiffModel[];
   @Input() diffCommitInfo: CommitSummaryModel;
   matchingSelection = 'words';
+  editingHunk: DiffHunkModel;
+  editingHeader: DiffModel;
+  editedText: string;
+  @Output() onHunkChanged = new EventEmitter<CommitModel>();
+  @Output() onHunkChangeError = new EventEmitter<any>();
 
-  constructor(public settingsService: SettingsService) {
+  constructor(public settingsService: SettingsService,
+              private gitService: GitService) {
   }
 
   ngOnInit() {
@@ -51,5 +59,39 @@ export class DiffViewerComponent implements OnInit {
 
   saveSettings() {
     setTimeout(() => this.settingsService.saveSettings(), 100);
+  }
+
+  getEditableCode(hunk: DiffHunkModel) {
+    return hunk.lines.filter(x => x.state != LineState.REMOVED).map(x => x.text).join('\n');
+  }
+
+  cancelEdit() {
+    this.editingHeader = undefined;
+    this.editingHunk = undefined;
+  }
+
+  saveEditedHunk() {
+    if (!this.editingHunk || !this.editingHeader || this.editedText == this.getEditableCode(this.editingHunk)) {
+      this.editingHeader = undefined;
+      this.editingHunk = undefined;
+      return;
+    }
+    this.gitService.changeHunk(this.editingHeader.toFilename, this.editingHunk, this.editedText)
+        .then(changes => {
+          this.onHunkChanged.emit(changes);
+          this.editingHeader = undefined;
+          this.editingHunk = undefined;
+        })
+        .catch(error => this.onHunkChangeError.emit(error));
+  }
+
+  startEdit(hunk: DiffHunkModel, header: DiffModel) {
+    this.editedText = this.getEditableCode(hunk);
+    this.editingHeader = header;
+    this.editingHunk = hunk;
+  }
+
+  isEditingHunk(hunk: DiffHunkModel, header: DiffModel) {
+    return this.editingHunk && this.editingHeader && this.editingHunk.fromStartLine == hunk.fromStartLine && this.editingHeader.fromFilename == header.fromFilename;
   }
 }

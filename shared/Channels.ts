@@ -2,6 +2,7 @@ export namespace Channels {
   export const GETFILECHANGES = "getFileChanges";
   export const GETBRANCHES= "getBranches";
   export const MERGEBRANCH= "mergeBranch";
+  export const CHANGEHUNK= "changeHunk";
   export const GETCONFIGITEMS= "getConfigItems";
   export const SETCONFIGITEM= "setConfigItem";
   export const GETFILEDIFF = "getFileDiff";

@@ -37,13 +37,18 @@
     </td>
     <td class="center-text-vertical">
       <div class="btn-group">
-        <button class="btn btn-outline-warning btn-sm" (click)="undoFileClicked(c.file)">
+        <button class="btn btn-outline-warning btn-sm"
+                title="Undo all changes to this file (staged and unstaged)"
+                (click)="undoFileClicked(c.file)">
           <i class="fa fa-undo"></i>
         </button>
-        <button class="btn btn-outline-success btn-sm" (click)="mergeClicked(c.file)" *ngIf="isMergeConflict(c.change)">
+        <button class="btn btn-outline-success btn-sm"
+                title="Open configured merge tool"
+                (click)="mergeClicked(c.file)"
+                *ngIf="isMergeConflict(c.change)">
           <i class="material-icons">merge_type</i>
         </button>
-        <button class="btn btn-outline-danger btn-sm" (click)="deleteClicked(c.file)">
+        <button class="btn btn-outline-danger btn-sm" title="Delete file" (click)="deleteClicked(c.file)">
           <i class="material-icons">delete</i>
         </button>
       </div>

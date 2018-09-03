@@ -1,0 +1,39 @@
+<div class="dialog-container" *ngIf="showWindow">
+  <div class="dialog-window dialog-wide card">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-exclamation-triangle mx-2"></i> Code Watcher Warnings</h5>
+      </div>
+      <div class="modal-body">
+        <p>The following hunks have watcher alerts:</p>
+        <input class="form-control" [(ngModel)]="filter" placeholder="Filter...">
+        <div *ngFor="let f of watcherAlerts | filterObject : 'file' : filter" class="card">
+          <div class="card-header">{{f.file}}</div>
+          <div>
+            <table class="table">
+              <thead>
+              <tr>
+                <th>Code</th>
+                <th>Watcher</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let h of f.hunks">
+                <td>
+                  <pre><code highlight [code]="getHunkCode(h.hunk)"></code></pre>
+                </td>
+                <td><p *ngFor="let w of h.watchers">{{w.name}}</p></td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-warning" (click)="commitAnyway()">Commit Anyway</button>
+        <button class="btn btn-secondary" (click)="cancel()">Cancel Commit</button>
+      </div>
+    </div>
+  </div>
+</div>
+<app-error-message [errorMessage]="errorMessage"></app-error-message>

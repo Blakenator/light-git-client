@@ -1,0 +1,26 @@
+.settings-tab {
+  display: inline-block;
+  padding: 1em 1.2em;
+  cursor: pointer;
+  margin-bottom: 1em;
+  border-bottom: .3em solid transparent;
+  transition: background-color .5s, border-bottom-color .5s;
+  &:hover {
+    background-color: rgba(128, 128, 128, .3);
+  }
+  &.active {
+    border-bottom: .3em solid rgba(128, 128, 255, .5);
+  }
+}
+
+.ng-invalid {
+  border: .2em solid rgba(255, 0, 0, .5);
+}
+
+.small-input {
+  width: 6em;
+}
+
+.td-btn {
+  margin: -.25em;
+}

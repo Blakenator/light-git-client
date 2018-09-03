@@ -3,7 +3,7 @@
   <i class="fa fa-wrench"></i>
 </button>
 <div class="dialog-container" *ngIf="showWindow">
-  <div class="dialog-window card">
+  <div class="dialog-window dialog-wide card">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Git Config</h5>
@@ -29,7 +29,7 @@
                      (keydown.tab)="clickedKey=false"
                      (keydown.escape)="cancelEdit()"
                      [(ngModel)]="editedItem.key"
-                     autofocus>
+                     [autofocus]>
             </td>
             <td class="editable-item" (click)="startEdit(item,false)">
               <span *ngIf="!isEditing(item)|| clickedKey">{{item.value}}</span>
@@ -40,7 +40,7 @@
                      (keydown.shift.tab)="clickedKey=true"
                      (keydown.escape)="cancelEdit()"
                      [(ngModel)]="editedItem.value"
-                     autofocus>
+                     [autofocus]>
             </td>
             <td>{{getConfigFileDisplay(item.sourceFile)}}</td>
           </tr>
