@@ -2,7 +2,8 @@ import {Component, EventEmitter, OnInit, Output} from '@angular/core';
 import {ElectronService} from '../../providers/electron.service';
 import {SettingsService} from '../../providers/settings.service';
 import {SettingsModel} from '../../../../shared/SettingsModel';
-import {Channels} from "../../../../shared/Channels";
+import {Channels} from '../../../../shared/Channels';
+import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
 
 @Component({
   selector: 'app-settings',
@@ -14,6 +15,7 @@ export class SettingsComponent implements OnInit {
   tempSettings: SettingsModel;
   version: string;
   advanced: boolean;
+  currentTab = 0;
   @Output() onSaveAction = new EventEmitter<SettingsModel>();
 
   constructor(private electronService: ElectronService,
@@ -45,7 +47,7 @@ export class SettingsComponent implements OnInit {
   }
 
   copyTempSettings() {
-    this.tempSettings = Object.assign(new SettingsModel(), this.settingsService.settings);
+    this.tempSettings = this.settingsService.settings.clone();
     this.showSettingsDialog = true;
   }
 
@@ -55,5 +57,9 @@ export class SettingsComponent implements OnInit {
 
   checkForUpdates() {
     this.electronService.rpc(Channels.CHECKFORUPDATES, []);
+  }
+
+  addWatcher() {
+    this.tempSettings.codeWatchers.push(new CodeWatcherModel());
   }
 }

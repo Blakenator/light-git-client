@@ -10,7 +10,7 @@
         <span class="pr-1 center-text-vertical">
           <span *ngIf="editingTab!=t">{{tabNames[t]}}</span>
           <input class="form-control"
-                 autofocus
+                 [autofocus]
                  *ngIf="editingTab==t"
                  [(ngModel)]="tabNames[t]"
                  (change)="saveOpenRepos()"

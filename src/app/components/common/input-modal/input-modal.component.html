@@ -11,13 +11,13 @@
                [placeholder]="inputPlaceholder"
                [pattern]="validPattern"
                (keyup)="checkValid()"
-               autofocus
+               [autofocus]
                (keyup.enter)="okClicked()">
         <p *ngIf="errorMessage" class="error-message"><i class="fa fa-exclamation-circle mr-2"></i>{{errorMessage}}</p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" (click)="okClicked()" autofocus>Ok</button>
-        <button class="btn btn-secondary" (click)="cancelClicked()" autofocus>Cancel</button>
+        <button class="btn btn-primary" (click)="okClicked()">Ok</button>
+        <button class="btn btn-secondary" (click)="cancelClicked()">Cancel</button>
       </div>
     </div>
   </div>

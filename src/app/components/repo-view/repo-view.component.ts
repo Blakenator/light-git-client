@@ -61,6 +61,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   commandHistory: CommandHistoryModel[];
   maxCommandsVisible = 25;
   commandsPerPage = 25;
+  checkWatchers = -1;
   private interval;
   private currentCommitCursorPosition: number;
 
@@ -97,9 +98,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   stageAll() {
     this.setLoading(true);
     this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, '.'])
-        .then(changes => this.handleFileChanges(changes))
+        .then(changes => this.handleFileChanges(changes, false))
         .catch(err => this.handleErrorMessage(err));
-    this.clearSelectedChanges();
+    this.selectedUnstagedChanges = {};
   }
 
   stageSelected() {
@@ -109,17 +110,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     let arg = Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).join(' ');
     this.setLoading(true);
     this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, arg])
-        .then(changes => this.handleFileChanges(changes))
+        .then(changes => this.handleFileChanges(changes, false))
         .catch(err => this.handleErrorMessage(err));
-    this.clearSelectedChanges();
+    this.selectedUnstagedChanges = {};
   }
 
   unstageAll() {
     this.setLoading(true);
     this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, '.'])
-        .then(changes => this.handleFileChanges(changes))
+        .then(changes => this.handleFileChanges(changes, false))
         .catch(err => this.handleErrorMessage(err));
-    this.clearSelectedChanges();
+    this.selectedStagedChanges = {};
   }
 
   unstageSelected() {
@@ -129,9 +130,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     let arg = Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).join(' ');
     this.setLoading(true);
     this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, arg])
-        .then(changes => this.handleFileChanges(changes))
+        .then(changes => this.handleFileChanges(changes, false))
         .catch(err => this.handleErrorMessage(err));
-    this.clearSelectedChanges();
+    this.selectedStagedChanges = {};
   }
 
   getFileChanges(keepDiffCommitSelection: boolean = true) {
@@ -214,7 +215,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (this.changes.stagedChanges.length == 0) {
       return;
     }
-    this.setLoading(true);
     this.setLoading(true);
     this.electronService.rpc(Channels.COMMIT, [this.repo.path, this.changes.description, this.commitAndPush])
         .then(changes => {
@@ -486,6 +486,24 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     return command.name + command.command;
   }
 
+  handleFileChanges(changes: CommitModel, keepDiffCommitSelection: boolean = true) {
+    this.changes = Object.assign(new CommitModel(),
+      changes,
+      {description: this.changes ? this.changes.description : ''});
+    if (!keepDiffCommitSelection) {
+      this.getFileDiff();
+      this.diffCommitInfo = undefined;
+    }
+    this.getCommandHistory();
+    this.applicationRef.tick();
+    this.setLoading(false);
+  }
+
+  handleErrorMessage(content: string) {
+    this.errorMessage = {error: content};
+    this.setLoading(false);
+  }
+
   private levenshtein(a: string, b: string): number {
     let tmp;
     if (a.length === 0) {
@@ -540,19 +558,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.selectedStagedChanges = {};
   }
 
-  private handleFileChanges(changes: CommitModel, keepDiffCommitSelection: boolean = true) {
-    this.changes = Object.assign(new CommitModel(),
-      changes,
-      {description: this.changes ? this.changes.description : ''});
-    if (!keepDiffCommitSelection) {
-      this.getFileDiff();
-      this.diffCommitInfo = undefined;
-    }
-    this.getCommandHistory();
-    this.applicationRef.tick();
-    this.setLoading(false);
-  }
-
   private handleBranchChanges(changes: RepositoryModel) {
     this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
     this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
@@ -561,11 +566,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     Object.assign(this.repoCache, this.repo || {});
     this.getCommandHistory();
     this.applicationRef.tick();
-    this.setLoading(false);
-  }
-
-  private handleErrorMessage(content: string) {
-    this.errorMessage = {error: content};
     this.setLoading(false);
   }
 

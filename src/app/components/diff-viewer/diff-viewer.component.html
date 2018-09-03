@@ -38,7 +38,7 @@
       </div>
       <div class="diff-header">
         <div *ngFor="let hunk of header.hunks" class="d-flex hunk">
-          <div class="linenumber-block">
+          <div class="linenumber-block" *ngIf="!isEditingHunk(hunk,header)">
             <div *ngFor="let line of hunk.lines" class="d-flex">
               <div class="linenumber">{{!getAddition(line)?line.fromLineNumber:'-'}}</div>
               <div class="linenumber">{{!getDeletion(line)?line.toLineNumber:'-'}}</div>
@@ -47,8 +47,20 @@
             </div>
           </div>
           <div class="code-line-block flex-grow-1">
-            <pre><code highlight [code]="getHunkCode(hunk)"></code></pre>
+            <pre *ngIf="!isEditingHunk(hunk,header)"><code highlight [code]="getHunkCode(hunk)"></code></pre>
+            <textarea oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
+                      onfocus='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
+                      class="form-control"
+                      (blur)="saveEditedHunk()"
+                      (keyup.escape)="cancelEdit()"
+                      [autofocus]
+                      wrap="soft"
+                      *ngIf="isEditingHunk(hunk,header)"
+                      [(ngModel)]="editedText"></textarea>
           </div>
+          <button class="btn btn-info btn-sm edit-btn"
+                  *ngIf="!isEditingHunk(hunk,header)"
+                  (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
         </div>
       </div>
     </div>

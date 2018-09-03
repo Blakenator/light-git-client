@@ -122,6 +122,10 @@ body {
       flex-grow: 1;
     }
   }
+
+  &.dialog-wide {
+    width: 60em;
+  }
 }
 
 .rounded {
@@ -228,4 +232,8 @@ body {
 .cover-img {
   min-width: 100%;
   object-fit: cover;
+}
+
+.table td {
+  vertical-align: middle;
 }

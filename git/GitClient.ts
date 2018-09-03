@@ -10,6 +10,7 @@ import {logger} from 'codelyzer/util/logger';
 import {StashModel} from '../shared/stash.model';
 import {DiffHunkModel, DiffLineModel, DiffModel, LineState} from '../shared/diff.model';
 import {ConfigItemModel} from '../shared/config-item.model';
+import * as fs from 'fs';
 
 const exec = require('child_process').exec;
 
@@ -134,6 +135,46 @@ export class GitClient {
       this.execute(this.getGitPath() + ' merge -- ' + branch, 'Merge Branch into Current Branch')
           .then(text => this.getBranches().then(resolve).catch(reject))
           .catch(reject);
+    });
+  }
+
+  changeHunk(filename: string, hunk: DiffHunkModel, changedText: string) {
+    return new Promise<CommitModel>((resolve, reject) => {
+      fs.readFile(filename, (err, data) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        let text = data.toString();
+        let eol = /\r?\n/g;
+        let match = null;
+        let start = 0, end = 0, currentLine = 1;
+        while (match || currentLine == 1) {
+          if (hunk.toStartLine == currentLine) {
+            if (!match) {
+              start = 0;
+            } else {
+              start = match.index + match[0].length;
+            }
+          } else if (hunk.toStartLine + hunk.toNumLines == currentLine) {
+            end = match.index;
+            break;
+          }
+          currentLine++;
+          match = eol.exec(text);
+        }
+        if (end == 0) {
+          end = text.length;
+        }
+        let modified = text.substring(0, start) + changedText + text.substring(end);
+        fs.writeFile(filename, modified, (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          this.getChanges().then(resolve).catch(reject);
+        });
+      });
     });
   }
 
@@ -384,8 +425,8 @@ export class GitClient {
   }
 
   private parseDiffString(text: string): DiffModel[] {
-    let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)(\r?\n(?!@@).*)+((\r?\n(?!diff).*)*)/gm;
-    let hunk = /\s*@@ -(\d+),(\d+) \+(\d+)(,(\d+))? @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
+    let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)(\r?\n(?!@@).*)+?((\r?\n(?!diff).*)*)/gm;
+    let hunk = /\s*@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
     let line = /^([+\- ])(.*)$/gm;
     let headerMatch = diffHeader.exec(text);
     let result: DiffModel[] = [];
@@ -397,12 +438,12 @@ export class GitClient {
       while (hunkMatch) {
         let h = new DiffHunkModel();
         let startTo = +hunkMatch[1];
-        let startFrom = +hunkMatch[3];
+        let startFrom = +hunkMatch[4];
         h.fromStartLine = startFrom;
         h.toStartLine = startTo;
-        h.fromNumLines = +hunkMatch[2];
-        h.toNumLines = +hunkMatch[5];
-        let lineMatch = line.exec(hunkMatch[6]);
+        h.fromNumLines = +(hunkMatch[3]||hunkMatch[1]);
+        h.toNumLines = +hunkMatch[6];
+        let lineMatch = line.exec(hunkMatch[7]);
         // console.log(hunkMatch[6]);
         while (lineMatch) {
           // console.log(lineMatch);
@@ -425,7 +466,7 @@ export class GitClient {
           }
           // console.log('------', l);
           h.lines.push(l);
-          lineMatch = line.exec(hunkMatch[6]);
+          lineMatch = line.exec(hunkMatch[7]);
         }
         header.hunks.push(h);
         hunkMatch = hunk.exec(headerMatch[6]);
