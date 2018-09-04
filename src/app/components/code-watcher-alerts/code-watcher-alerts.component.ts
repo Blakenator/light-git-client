@@ -43,8 +43,11 @@ export class CodeWatcherAlertsComponent implements OnInit {
             return {
               file: x.toFilename,
               hunks: x.hunks.map(h => {
-                // TODO: decide whether or not to include only changed lines or surrounding lines too
-                return {hunk: h, code: h.lines.filter(l => l.state != LineState.REMOVED).map(l => l.text).join('\n')};
+                if (this.settingsService.settings.includeUnchangedInWatcherAnalysis) {
+                  return {hunk: h, code: h.lines.filter(l => l.state != LineState.REMOVED).map(l => l.text).join('\n')};
+                } else {
+                  return {hunk: h, code: h.lines.filter(l => l.state == LineState.ADDED).map(l => l.text).join('\n')};
+                }
               })
             };
           });
