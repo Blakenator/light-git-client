@@ -1,7 +1,7 @@
 import {CodeWatcherModel} from './code-watcher.model';
 
 const defaultCodeWatchers: CodeWatcherModel[] = [
-  new CodeWatcherModel('Duplicate Lines', '^(.*)(\\r?\\n\\1)+$', 'g'),
+  new CodeWatcherModel('Duplicate Lines', '(^|\\n)(.*)(\\r?\\n\\2(\\r?\\n|$))+', 'g'),
   new CodeWatcherModel('Console Output', 'console\\.(log|error|info)', 'g', '\\.(ts|js|jsx)'),
 ];
 
@@ -19,6 +19,7 @@ export class SettingsModel {
   public expandStates: { [key: string]: boolean };
   public commandTimeoutSeconds: number;
   public codeWatchers: CodeWatcherModel[];
+  public includeUnchangedInWatcherAnalysis: boolean;
 
   constructor(darkMode: boolean = false,
               openRepos: string[] = [''],
@@ -32,6 +33,7 @@ export class SettingsModel {
               showTrackingPath: boolean = false,
               commitMessageAutcomplete: boolean = false,
               diffIgnoreWhitespace: boolean = false,
+              includeUnchangedInWatcherAnalysis: boolean = true,
               codeWatchers: CodeWatcherModel[] = defaultCodeWatchers) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
@@ -46,6 +48,7 @@ export class SettingsModel {
     this.diffIgnoreWhitespace = diffIgnoreWhitespace;
     this.mergetool = mergetool;
     this.codeWatchers = codeWatchers;
+    this.includeUnchangedInWatcherAnalysis = includeUnchangedInWatcherAnalysis;
   }
 
   static sanitizePath(path) {
@@ -67,6 +70,7 @@ export class SettingsModel {
     res.commitMessageAutocomplete = this.commitMessageAutocomplete;
     res.diffIgnoreWhitespace = this.diffIgnoreWhitespace;
     res.mergetool = this.mergetool;
+    res.includeUnchangedInWatcherAnalysis = this.includeUnchangedInWatcherAnalysis;
     return res;
   }
 }

@@ -69,6 +69,12 @@
         </div>
         <div *ngIf="currentTab==1">
           <p>Watch your code changes for specified patterns, and alert you before you commit</p>
+          <div class="pretty p-switch p-fill mb-1 d-block">
+            <input type="checkbox" [(ngModel)]="tempSettings.includeUnchangedInWatcherAnalysis"/>
+            <div class="state">
+              <label>Include Unchanged Surrounding Code in Analysis</label>
+            </div>
+          </div>
           <table class="table table-striped">
             <thead>
             <tr>
