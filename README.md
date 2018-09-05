@@ -1,16 +1,43 @@
-# material-steam
-A material steam client
+# Light Git Client
+A light, elegant git client
 
-This is a material skin that rests on top of the desktop steam client. It is a completely separate 
-application that reads in data already present on your computer to create a more wholesome and satisfying
-experience.
+## Background
+This is a WIP project to address the following failings of other git clients:
+* Aesthetic appeal
+* Non-blocking actions
+* Additional features
+* Reliability
 
-### Library window
-![alt text](https://github.com/Blakenator/material-steam/raw/master/docs/dark1.png "Dark Library View")
-![alt text](https://github.com/Blakenator/material-steam/raw/master/docs/dark2.png "Dark Library View")
-![alt text](https://github.com/Blakenator/material-steam/raw/master/docs/light1.png "Light Library View")
-![alt text](https://github.com/Blakenator/material-steam/raw/master/docs/light2.png "Light Library View")
+## Key New Features
+* Relaxed Material Design
+   * Material design, but focused on shape, depth, and separation
+   * Reduced use of lines & background-less buttons
+   * Thicker lines where possible
+* Worktree Support (multiple tabs or within a single tab)
+* Code Watchers - Customizable regex watchers that run before you commit
+   * Can be used to prevent:
+     * Duplicate lines
+     * Poor lambda variable names (` x,y,z => `, What does it mean, Grommit?)
+     * Leftover `console.log` lines
+     * Gotchas, stupid mistakes, and more!
+* Built-in git config editor
+* Diff hunks editable, selectable in viewer
+   * Why leave the app when you don't have to?
+* Git command history
+   * Want to learn more console commands?
+   * Or just want to see what the application is actually doing?
+* Autocomplete on changed filenames & path in commit messages
 
-### Chat window
-![alt text](https://github.com/Blakenator/material-steam/raw/master/docs/dark3.png "Dark Chat View")
-![alt text](https://github.com/Blakenator/material-steam/raw/master/docs/light3.png "Light Chat View")
+### TODO:
+* Clone
+* Branching visualization
+* Tag editor (tags currently visible in commit history)
+* Ability to move tabs
+* More force- options
+
+## Screenshots
+![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/dark1.png "Dark Main Screen")
+![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/dark2.png "Dark with diff and code watchers")
+![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/dark3.png "Dark with settings menu")
+![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/light1.png "Light with git config screen")
+![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/light2.png "Light Main Screen")

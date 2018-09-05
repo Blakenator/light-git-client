@@ -13,16 +13,16 @@
             <table class="table">
               <thead>
               <tr>
-                <th>Code</th>
+                <th width="1%">Code</th>
                 <th>Watcher</th>
               </tr>
               </thead>
               <tbody>
               <tr *ngFor="let h of f.hunks">
-                <td>
-                  <pre><code highlight [code]="getHunkCode(h.hunk)"></code></pre>
+                <td width="1%">
+                  <pre class="code-block"><code highlight [code]="getHunkCode(h.hunk)"></code></pre>
                 </td>
-                <td><p *ngFor="let w of h.watchers">{{w.name}}</p></td>
+                <td><p *ngFor="let w of h.watchers">{{w.name}} (line {{getLineFromMatch(h.hunk,w)}})</p></td>
               </tr>
               </tbody>
             </table>
