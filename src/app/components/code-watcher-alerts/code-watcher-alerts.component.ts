@@ -79,8 +79,12 @@ export class CodeWatcherAlertsComponent implements OnInit {
         });
   }
 
-  getHunkCode(hunk: DiffHunkModel) {
-    return hunk.lines.filter(x => x.state != LineState.REMOVED).map(x => x.text).join('\n');
+  getHunkCode(hunk: DiffHunkModel, includeLineNumbers: boolean = true) {
+    let lines = hunk.lines.filter(x => x.state != LineState.REMOVED).map(x => x.text);
+    if (includeLineNumbers) {
+      lines = lines.map((x, i) => (hunk.toStartLine + i) + '\t' + x);
+    }
+    return lines.join('\n');
   }
 
   cancel() {
@@ -94,5 +98,11 @@ export class CodeWatcherAlertsComponent implements OnInit {
   commitAnyway() {
     this.onCommitClicked.emit();
     this.showWindow = false;
+  }
+
+  getLineFromMatch(hunk: DiffHunkModel, watcher: CodeWatcherModel) {
+    let code = this.getHunkCode(hunk, false);
+    let before = new RegExp(watcher.regex, watcher.regexFlags).exec(code).index;
+    return hunk.toStartLine + code.substring(0, before).split(/\r?\n/).length - 1;
   }
 }

@@ -11,14 +11,18 @@
 }
 
 .diff-container {
-  height: calc(100vh - 8rem);
+  height: calc(100vh - 8.5rem);
   overflow-y: auto;
 }
 
+pre code{
+  line-height: 1.6;
+}
+
 .linenumber-block {
+  line-height: 1.6;
   font-size: 87.5%;
-  line-height: 1;
-  padding: .7em .5em .5em;
+  padding: .5em .5em .5em;
   display: flex;
   flex-direction: column;
   > div {
@@ -71,7 +75,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  height: 1.43em;
+  height: 1.55em;
   margin-top: -.1em;
   pointer-events: none;
   mix-blend-mode: multiply;
