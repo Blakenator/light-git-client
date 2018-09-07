@@ -1,7 +1,8 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {BranchModel} from "../../../../shared/Branch.model";
-import {WorktreeModel} from "../../../../shared/worktree.model";
-import {SettingsService} from "../../providers/settings.service";
+import {BranchModel} from '../../../../shared/Branch.model';
+import {WorktreeModel} from '../../../../shared/worktree.model';
+import {SettingsService} from '../../providers/settings.service';
+import {FilterPipe} from '../../directives/filter.pipe';
 
 @Component({
   selector: 'app-branch-tree-item',
@@ -52,15 +53,15 @@ export class BranchTreeItemComponent implements OnInit {
   getChildren(): { path: string, branches: BranchModel[] }[] {
     let res: { [key: string]: BranchModel[] } = {};
     this._branches.filter(x => x.name.substring((this.currentPath.length || -1) + 1).indexOf('/') > 0)
-      .forEach(x => {
-        let p = x.name.substring((this.currentPath.length || -1) + 1);
-        p = p.substring(0, p.indexOf('/'));
-        if (res[p]) {
-          res[p].push(x);
-        } else {
-          res[p] = [x];
-        }
-      });
+        .forEach(x => {
+          let p = x.name.substring((this.currentPath.length || -1) + 1);
+          p = p.substring(0, p.indexOf('/'));
+          if (res[p]) {
+            res[p].push(x);
+          } else {
+            res[p] = [x];
+          }
+        });
     return Object.keys(res).map(x => {
       return {path: x, branches: res[x]};
     });
@@ -101,5 +102,12 @@ export class BranchTreeItemComponent implements OnInit {
 
   startRename(branchName: string) {
     this.activeRenames[branchName] = branchName;
+  }
+
+  getFilteredChildren() {
+    if (this.filter === undefined) {
+      return 1;
+    }
+    return this.children.filter(c => FilterPipe.fuzzyFilter(this.filter, c.name || ''));
   }
 }

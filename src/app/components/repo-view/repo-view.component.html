@@ -26,13 +26,13 @@
       <div class="card-header form-inline" (click)="toggleExpandState('locals')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('locals'),'fa-caret-down':getExpandState('locals')}"></i>
         Locals
+        <input class="ml-2 form-control"
+               placeholder="Filter..."
+               [(ngModel)]="localBranchFilter" (click)="$event.stopPropagation()">
         <button class="btn btn-primary btn-sm mx-1"
                 (click)="showCreateBranch=true; $event.stopPropagation()"
                 title="Create branch off current HEAD">
           <i class="fa fa-code-branch"></i></button>
-        <input class="ml-2 form-control"
-               placeholder="Filter..."
-               [(ngModel)]="localBranchFilter" (click)="$event.stopPropagation()">
       </div>
       <div class="card-body branch-container" *ngIf="getExpandState('locals')">
         <app-branch-tree-item [isLocal]="true"
@@ -135,10 +135,11 @@
            [scrollWindow]="false"
            (scrolled)="maxCommandsVisible=maxCommandsVisible + commandsPerPage"
            (scrolledUp)="maxCommandsVisible=commandsPerPage">
-        <div *ngFor="let c of commandHistory.reverse() | filterObject : getCommandHistoryFilterableText : commandHistoryFilter | slice : 0 : maxCommandsVisible">
+        <div *ngFor="let c of commandHistory.slice().reverse() | filterObject : getCommandHistoryFilterableText : commandHistoryFilter | slice : 0 : maxCommandsVisible">
           <span><i>{{c.name}}</i> ({{c.durationMs}}ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
-          <pre class="p-2 bg-light command-output">{{c.errorOutput||c.output}}</pre>
+          <pre class="p-2 bg-light command-output">Output Characters 0-1000:
+            {{(c.errorOutput||c.output).substring(0,3000)}}</pre>
           <hr/>
         </div>
       </div>

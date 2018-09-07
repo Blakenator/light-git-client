@@ -1,15 +1,20 @@
-<div>
-  <div (click)="toggleChildrenVisible()" *ngIf="currentPath" class="folder">
+<div *ngIf="(leaves | filterObject : 'name' : filter) as filteredLeaves">
+  <div (click)="toggleChildrenVisible()"
+       *ngIf="currentPath && (getFilteredChildren().length>0 || filteredLeaves.length>0)"
+       class="folder">
     <i [ngClass]="{fa:true,'fa-caret-right':!showChildren,'fa-caret-down':showChildren}"></i>
     <span>{{getDisplayPath()}}</span>
   </div>
   <div *ngIf="showChildren" [ngClass]="{children:currentPath}">
-    <div *ngFor="let b of leaves | filterObject : 'name' : filter" class="branch">
+    <div *ngFor="let b of filteredLeaves" class="branch" [title]="b.name">
       <div *ngIf="isLocal">
         <div class="d-inline-block"
              *ngIf="!activeRenames[b.name]"
              [ngClass]="{'bold':b.isCurrentBranch,'text-muted':checkedOutOtherWorktree(b)}">
           {{getLeafName(b.name)}}
+          <small class="text-muted" title="Branch checked out" *ngIf="b.isCurrentBranch">
+            <i class="fa fa-shopping-cart"></i>
+          </small>
           <small *ngIf="checkedOutOtherWorktree(b)"
                  [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
             <i class="fa fa-lock"></i>
@@ -33,11 +38,13 @@
                     (click)="cancelRename(b.name)">
               <i class="fa fa-times-circle"></i>
             </button>
-            <button class="btn btn-sm btn-success" title="Rename local branch" (click)="renameBranch(b.name)"><i class="fa fa-check"></i></button>
+            <button class="btn btn-sm btn-success" title="Rename local branch" (click)="renameBranch(b.name)">
+              <i class="fa fa-check"></i></button>
           </div>
         </div>
         <div *ngIf="!activeRenames[b.name]" class="d-inline-block ml-3 float-right">
-          <button class="btn btn-info btn-sm" (click)="startRename(b.name)" title="Rename local branch"><i class="material-icons">edit</i></button>
+          <button class="btn btn-info btn-sm" (click)="startRename(b.name)" title="Rename local branch">
+            <i class="material-icons">edit</i></button>
           <button class="btn btn-light btn-sm"
                   (click)="onCheckoutClicked.emit(b.name)"
                   *ngIf="!b.isCurrentBranch"

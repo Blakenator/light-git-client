@@ -41,8 +41,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   errorMessage: { error: string };
   @Input() repoPath = 'C:/Users/blake/Documents/projects/test-repo';
   @Input() repoCache: RepositoryModel;
-  localBranchFilter: string;
-  remoteBranchFilter: string;
+  localBranchFilter = '';
+  remoteBranchFilter = '';
   globalErrorHandlerService: GlobalErrorHandlerService;
   isLoading = false;
   @Output() onLoadingChange = new EventEmitter<boolean>();
@@ -59,8 +59,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   suggestions: string[] = [];
   positionInAutoComplete: number;
   commandHistory: CommandHistoryModel[];
-  maxCommandsVisible = 25;
-  commandsPerPage = 25;
+  maxCommandsVisible = 10;
+  commandsPerPage = 10;
   checkWatchers = -1;
   private interval;
   private currentCommitCursorPosition: number;

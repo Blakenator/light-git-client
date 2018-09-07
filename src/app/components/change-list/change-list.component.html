@@ -21,11 +21,11 @@
   <tr *ngFor="let c of changes | filterObject : 'file' : changeFilter"
       (click)="toggleSelect(c.file,$event)"
       class="change">
-    <td>
+    <td width="1%">
       <i [ngClass]="{far:true,'fa-check-square':selectedChanges[c.file],'fa-square':!selectedChanges[c.file]}"></i>
     </td>
     <td>
-      <i class="fas fa-{{getChangeType(c)}}"></i>
+      <i class="fas fa-{{getChangeType(c)}}" [title]="getChangeTypeDescription(c)"></i>
     </td>
     <td>
       <div class="change-filename" [title]="c.file">
@@ -37,7 +37,8 @@
     </td>
     <td class="center-text-vertical">
       <div class="btn-group">
-        <button class="btn btn-outline-warning btn-sm"
+        <button *ngIf="getChangeType(c)!='question-circle'&&getChangeType(c)!='plus'"
+                class="btn btn-outline-warning btn-sm"
                 title="Undo all changes to this file (staged and unstaged)"
                 (click)="undoFileClicked(c.file)">
           <i class="fa fa-undo"></i>
@@ -48,7 +49,7 @@
                 *ngIf="isMergeConflict(c.change)">
           <i class="material-icons">merge_type</i>
         </button>
-        <button class="btn btn-outline-danger btn-sm" title="Delete file" (click)="deleteClicked(c.file)">
+        <button class="btn btn-outline-danger btn-sm" title="Delete file" (click)="deleteClicked(c.file)" *ngIf="getChangeType(c)!='minus'">
           <i class="material-icons">delete</i>
         </button>
       </div>
