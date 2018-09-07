@@ -14,7 +14,6 @@ export class ChangeListComponent implements OnInit {
   @Output() onUndoFileClicked = new EventEmitter<string>();
   @Output() onMergeClicked = new EventEmitter<string>();
   @Output() onDeleteClicked = new EventEmitter<string[]>();
-
   selectAll = false;
   lastClicked: string;
 
@@ -39,6 +38,24 @@ export class ChangeListComponent implements OnInit {
     }
   }
 
+  getChangeTypeDescription(c: LightChange) {
+    switch (c.change) {
+      case ChangeType.Untracked:
+        return 'Untracked';
+      case ChangeType.Addition:
+        return 'Addition';
+      case ChangeType.Deletion:
+        return 'Deletion';
+      case ChangeType.MergeConflict:
+        return 'Merge Conflict';
+      case ChangeType.Rename:
+        return 'Rename';
+      case ChangeType.Modified:
+      default:
+        return 'Changed';
+    }
+  }
+
   ngOnInit() {
   }
 
@@ -50,11 +67,14 @@ export class ChangeListComponent implements OnInit {
   }
 
   undoFileClicked(file: string) {
-    this.onUndoFileClicked.emit(file);
+    this.onUndoFileClicked.emit(file.replace(/->.*/, ''));
+    if (file.indexOf('->') > 0) {
+      this.onDeleteClicked.emit([file.replace(/.*?->\s*/, '')]);
+    }
   }
 
   mergeClicked(file: string) {
-    this.onMergeClicked.emit(file);
+    this.onMergeClicked.emit(file.replace(/.*->\s*/, ''));
   }
 
   isMergeConflict(change: ChangeType) {
@@ -62,7 +82,7 @@ export class ChangeListComponent implements OnInit {
   }
 
   deleteClicked(file: string) {
-    this.onDeleteClicked.emit([file]);
+    this.onDeleteClicked.emit([file.replace(/.*->\s*/, '')]);
   }
 
   toggleSelect(file: string, $event: MouseEvent) {
