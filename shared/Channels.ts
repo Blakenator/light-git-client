@@ -3,9 +3,11 @@ export namespace Channels {
   export const GETBRANCHES= "getBranches";
   export const MERGEBRANCH= "mergeBranch";
   export const CHANGEHUNK= "changeHunk";
+  export const OPENDEVTOOLS= "openDevTools";
   export const GETCONFIGITEMS= "getConfigItems";
   export const SETCONFIGITEM= "setConfigItem";
   export const GETFILEDIFF = "getFileDiff";
+  export const GETBRANCHPREMERGE = "getBranchPremerge";
   export const LOADSETTINGS = "loadSettings";
   export const SAVESETTINGS = "saveSettings";
   export const LOADREPO = "loadRepo";

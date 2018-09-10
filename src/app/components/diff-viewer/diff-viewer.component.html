@@ -1,8 +1,10 @@
 <div class="diff-container">
   <div>
     <div *ngIf="diffCommitInfo" class="card-body"><p class="text-muted">{{diffCommitInfo.hash}}</p>
-      <p>{{diffCommitInfo.authorName}} &lt;{{diffCommitInfo.authorEmail}}&gt;
-        @ {{diffCommitInfo.authorDate | date : 'short'}} </p>
+      <p *ngIf="diffCommitInfo.authorName">
+        {{diffCommitInfo.authorName}} &lt;{{diffCommitInfo.authorEmail}}&gt;
+        @ {{diffCommitInfo.authorDate | date : 'short'}}
+      </p>
       <div>{{diffCommitInfo.message}}</div>
     </div>
     <div class="form-inline">
@@ -20,6 +22,9 @@
           <label>Ignore Whitespace</label>
         </div>
       </div>
+    </div>
+    <div *ngIf="diffHeaders.length==0" class="text-muted">
+      No differences detected...
     </div>
   </div>
   <div *ngIf="diffHeaders">

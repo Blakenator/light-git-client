@@ -15,12 +15,16 @@ export class ErrorMessageComponent implements OnInit {
   }
 
   close() {
-    this.errorMessage.error = '';
+    if (this.errorMessage.error) {
+      this.errorMessage.error = '';
+    }
+    this.errorMessage = undefined;
   }
 
   getErrorMessage() {
+    console.log(this.errorMessage);
     return typeof this.errorMessage.error == 'object' ?
       (JSON.stringify(this.errorMessage.error) == '{}' ? (<any>this.errorMessage.error).toString() : JSON.stringify(this.errorMessage.error)) :
-      this.errorMessage.error;
+      this.errorMessage.error || JSON.stringify(this.errorMessage);
   }
 }

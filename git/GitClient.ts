@@ -27,7 +27,17 @@ export class GitClient {
       this.execute(this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + commitHash + '~ ' + commitHash,
         'Get Diff for Commit')
           .then(text => {
-            console.log(text);
+            resolve(this.parseDiffString(text));
+          })
+          .catch(reject);
+    });
+  }
+
+  getBranchPremerge(branch: BranchModel): Promise<DiffModel[]> {
+    return new Promise<DiffModel[]>((resolve, reject) => {
+      this.execute(this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + branch.currentHash + '...',
+        'Get Premerge Diff')
+          .then(text => {
             resolve(this.parseDiffString(text));
           })
           .catch(reject);
@@ -60,7 +70,6 @@ export class GitClient {
       const command = this.getBashedGit() + ' config --replace-all ' +
         (item.sourceFile.trim() ? '--file ' + item.sourceFile.replace(/^.*?:/, '') + ' ' : '') +
         (item.value ? '' : '--unset ') + item.key + ' ' + ('"' + item.value + '"' || '');
-      console.log(command);
       this.execute(command, 'Set Config Item')
           .then(text => this.getConfigItems().then(resolve).catch(reject))
           .catch(reject);
@@ -69,6 +78,10 @@ export class GitClient {
 
   openRepo(): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>((resolve, reject) => {
+      if (!fs.existsSync(path.join(this.workingDir, '.git'))) {
+        reject('Not a valid git repository');
+        return;
+      }
       this.getBranches().then(rep => {
         rep.path = this.workingDir;
         rep.name = path.basename(this.workingDir);
@@ -80,9 +93,8 @@ export class GitClient {
   getChanges(): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
       let result = new CommitModel();
-      let promises = [];
       let changeList = /^(.)(.)\s*(.*)$/gm;
-      promises.push(this.execute(this.getGitPath() + '  status --porcelain', 'Get Status').then(text => {
+      this.execute(this.getGitPath() + '  status --porcelain', 'Get Status').then(text => {
         let match = changeList.exec(text);
         while (match) {
           if (match[1] !== ChangeType.Untracked && match[1] !== ' ') {
@@ -101,8 +113,7 @@ export class GitClient {
           }
           match = changeList.exec(text);
         }
-      }));
-      Promise.all(promises).then(ignore => resolve(result)).catch(ignore => reject(result));
+      }).then(ignore => resolve(result)).catch(error => reject(error));
     });
   }
 
@@ -218,7 +229,10 @@ export class GitClient {
 
   openTerminal() {
     const command = 'start "Bash Command Window" ' + this.getBashPath() + ' --login';
-    this.execute(command, 'Open Terminal').then(console.log);
+    this.execute(command, 'Open Terminal').then(console.log).catch(error => {
+      console.error(JSON.stringify(error));
+      logger.error(JSON.stringify(error));
+    });
   }
 
   getDiff(unstaged: string, staged: string): Promise<DiffModel[]> {
@@ -278,7 +292,6 @@ export class GitClient {
   stash(unstagedOnly: boolean, stashName: string): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
       const command = this.getBashedGit() + ' stash push' + (unstagedOnly ? ' -k -u' : '') + (stashName ? ' -m "' + stashName + '"' : '');
-      console.log(command);
       this.execute(command,
         'Stash Changes')
           .then(text => this.getChanges().then(resolve).catch(reject))
@@ -313,7 +326,6 @@ export class GitClient {
     return new Promise<CommitModel>((resolve, reject) => {
       this.execute(this.getGitPath() + ' pull', 'Pull')
           .then(text => {
-            console.log(text);
             this.getChanges().then(resolve).catch(reject);
           })
           .catch(err => {
@@ -322,9 +334,10 @@ export class GitClient {
     });
   }
 
-  getCommitHistory(): Promise<CommitSummaryModel[]> {
+  getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
-      this.execute(this.getGitPath() + ' log -n300 --pretty=format:"||||%H|%an|%ae|%ad|%D|%B"\n', 'Get Commit History')
+      this.execute(this.getGitPath() + ' log -n' + (count || 50) + ' --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%B"\n',
+        'Get Commit History')
           .then(text => {
             // this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n --all --full-history", "Get Commit History").then(text => {
             let result = [];
@@ -441,7 +454,7 @@ export class GitClient {
         let startFrom = +hunkMatch[4];
         h.fromStartLine = startFrom;
         h.toStartLine = startTo;
-        h.fromNumLines = +(hunkMatch[3]||hunkMatch[1]);
+        h.fromNumLines = +(hunkMatch[3] || hunkMatch[1]);
         h.toNumLines = +hunkMatch[6];
         let lineMatch = line.exec(hunkMatch[7]);
         // console.log(hunkMatch[6]);
