@@ -1,13 +1,24 @@
 .children {
   margin-left: .5em;
-  border-left: dotted .1em rgba(128, 128, 128, .3);
+  border-left: dashed .15em rgba(128, 128, 128, .3);
   padding-left: .5em;
+  &:hover{
+    border-left-color: rgba(225,128,128,.5);
+  }
 }
 
 .branch {
   padding: .2em;
+  .branch-button-bar {
+    max-height: 0;
+    transition: max-height .5s .5s;
+    overflow: hidden;
+  }
   &:hover {
     background-color: rgba(128, 128, 128, .3);
+    .branch-button-bar {
+      max-height: 3em;
+    }
   }
 }
 

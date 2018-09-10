@@ -272,7 +272,7 @@ try {
   });
 
   ipcMain.on(Channels.GETCOMMITHISTORY, (event, args) => {
-    handleGitPromise(gitClients[args[1]].getCommitHistory(), event, args);
+    handleGitPromise(gitClients[args[1]].getCommitHistory(args[2],args[3]), event, args);
   });
 
   ipcMain.on(Channels.CHECKOUT, (event, args) => {
@@ -281,6 +281,11 @@ try {
 
   ipcMain.on(Channels.UNDOFILECHANGES, (event, args) => {
     handleGitPromise(gitClients[args[1]].undoFileChanges(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.OPENDEVTOOLS, (event, args) => {
+    win.webContents.openDevTools();
+    defaultReply(event, args);
   });
 
   ipcMain.on(Channels.PUSH, (event, args) => {
@@ -313,6 +318,10 @@ try {
 
   ipcMain.on(Channels.COMMITDIFF, (event, args) => {
     handleGitPromise(gitClients[args[1]].getCommitDiff(args[2]), event, args);
+  });
+
+  ipcMain.on(Channels.GETBRANCHPREMERGE, (event, args) => {
+    handleGitPromise(gitClients[args[1]].getBranchPremerge(args[2]), event, args);
   });
 
   ipcMain.on(Channels.STASH, (event, args) => {

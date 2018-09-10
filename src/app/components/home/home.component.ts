@@ -18,6 +18,7 @@ export class HomeComponent implements OnInit {
   tabNames: string[] = [''];
   editingTab = -1;
   repoCache: { [key: string]: RepositoryModel } = {};
+  errorMessage: { error: string };
 
   constructor(private electronService: ElectronService,
               public settingsService: SettingsService,
@@ -87,6 +88,13 @@ export class HomeComponent implements OnInit {
   editClick($event, t: number) {
     this.editingTab = t;
     $event.stopPropagation();
+  }
+
+  repoLoadFailed($event: string) {
+    this.errorMessage = {error: $event};
+    this.repoPaths[this.activeTab] = '';
+    this.tabNames[this.activeTab] = 'Tab ' + this.activeTab;
+    this.applicationRef.tick();
   }
 
   private basename(folderPath: string) {

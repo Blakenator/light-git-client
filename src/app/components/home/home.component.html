@@ -26,12 +26,15 @@
     </div>
   </nav>
   <div class="main-body flex-grow-1">
-    <div class="">
-      <app-new-tab-page (onReady)="loadRepo($event)" *ngIf="!repoPaths[activeTab]"></app-new-tab-page>
+    <div >
+      <app-new-tab-page (onReady)="loadRepo($event)"
+                        *ngIf="!repoPaths[activeTab]"></app-new-tab-page>
       <app-repo-view *ngIf="repoPaths[activeTab]"
                      [repoPath]="repoPaths[activeTab]"
                      (onLoadingChange)="isLoading=$event"
+                     (onLoadRepoFailed)="repoLoadFailed($event)"
                      [repoCache]="repoCache[repoPaths[activeTab]]"></app-repo-view>
     </div>
   </div>
 </div>
+<app-error-message [errorMessage]="errorMessage"></app-error-message>

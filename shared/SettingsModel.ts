@@ -3,6 +3,7 @@ import {CodeWatcherModel} from './code-watcher.model';
 const defaultCodeWatchers: CodeWatcherModel[] = [
   new CodeWatcherModel('Duplicate Lines', '(^|\\n)(.*)(\\r?\\n\\2(\\r?\\n|$))+', 'g'),
   new CodeWatcherModel('Console Output', 'console\\.(log|error|info)', 'g', '\\.(ts|js|jsx)'),
+  new CodeWatcherModel('Poor Lambda Names', '\\(?(\\b(x|y|z)\\s*,?\\s*)+\\s*\\)?\\s*=>', 'g', '\\.(ts|js|jsx|cs|java)'),
 ];
 
 export class SettingsModel {

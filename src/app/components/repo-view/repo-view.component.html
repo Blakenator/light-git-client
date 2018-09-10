@@ -43,6 +43,7 @@
                               (onPullClicked)="pull()"
                               (onDeleteClicked)="deleteBranch($event)"
                               (onMergeClicked)="mergeBranch($event)"
+                              (onBranchPremergeClicked)="getBranchPremerge($event)"
                               [worktrees]="repo.worktrees"
                               (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
       </div>
@@ -199,7 +200,7 @@
         </div>
       </div>
     </div>
-    <div class="bg-light commit-area" *ngIf="changes">
+    <div class="bg-light commit-area">
       <div class="pretty p-switch p-fill mx-2">
         <input type="checkbox" [(ngModel)]="commitAndPush" (change)="applicationRef.tick()"/>
         <div class="state">
@@ -247,7 +248,8 @@
         </div>
         <app-commit-history [commitHistory]="commitHistory"
                             *ngIf="!showDiff"
-                            (onClickCommitDiff)="viewCommitDiff($event)"></app-commit-history>
+                            (onClickCommitDiff)="viewCommitDiff($event)"
+                            (onScrollDown)="getCommitHistory(commitHistory.length)"></app-commit-history>
       </div>
     </div>
   </div>

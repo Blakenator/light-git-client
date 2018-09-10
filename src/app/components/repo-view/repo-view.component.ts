@@ -31,7 +31,7 @@ import {GitService} from '../../providers/git.service';
 })
 export class RepoViewComponent implements OnInit, OnDestroy {
   repo: RepositoryModel;
-  changes: CommitModel;
+  changes: CommitModel = new CommitModel();
   selectedUnstagedChanges: { [key: string]: boolean } = {};
   selectedStagedChanges: { [key: string]: boolean } = {};
   diffHeaders: DiffModel[] = [];
@@ -46,6 +46,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   globalErrorHandlerService: GlobalErrorHandlerService;
   isLoading = false;
   @Output() onLoadingChange = new EventEmitter<boolean>();
+  @Output() onLoadRepoFailed = new EventEmitter<string>();
   worktreeFilter: string;
   diffCommitInfo: CommitSummaryModel;
   stashFilter: string;
@@ -88,8 +89,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   @HostListener('window:focus', ['$event'])
   onFocus(event: any): void {
     if (this.repo) {
-      this.getFileChanges();
-      this.getFileDiff();
+      this.getFileChanges(!this.showDiff || this.diffCommitInfo != undefined);
       this.getBranchChanges();
       this.getCommitHistory();
     }
@@ -203,10 +203,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     }).catch(err => this.handleErrorMessage(err));
   }
 
-  getCommitHistory() {
+  getCommitHistory(skip: number = 0) {
     this.setLoading(true);
-    this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path]).then(commits => {
-      this.commitHistory = commits.map(x => Object.assign(new CommitSummaryModel(), x));
+    this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip]).then(commits => {
+      if (!skip || skip == 0) {
+        this.commitHistory = commits.map(x => Object.assign(new CommitSummaryModel(), x));
+      } else {
+        this.commitHistory = this.commitHistory.concat(commits.map(x => Object.assign(new CommitSummaryModel(), x)));
+      }
       this.applicationRef.tick();
     }).catch(err => this.handleErrorMessage(err));
   }
@@ -366,8 +370,22 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.diffHeaders = diff;
       this.showDiff = true;
       this.diffCommitInfo = commit;
-      this.applicationRef.tick();
       this.isLoading = false;
+      this.applicationRef.tick();
+    }).catch(err => this.handleErrorMessage(err));
+  }
+
+  getBranchPremerge(branch: BranchModel) {
+    this.setLoading(true);
+    this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.repo.path, branch]).then(diff => {
+      this.diffHeaders = diff;
+      this.showDiff = true;
+      this.diffCommitInfo = new CommitSummaryModel();
+      const currentBranch = this.repo.localBranches.find(x => x.isCurrentBranch);
+      this.diffCommitInfo.hash = branch.currentHash + ' <--> ' + currentBranch.currentHash;
+      this.diffCommitInfo.message = 'Diff of all changes since last common ancestor between \'' + branch.name + '\' and \'' + currentBranch.name + '\'';
+      this.isLoading = false;
+      this.applicationRef.tick();
     }).catch(err => this.handleErrorMessage(err));
   }
 
@@ -541,7 +559,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.electronService.rpc(Channels.LOADREPO, [this.repoPath]).then(repo => {
       this.repo = new RepositoryModel().copy(repo);
       this.gitService.repo = this.repo;
-      Object.assign(this.repoCache, this.repo || {});
+      this.repoCache = this.repo;
       this.getFileChanges(false);
       this.getCommitHistory();
       this.fetch();
@@ -550,7 +568,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         this.getFileChanges();
         this.getBranchChanges();
       }, 1000 * 60 * 5);
-    }).catch(err => this.handleErrorMessage(err));
+    }).catch(err => {
+      this.setLoading(false);
+      this.onLoadRepoFailed.emit(err);
+    });
   }
 
   private clearSelectedChanges() {

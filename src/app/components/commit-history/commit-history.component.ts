@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {CommitSummaryModel} from "../../../../shared/CommitSummary.model";
+import {CommitSummaryModel} from '../../../../shared/CommitSummary.model';
 
 @Component({
   selector: 'app-commit-history',
@@ -9,6 +9,7 @@ import {CommitSummaryModel} from "../../../../shared/CommitSummary.model";
 export class CommitHistoryComponent implements OnInit {
   @Input() commitHistory: CommitSummaryModel[];
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
+  @Output() onScrollDown = new EventEmitter<any>();
   scrollOffset = 0;
   numPerPage = 50;
 
@@ -29,6 +30,10 @@ export class CommitHistoryComponent implements OnInit {
     if (!down) {
       this.scrollOffset -= this.numPerPage / 4;
     }
-    this.scrollOffset = Math.round(Math.max(0, Math.min(this.scrollOffset, this.commitHistory.length - this.numPerPage)));
+    this.scrollOffset = Math.round(Math.max(0,
+      Math.min(this.scrollOffset, this.commitHistory.length - this.numPerPage)));
+    if (this.scrollOffset >= this.commitHistory.length - this.numPerPage) {
+      this.onScrollDown.emit();
+    }
   }
 }
