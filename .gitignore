@@ -6,7 +6,7 @@
 /out-tsc
 /app-builds
 main.js
-/Git/*.js
+/git/*.js
 /Shared/*.js
 
 # dependencies
@@ -47,3 +47,4 @@ package-lock.json
 .DS_Store
 Thumbs.db
 shared/**/*.js
+sh.exe.stackdump

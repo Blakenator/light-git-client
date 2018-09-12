@@ -3,6 +3,8 @@ import {DiffHunkModel, DiffModel, LineState} from '../../../../shared/diff.model
 import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
 import {GitService} from '../../providers/git.service';
 import {SettingsService} from '../../providers/settings.service';
+import {ErrorService} from '../common/error.service';
+import {ErrorModel} from '../../../../shared/error.model';
 
 @Component({
   selector: 'app-code-watcher-alerts',
@@ -12,12 +14,12 @@ import {SettingsService} from '../../providers/settings.service';
 export class CodeWatcherAlertsComponent implements OnInit {
   @Output() onCommitClicked = new EventEmitter<any>();
   showWindow = false;
-  errorMessage: { error: string };
   filter: string;
   watcherAlerts: { file: string, hunks: { hunk: DiffHunkModel, watchers: CodeWatcherModel[] }[] }[] = [];
 
   constructor(private gitService: GitService,
               private settingsService: SettingsService,
+              private errorService: ErrorService,
               private applicationRef: ApplicationRef) {
   }
 
@@ -73,7 +75,7 @@ export class CodeWatcherAlertsComponent implements OnInit {
           this.applicationRef.tick();
         })
         .catch(err => {
-          this.handleErrorMessage(err);
+          this.errorService.receiveError(new ErrorModel('Code watchers component, getFileChanges', 'getting file changes', err));
           this.watcherAlerts = [];
           this.onCommitClicked.emit();
         });
@@ -89,10 +91,6 @@ export class CodeWatcherAlertsComponent implements OnInit {
 
   cancel() {
     this.showWindow = false;
-  }
-
-  handleErrorMessage(content: string) {
-    this.errorMessage = {error: content};
   }
 
   commitAnyway() {

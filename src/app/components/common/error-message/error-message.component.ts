@@ -1,4 +1,6 @@
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, OnInit} from '@angular/core';
+import {ErrorService} from '../error.service';
+import {ErrorModel} from '../../../../../shared/error.model';
 
 @Component({
   selector: 'app-error-message',
@@ -6,25 +8,33 @@ import {Component, Input, OnInit} from '@angular/core';
   styleUrls: ['./error-message.component.scss']
 })
 export class ErrorMessageComponent implements OnInit {
-  @Input() errorMessage: { error: string };
+  errors: ErrorModel[] = [];
+  currentError = 0;
+  showDialog: boolean;
 
-  constructor() {
+  constructor(private errorService: ErrorService) {
+    errorService.onErrorReceived.asObservable().subscribe(error => this.handleError(error));
   }
 
   ngOnInit() {
   }
 
   close() {
-    if (this.errorMessage.error) {
-      this.errorMessage.error = '';
-    }
-    this.errorMessage = undefined;
+    this.showDialog = false;
+    this.errors = [];
   }
 
-  getErrorMessage() {
-    console.log(this.errorMessage);
-    return typeof this.errorMessage.error == 'object' ?
-      (JSON.stringify(this.errorMessage.error) == '{}' ? (<any>this.errorMessage.error).toString() : JSON.stringify(this.errorMessage.error)) :
-      this.errorMessage.error || JSON.stringify(this.errorMessage);
+  cycleError(next: number) {
+    this.currentError = (this.currentError + next < 0 ? this.currentError + next + this.errors.length : this.currentError + next) % this.errors.length;
+  }
+
+  getRootError(error: ErrorModel) {
+    return ErrorModel.getRootError(error);
+  }
+
+  private handleError(error: ErrorModel) {
+    console.log(error);
+    this.errors.push(error);
+    this.showDialog = true;
   }
 }

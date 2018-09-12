@@ -1,6 +1,8 @@
 import {ApplicationRef, Component, OnInit} from '@angular/core';
 import {GitService} from '../../providers/git.service';
 import {ConfigItemModel} from '../../../../shared/config-item.model';
+import {ErrorService} from '../common/error.service';
+import {ErrorModel} from '../../../../shared/error.model';
 
 @Component({
   selector: 'app-git-config',
@@ -11,13 +13,13 @@ export class GitConfigComponent implements OnInit {
   showWindow = false;
   isLoading = false;
   items: ConfigItemModel[] = [];
-  errorMessage: { error: string };
   currentEdit: ConfigItemModel;
   editedItem: ConfigItemModel;
   clickedKey = true;
   filter: string;
 
   constructor(private gitService: GitService,
+              private errorService: ErrorService,
               private applicationRef: ApplicationRef) {
   }
 
@@ -29,7 +31,10 @@ export class GitConfigComponent implements OnInit {
     this.isLoading = true;
     this.gitService.getConfigItems()
         .then(items => this.handleItemsUpdate(items))
-        .catch(error => this.handleErrorMessage(error));
+        .catch(error => this.errorService.receiveError(
+          new ErrorModel('Git config component, getConfigItems',
+            'getting config items',
+            error)));
   }
 
   newItem() {
@@ -41,6 +46,7 @@ export class GitConfigComponent implements OnInit {
     this.editedItem = new ConfigItemModel(newKey, 'newValue');
     this.items.push(this.editedItem);
     this.currentEdit = this.editedItem;
+    this.clickedKey = true;
   }
 
   startEdit(item: ConfigItemModel, clickedKey: boolean) {
@@ -54,14 +60,25 @@ export class GitConfigComponent implements OnInit {
     this.currentEdit = undefined;
   }
 
-  saveConfigItem(rename?: ConfigItemModel) {
-    if (!this.editedItem || !(this.editedItem.key || '').trim() || !this.currentEdit) {
+  deleteConfigItem(item: ConfigItemModel) {
+    if (item.sourceFile) {
+      this.editedItem = Object.assign({}, item, {value: ''});
+      this.doSaveItem(item);
+    } else {
+      this.items.splice(this.items.indexOf(item), 1);
+    }
+  }
+
+  saveConfigItem(originalItem: ConfigItemModel, rename?: ConfigItemModel) {
+    if (!this.editedItem ||
+      !(this.editedItem.key || '').trim() ||
+      !this.currentEdit ||
+      ((!this.clickedKey && this.editedItem.value == originalItem.value) || (this.clickedKey && this.editedItem.key == originalItem.key)) ||
+      (!this.currentEdit.sourceFile && !this.currentEdit.value)) {
       return;
     }
     this.currentEdit = undefined;
-    this.gitService.setConfigItem(this.editedItem, rename)
-        .then(items => this.handleItemsUpdate(items))
-        .catch(error => this.handleErrorMessage(error));
+    this.doSaveItem(originalItem, rename);
   }
 
   isEditing(item: ConfigItemModel) {
@@ -73,17 +90,36 @@ export class GitConfigComponent implements OnInit {
   }
 
   getConfigFileDisplay(sourceFile: string) {
-    return sourceFile.replace(/^.*?:/, '').replace(/['"]/g, '').replace(/\\\\/g,'\\');
+    return sourceFile.replace(/^.*?:/, '').replace(/['"]/g, '').replace(/\\\\/g, '\\');
+  }
+
+  nextTabRow(item: ConfigItemModel) {
+    if (!item.sourceFile) {
+      setTimeout(() => {
+        this.newItem();
+        this.applicationRef.tick();
+      }, 100);
+    }
+  }
+
+  private doSaveItem(originalItem: ConfigItemModel, rename?: ConfigItemModel) {
+    this.gitService.setConfigItem(this.editedItem, rename)
+        .then(items => this.handleItemsUpdate(items))
+        .catch(error => {
+          if (!this.editedItem.sourceFile) {
+            this.items.pop();
+          }
+          this.editedItem = originalItem;
+          this.errorService.receiveError(
+            new ErrorModel('Git config component, setConfigItem',
+              'setting the config item',
+              error || 'the section or key is invalid'));
+        });
   }
 
   private handleItemsUpdate(items) {
     this.items = items;
     this.isLoading = false;
     this.applicationRef.tick();
-  }
-
-  private handleErrorMessage(content: string) {
-    this.errorMessage = {error: content};
-    this.isLoading = false;
   }
 }

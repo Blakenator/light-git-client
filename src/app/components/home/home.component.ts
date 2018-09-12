@@ -4,6 +4,8 @@ import {HttpClient} from '@angular/common/http';
 import {SettingsService} from '../../providers/settings.service';
 import {RepositoryModel} from '../../../../shared/Repository.model';
 import {GitService} from '../../providers/git.service';
+import {ErrorModel} from '../../../../shared/error.model';
+import {ErrorService} from '../common/error.service';
 
 @Component({
   selector: 'app-home',
@@ -18,10 +20,10 @@ export class HomeComponent implements OnInit {
   tabNames: string[] = [''];
   editingTab = -1;
   repoCache: { [key: string]: RepositoryModel } = {};
-  errorMessage: { error: string };
 
   constructor(private electronService: ElectronService,
               public settingsService: SettingsService,
+              public errorService: ErrorService,
               private http: HttpClient,
               private applicationRef: ApplicationRef,
               private gitService: GitService) {
@@ -90,8 +92,8 @@ export class HomeComponent implements OnInit {
     $event.stopPropagation();
   }
 
-  repoLoadFailed($event: string) {
-    this.errorMessage = {error: $event};
+  repoLoadFailed($event: ErrorModel) {
+    this.errorService.receiveError($event);
     this.repoPaths[this.activeTab] = '';
     this.tabNames[this.activeTab] = 'Tab ' + this.activeTab;
     this.applicationRef.tick();
