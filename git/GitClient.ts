@@ -18,6 +18,8 @@ export class GitClient {
   static logger: Console;
   static settings: SettingsModel;
   private commandHistory: CommandHistoryModel[] = [];
+  private commandHistoryListener: (history: CommandHistoryModel[]) => any = () => {
+  };
 
   constructor(private workingDir: string) {
   }
@@ -44,7 +46,8 @@ export class GitClient {
     });
   }
 
-  getCommandHistory(): Promise<CommandHistoryModel[]> {
+  getCommandHistory(listenCallback: (history: CommandHistoryModel[]) => any): Promise<CommandHistoryModel[]> {
+    this.commandHistoryListener = listenCallback;
     return Promise.resolve(this.commandHistory);
   }
 
@@ -67,9 +70,9 @@ export class GitClient {
 
   setConfigItem(item: ConfigItemModel): Promise<ConfigItemModel[]> {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
-      const command = this.getBashedGit() + ' config --replace-all ' +
+      const command = this.getBashedGit() + ' config ' + (item.value ? '--replace-all ' : '') +
         (item.sourceFile.trim() ? '--file ' + item.sourceFile.replace(/^.*?:/, '') + ' ' : '') +
-        (item.value ? '' : '--unset ') + item.key + ' ' + ('"' + item.value + '"' || '');
+        (item.value ? '' : '--unset ') + item.key + ' ' + (item.value ? '"' + item.value + '"' : '');
       this.execute(command, 'Set Config Item')
           .then(text => this.getConfigItems().then(resolve).catch(reject))
           .catch(reject);
@@ -193,13 +196,7 @@ export class GitClient {
     return new Promise<RepositoryModel>((resolve, reject) => {
       this.execute(this.getGitPath() + ' fetch -p', 'Fetch Remote Branches')
           .then(text => this.getBranches().then(resolve).catch(reject))
-          .catch((error: string) => {
-            if (error.indexOf('cannot lock ref')) {
-              this.execute(this.getGitPath() + ' gc --prune=now', 'Git Active Repo Garbage Cleanup')
-                  .then(text => this.getBranches().then(resolve).catch(reject))
-                  .catch(reject);
-            }
-          });
+          .catch(reject);
     });
   }
 
@@ -431,8 +428,8 @@ export class GitClient {
         let currentBranchPath = result.localBranches.find(x => x.isCurrentBranch).name;
         result.worktrees[result.worktrees.findIndex(x => x.currentBranch == currentBranchPath)].isCurrent = true;
         resolve(result);
-      }).catch(ignore => {
-        reject(ignore);
+      }).catch(error => {
+        reject(error);
       });
     }));
   }
@@ -512,7 +509,9 @@ export class GitClient {
           stdout,
           start, new Date().getTime() - start.getTime());
         this.commandHistory.push(commandHistoryModel);
-        if (!error) {
+        this.commandHistoryListener(this.commandHistory);
+        if (!error || (stderr && stderr.split(/\r?\n/)
+                                       .every(x => x.trim().length == 0 || x.trim().startsWith('warning:')))) {
           resolve(stdout);
         } else {
           console.error(JSON.stringify(commandHistoryModel));

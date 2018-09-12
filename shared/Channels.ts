@@ -42,4 +42,5 @@ export namespace Channels {
   export const CREATEBRANCH = "createBranch";
   export const FETCH = "fetch";
   export const GETCOMMANDHISTORY = "getCommandHistory";
+  export const COMMANDHISTORYCHANGED = "commandHistoryChanged";
 }

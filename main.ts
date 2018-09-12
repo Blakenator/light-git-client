@@ -272,7 +272,7 @@ try {
   });
 
   ipcMain.on(Channels.GETCOMMITHISTORY, (event, args) => {
-    handleGitPromise(gitClients[args[1]].getCommitHistory(args[2],args[3]), event, args);
+    handleGitPromise(gitClients[args[1]].getCommitHistory(args[2], args[3]), event, args);
   });
 
   ipcMain.on(Channels.CHECKOUT, (event, args) => {
@@ -357,7 +357,11 @@ try {
   });
 
   ipcMain.on(Channels.GETCOMMANDHISTORY, (event, args) => {
-    handleGitPromise(gitClients[args[1]].getCommandHistory(), event, args);
+    handleGitPromise(
+      gitClients[args[1]].getCommandHistory(
+        history => event.sender.send(getReplyChannel([Channels.COMMANDHISTORYCHANGED]), new ElectronResponse(history))),
+      event,
+      args);
   });
 
   ipcMain.on(Channels.RENAMEBRANCH, (event, args) => {

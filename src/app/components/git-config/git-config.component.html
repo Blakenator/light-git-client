@@ -9,6 +9,7 @@
         <h5 class="modal-title">Git Config</h5>
       </div>
       <div class="modal-body">
+        <div></div>
         <input class="form-control" [(ngModel)]="filter" placeholder="Filter...">
         <table class="table table-striped">
           <thead>
@@ -16,6 +17,7 @@
             <th>Key</th>
             <th>Value</th>
             <th>Location</th>
+            <th width="1%"></th>
           </tr>
           </thead>
           <tbody>
@@ -24,8 +26,8 @@
               <span *ngIf="!isEditing(item) || !clickedKey">{{item.key}}</span>
               <input class="form-control"
                      *ngIf="isEditing(item) && clickedKey"
-                     (keyup.enter)="saveConfigItem(item)"
-                     (blur)="saveConfigItem(item)"
+                     (keyup.enter)="saveConfigItem(item,item)"
+                     (blur)="saveConfigItem(item,item)"
                      (keydown.tab)="clickedKey=false"
                      (keydown.escape)="cancelEdit()"
                      [(ngModel)]="editedItem.key"
@@ -35,17 +37,23 @@
               <span *ngIf="!isEditing(item)|| clickedKey">{{item.value}}</span>
               <input class="form-control"
                      *ngIf="isEditing(item) && !clickedKey"
-                     (keyup.enter)="saveConfigItem()"
-                     (blur)="saveConfigItem()"
+                     (keyup.enter)="saveConfigItem(item)"
+                     (blur)="saveConfigItem(item)"
                      (keydown.shift.tab)="clickedKey=true"
+                     (keydown.tab)="nextTabRow(item)"
                      (keydown.escape)="cancelEdit()"
                      [(ngModel)]="editedItem.value"
                      [autofocus]>
             </td>
             <td>{{getConfigFileDisplay(item.sourceFile)}}</td>
+            <td>
+              <button class="table-btn btn btn-outline-danger" (click)="deleteConfigItem(item)">
+                <i class="fa fa-trash"></i>
+              </button>
+            </td>
           </tr>
           <tr class="editable-item" (click)="newItem()">
-            <td class="text-muted" colspan="3">New Item...</td>
+            <td class="text-muted" colspan="4">New Item...</td>
           </tr>
           </tbody>
         </table>
@@ -56,4 +64,3 @@
     </div>
   </div>
 </div>
-<app-error-message [errorMessage]="errorMessage"></app-error-message>

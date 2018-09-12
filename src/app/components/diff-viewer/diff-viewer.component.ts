@@ -4,6 +4,8 @@ import {DiffHunkModel, DiffLineModel, DiffModel, LineState} from '../../../../sh
 import {SettingsService} from '../../providers/settings.service';
 import {GitService} from '../../providers/git.service';
 import {CommitModel} from '../../../../shared/Commit.model';
+import {ErrorService} from '../common/error.service';
+import {ErrorModel} from '../../../../shared/error.model';
 
 @Component({
   selector: 'app-diff-viewer',
@@ -18,9 +20,10 @@ export class DiffViewerComponent implements OnInit {
   editingHeader: DiffModel;
   editedText: string;
   @Output() onHunkChanged = new EventEmitter<CommitModel>();
-  @Output() onHunkChangeError = new EventEmitter<any>();
+  @Output() onHunkChangeError = new EventEmitter<ErrorModel>();
 
   constructor(public settingsService: SettingsService,
+              private errorService: ErrorService,
               private gitService: GitService) {
   }
 
@@ -82,7 +85,9 @@ export class DiffViewerComponent implements OnInit {
           this.editingHeader = undefined;
           this.editingHunk = undefined;
         })
-        .catch(error => this.onHunkChangeError.emit(error));
+        .catch(error => this.onHunkChangeError.emit(new ErrorModel('Diff viewer component, changeHunk',
+          'saving hunk changes',
+          error)));
   }
 
   startEdit(hunk: DiffHunkModel, header: DiffModel) {
@@ -93,5 +98,11 @@ export class DiffViewerComponent implements OnInit {
 
   isEditingHunk(hunk: DiffHunkModel, header: DiffModel) {
     return this.editingHunk && this.editingHeader && this.editingHunk.fromStartLine == hunk.fromStartLine && this.editingHeader.fromFilename == header.fromFilename;
+  }
+
+  undoHunk(hunk: DiffHunkModel, header: DiffModel) {
+    this.startEdit(hunk, header);
+    this.editedText = hunk.lines.filter(x => x.state != LineState.ADDED).map(x => x.text).join('\n');
+    this.saveEditedHunk();
   }
 }

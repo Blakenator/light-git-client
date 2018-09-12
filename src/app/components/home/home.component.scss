@@ -19,6 +19,16 @@
   }
 }
 
+.tab-btn {
+  .close-tab {
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  &:hover .close-tab {
+    opacity: 1;
+  }
+}
+
 .navbar {
   margin-bottom: .2em;
 }

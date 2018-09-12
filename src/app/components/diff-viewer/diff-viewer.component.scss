@@ -15,7 +15,7 @@
   overflow-y: auto;
 }
 
-pre code{
+pre code {
   line-height: 1.6;
 }
 
@@ -59,15 +59,22 @@ pre code{
   overflow-x: auto;
   margin-top: .5em;
   position: relative;
-  &:hover .edit-btn {
+  &:hover .float-btn-container {
     opacity: 1;
   }
-  .edit-btn {
+
+  .float-btn-container {
     opacity: 0;
     transition: opacity .5s;
-    position: absolute;
+    position: sticky;
     top: .5em;
     right: .5em;
+    height: 8em;
+    .btn {
+      width: 3em;
+      height: 3em;
+      display: block;
+    }
   }
 }
 

@@ -232,7 +232,7 @@
     <div class="card">
       <div class="card-header">
         <div class="pretty p-switch p-fill mx-2">
-          <input type="checkbox" [(ngModel)]="showDiff" (change)="applicationRef.tick()"/>
+          <input type="checkbox" [(ngModel)]="showDiff"/>
           <label>Branch Commit History</label>
           <div class="state ml-2">
             <label>Diff</label>
@@ -244,7 +244,7 @@
           <app-diff-viewer [diffHeaders]="diffHeaders"
                            [diffCommitInfo]="diffCommitInfo"
                            (onHunkChanged)="handleFileChanges($event,false)"
-                           (onHunkChangeError)="handleErrorMessage($event)"></app-diff-viewer>
+                           (onHunkChangeError)="hunkChangeError($event)"></app-diff-viewer>
         </div>
         <app-commit-history [commitHistory]="commitHistory"
                             *ngIf="!showDiff"
@@ -253,7 +253,6 @@
       </div>
     </div>
   </div>
-  <app-error-message [errorMessage]="errorMessage"></app-error-message>
   <app-input-modal [show]="showCreateBranch"
                    modalTitle="Create Branch"
                    message="Create branch off current HEAD"

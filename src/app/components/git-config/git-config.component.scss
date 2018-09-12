@@ -1,5 +1,10 @@
 .editable-item {
+  cursor: pointer;
   &:hover {
     background-color: rgba(128, 128, 128, .3);
   }
+}
+
+.table-btn {
+  margin: -.5em;
 }

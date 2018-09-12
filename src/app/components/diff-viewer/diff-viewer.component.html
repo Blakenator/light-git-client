@@ -63,9 +63,16 @@
                       *ngIf="isEditingHunk(hunk,header)"
                       [(ngModel)]="editedText"></textarea>
           </div>
-          <button class="btn btn-info btn-sm edit-btn"
-                  *ngIf="!isEditingHunk(hunk,header)"
-                  (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
+          <div class="float-btn-container">
+            <button class="btn btn-info btn-sm my-1"
+                    title="Edit hunk"
+                    *ngIf="!isEditingHunk(hunk,header)"
+                    (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
+            <button class="btn btn-warning btn-sm my-1"
+                    title="Undo hunk"
+                    *ngIf="!isEditingHunk(hunk,header)"
+                    (click)="undoHunk(hunk,header)"><i class="fa fa-undo"></i></button>
+          </div>
         </div>
       </div>
     </div>

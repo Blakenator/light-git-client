@@ -5,21 +5,25 @@ import {ElectronService} from './electron.service';
 import {ConfigItemModel} from '../../../shared/config-item.model';
 import {DiffHunkModel, DiffModel} from '../../../shared/diff.model';
 import {CommitModel} from '../../../shared/Commit.model';
+import {Subject} from 'rxjs';
+import {CommandHistoryModel} from '../../../shared/command-history.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GitService {
   public repo: RepositoryModel;
+  public onCommandHistoryUpdated = new Subject<CommandHistoryModel[]>();
 
   constructor(private electronService: ElectronService) {
+    electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
   }
 
   getConfigItems(): Promise<ConfigItemModel[]> {
     return this.electronService.rpc(Channels.GETCONFIGITEMS, [this.repo.path]);
   }
 
-  setConfigItem(item: ConfigItemModel, rename: ConfigItemModel): Promise<ConfigItemModel[]> {
+  setConfigItem(item: ConfigItemModel, rename?: ConfigItemModel): Promise<ConfigItemModel[]> {
     if (rename) {
       rename.value = '';
       return this.electronService.rpc(Channels.SETCONFIGITEM, [this.repo.path, rename])

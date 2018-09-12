@@ -2,8 +2,8 @@
   margin-left: .5em;
   border-left: dashed .15em rgba(128, 128, 128, .3);
   padding-left: .5em;
-  &:hover{
-    border-left-color: rgba(225,128,128,.5);
+  &:hover {
+    border-left-color: rgba(225, 128, 128, .5);
   }
 }
 
@@ -24,6 +24,10 @@
 
 .folder {
   cursor: pointer;
+
+  &:hover + .children {
+    border-left-color: rgba(225, 128, 128, .5);
+  }
 }
 
 .branch > div::after {
