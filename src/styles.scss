@@ -207,6 +207,10 @@ body {
   border: none;
 }
 
+.modal-footer {
+  min-height: 4em;
+}
+
 .modal-header {
   flex-shrink: 0;
 }

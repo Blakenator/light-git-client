@@ -9,22 +9,23 @@ import {
   OnInit,
   Output
 } from '@angular/core';
-import {ElectronService} from '../../providers/electron.service';
-import {SettingsService} from '../../providers/settings.service';
-import {RepositoryModel} from '../../../../shared/Repository.model';
-import {CommitModel} from '../../../../shared/Commit.model';
+import {ElectronService} from '../../services/electron.service';
+import {SettingsService} from '../../services/settings.service';
+import {RepositoryModel} from '../../../../shared/git/Repository.model';
+import {CommitModel} from '../../../../shared/git/Commit.model';
 import {Channels} from '../../../../shared/Channels';
-import {CommitSummaryModel} from '../../../../shared/CommitSummary.model';
-import {BranchModel} from '../../../../shared/Branch.model';
-import {GlobalErrorHandlerService} from '../common/global-error-handler.service';
-import {StashModel} from '../../../../shared/stash.model';
-import {WorktreeModel} from '../../../../shared/worktree.model';
-import {DiffModel} from '../../../../shared/diff.model';
-import {FilterPipe} from '../../directives/filter.pipe';
-import {CommandHistoryModel} from '../../../../shared/command-history.model';
-import {GitService} from '../../providers/git.service';
-import {ErrorModel} from '../../../../shared/error.model';
-import {ErrorService} from '../common/error.service';
+import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
+import {BranchModel} from '../../../../shared/git/Branch.model';
+import {GlobalErrorHandlerService} from '../common/services/global-error-handler.service';
+import {StashModel} from '../../../../shared/git/stash.model';
+import {WorktreeModel} from '../../../../shared/git/worktree.model';
+import {DiffHeaderModel} from '../../../../shared/git/diff.header.model';
+import {FilterPipe} from '../common/pipes/filter.pipe';
+import {CommandHistoryModel} from '../../../../shared/git/command-history.model';
+import {GitService} from '../../services/git.service';
+import {ErrorModel} from '../../../../shared/common/error.model';
+import {ErrorService} from '../common/services/error.service';
+import {CodeWatcherService} from '../../services/code-watcher.service';
 
 @Component({
   selector: 'app-repo-view',
@@ -36,7 +37,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   changes: CommitModel = new CommitModel();
   selectedUnstagedChanges: { [key: string]: boolean } = {};
   selectedStagedChanges: { [key: string]: boolean } = {};
-  diffHeaders: DiffModel[] = [];
+  diffHeaders: DiffHeaderModel[] = [];
   commitAndPush = false;
   commitHistory: CommitSummaryModel[] = [];
   showDiff = false;
@@ -71,6 +72,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
               private errorService: ErrorService,
+              public codeWatcherService: CodeWatcherService,
               errorHandler: ErrorHandler,
               public applicationRef: ApplicationRef,
               private gitService: GitService) {
@@ -216,8 +218,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getFileDiff() {
-    let unstaged = Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).join(' ');
-    let staged = Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).join(' ');
+    let unstaged = Object.keys(this.selectedUnstagedChanges)
+                         .filter(x => this.selectedUnstagedChanges[x])
+                         .map(x => x.replace(/.*->\s*/, ''))
+                         .join(' ');
+    let staged = Object.keys(this.selectedStagedChanges)
+                       .filter(x => this.selectedStagedChanges[x])
+                       .map(x => x.replace(/.*->\s*/, ''))
+                       .join(' ');
     if (!staged.trim() && !unstaged.trim()) {
       unstaged = '.';
       staged = '.';
@@ -426,7 +434,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     return this.settingsService.settings.expandStates[key];
   }
 
-  selectionChanged() {
+  selectionChanged(selectedChanges: { [key: string]: boolean }, isStaged: boolean) {
+    if (isStaged) {
+      this.selectedStagedChanges = selectedChanges;
+    } else {
+      this.selectedUnstagedChanges = selectedChanges;
+    }
     this.getFileDiff();
     this.diffCommitInfo = undefined;
     setTimeout(() => this.showDiff = true, 300);
@@ -536,15 +549,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     let optionsSet: { [key: string]: number } = {};
     this.changes.stagedChanges.forEach(x =>
       this.getFilenameChunks(x.file)
-          .forEach(y => optionsSet[y] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
+          .forEach(y => optionsSet[y.trim()] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
     this.changes.unstagedChanges.forEach(x =>
       this.getFilenameChunks(x.file)
-          .forEach(y => optionsSet[y] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
+          .forEach(y => optionsSet[y.trim()] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
 
     const currentBranchName = this.getCurrentBranch().name;
     this.getFilenameChunks(currentBranchName)
-        .forEach(y => optionsSet[y] = this.levenshtein(currentBranchName, lastWord));
-    console.log(optionsSet);
+        .forEach(y => optionsSet[y.trim()] = this.levenshtein(currentBranchName, lastWord));
+    // console.log(optionsSet);
     const result = Object.keys(optionsSet)
                          // .sort((a, b) => optionsSet[a] - optionsSet[b])
                          .filter(x => FilterPipe.fuzzyFilter(lastWord.toLowerCase(),
@@ -557,15 +570,18 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   setCurrentCursorPosition($event) {
     this.currentCommitCursorPosition = $event.target.selectionStart;
 
-    if (['Enter', 'ArrowUp', 'ArrowDown', 'Escape'].indexOf($event.key) < 0) {
+    if (['Enter', 'ArrowUp', 'ArrowDown', 'Escape', 'Tab'].indexOf($event.key) < 0) {
       this.getCommitSuggestions();
     }
     if (this.suggestions.length == 0) {
       return;
     }
     $event.stopPropagation();
-    if ($event.key == 'Enter') {
+    if ($event.key == 'Enter' && !$event.ctrlKey) {
       this.currentCommitCursorPosition--;
+      this.chooseAutocomleteItem(true);
+    } else if ($event.key == 'Tab' && !$event.ctrlKey) {
+      $event.preventDefault();
       this.chooseAutocomleteItem(true);
     } else if ($event.key == 'ArrowUp') {
       this.selectedAutocopleteItem = Math.max(0, this.selectedAutocopleteItem - 1);

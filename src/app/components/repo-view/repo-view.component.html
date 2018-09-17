@@ -137,10 +137,10 @@
            (scrolled)="maxCommandsVisible=maxCommandsVisible + commandsPerPage"
            (scrolledUp)="maxCommandsVisible=commandsPerPage">
         <div *ngFor="let c of commandHistory.slice().reverse() | filterObject : getCommandHistoryFilterableText : commandHistoryFilter | slice : 0 : maxCommandsVisible">
-          <span><i>{{c.name}}</i> ({{c.durationMs}}ms @ {{c.executedAt | date : 'mediumTime'}})</span>
+          <span class="command-title"><i class="fa {{c.isError?'fa-exclamation-triangle':'fa-check-circle'}}"></i> <i>{{c.name}}</i> ({{c.durationMs}}ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
           <pre class="p-2 bg-light command-output">Output Characters 0-1000:
-            {{(c.errorOutput||c.output).substring(0,3000)}}</pre>
+            {{(c.errorOutput||c.output).substring(0,3000)}}</pre>s
           <hr/>
         </div>
       </div>
@@ -166,8 +166,7 @@
         </div>
         <div class="change-body branch-container" *ngIf="getExpandState('staged')">
           <app-change-list [changes]="changes.stagedChanges"
-                           [selectedChanges]="selectedStagedChanges"
-                           (onSelectChanged)="selectionChanged()"
+                           (onSelectChanged)="selectionChanged($event,true)"
                            (onUndoFileClicked)="undoFileChanges($event)"
                            (onMergeClicked)="merge($event)"
                            (onDeleteClicked)="deleteClicked($event)"
@@ -191,8 +190,7 @@
         </div>
         <div class="change-body branch-container" *ngIf="getExpandState('unstaged')">
           <app-change-list [changes]="changes.unstagedChanges"
-                           [selectedChanges]="selectedUnstagedChanges"
-                           (onSelectChanged)="selectionChanged()"
+                           (onSelectChanged)="selectionChanged($event,false)"
                            (onUndoFileClicked)="undoFileChanges($event)"
                            (onMergeClicked)="merge($event)"
                            (onDeleteClicked)="deleteClicked($event)"
@@ -213,8 +211,9 @@
                     [(ngModel)]="changes.description"
                     placeholder="Commit message"
                     [disabled]="isLoading"
-                    (keyup.control.enter)="checkWatchers=(checkWatchers+1)%5+1"
-                    (keyup)="setCurrentCursorPosition($event)"></textarea>
+                    (keyup.control.enter)="codeWatcherService.showWatchers()"
+                    (keyup)="setCurrentCursorPosition($event)"
+          (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
           <div class="dropdown-menu show" *ngIf="suggestions.length>0">
             <a [ngClass]="{'dropdown-item':true,'active':i==selectedAutocopleteItem}"
                *ngFor="let s of suggestions; let i = index"
@@ -223,7 +222,7 @@
             <a class="dropdown-item" (click)="suggestions=[]">Hide Suggestions</a>
           </div>
         </div>
-        <button class="btn btn-success" (click)="checkWatchers=(checkWatchers+1)%5+1" [disabled]="isLoading">Commit
+        <button class="btn btn-success" (click)="codeWatcherService.showWatchers()" [disabled]="isLoading">Commit
         </button>
       </div>
     </div>
@@ -244,7 +243,8 @@
           <app-diff-viewer [diffHeaders]="diffHeaders"
                            [diffCommitInfo]="diffCommitInfo"
                            (onHunkChanged)="handleFileChanges($event,false)"
-                           (onHunkChangeError)="hunkChangeError($event)"></app-diff-viewer>
+                           (onHunkChangeError)="hunkChangeError($event)"
+          (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
         </div>
         <app-commit-history [commitHistory]="commitHistory"
                             *ngIf="!showDiff"
@@ -270,5 +270,5 @@
                    [defaultText]="getCreateStashDefaultText()"
                    (onClickOk)="createStash($event)"
                    (onClickCancel)="showCreateStash=false"></app-input-modal>
-  <app-code-watcher-alerts [checkWatchers]="checkWatchers" (onCommitClicked)="commit()"></app-code-watcher-alerts>
+  <app-code-watcher-alerts (onCommitClicked)="commit()"></app-code-watcher-alerts>
 </div>

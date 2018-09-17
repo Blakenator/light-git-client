@@ -12,4 +12,8 @@ export class CodeWatcherModel {
     this.activeFilter = activeFilter;
     this.enabled = enabled;
   }
+
+  public static toRegex(watcher: CodeWatcherModel): RegExp {
+    return new RegExp(watcher.regex, watcher.regexFlags);
+  }
 }

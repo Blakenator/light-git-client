@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
 import {Subject} from 'rxjs';
-import {ErrorModel} from '../../../../shared/error.model';
-import {ElectronService} from '../../providers/electron.service';
-import {Channels} from '../../../../shared/Channels';
+import {ErrorModel} from '../../../../../shared/common/error.model';
+import {ElectronService} from '../../../services/electron.service';
+import {Channels} from '../../../../../shared/Channels';
 
 @Injectable({
   providedIn: 'root'

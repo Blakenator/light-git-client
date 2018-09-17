@@ -1,11 +1,11 @@
 import {ApplicationRef, Component, OnInit} from '@angular/core';
-import {ElectronService} from '../../providers/electron.service';
+import {ElectronService} from '../../services/electron.service';
 import {HttpClient} from '@angular/common/http';
-import {SettingsService} from '../../providers/settings.service';
-import {RepositoryModel} from '../../../../shared/Repository.model';
-import {GitService} from '../../providers/git.service';
-import {ErrorModel} from '../../../../shared/error.model';
-import {ErrorService} from '../common/error.service';
+import {SettingsService} from '../../services/settings.service';
+import {RepositoryModel} from '../../../../shared/git/Repository.model';
+import {GitService} from '../../services/git.service';
+import {ErrorModel} from '../../../../shared/common/error.model';
+import {ErrorService} from '../common/services/error.service';
 
 @Component({
   selector: 'app-home',

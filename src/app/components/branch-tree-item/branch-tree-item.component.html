@@ -1,7 +1,8 @@
 <div *ngIf="(leaves | filterObject : 'name' : filter) as filteredLeaves">
   <div (click)="toggleChildrenVisible()"
        *ngIf="currentPath && (getFilteredChildren().length>0 || filteredLeaves.length>0)"
-       class="folder">
+       class="folder"
+       [title]="currentPath">
     <i [ngClass]="{fa:true,'fa-caret-right':!showChildren,'fa-caret-down':showChildren}"></i>
     <span>{{getDisplayPath()}}</span>
   </div>

@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {ChangeType, LightChange} from '../../../../shared/Commit.model';
+import {ChangeType, LightChange} from '../../../../shared/git/Commit.model';
 
 @Component({
   selector: 'app-change-list',
@@ -9,8 +9,8 @@ import {ChangeType, LightChange} from '../../../../shared/Commit.model';
 export class ChangeListComponent implements OnInit {
   @Input() changes: LightChange[];
   @Input() changeFilter = '';
-  @Input() selectedChanges: { [key: string]: boolean } = {};
-  @Output() onSelectChanged = new EventEmitter<any>();
+  selectedChanges: { [key: string]: boolean } = {};
+  @Output() onSelectChanged = new EventEmitter<{ [key: string]: boolean }>();
   @Output() onUndoFileClicked = new EventEmitter<string>();
   @Output() onMergeClicked = new EventEmitter<string>();
   @Output() onDeleteClicked = new EventEmitter<string[]>();
@@ -63,7 +63,7 @@ export class ChangeListComponent implements OnInit {
     for (let change of this.changes) {
       this.selectedChanges[change.file] = this.selectAll;
     }
-    this.onSelectChanged.emit();
+    this.onSelectChanged.emit(this.selectedChanges);
   }
 
   undoFileClicked(file: string) {
@@ -97,6 +97,6 @@ export class ChangeListComponent implements OnInit {
     }
     this.lastClicked = file;
     this.selectAll = this.changes.every(x => this.selectedChanges[x.file]);
-    this.onSelectChanged.emit();
+    this.onSelectChanged.emit(this.selectedChanges);
   }
 }

@@ -19,10 +19,12 @@ export class ErrorModel {
   }
 
   static getRootError(error: ErrorModel) {
-    return typeof error.content == 'string' || !ErrorModel.isErrorModel(error.content) ? error : this.getRootError(error.content);
+    return error && (typeof error.content == 'string' || !ErrorModel.isErrorModel(error.content)) ?
+      error :
+      this.getRootError(<ErrorModel>error.content);
   }
 
   static getRootErrorMessage(error: any) {
-    return ErrorModel.isErrorModel(error) ? ErrorModel.getRootError(error).content : JSON.stringify(error);
+    return error && ErrorModel.isErrorModel(error) ? ErrorModel.getRootError(error).content : JSON.stringify(error);
   }
 }
