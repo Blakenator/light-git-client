@@ -1,12 +1,13 @@
 import {Injectable} from '@angular/core';
 import {Channels} from '../../../shared/Channels';
-import {RepositoryModel} from '../../../shared/Repository.model';
+import {RepositoryModel} from '../../../shared/git/Repository.model';
 import {ElectronService} from './electron.service';
-import {ConfigItemModel} from '../../../shared/config-item.model';
-import {DiffHunkModel, DiffModel} from '../../../shared/diff.model';
-import {CommitModel} from '../../../shared/Commit.model';
+import {ConfigItemModel} from '../../../shared/git/config-item.model';
+import {DiffHeaderModel} from '../../../shared/git/diff.header.model';
+import {CommitModel} from '../../../shared/git/Commit.model';
 import {Subject} from 'rxjs';
-import {CommandHistoryModel} from '../../../shared/command-history.model';
+import {CommandHistoryModel} from '../../../shared/git/command-history.model';
+import {DiffHunkModel} from '../../../shared/git/diff.hunk.model';
 
 @Injectable({
   providedIn: 'root'
@@ -41,7 +42,7 @@ export class GitService {
     return this.electronService.rpc(Channels.CHANGEHUNK, [this.repo.path, filename, hunk, changedText]);
   }
 
-  getFileChanges(unstaged: string, staged: string): Promise<DiffModel[]> {
+  getFileChanges(unstaged: string, staged: string): Promise<DiffHeaderModel[]> {
     return this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]);
   }
 }

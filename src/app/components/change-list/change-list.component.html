@@ -30,8 +30,9 @@
     <td>
       <div class="change-filename" [title]="c.file">
         <div class="d-inline-block" *ngFor="let part of c.file.replace('->','/->/').split('/'); let i=index">
-          <span class="badge badge-light">{{part}}</span>
-          <span *ngIf="i<c.file.replace('->','/->/').split('/').length-1">/</span>
+          <span class="badge badge-light" *ngIf="part!='->'">{{part}}</span>
+          <small *ngIf="part=='->'"><i class="fa fa-arrow-right"></i></small>
+          <span *ngIf="i<c.file.replace('->','/->/').split('/').length-1&&part!='->'&&c.file.replace('->','/->/').split('/')[i+1]!='->'">/</span>
         </div>
       </div>
     </td>
@@ -49,7 +50,10 @@
                 *ngIf="isMergeConflict(c.change)">
           <i class="material-icons">merge_type</i>
         </button>
-        <button class="btn btn-outline-danger btn-sm" title="Delete file" (click)="deleteClicked(c.file)" *ngIf="getChangeType(c)!='minus'">
+        <button class="btn btn-outline-danger btn-sm"
+                title="Delete file"
+                (click)="deleteClicked(c.file)"
+                *ngIf="getChangeType(c)!='minus'">
           <i class="material-icons">delete</i>
         </button>
       </div>

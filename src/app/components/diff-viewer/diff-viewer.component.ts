@@ -1,11 +1,14 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {CommitSummaryModel} from '../../../../shared/CommitSummary.model';
-import {DiffHunkModel, DiffLineModel, DiffModel, LineState} from '../../../../shared/diff.model';
-import {SettingsService} from '../../providers/settings.service';
-import {GitService} from '../../providers/git.service';
-import {CommitModel} from '../../../../shared/Commit.model';
-import {ErrorService} from '../common/error.service';
-import {ErrorModel} from '../../../../shared/error.model';
+import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
+import {DiffHeaderModel} from '../../../../shared/git/diff.header.model';
+import {SettingsService} from '../../services/settings.service';
+import {GitService} from '../../services/git.service';
+import {CommitModel} from '../../../../shared/git/Commit.model';
+import {ErrorService} from '../common/services/error.service';
+import {ErrorModel} from '../../../../shared/common/error.model';
+import {DiffHunkModel} from '../../../../shared/git/diff.hunk.model';
+import {DiffLineModel, LineState} from '../../../../shared/git/diff.line.model';
+import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
 
 @Component({
   selector: 'app-diff-viewer',
@@ -13,17 +16,20 @@ import {ErrorModel} from '../../../../shared/error.model';
   styleUrls: ['./diff-viewer.component.scss']
 })
 export class DiffViewerComponent implements OnInit {
-  @Input() diffHeaders: DiffModel[];
+  @Input() diffHeaders: DiffHeaderModel[];
   @Input() diffCommitInfo: CommitSummaryModel;
   matchingSelection = 'words';
   editingHunk: DiffHunkModel;
-  editingHeader: DiffModel;
+  editingHeader: DiffHeaderModel;
   editedText: string;
   @Output() onHunkChanged = new EventEmitter<CommitModel>();
   @Output() onHunkChangeError = new EventEmitter<ErrorModel>();
+  scrollOffset = 10;
+  numPerPage = 3;
 
   constructor(public settingsService: SettingsService,
               private errorService: ErrorService,
+              private codeWatcherService: CodeWatcherService,
               private gitService: GitService) {
   }
 
@@ -42,7 +48,7 @@ export class DiffViewerComponent implements OnInit {
     return LineState.REMOVED == line.state;
   }
 
-  getHeaderTag(header: DiffModel) {
+  getHeaderTag(header: DiffHeaderModel) {
     if (header.toFilename == header.fromFilename) {
       if (header.hunks.every(x => x.fromNumLines == 0)) {
         return 'Added';
@@ -90,19 +96,46 @@ export class DiffViewerComponent implements OnInit {
           error)));
   }
 
-  startEdit(hunk: DiffHunkModel, header: DiffModel) {
+  startEdit(hunk: DiffHunkModel, header: DiffHeaderModel) {
     this.editedText = this.getEditableCode(hunk);
     this.editingHeader = header;
     this.editingHunk = hunk;
   }
 
-  isEditingHunk(hunk: DiffHunkModel, header: DiffModel) {
+  isEditingHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
     return this.editingHunk && this.editingHeader && this.editingHunk.fromStartLine == hunk.fromStartLine && this.editingHeader.fromFilename == header.fromFilename;
   }
 
-  undoHunk(hunk: DiffHunkModel, header: DiffModel) {
+  undoHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
     this.startEdit(hunk, header);
     this.editedText = hunk.lines.filter(x => x.state != LineState.ADDED).map(x => x.text).join('\n');
     this.saveEditedHunk();
+  }
+
+  hasConflictingWatcher(hunk: DiffHunkModel, header: DiffHeaderModel) {
+    return CodeWatcherService.getWatcherAlerts(this.settingsService.settings,
+      [this.getTemporaryHunk(header, hunk)]).length > 0;
+  }
+
+  watcherClick(hunk: DiffHunkModel, header: DiffHeaderModel) {
+    let temp = this.getTemporaryHunk(header, hunk);
+    this.codeWatcherService.showWatchers(new ShowWatchersRequest(false, temp));
+  }
+
+  scrolled(down: boolean) {
+    if (down) {
+      this.scrollOffset += this.numPerPage;
+    }
+    if (!down) {
+      this.scrollOffset = this.numPerPage * 3;
+    }
+    this.scrollOffset = Math.round(Math.max(this.numPerPage * 3,
+      Math.min(this.scrollOffset, this.diffHeaders.length - this.numPerPage)));
+  }
+
+  private getTemporaryHunk(header: DiffHeaderModel, hunk: DiffHunkModel) {
+    let temp = Object.assign(new DiffHeaderModel(), header);
+    temp.hunks = [hunk];
+    return temp;
   }
 }

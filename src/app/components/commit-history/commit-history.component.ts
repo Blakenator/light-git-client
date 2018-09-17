@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {CommitSummaryModel} from '../../../../shared/CommitSummary.model';
+import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
 
 @Component({
   selector: 'app-commit-history',

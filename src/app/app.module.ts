@@ -12,30 +12,30 @@ import {AppRoutingModule} from './app-routing.module';
 import {TranslateLoader, TranslateModule} from '@ngx-translate/core';
 import {TranslateHttpLoader} from '@ngx-translate/http-loader';
 
-import {ElectronService} from './providers/electron.service';
+import {ElectronService} from './services/electron.service';
 
 import {WebviewDirective} from './directives/webview.directive';
 
 import {AppComponent} from './app.component';
 import {HomeComponent} from './components/home/home.component';
 import {SettingsComponent} from './components/settings/settings.component';
-import {SettingsService} from './providers/settings.service';
+import {SettingsService} from './services/settings.service';
 import {LoadingSpinnerComponent} from './components/loading-spinner/loading-spinner.component';
 import {RepoViewComponent} from './components/repo-view/repo-view.component';
 import {ChangeListComponent} from './components/change-list/change-list.component';
 import {DiffViewerComponent} from './components/diff-viewer/diff-viewer.component';
 import {CommitHistoryComponent} from './components/commit-history/commit-history.component';
-import {ErrorMessageComponent} from './components/common/error-message/error-message.component';
+import {ErrorMessageComponent} from './components/common/components/error-message/error-message.component';
 import {NewTabPageComponent} from './components/new-tab-page/new-tab-page.component';
-import {FilterObjectPipe, FilterPipe} from './directives/filter.pipe';
+import {FilterObjectPipe, FilterPipe} from './components/common/pipes/filter.pipe';
 import {BranchTreeItemComponent} from './components/branch-tree-item/branch-tree-item.component';
-import {FileInputComponent} from './components/common/file-input/file-input.component';
-import {GlobalErrorHandlerService} from "./components/common/global-error-handler.service";
+import {FileInputComponent} from './components/common/components/file-input/file-input.component';
+import {GlobalErrorHandlerService} from "./components/common/services/global-error-handler.service";
 import {InfiniteScrollModule} from "ngx-infinite-scroll";
-import { InputModalComponent } from './components/common/input-modal/input-modal.component';
+import { InputModalComponent } from './components/common/components/input-modal/input-modal.component';
 import {HighlightModule} from 'ngx-highlightjs';
 import { GitConfigComponent } from './components/git-config/git-config.component';
-import { AutofocusDirective } from './components/common/autofocus.directive';
+import { AutofocusDirective } from './components/common/directives/autofocus.directive';
 import { CodeWatcherAlertsComponent } from './components/code-watcher-alerts/code-watcher-alerts.component';
 
 // AoT requires an exported function for factories

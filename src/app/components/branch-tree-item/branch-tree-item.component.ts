@@ -1,8 +1,8 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {BranchModel} from '../../../../shared/Branch.model';
-import {WorktreeModel} from '../../../../shared/worktree.model';
-import {SettingsService} from '../../providers/settings.service';
-import {FilterPipe} from '../../directives/filter.pipe';
+import {BranchModel} from '../../../../shared/git/Branch.model';
+import {WorktreeModel} from '../../../../shared/git/worktree.model';
+import {SettingsService} from '../../services/settings.service';
+import {FilterPipe} from '../common/pipes/filter.pipe';
 
 @Component({
   selector: 'app-branch-tree-item',

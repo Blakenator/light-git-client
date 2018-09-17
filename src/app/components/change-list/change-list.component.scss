@@ -1,4 +1,5 @@
 .change {
+  transition: background-color .5s;
 
   &:hover {
     background-color: rgba(128, 128, 128, .2);

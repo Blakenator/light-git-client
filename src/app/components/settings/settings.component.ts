@@ -1,6 +1,6 @@
 import {Component, EventEmitter, OnInit, Output} from '@angular/core';
-import {ElectronService} from '../../providers/electron.service';
-import {SettingsService} from '../../providers/settings.service';
+import {ElectronService} from '../../services/electron.service';
+import {SettingsService} from '../../services/settings.service';
 import {SettingsModel} from '../../../../shared/SettingsModel';
 import {Channels} from '../../../../shared/Channels';
 import {CodeWatcherModel} from '../../../../shared/code-watcher.model';

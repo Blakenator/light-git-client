@@ -1,8 +1,8 @@
 import {ApplicationRef, Component, OnInit} from '@angular/core';
-import {GitService} from '../../providers/git.service';
-import {ConfigItemModel} from '../../../../shared/config-item.model';
-import {ErrorService} from '../common/error.service';
-import {ErrorModel} from '../../../../shared/error.model';
+import {GitService} from '../../services/git.service';
+import {ConfigItemModel} from '../../../../shared/git/config-item.model';
+import {ErrorService} from '../common/services/error.service';
+import {ErrorModel} from '../../../../shared/common/error.model';
 
 @Component({
   selector: 'app-git-config',

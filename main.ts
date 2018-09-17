@@ -4,10 +4,10 @@ import * as url from 'url';
 import * as fs from 'fs';
 import {SettingsModel} from './shared/SettingsModel';
 import {autoUpdater} from 'electron-updater';
-import {RepositoryModel} from './shared/Repository.model';
+import {RepositoryModel} from './shared/git/Repository.model';
 import {GitClient} from './git/GitClient';
 import {Channels} from './shared/Channels';
-import {ElectronResponse} from './shared/electron-response';
+import {ElectronResponse} from './shared/common/electron-response';
 
 const output = fs.createWriteStream(path.join(app.getPath('userData'), 'stdout.log',), {flags: 'a'});
 const errorOutput = fs.createWriteStream(path.join(app.getPath('userData'), 'stderr.log'), {flags: 'a'});

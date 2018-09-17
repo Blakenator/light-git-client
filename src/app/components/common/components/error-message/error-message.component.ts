@@ -1,6 +1,6 @@
 import {Component, OnInit} from '@angular/core';
-import {ErrorService} from '../error.service';
-import {ErrorModel} from '../../../../../shared/error.model';
+import {ErrorService} from '../../services/error.service';
+import {ErrorModel} from '../../../../../../shared/common/error.model';
 
 @Component({
   selector: 'app-error-message',
@@ -11,6 +11,8 @@ export class ErrorMessageComponent implements OnInit {
   errors: ErrorModel[] = [];
   currentError = 0;
   showDialog: boolean;
+  getRootError = ErrorModel.getRootError;
+  getRootErrorMessage = ErrorModel.getRootErrorMessage;
 
   constructor(private errorService: ErrorService) {
     errorService.onErrorReceived.asObservable().subscribe(error => this.handleError(error));
@@ -26,10 +28,6 @@ export class ErrorMessageComponent implements OnInit {
 
   cycleError(next: number) {
     this.currentError = (this.currentError + next < 0 ? this.currentError + next + this.errors.length : this.currentError + next) % this.errors.length;
-  }
-
-  getRootError(error: ErrorModel) {
-    return ErrorModel.getRootError(error);
   }
 
   private handleError(error: ErrorModel) {

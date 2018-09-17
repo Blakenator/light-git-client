@@ -61,6 +61,15 @@
   }
 }
 
+.command-title {
+  .fa-exclamation-triangle {
+    color: rgba(225, 128, 128, .5);
+  }
+  .fa-check-circle {
+    color: rgba(128, 225, 128, .5);
+  }
+}
+
 ///////////////////////small///////////////////////
 .card-body {
   padding: .3em;

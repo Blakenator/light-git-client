@@ -1,10 +1,12 @@
-import {ApplicationRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {DiffHunkModel, DiffModel, LineState} from '../../../../shared/diff.model';
+import {ApplicationRef, Component, EventEmitter, OnInit, Output} from '@angular/core';
+import {DiffHeaderModel} from '../../../../shared/git/diff.header.model';
 import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
-import {GitService} from '../../providers/git.service';
-import {SettingsService} from '../../providers/settings.service';
-import {ErrorService} from '../common/error.service';
-import {ErrorModel} from '../../../../shared/error.model';
+import {GitService} from '../../services/git.service';
+import {SettingsService} from '../../services/settings.service';
+import {ErrorService} from '../common/services/error.service';
+import {ErrorModel} from '../../../../shared/common/error.model';
+import {DiffHunkModel} from '../../../../shared/git/diff.hunk.model';
+import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
 
 @Component({
   selector: 'app-code-watcher-alerts',
@@ -14,79 +16,42 @@ import {ErrorModel} from '../../../../shared/error.model';
 export class CodeWatcherAlertsComponent implements OnInit {
   @Output() onCommitClicked = new EventEmitter<any>();
   showWindow = false;
-  filter: string;
+  filter = '';
   watcherAlerts: { file: string, hunks: { hunk: DiffHunkModel, watchers: CodeWatcherModel[] }[] }[] = [];
+  showWatchersRequest: ShowWatchersRequest;
 
   constructor(private gitService: GitService,
               private settingsService: SettingsService,
+              private codeWatcherService: CodeWatcherService,
               private errorService: ErrorService,
               private applicationRef: ApplicationRef) {
-  }
-
-  @Input() set checkWatchers(val) {
-    if (val > 0) {
-      this.checkFileWatchers();
-    }
+    codeWatcherService.onShowWatchers.asObservable().subscribe(request => this.checkFileWatchers(request));
   }
 
   ngOnInit() {
   }
 
-  checkFileWatchers() {
-    this.gitService.getFileChanges('.', '.')
-        .then((diff: DiffModel[]) => {
-          let watchers = this.settingsService.settings.codeWatchers.filter(x => x.enabled);
-          if (watchers.length == 0) {
+  checkFileWatchers(request: ShowWatchersRequest) {
+    this.showWatchersRequest = request;
+    if (request.forHeader) {
+      this.parseDiffInformation([request.forHeader]);
+    } else {
+      this.gitService.getFileChanges('.', '.')
+          .then((diff: DiffHeaderModel[]) => {
+            this.parseDiffInformation(diff);
+          })
+          .catch(err => {
+            this.errorService.receiveError(new ErrorModel('Code watchers component, getFileChanges',
+              'getting file changes',
+              err));
             this.watcherAlerts = [];
             this.onCommitClicked.emit();
-            return;
-          }
-          let files = diff.map(x => {
-            return {
-              file: x.toFilename,
-              hunks: x.hunks.map(h => {
-                if (this.settingsService.settings.includeUnchangedInWatcherAnalysis) {
-                  return {hunk: h, code: h.lines.filter(l => l.state != LineState.REMOVED).map(l => l.text).join('\n')};
-                } else {
-                  return {hunk: h, code: h.lines.filter(l => l.state == LineState.ADDED).map(l => l.text).join('\n')};
-                }
-              })
-            };
           });
-          let alertsByFile = files.map(f => {
-            return {
-              file: f.file, hunks: f.hunks.map(h => {
-                return {
-                  hunk: h.hunk,
-                  watchers: watchers.filter(w => f.file.match(new RegExp(w.activeFilter)) && h.code.match(new RegExp(w.regex,
-                    w.regexFlags)))
-                };
-              }).filter(h => h.watchers.length > 0)
-            };
-          });
-          const alerts = alertsByFile.filter(x => x.hunks.length > 0);
-          if (alerts.length == 0) {
-            this.watcherAlerts = [];
-            this.onCommitClicked.emit();
-          } else {
-            this.watcherAlerts = alerts;
-            this.showWindow = true;
-          }
-          this.applicationRef.tick();
-        })
-        .catch(err => {
-          this.errorService.receiveError(new ErrorModel('Code watchers component, getFileChanges', 'getting file changes', err));
-          this.watcherAlerts = [];
-          this.onCommitClicked.emit();
-        });
+    }
   }
 
   getHunkCode(hunk: DiffHunkModel, includeLineNumbers: boolean = true) {
-    let lines = hunk.lines.filter(x => x.state != LineState.REMOVED).map(x => x.text);
-    if (includeLineNumbers) {
-      lines = lines.map((x, i) => (hunk.toStartLine + i) + '\t' + x);
-    }
-    return lines.join('\n');
+    return CodeWatcherService.getHunkCode(hunk, this.settingsService.settings, includeLineNumbers);
   }
 
   cancel() {
@@ -100,7 +65,21 @@ export class CodeWatcherAlertsComponent implements OnInit {
 
   getLineFromMatch(hunk: DiffHunkModel, watcher: CodeWatcherModel) {
     let code = this.getHunkCode(hunk, false);
-    let before = new RegExp(watcher.regex, watcher.regexFlags).exec(code).index;
+    let before = CodeWatcherModel.toRegex(watcher).exec(code).index;
     return hunk.toStartLine + code.substring(0, before).split(/\r?\n/).length - 1;
+  }
+
+  private parseDiffInformation(diff: DiffHeaderModel[]) {
+    let alerts = CodeWatcherService.getWatcherAlerts(this.settingsService.settings, diff);
+    if (alerts.length == 0) {
+      this.watcherAlerts = [];
+      if (this.showWatchersRequest.isCommit) {
+        this.onCommitClicked.emit();
+      }
+    } else {
+      this.watcherAlerts = alerts;
+      this.showWindow = true;
+    }
+    this.applicationRef.tick();
   }
 }

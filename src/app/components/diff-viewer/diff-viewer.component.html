@@ -1,4 +1,8 @@
-<div class="diff-container">
+<div class="diff-container"
+     infinite-scroll
+     [scrollWindow]="false"
+     (scrolled)="scrolled(true)"
+     (scrolledUp)="scrolled(false)">
   <div>
     <div *ngIf="diffCommitInfo" class="card-body"><p class="text-muted">{{diffCommitInfo.hash}}</p>
       <p *ngIf="diffCommitInfo.authorName">
@@ -28,7 +32,7 @@
     </div>
   </div>
   <div *ngIf="diffHeaders">
-    <div *ngFor="let header of diffHeaders" class="card">
+    <div *ngFor="let header of diffHeaders | slice : 0 : scrollOffset" class="card">
       <div class="card-header d-flex">
         <div class="flex-grow-1">
           <div class="d-inline-block"
@@ -36,42 +40,53 @@
             <span class="badge badge-light">{{part}}</span>
             <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
           </div>
+          <span class="text-muted mx-3" *ngIf="header.stagedState"><i>{{header.stagedState}}</i>
+          </span>
         </div>
         <div class="flex-grow-0 center-text-vertical tag-container">
           <span [class]="'tag '+getHeaderTag(header)">{{getHeaderTag(header)}}</span>
         </div>
       </div>
       <div class="diff-header">
-        <div *ngFor="let hunk of header.hunks" class="d-flex hunk">
-          <div class="linenumber-block" *ngIf="!isEditingHunk(hunk,header)">
-            <div *ngFor="let line of hunk.lines" class="d-flex">
-              <div class="linenumber">{{!getAddition(line)?line.fromLineNumber:'-'}}</div>
-              <div class="linenumber">{{!getDeletion(line)?line.toLineNumber:'-'}}</div>
-              <div [ngClass]="{'line-overlay':true, 'addition':getAddition(line),'deletion':getDeletion(line), 'd-none':!getAddition(line)&&!getDeletion(line)}">
+        <div *ngFor="let hunk of header.hunks">
+          <div class="btn btn-block btn-warning mt-3 d-flex justify-content-between"
+               *ngIf="!isEditingHunk(hunk,header) && hasConflictingWatcher(hunk,header)"
+               (click)="watcherClick(hunk,header)">
+            <i class="fa fa-exclamation-triangle"></i>
+            Code watcher warnings
+            <i class="fa fa-arrow-down"></i>
+          </div>
+          <div class="d-flex hunk">
+            <div class="linenumber-block" *ngIf="!isEditingHunk(hunk,header)">
+              <div *ngFor="let line of hunk.lines" class="d-flex">
+                <div class="linenumber">{{!getAddition(line)?line.fromLineNumber:'-'}}</div>
+                <div class="linenumber">{{!getDeletion(line)?line.toLineNumber:'-'}}</div>
+                <div [ngClass]="{'line-overlay':true, 'addition':getAddition(line),'deletion':getDeletion(line), 'd-none':!getAddition(line)&&!getDeletion(line)}">
+                </div>
               </div>
             </div>
-          </div>
-          <div class="code-line-block flex-grow-1">
-            <pre *ngIf="!isEditingHunk(hunk,header)"><code highlight [code]="getHunkCode(hunk)"></code></pre>
-            <textarea oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
-                      onfocus='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
-                      class="form-control"
-                      (blur)="saveEditedHunk()"
-                      (keyup.escape)="cancelEdit()"
-                      [autofocus]
-                      wrap="soft"
-                      *ngIf="isEditingHunk(hunk,header)"
-                      [(ngModel)]="editedText"></textarea>
-          </div>
-          <div class="float-btn-container">
-            <button class="btn btn-info btn-sm my-1"
-                    title="Edit hunk"
-                    *ngIf="!isEditingHunk(hunk,header)"
-                    (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
-            <button class="btn btn-warning btn-sm my-1"
-                    title="Undo hunk"
-                    *ngIf="!isEditingHunk(hunk,header)"
-                    (click)="undoHunk(hunk,header)"><i class="fa fa-undo"></i></button>
+            <div class="code-line-block flex-grow-1">
+              <pre *ngIf="!isEditingHunk(hunk,header)"><code highlight [code]="getHunkCode(hunk)"></code></pre>
+              <textarea oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
+                        onfocus='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
+                        class="form-control"
+                        (blur)="saveEditedHunk()"
+                        (keyup.escape)="cancelEdit()"
+                        [autofocus]
+                        wrap="soft"
+                        *ngIf="isEditingHunk(hunk,header)"
+                        [(ngModel)]="editedText"></textarea>
+            </div>
+            <div class="float-btn-container">
+              <button class="btn btn-info btn-sm my-1"
+                      title="Edit hunk"
+                      *ngIf="!isEditingHunk(hunk,header)"
+                      (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
+              <button class="btn btn-warning btn-sm my-1"
+                      title="Undo hunk"
+                      *ngIf="!isEditingHunk(hunk,header)"
+                      (click)="undoHunk(hunk,header)"><i class="fa fa-undo"></i></button>
+            </div>
           </div>
         </div>
       </div>

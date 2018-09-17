@@ -6,7 +6,7 @@
       </div>
       <div class="modal-body">
         <p>The following hunks have watcher alerts:</p>
-        <input class="form-control" [(ngModel)]="filter" placeholder="Filter...">
+        <input class="form-control" [(ngModel)]="filter" placeholder="Filename filter..." *ngIf="!showWatchersRequest.forHeader">
         <div *ngFor="let f of watcherAlerts | filterObject : 'file' : filter" class="card">
           <div class="card-header">{{f.file}}</div>
           <div>
@@ -29,9 +29,12 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" *ngIf="showWatchersRequest.isCommit">
         <button class="btn btn-warning" (click)="commitAnyway()">Commit Anyway</button>
         <button class="btn btn-secondary" (click)="cancel()">Cancel Commit</button>
+      </div>
+      <div class="modal-footer" *ngIf="!showWatchersRequest.isCommit">
+        <button class="btn btn-secondary" (click)="cancel()">Close</button>
       </div>
     </div>
   </div>
