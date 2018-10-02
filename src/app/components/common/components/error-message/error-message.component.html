@@ -9,9 +9,7 @@
       </div>
       <div class="modal-body" *ngIf="getRootError(errors[currentError]) as rootError">
         <p>An error occurred while {{rootError.occurredWhile}}:</p>
-        <pre>
-          {{getRootErrorMessage(rootError)}}
-        </pre>
+        <pre>{{getRootErrorMessage(rootError)}}</pre>
       </div>
       <div class="modal-footer">
         <span *ngIf="errors.length>1">

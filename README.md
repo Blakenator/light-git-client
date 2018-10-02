@@ -29,7 +29,7 @@ This is a WIP project to address the following failings of other git clients:
 * Autocomplete on changed filenames & path in commit messages
 
 ### TODO:
-* Clone
+* Clone &check; (10/1/18)
 * Branching visualization
 * Tag editor (tags currently visible in commit history)
 * Ability to move tabs

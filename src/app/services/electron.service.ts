@@ -4,7 +4,7 @@ import {Injectable} from '@angular/core';
 import {ipcRenderer, remote, webFrame} from 'electron';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
-import {ElectronResponse} from "../../../shared/common/electron-response";
+import {ElectronResponse} from '../../../shared/common/electron-response';
 
 @Injectable()
 export class ElectronService {
@@ -30,7 +30,7 @@ export class ElectronService {
     }
   }
 
-  rpc(functionName: string, functionParams: any[]): Promise<any> {
+  rpc(functionName: string, functionParams: any[], cleanup: boolean = true): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       this.ipcRenderer.send(functionName, [functionName, ...functionParams]);
       this.ipcRenderer.on(functionName + 'reply', (event, args: ElectronResponse) => {
@@ -40,7 +40,9 @@ export class ElectronService {
         } else {
           reject(args.content);
         }
-        this.ipcRenderer.removeAllListeners(functionName + 'reply');
+        if (cleanup) {
+          this.ipcRenderer.removeAllListeners(functionName + 'reply');
+        }
       });
     });
   }
@@ -50,5 +52,9 @@ export class ElectronService {
       // console.log(args);
       callback(args.content);
     });
-  };
+  }
+
+  cleanupChannel(channelName: string) {
+    this.ipcRenderer.removeAllListeners(channelName + 'reply');
+  }
 }

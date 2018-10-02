@@ -39,6 +39,9 @@ export namespace Channels {
   export const APPLYSTASH = "applyStash";
   export const DELETESTASH = "deleteStash";
   export const RENAMEBRANCH = "renameBranch";
+  export const ADDWORKTREE= "addWorktree";
+  export const CLONE= "clone";
+  export const CHECKGITBASHVERSIONS= "checkGitBashVersions";
   export const CREATEBRANCH = "createBranch";
   export const FETCH = "fetch";
   export const GETCOMMANDHISTORY = "getCommandHistory";

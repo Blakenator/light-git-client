@@ -26,7 +26,7 @@
       <div class="card-header form-inline" (click)="toggleExpandState('locals')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('locals'),'fa-caret-down':getExpandState('locals')}"></i>
         Locals
-        <input class="ml-2 form-control"
+        <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
                [(ngModel)]="localBranchFilter" (click)="$event.stopPropagation()">
         <button class="btn btn-primary btn-sm mx-1"
@@ -69,13 +69,22 @@
       <div class="card-header form-inline" (click)="toggleExpandState('worktrees')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('worktrees'),'fa-caret-down':getExpandState('worktrees')}"></i>
         Worktrees
-        <input class="ml-2 form-control"
+        <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
                [(ngModel)]="worktreeFilter" (click)="$event.stopPropagation()">
+        <button class="btn btn-sm btn-primary mx-1"
+                title="Add Worktree"
+                (click)="setAddWorktreeVisible(true);$event.stopPropagation()">
+          <i class="fa fa-plus"></i>
+        </button>
       </div>
       <div class="card-body branch-container" *ngIf="getExpandState('worktrees')">
         <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter">
-          <span [title]="w.path" [ngClass]="{'bold':w.isCurrent}">{{w.name}}</span>
+          <span [title]="w.path"
+                [ngClass]="{'bold':w.isCurrent}">
+            {{w.name}}
+            <small *ngIf="w.currentBranch=='detached'">(detached)</small>
+          </span>
           <div class="d-inline-block ml-3">
             <button class="btn btn-info btn-sm" (click)="openFolder(w.path)" title="Open folder at Worktree root"><i
               class="fas fa-folder-open"></i></button>
@@ -93,10 +102,10 @@
       <div class="card-header form-inline" (click)="toggleExpandState('stashes')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('stashes'),'fa-caret-down':getExpandState('stashes')}"></i>
         Stashes
-        <input class="ml-2 form-control"
+        <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
                [(ngModel)]="stashFilter" (click)="$event.stopPropagation()">
-        <div class="btn-group d-inline-block">
+        <div class="btn-group mx-1 d-inline-block">
           <button class="btn btn-sm btn-secondary"
                   title="Stash Unstaged Changes"
                   (click)="stash(true);$event.stopPropagation()"><i class="fa fa-box"></i></button>
@@ -140,7 +149,7 @@
           <span class="command-title"><i class="fa {{c.isError?'fa-exclamation-triangle':'fa-check-circle'}}"></i> <i>{{c.name}}</i> ({{c.durationMs}}ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
           <pre class="p-2 bg-light command-output">Output Characters 0-1000:
-            {{(c.errorOutput||c.output).substring(0,3000)}}</pre>s
+            {{(c.errorOutput||c.output).substring(0,3000)}}</pre>
           <hr/>
         </div>
       </div>
@@ -213,7 +222,7 @@
                     [disabled]="isLoading"
                     (keyup.control.enter)="codeWatcherService.showWatchers()"
                     (keyup)="setCurrentCursorPosition($event)"
-          (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
+                    (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
           <div class="dropdown-menu show" *ngIf="suggestions.length>0">
             <a [ngClass]="{'dropdown-item':true,'active':i==selectedAutocopleteItem}"
                *ngFor="let s of suggestions; let i = index"
@@ -244,7 +253,7 @@
                            [diffCommitInfo]="diffCommitInfo"
                            (onHunkChanged)="handleFileChanges($event,false)"
                            (onHunkChangeError)="hunkChangeError($event)"
-          (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
+                           (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
         </div>
         <app-commit-history [commitHistory]="commitHistory"
                             *ngIf="!showDiff"
@@ -271,4 +280,5 @@
                    (onClickOk)="createStash($event)"
                    (onClickCancel)="showCreateStash=false"></app-input-modal>
   <app-code-watcher-alerts (onCommitClicked)="commit()"></app-code-watcher-alerts>
+  <app-add-worktree [branches]="repo.remoteBranches" (onAddWorktree)="getFileChanges()"></app-add-worktree>
 </div>

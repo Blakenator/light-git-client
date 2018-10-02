@@ -15,6 +15,7 @@ import {ErrorModel} from '../shared/common/error.model';
 import {DiffHunkModel} from '../shared/git/diff.hunk.model';
 import {DiffLineModel, LineState} from '../shared/git/diff.line.model';
 import * as serializeError from 'serialize-error';
+import {spawn} from 'child_process';
 
 const exec = require('child_process').exec;
 
@@ -337,6 +338,24 @@ export class GitClient {
     });
   }
 
+  checkGitBashVersions(): Promise<{ bash: boolean, git: boolean }> {
+    return new Promise<{ bash: boolean, git: boolean }>((resolve, reject) => {
+      let result = {git: false, bash: false};
+      let promises = [];
+      promises.push(this.execute(this.getGitPath() + ' --version', 'Check Git Version')
+                        .then(text => result.git = text&&text.indexOf('git version')>=0)
+                        .catch(() => result.git = false));
+      promises.push(this.execute(this.getBashPath() + ' --version', 'Check Bash Version')
+                        .then(text => result.bash = text&&text.indexOf('GNU bash')>=0)
+                        .catch(() => result.bash = false));
+      Promise.race([
+        Promise.all(promises),
+        new Promise((resolve1, reject1) => {
+          setTimeout(() => reject1(), 1000);
+        })]).then(() => resolve(result)).catch(() => reject(result));
+    });
+  }
+
   pull(): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
       this.execute(this.getGitPath() + ' pull', 'Pull')
@@ -376,6 +395,21 @@ export class GitClient {
     }));
   }
 
+  addWorktree(location: string, branch: string, callback: (out: string, err: string, done: boolean) => any) {
+    this.executeLive('Add Worktree',
+      this.getBashPath().replace(/"/g, ''),
+      ['-c', this.getGitPath().replace(/"/g, '') + ' worktree add "' + location + '" ' +
+      branch.replace(/^origin\//, '')],
+      callback);
+  }
+
+  clone(location: string, url: string, callback: (out: string, err: string, done: boolean) => any) {
+    this.executeLive('Clone Repository',
+      this.getBashPath().replace(/"/g, ''),
+      ['-c', this.getGitPath().replace(/"/g, '') + ' clone ' + url + ' "' + location + '"'],
+      callback);
+  }
+
   getBranches(): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>(((resolve, reject) => {
       let result = new RepositoryModel();
@@ -404,13 +438,13 @@ export class GitClient {
         }
       }).catch(err => new ErrorModel('getLocalBranches', 'getting the list of locals', err)));
       promises.push(this.execute(this.getGitPath() + ' worktree list --porcelain', 'Get Worktrees').then(text => {
-        let worktreeList = /^worktree\s+(.+?)$\s*(bare|(HEAD\s+(\S+)$\s*(detached|branch\s+(.+?)$)))/gmi;
+        let worktreeList = /^worktree\s+(.+?)$\s*(bare|(HEAD\s+(\S+)$\s*(detached|branch\s+(.+?))$))/gmi;
         let match = worktreeList.exec(text);
         while (match) {
           let worktreeModel = new WorktreeModel();
           worktreeModel.name = path.basename(match[1]);
           worktreeModel.path = match[1];
-          worktreeModel.currentBranch = match[6].replace('refs/heads/', '') || match[5];
+          worktreeModel.currentBranch = (match[6] || '').replace('refs/heads/', '') || match[5];
           worktreeModel.currentHash = match[4] || match[2];
 
           result.worktrees.push(worktreeModel);
@@ -546,5 +580,34 @@ export class GitClient {
           '\nfind the root cause of the timeout');
       }, GitClient.settings.commandTimeoutSeconds * 1000);
     })]);
+  }
+
+  private executeLive(commandName: string, command: string, args: string[], callback: (out: string, error: string, done: boolean) => any) {
+    let start = new Date();
+    let stderr = '', stdout = '';
+    callback(command + ' ' + args.join(' '), undefined, false);
+    let progress = spawn(command, args, {cwd: this.workingDir});
+    progress.stdout.on('data', data => {
+      stdout += data.toString();
+      callback(data.toString(), undefined, false);
+    });
+    progress.stderr.on('data', data => {
+      stderr += data.toString();
+      callback(undefined, data.toString(), false);
+    });
+    progress.on('error', err => {
+      callback(undefined, JSON.stringify(serializeError(err)), false);
+    });
+    progress.on('exit', code => {
+      callback(undefined, code != 0 ? 'Non-zero exit code: ' + code : undefined, true);
+      let commandHistoryModel = new CommandHistoryModel(commandName,
+        command + ' ' + args.join(' '),
+        stderr,
+        stdout,
+        start, new Date().getTime() - start.getTime(),
+        !!stderr);
+      this.commandHistory.push(commandHistoryModel);
+      this.commandHistoryListener(this.commandHistory);
+    });
   }
 }

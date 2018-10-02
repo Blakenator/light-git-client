@@ -1,4 +1,5 @@
 import {Component, EventEmitter, OnInit, Output} from '@angular/core';
+import {ModalService} from '../../services/modal.service';
 
 @Component({
   selector: 'app-new-tab-page',
@@ -9,7 +10,7 @@ export class NewTabPageComponent implements OnInit {
   repoPath = '';
   @Output() onReady = new EventEmitter<string>();
 
-  constructor() {
+  constructor(public modalService:ModalService) {
   }
 
   ngOnInit() {

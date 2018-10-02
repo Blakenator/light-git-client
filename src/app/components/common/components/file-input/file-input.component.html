@@ -4,7 +4,8 @@
     <input class="form-control"
            [(ngModel)]="filePath"
            (keyup.enter)="enterKeyPressed()"
-           (change)="changeFilePath()"/>
+           (change)="changeFilePath()"
+    [disabled]="disabled"/>
   </label>
   <label class="btn btn-light">
     <input class="form-control d-none"
@@ -13,6 +14,7 @@
            [attr.directory]="isFolder?'':null"
            [attr.multiple]="allowMultiple?'':null"
            [accept]="filter.join(', ')"
+           [disabled]="disabled"
            (change)="changeFilePath($event)"/>
     Browse
   </label>

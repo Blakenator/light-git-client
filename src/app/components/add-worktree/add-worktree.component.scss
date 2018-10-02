@@ -1,0 +1,11 @@
+.selected-branch {
+  cursor: pointer;
+  &:hover .fa {
+    color: rgba(0, 0, 0, .6);
+  }
+}
+
+.branch-list {
+  max-height: 20em;
+  overflow-y: auto;
+}
