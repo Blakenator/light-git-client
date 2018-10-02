@@ -31,7 +31,8 @@ export class GitClient {
 
   getCommitDiff(commitHash: any): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + commitHash + '~ ' + commitHash,
+      this.execute(
+        this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + commitHash + '~ ' + commitHash,
         'Get Diff for Commit')
           .then(text => {
             resolve(this.parseDiffString(text, DiffHeaderStagedState.NONE));
@@ -42,7 +43,8 @@ export class GitClient {
 
   getBranchPremerge(branch: BranchModel): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + branch.currentHash + '...',
+      this.execute(
+        this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + branch.currentHash + '...',
         'Get Premerge Diff')
           .then(text => {
             resolve(this.parseDiffString(text, DiffHeaderStagedState.NONE));
@@ -91,9 +93,10 @@ export class GitClient {
         return;
       }
       this.getBranches().then(rep => {
-        rep.path = this.workingDir;
-        rep.name = path.basename(this.workingDir);
-        resolve(rep);
+        let res = Object.assign(new RepositoryModel(), rep || {});
+        res.path = this.workingDir;
+        res.name = path.basename(this.workingDir);
+        resolve(res);
       }).catch(err => reject(serializeError(err)));
     });
   }
@@ -263,7 +266,8 @@ export class GitClient {
   commit(message: string, push: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
       let s = message.replace(/\"/g, '').replace(/\r?\n/g, '" -m "');
-      this.execute(this.getBashedGit() + '  commit -m "' + s + '"' + (push ? '\' && ' + this.getGitPath() + '  push' : ''),
+      this.execute(
+        this.getBashedGit() + '  commit -m "' + s + '"' + (push ? '\' && ' + this.getGitPath() + '  push' : ''),
         'Commit')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
@@ -272,7 +276,8 @@ export class GitClient {
 
   checkout(tag: string, toNewBranch: boolean, branchName: string = ''): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' checkout ' + tag + (toNewBranch ? ' -b ' + (branchName || tag.replace('origin/',
+      this.execute(this.getGitPath() + ' checkout ' + tag + (toNewBranch ? ' -b ' + (branchName || tag.replace(
+        'origin/',
         '')) : ''), 'Checkout')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
@@ -306,7 +311,8 @@ export class GitClient {
   stash(unstagedOnly: boolean, stashName: string): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
       const command = this.getBashedGit() + ' stash push' + (unstagedOnly ? ' -k -u' : '') + (stashName ? ' -m "' + stashName + '"' : '');
-      this.execute(command,
+      this.execute(
+        command,
         'Stash Changes')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
@@ -331,7 +337,8 @@ export class GitClient {
 
   pushBranch(branch: string, force: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' push origin ' + (branch ? branch + ':' + branch : '') + (force ? ' --force' : ''),
+      this.execute(
+        this.getGitPath() + ' push origin ' + (branch ? branch + ':' + branch : '') + (force ? ' --force' : ''),
         'Push')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
@@ -343,10 +350,10 @@ export class GitClient {
       let result = {git: false, bash: false};
       let promises = [];
       promises.push(this.execute(this.getGitPath() + ' --version', 'Check Git Version')
-                        .then(text => result.git = text&&text.indexOf('git version')>=0)
+                        .then(text => result.git = text && text.indexOf('git version') >= 0)
                         .catch(() => result.git = false));
       promises.push(this.execute(this.getBashPath() + ' --version', 'Check Bash Version')
-                        .then(text => result.bash = text&&text.indexOf('GNU bash')>=0)
+                        .then(text => result.bash = text && text.indexOf('GNU bash') >= 0)
                         .catch(() => result.bash = false));
       Promise.race([
         Promise.all(promises),
@@ -370,7 +377,8 @@ export class GitClient {
 
   getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
-      this.execute(this.getGitPath() + ' log -n' + (count || 50) + ' --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%B"\n',
+      this.execute(
+        this.getGitPath() + ' log -n' + (count || 50) + ' --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%B"\n',
         'Get Commit History')
           .then(text => {
             // this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n --all --full-history", "Get Commit History").then(text => {
@@ -396,7 +404,8 @@ export class GitClient {
   }
 
   addWorktree(location: string, branch: string, callback: (out: string, err: string, done: boolean) => any) {
-    this.executeLive('Add Worktree',
+    this.executeLive(
+      'Add Worktree',
       this.getBashPath().replace(/"/g, ''),
       ['-c', this.getGitPath().replace(/"/g, '') + ' worktree add "' + location + '" ' +
       branch.replace(/^origin\//, '')],
@@ -404,7 +413,8 @@ export class GitClient {
   }
 
   clone(location: string, url: string, callback: (out: string, err: string, done: boolean) => any) {
-    this.executeLive('Clone Repository',
+    this.executeLive(
+      'Clone Repository',
       this.getBashPath().replace(/"/g, ''),
       ['-c', this.getGitPath().replace(/"/g, '') + ' clone ' + url + ' "' + location + '"'],
       callback);
@@ -477,8 +487,11 @@ export class GitClient {
         }
       }).catch(err => new ErrorModel('getRemoteBranches', 'getting the list of remote branches', err)));
       Promise.all(promises).then(ignore => {
-        let currentBranchPath = result.localBranches.find(x => x.isCurrentBranch).name;
-        result.worktrees[result.worktrees.findIndex(x => x.currentBranch == currentBranchPath)].isCurrent = true;
+        let currentBranch = result.localBranches.find(x => x.isCurrentBranch);
+        if (currentBranch) {
+          let currentBranchPath = currentBranch.name;
+          result.worktrees[result.worktrees.findIndex(x => x.currentBranch == currentBranchPath)].isCurrent = true;
+        }
         resolve(result);
       }).catch(error => {
         reject(serializeError(error));
@@ -582,7 +595,10 @@ export class GitClient {
     })]);
   }
 
-  private executeLive(commandName: string, command: string, args: string[], callback: (out: string, error: string, done: boolean) => any) {
+  private executeLive(commandName: string,
+                      command: string,
+                      args: string[],
+                      callback: (out: string, error: string, done: boolean) => any) {
     let start = new Date();
     let stderr = '', stdout = '';
     callback(command + ' ' + args.join(' '), undefined, false);
