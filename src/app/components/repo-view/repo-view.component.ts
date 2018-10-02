@@ -155,7 +155,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.selectedStagedChanges = {};
   }
 
-  getFileChanges(keepDiffCommitSelection: boolean = true,manualFetch:boolean=false) {
+  getFileChanges(keepDiffCommitSelection: boolean = true, manualFetch: boolean = false) {
     if (!this.repo) {
       return;
     }
@@ -286,6 +286,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.changes.description = '';
           this.showDiff = false;
           this.setLoading(false, true);
+          this.applicationRef.tick();
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'commit', 'committing', err)));
     this.clearSelectedChanges();
@@ -425,14 +426,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  fetch(manualFetch:boolean=false) {
+  fetch(manualFetch: boolean = false) {
     this.setLoading(true);
     this.electronService.rpc(Channels.FETCH, [this.repo.path])
         .then(changes => this.handleBranchChanges(changes))
         .catch((err: string) => {
           if (err && err
               .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
-            (!this.firstNoRemoteErrorDisplayed|| manualFetch)) {
+            (!this.firstNoRemoteErrorDisplayed || manualFetch)) {
             this.handleErrorMessage(new ErrorModel(
               this._errorClassLocation + 'fetch',
               'fetching remote changes',
@@ -748,7 +749,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   private setLoading(val: boolean, lockCommitInfo: boolean = false) {
-    if (lockCommitInfo) {
+    if (!val || lockCommitInfo) {
       this.isLoading = val;
     }
     this.onLoadingChange.emit(val);
