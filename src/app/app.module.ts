@@ -37,6 +37,8 @@ import {HighlightModule} from 'ngx-highlightjs';
 import { GitConfigComponent } from './components/git-config/git-config.component';
 import { AutofocusDirective } from './components/common/directives/autofocus.directive';
 import { CodeWatcherAlertsComponent } from './components/code-watcher-alerts/code-watcher-alerts.component';
+import { AddWorktreeComponent } from './components/add-worktree/add-worktree.component';
+import { CloneComponent } from './components/clone/clone.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -65,6 +67,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     GitConfigComponent,
     AutofocusDirective,
     CodeWatcherAlertsComponent,
+    AddWorktreeComponent,
+    CloneComponent,
   ],
   imports: [
     BrowserModule,

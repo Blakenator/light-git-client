@@ -4,6 +4,7 @@ import {SettingsService} from '../../services/settings.service';
 import {SettingsModel} from '../../../../shared/SettingsModel';
 import {Channels} from '../../../../shared/Channels';
 import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
+import {GitService} from '../../services/git.service';
 
 @Component({
   selector: 'app-settings',
@@ -19,6 +20,7 @@ export class SettingsComponent implements OnInit {
   @Output() onSaveAction = new EventEmitter<SettingsModel>();
 
   constructor(private electronService: ElectronService,
+              private gitService: GitService,
               private settingsService: SettingsService) {
   }
 
@@ -39,6 +41,7 @@ export class SettingsComponent implements OnInit {
     this.settingsService.saveSettings(this.tempSettings);
     this.tempSettings = this.settingsService.settings;
     this.showSettingsDialog = false;
+    this.gitService.checkGitBashVersions();
     setTimeout(() => this.onSaveAction.emit(this.tempSettings), 100);
   }
 

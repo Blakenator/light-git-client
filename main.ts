@@ -352,6 +352,22 @@ try {
     handleGitPromise(gitClients[args[1]].deleteStash(args[2]), event, args);
   });
 
+  ipcMain.on(Channels.CHECKGITBASHVERSIONS, (event, args) => {
+    handleGitPromise(new GitClient(args[1]).checkGitBashVersions(), event, args);
+  });
+
+  ipcMain.on(Channels.ADDWORKTREE, (event, args) => {
+    gitClients[args[1]].addWorktree(args[2], args[3], (out, err, done) => {
+      event.sender.send(getReplyChannel(args), new ElectronResponse({out, err, done}));
+    });
+  });
+
+  ipcMain.on(Channels.CLONE, (event, args) => {
+    new GitClient(args[1]).clone(args[2], args[3], (out, err, done) => {
+      event.sender.send(getReplyChannel(args), new ElectronResponse({out, err, done}));
+    });
+  });
+
   ipcMain.on(Channels.CHANGEHUNK, (event, args) => {
     handleGitPromise(gitClients[args[1]].changeHunk(path.join(args[1], args[2]), args[3], args[4]), event, args);
   });

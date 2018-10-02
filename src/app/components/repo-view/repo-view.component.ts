@@ -26,6 +26,7 @@ import {GitService} from '../../services/git.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
 import {ErrorService} from '../common/services/error.service';
 import {CodeWatcherService} from '../../services/code-watcher.service';
+import {ModalService} from '../../services/modal.service';
 
 @Component({
   selector: 'app-repo-view',
@@ -73,6 +74,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               private settingsService: SettingsService,
               private errorService: ErrorService,
               public codeWatcherService: CodeWatcherService,
+              public modalService: ModalService,
               errorHandler: ErrorHandler,
               public applicationRef: ApplicationRef,
               private gitService: GitService) {
@@ -600,6 +602,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.changes.description.substring(this.currentCommitCursorPosition + (removeEnter ? 1 : 0));
     this.selectedAutocopleteItem = 0;
     this.suggestions = [];
+  }
+
+  setAddWorktreeVisible(val: boolean) {
+    this.modalService.setModalVisible('addWorktree', val);
   }
 
   getCommandHistoryFilterableText(command: CommandHistoryModel) {

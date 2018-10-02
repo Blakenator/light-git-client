@@ -7,6 +7,7 @@ import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 })
 export class FileInputComponent implements OnInit {
   @Input() isFolder = false;
+  @Input() disabled = false;
   @Input() allowMultiple = false;
   @Input() filter: string[] = ['*'];
   @Input() label = '';

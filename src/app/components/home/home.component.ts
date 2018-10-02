@@ -40,6 +40,7 @@ export class HomeComponent implements OnInit {
         this.repoCache[p].path = this.repoPaths[p];
       });
       this.gitService.repo = this.repoCache[this.activeTab];
+      this.gitService.checkGitBashVersions();
     });
   }
 
