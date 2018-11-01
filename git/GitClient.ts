@@ -259,7 +259,13 @@ export class GitClient {
         let result = [];
         diffArray.forEach(x => result = result.concat(x));
         resolve(result);
-      }).catch(err => reject(serializeError(err)));
+      }).catch(err => {
+        let message:string = err.message || serializeError(err);
+        if (message.indexOf('stdout maxBuffer length exceeded') >= 0) {
+          message = 'Files too large to diff. Please reduce the file size';
+        }
+        reject(message);
+      });
     });
   }
 
@@ -568,7 +574,7 @@ export class GitClient {
   private execute(command: string, name: string): Promise<string> {
     let start = new Date();
     return Promise.race([new Promise<string>((resolve, reject) => {
-      exec(command, {cwd: this.workingDir}, (error, stdout, stderr) => {
+      exec(command, {cwd: this.workingDir, maxBuffer: 1024 * 1024}, (error, stdout, stderr) => {
         const commandHistoryModel = new CommandHistoryModel(name,
           command,
           stderr,
@@ -583,7 +589,7 @@ export class GitClient {
         } else {
           console.error(JSON.stringify(commandHistoryModel));
           logger.error(JSON.stringify(commandHistoryModel));
-          reject(stderr);
+          reject(error || stderr);
         }
       });
     }), new Promise<string>((resolve, reject) => {
