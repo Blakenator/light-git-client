@@ -14,6 +14,7 @@ This is a WIP project to address the following failings of other git clients:
    * Reduced use of lines & background-less buttons
    * Thicker lines where possible
 * Worktree Support (multiple tabs or within a single tab)
+* Submodule Support (add, update)
 * Code Watchers - Customizable regex watchers that run before you commit
    * Can be used to prevent:
      * Duplicate lines
