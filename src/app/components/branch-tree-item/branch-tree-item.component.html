@@ -59,12 +59,30 @@
                   title="View all changes in current branch since this branch">
             <i class="fa fa-history"></i>
           </button>
-          <button class="btn btn-light btn-sm" (click)="onPullClicked.emit()" *ngIf="b.isCurrentBranch" title="Pull">
-            <i class="fa fa-arrow-down"></i>
-          </button>
-          <button class="btn btn-light btn-sm" (click)="onPushClicked.emit(b.name)" title="Push">
-            <i class="fa fa-arrow-up"></i>
-          </button>
+          <div class="btn-group btn-group-sm mx-1" ngbDropdown placement="left" (click)="$event.stopPropagation()" *ngIf="b.isCurrentBranch && b.trackingPath">
+            <button class="btn btn-light" (click)="onPullClicked.emit()" title="Pull">
+              <i class="fa fa-arrow-down"></i>
+            </button>
+            <button class="btn btn-light dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
+            </button>
+            <div ngbDropdownMenu>
+              <button class="btn btn-light" (click)="onForcePullClicked.emit()" title="Force Pull">
+                <i class="fa fa-shield-alt"></i>
+              </button>
+            </div>
+          </div>
+          <div class="btn-group btn-group-sm mx-1" ngbDropdown placement="left" (click)="$event.stopPropagation()">
+            <button class="btn btn-light" (click)="onPushClicked.emit(b.name)" title="Push">
+              <i class="fa fa-arrow-up"></i>
+            </button>
+            <button class="btn btn-light dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
+            </button>
+            <div ngbDropdownMenu>
+              <button class="btn btn-light" (click)="onForcePushClicked.emit(b.name)" title="Force Push">
+                <i class="fa fa-shield-alt"></i>
+              </button>
+            </div>
+          </div>
           <button class="btn btn-light btn-sm"
                   (click)="onMergeClicked.emit(b.name)"
                   *ngIf="!b.isCurrentBranch"

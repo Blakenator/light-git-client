@@ -17,10 +17,12 @@ export class BranchTreeItemComponent implements OnInit {
   @Input() filter = '';
   @Output() onCheckoutClicked = new EventEmitter<string>();
   @Output() onPushClicked = new EventEmitter<string>();
+  @Output() onForcePushClicked = new EventEmitter<string>();
   @Output() onDeleteClicked = new EventEmitter<string>();
   @Output() onBranchPremergeClicked = new EventEmitter<BranchModel>();
   @Output() onMergeClicked = new EventEmitter<string>();
   @Output() onPullClicked = new EventEmitter<any>();
+  @Output() onForcePullClicked = new EventEmitter<any>();
   @Output() onBranchRename = new EventEmitter<{ oldName: string, newName: string }>();
   showChildren = true;
   leaves: BranchModel[];
