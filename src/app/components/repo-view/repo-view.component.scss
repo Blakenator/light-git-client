@@ -89,3 +89,15 @@
 .td, .th {
   padding: .3em;
 }
+
+.card-header .form-control {
+  max-width: 5em;
+  -webkit-transition: max-width .3s;
+  -moz-transition: max-width .3s;
+  -ms-transition: max-width .3s;
+  -o-transition: max-width .3s;
+  transition: max-width .3s;
+  &:active, &:focus {
+    max-width: 30em;
+  }
+}

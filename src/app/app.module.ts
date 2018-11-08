@@ -39,6 +39,8 @@ import { AutofocusDirective } from './components/common/directives/autofocus.dir
 import { CodeWatcherAlertsComponent } from './components/code-watcher-alerts/code-watcher-alerts.component';
 import { AddWorktreeComponent } from './components/add-worktree/add-worktree.component';
 import { CloneComponent } from './components/clone/clone.component';
+import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
+import { AddSubmoduleComponent } from './components/add-submodule/add-submodule.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -69,6 +71,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     CodeWatcherAlertsComponent,
     AddWorktreeComponent,
     CloneComponent,
+    AddSubmoduleComponent,
   ],
   imports: [
     BrowserModule,
@@ -76,6 +79,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     HttpClientModule,
     InfiniteScrollModule,
     AppRoutingModule,
+    NgbModule,
     HighlightModule.forRoot(),
     TranslateModule.forRoot({
       loader: {

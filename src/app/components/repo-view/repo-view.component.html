@@ -25,7 +25,7 @@
     <div class="card">
       <div class="card-header form-inline" (click)="toggleExpandState('locals')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('locals'),'fa-caret-down':getExpandState('locals')}"></i>
-        Locals
+        <i class="fa fa-code-branch mr-1"></i> Locals
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
                [(ngModel)]="localBranchFilter" (click)="$event.stopPropagation()">
@@ -51,7 +51,7 @@
     <div class="card">
       <div class="card-header form-inline" (click)="toggleExpandState('remotes')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('remotes'),'fa-caret-down':getExpandState('remotes')}"></i>
-        Remotes
+        <i class="fa fa-cloud mr-1"></i> Remotes
         <input class="ml-2 form-control"
                placeholder="Filter..."
                [(ngModel)]="remoteBranchFilter" (click)="$event.stopPropagation()">
@@ -68,7 +68,7 @@
     <div class="card">
       <div class="card-header form-inline" (click)="toggleExpandState('worktrees')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('worktrees'),'fa-caret-down':getExpandState('worktrees')}"></i>
-        Worktrees
+        <i class="fa fa-copy mr-1"></i> Worktrees
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
                [(ngModel)]="worktreeFilter" (click)="$event.stopPropagation()">
@@ -99,19 +99,63 @@
       </div>
     </div>
     <div class="card">
+      <div class="card-header form-inline" (click)="toggleExpandState('submodules')">
+        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('submodules'),'fa-caret-down':getExpandState('submodules')}"></i>
+        <i class="fa fa-plug mr-1"></i> Submodules
+        <input class="ml-2 mr-1 form-control"
+               placeholder="Filter..."
+               [(ngModel)]="submoduleFilter" (click)="$event.stopPropagation()">
+        <button class="btn btn-sm btn-primary mx-1"
+                title="Add Submodule"
+                (click)="modalService.setModalVisible('addSubmodule',true);$event.stopPropagation()">
+          <i class="fa fa-plus"></i>
+        </button>
+        <div class="btn-group btn-group-sm" ngbDropdown (click)="$event.stopPropagation()">
+          <button class="btn btn-primary"
+                  title="Update Submodules"
+                  (click)="updateSubmodules(false)">
+            <i class="fa fa-tasks"></i>
+          </button>
+          <button class="btn btn-primary dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
+          </button>
+          <div ngbDropdownMenu>
+            <button class="btn btn-sm btn-primary mx-1"
+                    title="Update Submodules Recursively"
+                    (click)="updateSubmodules(true)">
+              <i class="fa fa-sitemap"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body branch-container" *ngIf="getExpandState('submodules')">
+        <div *ngFor="let w of repo.submodules | filterObject : 'path' : submoduleFilter">
+          <span [title]="w.path">
+            <span class="badge badge-light badge-pill" *ngFor="let r of w.path.split('/');let i=index">
+              {{r}}
+              <i class="mx-1 fa fa-arrow-right" *ngIf="i<w.path.split('/').length-1"></i>
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
       <div class="card-header form-inline" (click)="toggleExpandState('stashes')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('stashes'),'fa-caret-down':getExpandState('stashes')}"></i>
-        Stashes
+        <i class="fa fa-box mr-1"></i> Stashes
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
                [(ngModel)]="stashFilter" (click)="$event.stopPropagation()">
-        <div class="btn-group mx-1 d-inline-block">
-          <button class="btn btn-sm btn-secondary"
-                  title="Stash Unstaged Changes"
-                  (click)="stash(true);$event.stopPropagation()"><i class="fa fa-box"></i></button>
-          <button class="btn btn-sm btn-secondary"
+        <div class="btn-group btn-group-sm mx-1" ngbDropdown (click)="$event.stopPropagation()">
+          <button class="btn btn-secondary"
                   title="Stash All Changes"
                   (click)="stash(false);$event.stopPropagation()"><i class="fa fa-boxes"></i></button>
+          <button class="btn btn-secondary dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
+          </button>
+          <div ngbDropdownMenu>
+            <button class="btn btn-sm btn-secondary mx-1"
+                    title="Stash Unstaged Changes"
+                    (click)="stash(true);$event.stopPropagation()"><i class="fa fa-box"></i></button>
+          </div>
         </div>
       </div>
       <div class="card-body branch-container" *ngIf="getExpandState('stashes')">
@@ -134,7 +178,7 @@
     <div class="card">
       <div class="card-header form-inline" (click)="toggleExpandState('command-history')">
         <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('command-history'),'fa-caret-down':getExpandState('command-history')}"></i>
-        Command History
+        <i class="fa fa-history mr-1"></i> Command History
         <input class="ml-2 form-control"
                placeholder="Filter..."
                [(ngModel)]="commandHistoryFilter" (click)="$event.stopPropagation()">
@@ -149,7 +193,7 @@
           <span class="command-title"><i class="fa {{c.isError?'fa-exclamation-triangle':'fa-check-circle'}}"></i> <i>{{c.name}}</i> ({{c.durationMs}}ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
           <pre class="p-2 bg-light command-output">Output Characters 0-1000:
-            {{(c.errorOutput||c.output).substring(0,3000)}}</pre>
+{{(c.errorOutput||c.output).substring(0,3000)}}</pre>
           <hr/>
         </div>
       </div>
@@ -281,4 +325,5 @@
                    (onClickCancel)="showCreateStash=false"></app-input-modal>
   <app-code-watcher-alerts (onCommitClicked)="commit()"></app-code-watcher-alerts>
   <app-add-worktree [branches]="repo.remoteBranches" (onAddWorktree)="getFileChanges()"></app-add-worktree>
+  <app-add-submodule (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
 </div>
