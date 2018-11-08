@@ -43,6 +43,8 @@ export namespace Channels {
   export const CLONE= "clone";
   export const CHECKGITBASHVERSIONS= "checkGitBashVersions";
   export const CREATEBRANCH = "createBranch";
+  export const UPDATESUBMODULES = "updateSubmodules";
+  export const ADDSUBMODULE= "addSubmodules";
   export const FETCH = "fetch";
   export const GETCOMMANDHISTORY = "getCommandHistory";
   export const COMMANDHISTORYCHANGED = "commandHistoryChanged";

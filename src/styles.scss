@@ -32,6 +32,13 @@ html, body {
   -moz-border-radius: $border-radius;
   border-radius: $border-radius;
 }
+.dropdown-menu {
+  box-shadow: $material-dialog-shadow;
+  border: none;
+  -webkit-border-radius: $border-radius;
+  -moz-border-radius: $border-radius;
+  border-radius: $border-radius;
+}
 
 .card-elevate-anim {
   transition: background-color .5s;

@@ -27,6 +27,7 @@ import {ErrorModel} from '../../../../shared/common/error.model';
 import {ErrorService} from '../common/services/error.service';
 import {CodeWatcherService} from '../../services/code-watcher.service';
 import {ModalService} from '../../services/modal.service';
+import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 
 @Component({
   selector: 'app-repo-view',
@@ -56,6 +57,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   stagedChangesFilter: string;
   unstagedChangesFilter: string;
   commandHistoryFilter: string;
+  submoduleFilter: string;
   showCreateBranch = false;
   showCreateStash = false;
   stashOnlyUnstaged = true;
@@ -65,11 +67,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   commandHistory: CommandHistoryModel[];
   maxCommandsVisible = 10;
   commandsPerPage = 10;
-  checkWatchers = -1;
   private interval;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
-  private firstNoRemoteErrorDisplayed: boolean = false;
+  private firstNoRemoteErrorDisplayed = false;
 
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
@@ -426,6 +427,28 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
+  updateSubmodules(recursive: boolean, branch?: string) {
+    this.setLoading(true);
+    this.gitService.updateSubmodules(branch, recursive)
+        .then(() => this.getBranchChanges())
+        .catch(err => this.handleErrorMessage(new ErrorModel(
+          this._errorClassLocation + 'updateSubmodules',
+          'updating the submodules',
+          err)));
+    this.clearSelectedChanges();
+  }
+
+  addSubmodule(url: string, path: string) {
+    this.setLoading(true);
+    this.gitService.addSubmodule(url, path)
+        .then(() => this.getBranchChanges())
+        .catch(err => this.handleErrorMessage(new ErrorModel(
+          this._errorClassLocation + 'addSubmodule',
+          'adding the submodule',
+          err)));
+    this.clearSelectedChanges();
+  }
+
   fetch(manualFetch: boolean = false) {
     this.setLoading(true);
     this.electronService.rpc(Channels.FETCH, [this.repo.path])
@@ -672,7 +695,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   handleErrorMessage(error: ErrorModel) {
     this.errorService.receiveError(error);
-    this.setLoading(false);
+    this.setLoading(false, true);
   }
 
   hunkChangeError($event: any) {
@@ -742,6 +765,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
+    this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
     Object.assign(this.repoCache, this.repo || {});
     this.getCommandHistory();
     this.applicationRef.tick();

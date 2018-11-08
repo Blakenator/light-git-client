@@ -328,6 +328,14 @@ try {
     handleGitPromise(gitClients[args[1]].stash(args[2], args[3] || ''), event, args);
   });
 
+  ipcMain.on(Channels.UPDATESUBMODULES, (event, args) => {
+    handleGitPromise(gitClients[args[1]].updateSubmodules(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.ADDSUBMODULE, (event, args) => {
+    handleGitPromise(gitClients[args[1]].addSubmodule(args[2], args[3]), event, args);
+  });
+
   ipcMain.on(Channels.FETCH, (event, args) => {
     handleGitPromise(gitClients[args[1]].fetch(), event, args);
   });

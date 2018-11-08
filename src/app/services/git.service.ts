@@ -64,6 +64,14 @@ export class GitService {
     return this.electronService.rpc(Channels.CHANGEHUNK, [this.repo.path, filename, hunk, changedText]);
   }
 
+  updateSubmodules(branch: string, recursive: boolean): Promise<any> {
+    return this.electronService.rpc(Channels.UPDATESUBMODULES, [this.repo.path, branch, recursive]);
+  }
+
+  addSubmodule(url: string, path: string): Promise<any> {
+    return this.electronService.rpc(Channels.ADDSUBMODULE, [this.repo.path, url, path]);
+  }
+
   getFileChanges(unstaged: string, staged: string): Promise<DiffHeaderModel[]> {
     return this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]);
   }

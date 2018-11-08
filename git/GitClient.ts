@@ -16,6 +16,7 @@ import {DiffHunkModel} from '../shared/git/diff.hunk.model';
 import {DiffLineModel, LineState} from '../shared/git/diff.line.model';
 import * as serializeError from 'serialize-error';
 import {spawn} from 'child_process';
+import {SubmoduleModel} from '../shared/git/submodule.model';
 
 const exec = require('child_process').exec;
 
@@ -260,7 +261,7 @@ export class GitClient {
         diffArray.forEach(x => result = result.concat(x));
         resolve(result);
       }).catch(err => {
-        let message:string = err.message || serializeError(err);
+        let message: string = err.message || serializeError(err);
         if (message.indexOf('stdout maxBuffer length exceeded') >= 0) {
           message = 'Files too large to diff. Please reduce the file size';
         }
@@ -347,6 +348,26 @@ export class GitClient {
         this.getGitPath() + ' push origin ' + (branch ? branch + ':' + branch : '') + (force ? ' --force' : ''),
         'Push')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
+          .catch(err => reject(serializeError(err)));
+    });
+  }
+
+  updateSubmodules(branch: string, recursive: boolean): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this.execute(
+        this.getGitPath() + ' submodule update --init' + (recursive ? ' --recursive' : '') + ' -- ' + (branch || '.'),
+        'Update Submodule')
+          .then(resolve)
+          .catch(err => reject(serializeError(err)));
+    });
+  }
+
+  addSubmodule(url: string, path: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this.execute(
+        this.getGitPath() + ' submodule add ' + url + (path ? ' ' + path : ''),
+        'Update Submodule')
+          .then(resolve)
           .catch(err => reject(serializeError(err)));
     });
   }
@@ -467,6 +488,19 @@ export class GitClient {
           match = worktreeList.exec(text);
         }
       }).catch(err => new ErrorModel('getWorktreeList', 'getting the list of worktrees', err)));
+      promises.push(this.execute(this.getGitPath() + ' submodule status --recursive', 'Get Submodules').then(text => {
+        let submoduleList = /^\s*(\S+)\s+(\S+)\s+\((\S+)\)\s*$/gmi;
+        let match = submoduleList.exec(text);
+        while (match) {
+          let submoduleModel = new SubmoduleModel();
+          submoduleModel.hash = match[1];
+          submoduleModel.path = match[2];
+          submoduleModel.currentBranch = match[3];
+
+          result.submodules.push(submoduleModel);
+          match = submoduleList.exec(text);
+        }
+      }).catch(err => new ErrorModel('getSubmoduleList', 'getting the list of submodules', err)));
       promises.push(this.execute(this.getBashedGit() + ' stash list', 'Get Stashes').then(text => {
         let stashList = /^stash@{(\d+)}:\s+(WIP on|On)\s+(.+):\s+(.*)$/gmi;
         let match = stashList.exec(text);
