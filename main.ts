@@ -293,7 +293,7 @@ try {
   });
 
   ipcMain.on(Channels.PULL, (event, args) => {
-    handleGitPromise(gitClients[args[1]].pull(), event, args);
+    handleGitPromise(gitClients[args[1]].pull(args[2]), event, args);
   });
 
   ipcMain.on(Channels.GETBRANCHES, (event, args) => {

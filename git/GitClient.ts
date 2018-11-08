@@ -390,9 +390,9 @@ export class GitClient {
     });
   }
 
-  pull(): Promise<CommitModel> {
+  pull(force: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' pull', 'Pull')
+      this.execute(this.getGitPath() + ' pull' + (force ? ' -f' : ''), 'Pull')
           .then(text => {
             this.getChanges().then(resolve).catch(err => reject(serializeError(err)));
           })

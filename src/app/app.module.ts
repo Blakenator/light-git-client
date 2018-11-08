@@ -30,17 +30,17 @@ import {NewTabPageComponent} from './components/new-tab-page/new-tab-page.compon
 import {FilterObjectPipe, FilterPipe} from './components/common/pipes/filter.pipe';
 import {BranchTreeItemComponent} from './components/branch-tree-item/branch-tree-item.component';
 import {FileInputComponent} from './components/common/components/file-input/file-input.component';
-import {GlobalErrorHandlerService} from "./components/common/services/global-error-handler.service";
-import {InfiniteScrollModule} from "ngx-infinite-scroll";
-import { InputModalComponent } from './components/common/components/input-modal/input-modal.component';
+import {GlobalErrorHandlerService} from './components/common/services/global-error-handler.service';
+import {InfiniteScrollModule} from 'ngx-infinite-scroll';
+import {InputModalComponent} from './components/common/components/input-modal/input-modal.component';
 import {HighlightModule} from 'ngx-highlightjs';
-import { GitConfigComponent } from './components/git-config/git-config.component';
-import { AutofocusDirective } from './components/common/directives/autofocus.directive';
-import { CodeWatcherAlertsComponent } from './components/code-watcher-alerts/code-watcher-alerts.component';
-import { AddWorktreeComponent } from './components/add-worktree/add-worktree.component';
-import { CloneComponent } from './components/clone/clone.component';
+import {GitConfigComponent} from './components/git-config/git-config.component';
+import {AutofocusDirective} from './components/common/directives/autofocus.directive';
+import {CodeWatcherAlertsComponent} from './components/code-watcher-alerts/code-watcher-alerts.component';
+import {AddWorktreeComponent} from './components/add-worktree/add-worktree.component';
+import {CloneComponent} from './components/clone/clone.component';
 import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
-import { AddSubmoduleComponent } from './components/add-submodule/add-submodule.component';
+import {AddSubmoduleComponent} from './components/add-submodule/add-submodule.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {

@@ -308,9 +308,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  pull() {
+  pull(force:boolean) {
     this.setLoading(true);
-    this.electronService.rpc(Channels.PULL, [this.repo.path])
+    this.electronService.rpc(Channels.PULL, [this.repo.path,force])
         .then(changes => {
           this.handleFileChanges(changes);
           this.getCommitHistory();
