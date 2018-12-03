@@ -46,8 +46,17 @@
   },
   "linux": {
     "icon": "dist",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Blakenator",
+        "repo": "light-git-client"
+      }
+    ],
     "target": [
-      "AppImage"
-    ]
+      "AppImage",
+      "snap"
+    ],
+    "publisherName": "Blake Stacks"
   }
 }
