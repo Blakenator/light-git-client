@@ -22,6 +22,9 @@ cache:
     - $HOME/.cache/electron-builder
     - $HOME/.npm/_prebuilds
 
+before_install:
+  - sudo apt-get install wine1.6
+
 script:
   - echo $SIGNING64 | base64 --decode > ~/codesign.pfx
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then npm run release; fi
