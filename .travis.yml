@@ -23,7 +23,9 @@ cache:
     - $HOME/.npm/_prebuilds
 
 before_install:
-  - sudo apt-get install wine1.6
+  - sudo add-apt-repository ppa:ubuntu-wine/ppa
+  - sudo apt-get update
+  - sudo apt-get install wine1.8
 
 script:
   - echo $SIGNING64 | base64 --decode > ~/codesign.pfx
