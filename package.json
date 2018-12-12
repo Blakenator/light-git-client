@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -82,10 +82,5 @@
     "paths": [
       "./shared"
     ]
-  },
-  "build": {
-    "nsis": {
-      "include": "installer.nsh"
-    }
   }
 }
