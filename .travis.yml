@@ -24,7 +24,8 @@ cache:
 
 script:
   - echo $SIGNING_URL
-  - wget -P ~/ -O codesign.pfx "$SIGNING_URL"
+  - env
+  - wget -P ~/ -O codesign.pfx $SIGNING_URL
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then npm run release; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then npm run release:mac; fi
 
