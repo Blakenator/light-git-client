@@ -34,7 +34,7 @@
       }
     ],
     "target": [
-      "nsisWeb",
+      "nsis",
       "portable",
       "7z",
       "zip"
