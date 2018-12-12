@@ -34,15 +34,12 @@
       }
     ],
     "target": [
-      {
-        "nsis-web": {
-          "include": "installer.nsh"
-        }
-      },
+      "nsisWeb",
       "portable",
       "7z",
       "zip"
     ],
+    "include": "installer.nsh",
     "publisherName": "Blake Stacks"
   },
   "mac": {
