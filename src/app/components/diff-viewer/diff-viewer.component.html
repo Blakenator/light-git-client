@@ -66,7 +66,7 @@
               </div>
             </div>
             <div class="code-line-block flex-grow-1">
-              <pre *ngIf="!isEditingHunk(hunk,header)"><code highlight [code]="getHunkCode(hunk)"></code></pre>
+              <pre *ngIf="!isEditingHunk(hunk,header)"><code [highlight]="getHunkCode(hunk)"></code></pre>
               <textarea oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                         onfocus='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                         class="form-control"

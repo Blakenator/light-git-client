@@ -80,7 +80,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     InfiniteScrollModule,
     AppRoutingModule,
     NgbModule,
-    HighlightModule.forRoot(),
+    HighlightModule.forRoot({}),
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,

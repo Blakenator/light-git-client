@@ -21,6 +21,9 @@
     "!tsconfig.json",
     "!tslint.json"
   ],
+  "extraFiles": [
+    "extra/**/*"
+  ],
   "win": {
     "icon": "dist",
     "publish": [
@@ -31,7 +34,11 @@
       }
     ],
     "target": [
-      "nsis",
+      {
+        "nsis-web": {
+          "include": "installer.nsh"
+        }
+      },
       "portable",
       "7z",
       "zip"
@@ -56,7 +63,6 @@
     "target": [
       "AppImage",
       "snap"
-    ],
-    "publisherName": "Blake Stacks"
+    ]
   }
 }
