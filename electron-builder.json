@@ -39,7 +39,6 @@
       "7z",
       "zip"
     ],
-    "include": "installer.nsh",
     "publisherName": "Blake Stacks"
   },
   "mac": {

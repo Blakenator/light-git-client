@@ -82,5 +82,10 @@
     "paths": [
       "./shared"
     ]
+  },
+  "build": {
+    "nsis": {
+      "include": "installer.nsh"
+    }
   }
 }
