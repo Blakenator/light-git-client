@@ -23,7 +23,7 @@ cache:
     - $HOME/.npm/_prebuilds
 
 script:
-  - wget -O codesign.pfx "$signing_url" -P ~/
+  - wget -O codesign.pfx "$SIGNING_URL" -P ~/
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then npm run release; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then npm run release:mac; fi
 
