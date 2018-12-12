@@ -68,6 +68,7 @@ before_script:
   - git lfs pull
 
 script:
+  - echo $SIGNING64 | base64 --decode > ~/codesign.pfx
   - |
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       docker run --rm \
