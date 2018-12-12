@@ -23,9 +23,10 @@ cache:
     - $HOME/.npm/_prebuilds
 
 before_install:
-  - sudo add-apt-repository ppa:ubuntu-wine/ppa
-  - sudo apt-get update
-  - sudo apt-get install wine1.8
+  - wget -nc https://dl.winehq.org/wine-builds/Release.key
+  - sudo apt-key add Release.key
+  - sudo apt-add-repository https://dl.winehq.org/wine-builds/ubuntu/
+  - sudo apt-get install --install-recommends winehq-stable
 
 script:
   - echo $SIGNING64 | base64 --decode > ~/codesign.pfx
