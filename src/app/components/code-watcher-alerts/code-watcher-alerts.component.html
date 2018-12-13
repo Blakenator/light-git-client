@@ -20,7 +20,7 @@
               <tbody>
               <tr *ngFor="let h of f.hunks">
                 <td width="1%">
-                  <pre class="code-block"><code highlight [code]="getHunkCode(h.hunk)"></code></pre>
+                  <pre class="code-block"><code [highlight]="getHunkCode(h.hunk)"></code></pre>
                 </td>
                 <td><p *ngFor="let w of h.watchers">{{w.name}} (line {{getLineFromMatch(h.hunk,w)}})</p></td>
               </tr>
