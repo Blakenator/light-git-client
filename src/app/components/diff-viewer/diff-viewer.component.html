@@ -12,13 +12,13 @@
       <div>{{diffCommitInfo.message}}</div>
     </div>
     <div class="form-inline">
-      <label>Match on:
-        <select class="form-control" [(ngModel)]="matchingSelection">
-          <option value="words">Words</option>
-          <option value="lines">Lines</option>
-          <option value="none">None</option>
-        </select>
-      </label>
+      <!--<label>Match on:-->
+      <!--<select class="form-control" [(ngModel)]="matchingSelection">-->
+      <!--<option value="words">Words</option>-->
+      <!--<option value="lines">Lines</option>-->
+      <!--<option value="none">None</option>-->
+      <!--</select>-->
+      <!--</label>-->
 
       <div class="pretty p-switch p-fill mx-2" (click)="saveSettings()">
         <input type="checkbox" [(ngModel)]="settingsService.settings.diffIgnoreWhitespace"/>
@@ -66,7 +66,7 @@
               </div>
             </div>
             <div class="code-line-block flex-grow-1">
-              <pre *ngIf="!isEditingHunk(hunk,header)"><code [highlight]="getHunkCode(hunk)"></code></pre>
+              <pre *ngIf="!isEditingHunk(hunk,header)"><code highlight [code]="getHunkCode(hunk)"></code></pre>
               <textarea oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                         onfocus='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                         class="form-control"
