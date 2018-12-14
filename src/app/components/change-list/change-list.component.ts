@@ -19,7 +19,7 @@ export class ChangeListComponent implements OnInit {
   constructor() {
   }
 
-  private _changes: LightChange[];
+  _changes: LightChange[];
 
   @Input() set changes(val: LightChange[]) {
     this._changes = val;
