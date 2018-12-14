@@ -26,7 +26,7 @@
     "electron:local": "npm run build:prod && electron .",
     "electron:linux": "npm run build:prod && npx electron-builder build --linux",
     "electron:windows": "npm run build:prod && npx electron-builder build --windows",
-    "electron:ci": "npm run build:prod && npx electron-builder build --windows -linux",
+    "electron:ci": "npm run build:prod && npx electron-builder build --windows --linux",
     "electron:mac": "npm run build:prod && npx electron-builder build --mac",
     "release": "npm run build:prod && npx electron-builder build --windows --linux -p always",
     "release:mac": "npm run build:prod && npx electron-builder build --mac -p always"
