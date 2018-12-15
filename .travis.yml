@@ -29,6 +29,7 @@ before_script:
 
 script:
   - echo $SIGNING64 | base64 --decode > ~/codesign.pfx
+  - echo $TRAVIS_BRANCH_NAME
   - |
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       if [ "$TRAVIS_BRANCH_NAME" == "master" ]; then
@@ -60,5 +61,5 @@ before_cache:
 
 branches:
   only:
-    - dev
+    - staging
     - master
