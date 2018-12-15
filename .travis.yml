@@ -69,5 +69,5 @@ before_cache:
 
 branches:
   only:
-    - dev
+    - staging
     - master
