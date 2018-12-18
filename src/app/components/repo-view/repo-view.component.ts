@@ -308,9 +308,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  pull(force:boolean) {
+  pull(force: boolean) {
     this.setLoading(true);
-    this.electronService.rpc(Channels.PULL, [this.repo.path,force])
+    this.electronService.rpc(Channels.PULL, [this.repo.path, force])
         .then(changes => {
           this.handleFileChanges(changes);
           this.getCommitHistory();
@@ -577,6 +577,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         .then(changes => {
           this.handleBranchChanges(changes);
           this.getCommitHistory();
+          this.showCreateBranch = false;
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'createBranch',

@@ -4,10 +4,9 @@ import {ChangeType, LightChange} from '../../../../shared/git/Commit.model';
 @Component({
   selector: 'app-change-list',
   templateUrl: './change-list.component.html',
-  styleUrls: ['./change-list.component.scss']
+  styleUrls: ['./change-list.component.scss'],
 })
 export class ChangeListComponent implements OnInit {
-  @Input() changes: LightChange[];
   @Input() changeFilter = '';
   selectedChanges: { [key: string]: boolean } = {};
   @Output() onSelectChanged = new EventEmitter<{ [key: string]: boolean }>();
@@ -18,6 +17,13 @@ export class ChangeListComponent implements OnInit {
   lastClicked: string;
 
   constructor() {
+  }
+
+  _changes: LightChange[];
+
+  @Input() set changes(val: LightChange[]) {
+    this._changes = val;
+    this.updateSelection();
   }
 
   getChangeType(c: LightChange) {
@@ -60,7 +66,7 @@ export class ChangeListComponent implements OnInit {
   }
 
   toggleSelectAll() {
-    for (let change of this.changes) {
+    for (let change of this._changes) {
       this.selectedChanges[change.file] = this.selectAll;
     }
     this.onSelectChanged.emit(this.selectedChanges);
@@ -88,15 +94,22 @@ export class ChangeListComponent implements OnInit {
   toggleSelect(file: string, $event: MouseEvent) {
     this.selectedChanges[file] = !this.selectedChanges[file];
     if ($event.shiftKey) {
-      const lastClickedIndex = this.changes.findIndex(c => c.file == this.lastClicked);
-      const thisClickedIndex = this.changes.findIndex(c => c.file == file);
-      for (let c of this.changes.slice(Math.min(thisClickedIndex, lastClickedIndex),
+      const lastClickedIndex = this._changes.findIndex(c => c.file == this.lastClicked);
+      const thisClickedIndex = this._changes.findIndex(c => c.file == file);
+      for (let c of this._changes.slice(
+        Math.min(thisClickedIndex, lastClickedIndex),
         Math.max(thisClickedIndex, lastClickedIndex))) {
         this.selectedChanges[c.file] = true;
       }
     }
     this.lastClicked = file;
-    this.selectAll = this.changes.every(x => this.selectedChanges[x.file]);
+    this.selectAll = this._changes.every(x => this.selectedChanges[x.file]);
     this.onSelectChanged.emit(this.selectedChanges);
+  }
+
+  private updateSelection() {
+    let changes: { [key: string]: boolean } = {};
+    this._changes.forEach(x => changes[x.file] = this.selectedChanges[x.file]);
+    this.selectedChanges = changes;
   }
 }

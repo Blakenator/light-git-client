@@ -87,16 +87,16 @@ export function HttpLoaderFactory(http: HttpClient) {
       loader: {
         provide: TranslateLoader,
         useFactory: (HttpLoaderFactory),
-        deps: [HttpClient]
-      }
+        deps: [HttpClient],
+      },
     }),
   ],
   providers: [ElectronService, SettingsService,
     {
       provide: ErrorHandler,
-      useClass: GlobalErrorHandlerService
+      useClass: GlobalErrorHandlerService,
     }],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
 export class AppModule {
 }

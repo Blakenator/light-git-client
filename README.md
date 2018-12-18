@@ -1,6 +1,13 @@
 # Light Git Client
 A light, elegant git client
 
+## Installation
+[Download from Github](https://github.com/Blakenator/light-git-client/releases/latest)
+
+Options:
+* Portable (\*.7zip, \*.zip) - no auto-updates, run the .exe
+* Installer (\*-setup-#-#-#.exe) - auto updates, run the .exe to install, then run from start menu
+
 ## Background
 This is a WIP project to address the following failings of other git clients:
 * Aesthetic appeal

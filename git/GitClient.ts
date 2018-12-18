@@ -662,24 +662,27 @@ export class GitClient {
   private execute(command: string, name: string): Promise<string> {
     let start = new Date();
     return Promise.race([new Promise<string>((resolve, reject) => {
-      exec(command, {cwd: this.workingDir, maxBuffer: 1024 * 1024}, (error, stdout, stderr) => {
-        const commandHistoryModel = new CommandHistoryModel(name,
-          command,
-          stderr,
-          stdout,
-          start, new Date().getTime() - start.getTime(),
-          !!error);
-        this.commandHistory.push(commandHistoryModel);
-        this.commandHistoryListener(this.commandHistory);
-        if (!error || (stderr && stderr.split(/\r?\n/)
-                                       .every(x => x.trim().length == 0 || x.trim().startsWith('warning:')))) {
-          resolve(stdout);
-        } else {
-          console.error(JSON.stringify(commandHistoryModel));
-          logger.error(JSON.stringify(commandHistoryModel));
-          reject(error || stderr);
-        }
-      });
+      exec(
+        command + ((command.match(/'/g) || []).length % 2 == 0 ? '' : '\''),
+        {cwd: this.workingDir, maxBuffer: 1024 * 1024},
+        (error, stdout, stderr) => {
+          const commandHistoryModel = new CommandHistoryModel(name,
+            command,
+            stderr,
+            stdout,
+            start, new Date().getTime() - start.getTime(),
+            !!error);
+          this.commandHistory.push(commandHistoryModel);
+          this.commandHistoryListener(this.commandHistory);
+          if (!error || (stderr && stderr.split(/\r?\n/)
+                                         .every(x => x.trim().length == 0 || x.trim().startsWith('warning:')))) {
+            resolve(stdout);
+          } else {
+            console.error(JSON.stringify(commandHistoryModel));
+            logger.error(JSON.stringify(commandHistoryModel));
+            reject(error || stderr);
+          }
+        });
     }), new Promise<string>((resolve, reject) => {
       setTimeout(() => {
         reject('command timed out (>' + GitClient.settings.commandTimeoutSeconds + 's): ' + command +
