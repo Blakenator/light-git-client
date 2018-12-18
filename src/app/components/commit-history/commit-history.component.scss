@@ -3,6 +3,7 @@
   white-space: nowrap;
   transition: max-width .5s ease-in-out, padding-right .5s;
   overflow: hidden;
+
   &:hover {
     max-width: 15em;
     transition-delay: .5s;
@@ -13,6 +14,7 @@
   max-height: 2.5em;
   transition: max-height .5s ease-in-out;
   overflow: hidden;
+
   &:hover {
     max-height: 10em;
     overflow-y: auto;
@@ -40,4 +42,15 @@ td .btn {
 
 .commit-message-cell {
   word-break: break-all;
+}
+
+.graph-spacer {
+  margin: 0 12.5px;
+  border-right: 2px solid;
+  top: 25px;
+  height: calc(100% - 25px);
+}
+
+.commit-row {
+  overflow-y: hidden;
 }

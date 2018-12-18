@@ -4,7 +4,7 @@ import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
 @Component({
   selector: 'app-commit-history',
   templateUrl: './commit-history.component.html',
-  styleUrls: ['./commit-history.component.scss']
+  styleUrls: ['./commit-history.component.scss'],
 })
 export class CommitHistoryComponent implements OnInit {
   @Input() commitHistory: CommitSummaryModel[];
@@ -12,6 +12,8 @@ export class CommitHistoryComponent implements OnInit {
   @Output() onScrollDown = new EventEmitter<any>();
   scrollOffset = 0;
   numPerPage = 50;
+
+  getColor = CommitSummaryModel.getCommitBranchColor;
 
   constructor() {
   }
@@ -30,10 +32,17 @@ export class CommitHistoryComponent implements OnInit {
     if (!down) {
       this.scrollOffset -= this.numPerPage / 4;
     }
-    this.scrollOffset = Math.round(Math.max(0,
+    this.scrollOffset = Math.round(Math.max(
+      0,
       Math.min(this.scrollOffset, this.commitHistory.length - this.numPerPage)));
     if (this.scrollOffset >= this.commitHistory.length - this.numPerPage) {
       this.onScrollDown.emit();
     }
+  }
+
+  getSpacerList(c: CommitSummaryModel) {
+    let res = [];
+    c.graphBlockTargets.forEach(x => res[x.source] = x);
+    return res;
   }
 }

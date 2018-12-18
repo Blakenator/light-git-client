@@ -2,7 +2,7 @@ import {RepositoryModel} from '../shared/git/Repository.model';
 import {BranchModel} from '../shared/git/Branch.model';
 import {ChangeType, CommitModel, LightChange} from '../shared/git/Commit.model';
 import * as path from 'path';
-import {CommitSummaryModel} from '../shared/git/CommitSummary.model';
+import {CommitGraphNode, CommitSummaryModel} from '../shared/git/CommitSummary.model';
 import {CommandHistoryModel} from '../shared/git/command-history.model';
 import {SettingsModel} from '../shared/SettingsModel';
 import {WorktreeModel} from '../shared/git/worktree.model';
@@ -24,8 +24,6 @@ export class GitClient {
   static logger: Console;
   static settings: SettingsModel;
   private commandHistory: CommandHistoryModel[] = [];
-  private commandHistoryListener: (history: CommandHistoryModel[]) => any = () => {
-  };
 
   constructor(private workingDir: string) {
   }
@@ -409,7 +407,7 @@ export class GitClient {
         'Get Commit History')
           .then(text => {
             // this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n --all --full-history", "Get Commit History").then(text => {
-            let result = [];
+            let result: CommitSummaryModel[] = [];
             let branchList = /\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)?\|([^|]*)/g;
             let match = branchList.exec(text);
             while (match) {
@@ -425,7 +423,60 @@ export class GitClient {
               result.push(commitSummary);
               match = branchList.exec(text);
             }
-            resolve(result);
+            this.execute(
+              this.getGitPath() + ' log -n' + (count || 50) + ' --skip=' + (skip || 0) + ' --pretty=format:"%H %P"\n',
+              'Get Commit Graph')
+                .then(text => {
+                  let lines = text.split(/\r?\n/g);
+                  let oldSurface: string[] = [];
+                  let surface: string[] = [];
+                  let graph: CommitGraphNode[] = [];
+                  let nodeMap: { [hash: string]: CommitGraphNode } = {};
+
+                  for (let i = 0; i < lines.length; i++) {
+                    let hashes = lines[i].split(/\s/);
+                    if (!nodeMap[hashes[0]]) {
+                      let node = new CommitGraphNode();
+                      node.hash = hashes[0];
+                      nodeMap[hashes[0]] = node;
+                    }
+                    for (let p of hashes.slice(1)) {
+                      if (!nodeMap[p]) {
+                        let parent = new CommitGraphNode();
+                        parent.hash = p;
+                        nodeMap[p] = parent;
+                      }
+                      nodeMap[hashes[0]].parents.push(nodeMap[p]);
+                      nodeMap[p].children.push(nodeMap[hashes[0]]);
+                    }
+                    graph[i] = nodeMap[hashes[0]];
+
+                    // let existingIndex = surface.indexOf(hashes[0]);
+                    // if (existingIndex >= 0) {
+                    //   surface[existingIndex] = hashes[1];
+                    // } else {
+                    //   surface.push(hashes[1]);
+                    // }
+                    // if (hashes.length > 2) {
+                    //   surface.push(...hashes.slice(2));
+                    // }
+                    //
+                    // for(let j=0;j<oldSurface.length;j++){
+                    //   if(hashes[0]==oldSurface[j]){
+                    //     result[i].graphBlockTargets[j]={source:j,target:j}
+                    //   }
+                    // }
+                    //
+                    // oldSurface = surface.map(x => x);
+                  }
+                  for (let i = 0; i < graph.length; i++) {
+                    if(graph[i].children.length==0){
+                      result[i].graphBlockTargets=[{}]
+                    }
+                  }
+
+                  resolve(result);
+                });
           });
     }));
   }
@@ -538,6 +589,9 @@ export class GitClient {
       });
     }));
   }
+
+  private commandHistoryListener: (history: CommandHistoryModel[]) => any = () => {
+  };
 
   private parseDiffString(text: string, state: DiffHeaderStagedState): DiffHeaderModel[] {
     let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)(\r?\n(?!@@).*)+?((\r?\n(?!diff).*)*)/gm;
