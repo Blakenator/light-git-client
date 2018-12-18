@@ -6,7 +6,7 @@
   <table class="table table-striped">
     <thead>
     <tr>
-      <th>Message</th>
+      <th>MessageMessageMessageMessage</th>
       <th>Author</th>
       <th class="d-none d-sm-table-cell">Email</th>
       <th>Date</th>
@@ -22,7 +22,7 @@
              [style.left]="i*25+'px'"
              [style.borderRightColor]="getColor(block.branchIndex)"
              *ngFor="let block of getSpacerList(c); let i= index">
-          <i class="fa fa-asterisk" style="position: absolute; left: -.7em; top:-.9em;" *ngIf="block.isCommit"></i>
+          <i class="fa fa-circle" style="position: absolute; left: -.7em; top:-.9em;" *ngIf="block.isCommit"></i>
         </div>
       </td>
       <td class="commit-message-cell">
