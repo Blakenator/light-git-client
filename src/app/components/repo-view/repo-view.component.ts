@@ -259,12 +259,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.setLoading(true);
     this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip])
         .then(commits => {
+          console.log(commits[1]);
           if (!skip || skip == 0) {
-            this.commitHistory = commits.map(x => Object.assign(new CommitSummaryModel(), x));
+            this.commitHistory = commits;
+            // this.commitHistory = commits.map(x => Object.assign(new CommitSummaryModel(), x));
           } else {
-            this.commitHistory = this.commitHistory.concat(commits.map(x => Object.assign(
-              new CommitSummaryModel(),
-              x)));
+            // this.commitHistory = this.commitHistory.concat(commits.map(x => Object.assign(
+            //   new CommitSummaryModel(),
+            //   x)));
+            this.commitHistory=commits;
           }
           this.applicationRef.tick();
         })

@@ -403,7 +403,7 @@ export class GitClient {
   getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
       this.execute(
-        this.getGitPath() + ' log -n' + (count || 50) + ' --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%B"\n',
+        this.getGitPath() + ' log -n' + (count || 50) + ' --full-history --all --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%B"\n',
         'Get Commit History')
           .then(text => {
             // this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n --all --full-history", "Get Commit History").then(text => {
@@ -424,12 +424,10 @@ export class GitClient {
               match = branchList.exec(text);
             }
             this.execute(
-              this.getGitPath() + ' log -n' + (count || 50) + ' --skip=' + (skip || 0) + ' --pretty=format:"%H %P"\n',
+              this.getGitPath() + ' log -n' + (count || 50) + ' --full-history --all --skip=' + (skip || 0) + ' --pretty=format:"%H %P"\n',
               'Get Commit Graph')
                 .then(text => {
                   let lines = text.split(/\r?\n/g);
-                  let oldSurface: string[] = [];
-                  let surface: string[] = [];
                   let graph: CommitGraphNode[] = [];
                   let nodeMap: { [hash: string]: CommitGraphNode } = {};
 
@@ -450,29 +448,53 @@ export class GitClient {
                       nodeMap[p].children.push(nodeMap[hashes[0]]);
                     }
                     graph[i] = nodeMap[hashes[0]];
-
-                    // let existingIndex = surface.indexOf(hashes[0]);
-                    // if (existingIndex >= 0) {
-                    //   surface[existingIndex] = hashes[1];
-                    // } else {
-                    //   surface.push(hashes[1]);
-                    // }
-                    // if (hashes.length > 2) {
-                    //   surface.push(...hashes.slice(2));
-                    // }
-                    //
-                    // for(let j=0;j<oldSurface.length;j++){
-                    //   if(hashes[0]==oldSurface[j]){
-                    //     result[i].graphBlockTargets[j]={source:j,target:j}
-                    //   }
-                    // }
-                    //
-                    // oldSurface = surface.map(x => x);
                   }
+
+
+                  let stack: { seeking: string, from: number }[] = [];
+                  let hist: { target: number, source: number, isCommit: boolean }[][] = [];
                   for (let i = 0; i < graph.length; i++) {
-                    if(graph[i].children.length==0){
-                      result[i].graphBlockTargets=[{}]
+                    hist[i] = [];
+                    let newIndex = 0;
+                    let encounteredSeeking: string[] = [];
+                    let added = false;
+                    let newStack: { seeking: string, from: number }[] = [];
+                    for (let j = 0; j < stack.length; j++) {
+                      if (stack[j].seeking != graph[i].hash) {
+                        hist[i].push({target: stack[j].from, source: newIndex, isCommit: false});
+                        encounteredSeeking.push(stack[j].seeking);
+                        newStack.push(Object.assign(stack[j], {from: newIndex}));
+                        newIndex++;
+                      } else if (encounteredSeeking.indexOf(graph[i].hash) >= 0) {
+                        hist[i].push({
+                          target: stack[j].from,
+                          source: encounteredSeeking.indexOf(graph[i].hash),
+                          isCommit: true,
+                        });
+                        added = true;
+                      } else if (encounteredSeeking.indexOf(graph[i].hash) < 0) {
+                        hist[i].push({target: stack[j].from, source: newIndex, isCommit: true});
+                        encounteredSeeking.push(stack[j].seeking);
+                        added = true;
+                        for (let p of graph[i].parents) {
+                          newStack.push({seeking: p.hash, from: newIndex});
+                        }
+                        newIndex++;
+                      }
                     }
+                    if (!added) {
+                      let fromIndex = hist[i].length;
+                      hist[i].push({target: -1, source: fromIndex, isCommit: true});
+                      for (let p of graph[i].parents) {
+                        newStack.push({seeking: p.hash, from: fromIndex});
+                      }
+                    }
+                    stack = newStack;
+                  }
+                  for (let i = 0; i < result.length; i++) {
+                    result[i].graphBlockTargets = hist[i].map(x => {
+                      return {source: x.source, target: x.target, isCommit: x.isCommit, branchIndex: 1};
+                    });
                   }
 
                   resolve(result);

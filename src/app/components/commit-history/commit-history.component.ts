@@ -42,7 +42,11 @@ export class CommitHistoryComponent implements OnInit {
 
   getSpacerList(c: CommitSummaryModel) {
     let res = [];
-    c.graphBlockTargets.forEach(x => res[x.source] = x);
+    c.graphBlockTargets.forEach(x => {
+      let isCommit = x.isCommit || (res[x.source]&&res[x.source].isCommit);
+      res[x.source] = x;
+      res[x.source].isCommit = isCommit;
+    });
     return res;
   }
 }

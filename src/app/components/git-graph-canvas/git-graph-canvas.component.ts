@@ -23,15 +23,17 @@ export class GitGraphCanvasComponent implements OnInit {
     let ctx: CanvasRenderingContext2D = this.canvas.nativeElement.getContext('2d');
     for (let i = 0; i < this.commit.graphBlockTargets.length; i++) {
       let block = this.commit.graphBlockTargets[i];
-      ctx.lineWidth = 2;
+      if (block.target >= 0) {
+        ctx.lineWidth = 2;
 
-      ctx.beginPath();
-      ctx.moveTo(block.source * 25 + 12.5, 25);
-      ctx.lineTo(block.target * 25 + 12.5, 0);
+        ctx.beginPath();
+        ctx.moveTo(block.source * 25 + 14, 25);
+        ctx.lineTo(block.target * 25 + 14, 0);
 
-      ctx.strokeStyle = CommitSummaryModel.getCommitBranchColor(block.branchIndex);
+        ctx.strokeStyle = CommitSummaryModel.getCommitBranchColor(block.branchIndex);
 
-      ctx.stroke();
+        ctx.stroke();
+      }
     }
   }
 }

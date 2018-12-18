@@ -5,7 +5,7 @@ export class CommitSummaryModel {
   public authorDate: Date;
   public message: string;
   public currentTags: string[];
-  public graphBlockTargets: { target: number, source: number, isCommit: boolean, branchIndex: number, first: boolean }[];
+  public graphBlockTargets: { target: number, source: number, isCommit: boolean, branchIndex: number}[];
 
   static getCommitBranchColor(index: number) {
     let rgb = CommitSummaryModel.HSVtoRGB((index * .43) % 1, .8, .8);
