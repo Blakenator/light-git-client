@@ -234,7 +234,7 @@ export class GitClient {
     let startCommand = 'start "Bash Command Window" ' + this.getBashPath() + ' --login';
     if (process.platform == 'darwin') {
       startCommand = 'open -a Terminal ' + this.workingDir;
-    } else {
+    } else if (process.platform != 'win32') {
       startCommand = 'x-terminal-emulator --working-directory=' + this.workingDir;
     }
 
