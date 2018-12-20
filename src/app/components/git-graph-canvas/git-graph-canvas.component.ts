@@ -27,8 +27,8 @@ export class GitGraphCanvasComponent implements OnInit {
         ctx.lineWidth = 2;
 
         ctx.beginPath();
-        ctx.moveTo(block.source * 25 + 14, 25);
-        ctx.lineTo(block.target * 25 + 14, 0);
+        ctx.moveTo(block.source * 14 + 8, 25);
+        ctx.bezierCurveTo(block.source * 14 + 8,12.5,block.target * 14 + 8,12.5,block.target * 14 + 8, 0);
 
         ctx.strokeStyle = CommitSummaryModel.getCommitBranchColor(block.branchIndex);
 

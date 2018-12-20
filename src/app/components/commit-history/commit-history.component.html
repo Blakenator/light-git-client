@@ -6,7 +6,8 @@
   <table class="table table-striped">
     <thead>
     <tr>
-      <th>MessageMessageMessageMessage</th>
+      <th></th>
+      <th>Message</th>
       <th>Author</th>
       <th class="d-none d-sm-table-cell">Email</th>
       <th>Date</th>
@@ -18,11 +19,13 @@
     <tr *ngFor="let c of commitHistory | slice : 0 : scrollOffset+numPerPage" class="commit-row">
       <td class="position-relative p-0">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
-        <div class="position-absolute graph-spacer"
-             [style.left]="i*25+'px'"
-             [style.borderRightColor]="getColor(block.branchIndex)"
-             *ngFor="let block of getSpacerList(c); let i= index">
-          <i class="fa fa-circle" style="position: absolute; left: -.7em; top:-.9em;" *ngIf="block.isCommit"></i>
+        <div [style.width]="getSpacerList(c).length*14+'px'">
+          <div class="position-absolute graph-spacer"
+               [style.left]="i*14+'px'"
+               [style.borderRightColor]="getColor(block.branchIndex)"
+               *ngFor="let block of getSpacerList(c); let i= index">
+            <i class="fa fa-circle commit-indicator" *ngIf="block.isCommit"></i>
+          </div>
         </div>
       </td>
       <td class="commit-message-cell">

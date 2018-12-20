@@ -8,7 +8,7 @@ export class CommitSummaryModel {
   public graphBlockTargets: { target: number, source: number, isCommit: boolean, branchIndex: number}[];
 
   static getCommitBranchColor(index: number) {
-    let rgb = CommitSummaryModel.HSVtoRGB((index * .43) % 1, .8, .8);
+    let rgb = CommitSummaryModel.HSVtoRGB((index * .27) % 1, .8, .8);
     let r = (rgb.r.toString(16).length == 1 ? '0' : '') + rgb.r.toString(16);
     let g = (rgb.g.toString(16).length == 1 ? '0' : '') + rgb.g.toString(16);
     let b = (rgb.b.toString(16).length == 1 ? '0' : '') + rgb.b.toString(16);

@@ -2,7 +2,7 @@ import {RepositoryModel} from '../shared/git/Repository.model';
 import {BranchModel} from '../shared/git/Branch.model';
 import {ChangeType, CommitModel, LightChange} from '../shared/git/Commit.model';
 import * as path from 'path';
-import {CommitGraphNode, CommitSummaryModel} from '../shared/git/CommitSummary.model';
+import {CommitSummaryModel} from '../shared/git/CommitSummary.model';
 import {CommandHistoryModel} from '../shared/git/command-history.model';
 import {SettingsModel} from '../shared/SettingsModel';
 import {WorktreeModel} from '../shared/git/worktree.model';
@@ -60,12 +60,11 @@ export class GitClient {
   getConfigItems(): Promise<ConfigItemModel[]> {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
       this.execute(this.getGitPath() + ' config --list --show-origin', 'Get Config Items').then(text => {
-        // console.log(text);
+
         let configItem = /^(.*?)\t(.*)=(.*)$/gm;
         let match = configItem.exec(text);
         let result: ConfigItemModel[] = [];
         while (match) {
-          // console.log(match);
           result.push(new ConfigItemModel(match[2], match[3], match[1]));
           match = configItem.exec(text);
         }
@@ -232,8 +231,14 @@ export class GitClient {
   }
 
   openTerminal() {
-    const command = 'start "Bash Command Window" ' + this.getBashPath() + ' --login';
-    this.execute(command, 'Open Terminal').then(console.log).catch(error => {
+    let startCommand = 'start "Bash Command Window" ' + this.getBashPath() + ' --login';
+    if (process.platform == 'darwin') {
+      startCommand = 'open -a Terminal ' + this.workingDir;
+    } else {
+      startCommand = 'x-terminal-emulator --working-directory=' + this.workingDir;
+    }
+
+    this.execute(startCommand, 'Open Terminal').then(console.log).catch(error => {
       console.error(JSON.stringify(serializeError(error)));
       logger.error(JSON.stringify(serializeError(error)));
     });
@@ -403,13 +408,17 @@ export class GitClient {
   getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
       this.execute(
-        this.getGitPath() + ' log -n' + (count || 50) + ' --full-history --all --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%B"\n',
+        this.getGitPath() + ' rev-list -n' + (count || 50) + ' --remotes --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%P|%B"\n',
         'Get Commit History')
           .then(text => {
             // this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n --all --full-history", "Get Commit History").then(text => {
             let result: CommitSummaryModel[] = [];
-            let branchList = /\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)?\|([^|]*)/g;
+            let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*(?!commit\s+\S+\s*\r?\n\s*\|\|\|\|))/g;
             let match = branchList.exec(text);
+
+            let currentBranch = 0;
+            let stack: { seeking: string, from: number, branchIndex: number }[] = [];
+
             while (match) {
               let commitSummary = new CommitSummaryModel();
               commitSummary.hash = match[1];
@@ -419,86 +428,77 @@ export class GitClient {
               if (match[5]) {
                 commitSummary.currentTags = match[5].split(',').map(x => x.trim());
               }
-              commitSummary.message = match[6];
+              commitSummary.message = match[7];
+
+              // git graph
+              commitSummary.graphBlockTargets = [];
+              let parentHashes = match[6].split(/\s/);
+              let currentHash = commitSummary.hash;
+
+              let newIndex = 0;
+              let encounteredSeeking: string[] = [];
+              let added = false;
+              let newStack: { seeking: string, from: number, branchIndex: number }[] = [];
+              for (let j = 0; j < stack.length; j++) {
+                if (stack[j].seeking != currentHash) {
+                  commitSummary.graphBlockTargets.push({
+                    target: stack[j].from,
+                    source: newIndex,
+                    isCommit: false,
+                    branchIndex: stack[j].branchIndex,
+                  });
+                  encounteredSeeking.push(stack[j].seeking);
+                  newStack.push(Object.assign(stack[j], {from: newIndex}));
+                  newIndex++;
+                } else if (encounteredSeeking.indexOf(currentHash) >= 0) {
+                  commitSummary.graphBlockTargets.push({
+                    target: stack[j].from,
+                    source: encounteredSeeking.indexOf(currentHash),
+                    isCommit: true,
+                    branchIndex: stack[j].branchIndex,
+                  });
+                  added = true;
+                } else if (encounteredSeeking.indexOf(currentHash) < 0) {
+                  commitSummary.graphBlockTargets.push({
+                    target: stack[j].from,
+                    source: newIndex,
+                    isCommit: true,
+                    branchIndex: stack[j].branchIndex,
+                  });
+                  encounteredSeeking.push(stack[j].seeking);
+                  added = true;
+                  let useCurrentBranch = true;
+                  for (let p of parentHashes) {
+                    if (useCurrentBranch) {
+                      newStack.push({seeking: p, from: newIndex, branchIndex: stack[j].branchIndex});
+                      useCurrentBranch = false;
+                    } else {
+                      newStack.push({seeking: p, from: newIndex, branchIndex: currentBranch++});
+                    }
+                  }
+                  newIndex++;
+                }
+              }
+              if (!added) {
+                let fromIndex = commitSummary.graphBlockTargets.length;
+                commitSummary.graphBlockTargets.push({
+                  target: -1,
+                  source: fromIndex,
+                  isCommit: true,
+                  branchIndex: currentBranch,
+                });
+                for (let p of parentHashes) {
+                  newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
+                }
+              }
+              stack = newStack;
+              // end git graph
+
               result.push(commitSummary);
               match = branchList.exec(text);
             }
-            this.execute(
-              this.getGitPath() + ' log -n' + (count || 50) + ' --full-history --all --skip=' + (skip || 0) + ' --pretty=format:"%H %P"\n',
-              'Get Commit Graph')
-                .then(text => {
-                  let lines = text.split(/\r?\n/g);
-                  let graph: CommitGraphNode[] = [];
-                  let nodeMap: { [hash: string]: CommitGraphNode } = {};
 
-                  for (let i = 0; i < lines.length; i++) {
-                    let hashes = lines[i].split(/\s/);
-                    if (!nodeMap[hashes[0]]) {
-                      let node = new CommitGraphNode();
-                      node.hash = hashes[0];
-                      nodeMap[hashes[0]] = node;
-                    }
-                    for (let p of hashes.slice(1)) {
-                      if (!nodeMap[p]) {
-                        let parent = new CommitGraphNode();
-                        parent.hash = p;
-                        nodeMap[p] = parent;
-                      }
-                      nodeMap[hashes[0]].parents.push(nodeMap[p]);
-                      nodeMap[p].children.push(nodeMap[hashes[0]]);
-                    }
-                    graph[i] = nodeMap[hashes[0]];
-                  }
-
-
-                  let stack: { seeking: string, from: number }[] = [];
-                  let hist: { target: number, source: number, isCommit: boolean }[][] = [];
-                  for (let i = 0; i < graph.length; i++) {
-                    hist[i] = [];
-                    let newIndex = 0;
-                    let encounteredSeeking: string[] = [];
-                    let added = false;
-                    let newStack: { seeking: string, from: number }[] = [];
-                    for (let j = 0; j < stack.length; j++) {
-                      if (stack[j].seeking != graph[i].hash) {
-                        hist[i].push({target: stack[j].from, source: newIndex, isCommit: false});
-                        encounteredSeeking.push(stack[j].seeking);
-                        newStack.push(Object.assign(stack[j], {from: newIndex}));
-                        newIndex++;
-                      } else if (encounteredSeeking.indexOf(graph[i].hash) >= 0) {
-                        hist[i].push({
-                          target: stack[j].from,
-                          source: encounteredSeeking.indexOf(graph[i].hash),
-                          isCommit: true,
-                        });
-                        added = true;
-                      } else if (encounteredSeeking.indexOf(graph[i].hash) < 0) {
-                        hist[i].push({target: stack[j].from, source: newIndex, isCommit: true});
-                        encounteredSeeking.push(stack[j].seeking);
-                        added = true;
-                        for (let p of graph[i].parents) {
-                          newStack.push({seeking: p.hash, from: newIndex});
-                        }
-                        newIndex++;
-                      }
-                    }
-                    if (!added) {
-                      let fromIndex = hist[i].length;
-                      hist[i].push({target: -1, source: fromIndex, isCommit: true});
-                      for (let p of graph[i].parents) {
-                        newStack.push({seeking: p.hash, from: fromIndex});
-                      }
-                    }
-                    stack = newStack;
-                  }
-                  for (let i = 0; i < result.length; i++) {
-                    result[i].graphBlockTargets = hist[i].map(x => {
-                      return {source: x.source, target: x.target, isCommit: x.isCommit, branchIndex: 1};
-                    });
-                  }
-
-                  resolve(result);
-                });
+            resolve(result);
           });
     }));
   }
@@ -636,9 +636,8 @@ export class GitClient {
         h.fromNumLines = +(hunkMatch[3] || hunkMatch[1]);
         h.toNumLines = +hunkMatch[6];
         let lineMatch = line.exec(hunkMatch[7]);
-        // console.log(hunkMatch[6]);
+
         while (lineMatch) {
-          // console.log(lineMatch);
           let l = new DiffLineModel();
           if (lineMatch[1] == ' ') {
             l.state = LineState.SAME;
@@ -656,7 +655,7 @@ export class GitClient {
             l.toLineNumber = startTo;
             l.text = lineMatch[2];
           }
-          // console.log('------', l);
+
           h.lines.push(l);
           lineMatch = line.exec(hunkMatch[7]);
         }
