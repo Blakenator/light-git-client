@@ -19,7 +19,7 @@ export class GitGraphCanvasComponent implements OnInit {
     }, 100);
   }
 
-  private drawConnectors() {
+  drawConnectors() {
     let ctx: CanvasRenderingContext2D = this.canvas.nativeElement.getContext('2d');
     for (let i = 0; i < this.commit.graphBlockTargets.length; i++) {
       let block = this.commit.graphBlockTargets[i];
