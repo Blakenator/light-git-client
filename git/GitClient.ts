@@ -24,8 +24,6 @@ export class GitClient {
   static logger: Console;
   static settings: SettingsModel;
   private commandHistory: CommandHistoryModel[] = [];
-  private commandHistoryListener: (history: CommandHistoryModel[]) => any = () => {
-  };
 
   constructor(private workingDir: string) {
   }
@@ -62,12 +60,11 @@ export class GitClient {
   getConfigItems(): Promise<ConfigItemModel[]> {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
       this.execute(this.getGitPath() + ' config --list --show-origin', 'Get Config Items').then(text => {
-        // console.log(text);
+
         let configItem = /^(.*?)\t(.*)=(.*)$/gm;
         let match = configItem.exec(text);
         let result: ConfigItemModel[] = [];
         while (match) {
-          // console.log(match);
           result.push(new ConfigItemModel(match[2], match[3], match[1]));
           match = configItem.exec(text);
         }
@@ -234,8 +231,14 @@ export class GitClient {
   }
 
   openTerminal() {
-    const command = 'start "Bash Command Window" ' + this.getBashPath() + ' --login';
-    this.execute(command, 'Open Terminal').then(console.log).catch(error => {
+    let startCommand = 'start "Bash Command Window" ' + this.getBashPath() + ' --login';
+    if (process.platform == 'darwin') {
+      startCommand = 'open -a Terminal ' + this.workingDir;
+    } else {
+      startCommand = 'x-terminal-emulator --working-directory=' + this.workingDir;
+    }
+
+    this.execute(startCommand, 'Open Terminal').then(console.log).catch(error => {
       console.error(JSON.stringify(serializeError(error)));
       logger.error(JSON.stringify(serializeError(error)));
     });
@@ -405,13 +408,17 @@ export class GitClient {
   getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
       this.execute(
-        this.getGitPath() + ' log -n' + (count || 50) + ' --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%B"\n',
+        this.getGitPath() + ' rev-list -n' + (count || 50) + ' --remotes --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%P|%B"\n',
         'Get Commit History')
           .then(text => {
             // this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n --all --full-history", "Get Commit History").then(text => {
-            let result = [];
-            let branchList = /\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)?\|([^|]*)/g;
+            let result: CommitSummaryModel[] = [];
+            let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*(?!commit\s+\S+\s*\r?\n\s*\|\|\|\|))/g;
             let match = branchList.exec(text);
+
+            let currentBranch = 0;
+            let stack: { seeking: string, from: number, branchIndex: number }[] = [];
+
             while (match) {
               let commitSummary = new CommitSummaryModel();
               commitSummary.hash = match[1];
@@ -421,10 +428,76 @@ export class GitClient {
               if (match[5]) {
                 commitSummary.currentTags = match[5].split(',').map(x => x.trim());
               }
-              commitSummary.message = match[6];
+              commitSummary.message = match[7];
+
+              // git graph
+              commitSummary.graphBlockTargets = [];
+              let parentHashes = match[6].split(/\s/);
+              let currentHash = commitSummary.hash;
+
+              let newIndex = 0;
+              let encounteredSeeking: string[] = [];
+              let added = false;
+              let newStack: { seeking: string, from: number, branchIndex: number }[] = [];
+              for (let j = 0; j < stack.length; j++) {
+                if (stack[j].seeking != currentHash) {
+                  commitSummary.graphBlockTargets.push({
+                    target: stack[j].from,
+                    source: newIndex,
+                    isCommit: false,
+                    branchIndex: stack[j].branchIndex,
+                  });
+                  encounteredSeeking.push(stack[j].seeking);
+                  newStack.push(Object.assign(stack[j], {from: newIndex}));
+                  newIndex++;
+                } else if (encounteredSeeking.indexOf(currentHash) >= 0) {
+                  commitSummary.graphBlockTargets.push({
+                    target: stack[j].from,
+                    source: encounteredSeeking.indexOf(currentHash),
+                    isCommit: true,
+                    branchIndex: stack[j].branchIndex,
+                  });
+                  added = true;
+                } else if (encounteredSeeking.indexOf(currentHash) < 0) {
+                  commitSummary.graphBlockTargets.push({
+                    target: stack[j].from,
+                    source: newIndex,
+                    isCommit: true,
+                    branchIndex: stack[j].branchIndex,
+                  });
+                  encounteredSeeking.push(stack[j].seeking);
+                  added = true;
+                  let useCurrentBranch = true;
+                  for (let p of parentHashes) {
+                    if (useCurrentBranch) {
+                      newStack.push({seeking: p, from: newIndex, branchIndex: stack[j].branchIndex});
+                      useCurrentBranch = false;
+                    } else {
+                      newStack.push({seeking: p, from: newIndex, branchIndex: currentBranch++});
+                    }
+                  }
+                  newIndex++;
+                }
+              }
+              if (!added) {
+                let fromIndex = commitSummary.graphBlockTargets.length;
+                commitSummary.graphBlockTargets.push({
+                  target: -1,
+                  source: fromIndex,
+                  isCommit: true,
+                  branchIndex: currentBranch,
+                });
+                for (let p of parentHashes) {
+                  newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
+                }
+              }
+              stack = newStack;
+              // end git graph
+
               result.push(commitSummary);
               match = branchList.exec(text);
             }
+
             resolve(result);
           });
     }));
@@ -539,6 +612,9 @@ export class GitClient {
     }));
   }
 
+  private commandHistoryListener: (history: CommandHistoryModel[]) => any = () => {
+  };
+
   private parseDiffString(text: string, state: DiffHeaderStagedState): DiffHeaderModel[] {
     let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)(\r?\n(?!@@).*)+?((\r?\n(?!diff).*)*)/gm;
     let hunk = /\s*@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
@@ -560,9 +636,8 @@ export class GitClient {
         h.fromNumLines = +(hunkMatch[3] || hunkMatch[1]);
         h.toNumLines = +hunkMatch[6];
         let lineMatch = line.exec(hunkMatch[7]);
-        // console.log(hunkMatch[6]);
+
         while (lineMatch) {
-          // console.log(lineMatch);
           let l = new DiffLineModel();
           if (lineMatch[1] == ' ') {
             l.state = LineState.SAME;
@@ -580,7 +655,7 @@ export class GitClient {
             l.toLineNumber = startTo;
             l.text = lineMatch[2];
           }
-          // console.log('------', l);
+
           h.lines.push(l);
           lineMatch = line.exec(hunkMatch[7]);
         }

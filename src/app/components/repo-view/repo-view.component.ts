@@ -67,6 +67,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   commandHistory: CommandHistoryModel[];
   maxCommandsVisible = 10;
   commandsPerPage = 10;
+  debounceRefreshTimer: number;
   private interval;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -160,16 +161,21 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (!this.repo) {
       return;
     }
-    this.getBranchChanges();
-    this.fetch(manualFetch);
-    this.getCommitHistory();
-    this.setLoading(true);
-    this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path])
-        .then(changes => this.handleFileChanges(changes, keepDiffCommitSelection))
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'getFileChanges',
-          'getting file changes',
-          err)));
+    if (this.debounceRefreshTimer) {
+      clearTimeout(this.debounceRefreshTimer);
+    }
+    this.debounceRefreshTimer = window.setTimeout(() => {
+      this.getBranchChanges();
+      this.fetch(manualFetch);
+      this.getCommitHistory();
+      this.setLoading(true);
+      this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path])
+          .then(changes => this.handleFileChanges(changes, keepDiffCommitSelection))
+          .catch(err => this.handleErrorMessage(new ErrorModel(
+            this._errorClassLocation + 'getFileChanges',
+            'getting file changes',
+            err)));
+    }, 400);
   }
 
   getBranchChanges() {
@@ -260,11 +266,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip])
         .then(commits => {
           if (!skip || skip == 0) {
-            this.commitHistory = commits.map(x => Object.assign(new CommitSummaryModel(), x));
+            this.commitHistory = commits;
           } else {
-            this.commitHistory = this.commitHistory.concat(commits.map(x => Object.assign(
-              new CommitSummaryModel(),
-              x)));
+            this.commitHistory = this.commitHistory.concat(commits);
           }
           this.applicationRef.tick();
         })
@@ -743,7 +747,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.gitService.repo = this.repo;
       this.repoCache = this.repo;
       this.getFileChanges(false);
-      this.getCommitHistory();
       this.fetch();
       this.applicationRef.tick();
       this.interval = setInterval(() => {
