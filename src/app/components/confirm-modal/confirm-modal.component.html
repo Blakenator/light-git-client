@@ -1,0 +1,7 @@
+<app-modal [affirmativeButtonText]="confirmText"
+           (onFinish)="onConfirm.emit()"
+           [modalTitle]="modalTitle"
+           [modalId]="modalId"
+           negativeButtonText="Cancel">
+  <ng-content></ng-content>
+</app-modal>

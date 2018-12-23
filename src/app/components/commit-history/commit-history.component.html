@@ -24,7 +24,10 @@
                [style.left]="i*14+'px'"
                [style.borderRightColor]="getColor(block.branchIndex)"
                *ngFor="let block of getSpacerList(c); let i= index">
-            <i class="fa fa-circle commit-indicator" *ngIf="block.isCommit"></i>
+            <i class="fa commit-indicator fa-circle"
+               *ngIf="block.isCommit && !block.isMerge"></i>
+            <i class="fa commit-indicator merge fa-chevron-up"
+               *ngIf="block.isCommit && block.isMerge"></i>
           </div>
         </div>
       </td>

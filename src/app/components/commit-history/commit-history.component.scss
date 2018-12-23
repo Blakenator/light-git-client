@@ -57,7 +57,16 @@ td .btn {
 
 .commit-indicator {
   position: absolute;
-  left: -.7em;
-  top: -.9em;
-  font-size: .8em;
+
+  &:not(.merge) {
+    left: -.65em;
+    font-size: .8em;
+    top: -.9em;
+  }
+
+  &.merge {
+    top: -.8em;
+    left: -.6em;
+    font-size: .9em;
+  }
 }

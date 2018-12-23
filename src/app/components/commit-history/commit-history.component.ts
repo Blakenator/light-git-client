@@ -44,13 +44,18 @@ export class CommitHistoryComponent implements OnInit {
     let res = [];
     c.graphBlockTargets.forEach(x => {
       let isCommit = x.isCommit;
-      let branch=x.branchIndex;
+      let isMerge = x.isMerge;
+      let branch = x.branchIndex;
+      
       if (res[x.source]) {
-        isCommit =isCommit|| res[x.source].isCommit;
-        branch=res[x.source].branchIndex;
+        isCommit = isCommit || res[x.source].isCommit;
+        isMerge = isMerge || res[x.source].isMerge;
+        branch = res[x.source].branchIndex;
       }
-      res[x.source] = Object.assign({},x);
+
+      res[x.source] = Object.assign({}, x);
       res[x.source].isCommit = isCommit;
+      res[x.source].isMerge = isMerge;
       res[x.source].branchIndex = branch;
     });
     return res;

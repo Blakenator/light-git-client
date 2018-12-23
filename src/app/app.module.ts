@@ -41,7 +41,9 @@ import {AddWorktreeComponent} from './components/add-worktree/add-worktree.compo
 import {CloneComponent} from './components/clone/clone.component';
 import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
 import {AddSubmoduleComponent} from './components/add-submodule/add-submodule.component';
-import { GitGraphCanvasComponent } from './components/git-graph-canvas/git-graph-canvas.component';
+import {GitGraphCanvasComponent} from './components/git-graph-canvas/git-graph-canvas.component';
+import {ModalComponent} from './components/modal/modal.component';
+import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -60,6 +62,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     ChangeListComponent,
     DiffViewerComponent,
     CommitHistoryComponent,
+    ModalComponent,
     ErrorMessageComponent,
     NewTabPageComponent,
     FilterPipe,
@@ -74,6 +77,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     CloneComponent,
     AddSubmoduleComponent,
     GitGraphCanvasComponent,
+    ConfirmModalComponent,
   ],
   imports: [
     BrowserModule,
