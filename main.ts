@@ -280,7 +280,7 @@ try {
   });
 
   ipcMain.on(Channels.UNDOFILECHANGES, (event, args) => {
-    handleGitPromise(gitClients[args[1]].undoFileChanges(args[2], args[3]), event, args);
+    handleGitPromise(gitClients[args[1]].undoFileChanges(args[2], args[3], args[4]), event, args);
   });
 
   ipcMain.on(Channels.OPENDEVTOOLS, (event, args) => {

@@ -294,9 +294,19 @@ export class GitClient {
     });
   }
 
-  undoFileChanges(file: string, revision: string): Promise<CommitModel> {
+  undoFileChanges(file: string, revision: string, staged: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' checkout ' + (revision || 'HEAD') + ' -- ' + file, 'Undo File Changes')
+      let command = this.getGitPath() + ' stash push -k -u -- ' + file;
+      if (staged) {
+        command += ' && ' + this.getGitPath() + ' reset -- ' + file +
+          ' && ' + this.getGitPath() + ' checkout HEAD -- ' + file +
+          ' && ' + this.getGitPath() + ' stash pop';
+      } else {
+        command += ' && ' + this.getGitPath() + ' stash drop stash@{1}';
+      }
+
+      this.execute(command,
+        'Undo File Changes')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
     });
@@ -446,6 +456,7 @@ export class GitClient {
                     source: newIndex,
                     isCommit: false,
                     branchIndex: stack[j].branchIndex,
+                    isMerge: false
                   });
                   encounteredSeeking.push(stack[j].seeking);
                   newStack.push(Object.assign(stack[j], {from: newIndex}));
@@ -456,6 +467,7 @@ export class GitClient {
                     source: encounteredSeeking.indexOf(currentHash),
                     isCommit: true,
                     branchIndex: stack[j].branchIndex,
+                    isMerge: false
                   });
                   added = true;
                 } else if (encounteredSeeking.indexOf(currentHash) < 0) {
@@ -464,6 +476,7 @@ export class GitClient {
                     source: newIndex,
                     isCommit: true,
                     branchIndex: stack[j].branchIndex,
+                    isMerge: parentHashes.length > 1
                   });
                   encounteredSeeking.push(stack[j].seeking);
                   added = true;
@@ -486,6 +499,7 @@ export class GitClient {
                   source: fromIndex,
                   isCommit: true,
                   branchIndex: currentBranch,
+                  isMerge: false
                 });
                 for (let p of parentHashes) {
                   newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
