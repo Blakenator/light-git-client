@@ -499,7 +499,7 @@ export class GitClient {
                   source: fromIndex,
                   isCommit: true,
                   branchIndex: currentBranch,
-                  isMerge: false
+                  isMerge: parentHashes.length > 1
                 });
                 for (let p of parentHashes) {
                   newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
