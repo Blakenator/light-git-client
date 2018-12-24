@@ -11,6 +11,7 @@ export class CommitHistoryComponent implements OnInit {
   @Input() commitHistory: CommitSummaryModel[];
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
   @Output() onScrollDown = new EventEmitter<any>();
+  @Output() onClickCherryPick = new EventEmitter<CommitSummaryModel>();
   scrollOffset = 0;
   numPerPage = 50;
   commitFilter: string;
@@ -75,5 +76,9 @@ export class CommitHistoryComponent implements OnInit {
                c.hash.indexOf(needle) >= 0;
       });
     }
+  }
+
+  cherryPickCommit(commit: CommitSummaryModel) {
+    this.onClickCherryPick.emit(commit);
   }
 }
