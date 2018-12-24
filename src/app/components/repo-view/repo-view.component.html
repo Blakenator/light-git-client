@@ -300,6 +300,7 @@
                            [diffCommitInfo]="diffCommitInfo"
                            (onHunkChanged)="handleFileChanges($event,false)"
                            (onHunkChangeError)="hunkChangeError($event)"
+                           (onIngoreWhitespaceClicked)="getFileDiff()"
                            (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
         </div>
         <app-commit-history [commitHistory]="commitHistory"

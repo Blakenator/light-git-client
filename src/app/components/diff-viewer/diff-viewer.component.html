@@ -1,3 +1,6 @@
+<div class="p-1">
+  <input class="form-control" placeholder="Filter...    To/From Filename" [(ngModel)]="diffFilter">
+</div>
 <div class="diff-container"
      infinite-scroll
      [scrollWindow]="false"
@@ -32,7 +35,7 @@
     </div>
   </div>
   <div *ngIf="diffHeaders">
-    <div *ngFor="let header of diffHeaders | slice : 0 : scrollOffset" class="card">
+    <div *ngFor="let header of getFilteredDiffHeaders() | slice : 0 : scrollOffset" class="card">
       <div class="card-header d-flex">
         <div class="flex-grow-1">
           <div class="d-inline-block"
@@ -59,8 +62,8 @@
           <div class="d-flex hunk">
             <div class="linenumber-block" *ngIf="!isEditingHunk(hunk,header)">
               <div *ngFor="let line of hunk.lines" class="d-flex">
-                <div class="linenumber">{{!getAddition(line)?line.fromLineNumber:'-'}}</div>
-                <div class="linenumber">{{!getDeletion(line)?line.toLineNumber:'-'}}</div>
+                <div class="linenumber">{{!getAddition(line) ? line.fromLineNumber : '-'}}</div>
+                <div class="linenumber">{{!getDeletion(line) ? line.toLineNumber : '-'}}</div>
                 <div [ngClass]="{'line-overlay':true, 'addition':getAddition(line),'deletion':getDeletion(line), 'd-none':!getAddition(line)&&!getDeletion(line)}">
                 </div>
               </div>
