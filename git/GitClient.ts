@@ -31,7 +31,13 @@ export class GitClient {
   getCommitDiff(commitHash: any): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.execute(
-        this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + commitHash + '~ ' + commitHash,
+        this.getGitPath() +
+        ' diff' +
+        (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') +
+        ' ' +
+        commitHash +
+        '~ ' +
+        commitHash,
         'Get Diff for Commit')
           .then(text => {
             resolve(this.parseDiffString(text, DiffHeaderStagedState.NONE));
@@ -43,7 +49,12 @@ export class GitClient {
   getBranchPremerge(branch: BranchModel): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.execute(
-        this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' ' + branch.currentHash + '...',
+        this.getGitPath() +
+        ' diff' +
+        (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') +
+        ' ' +
+        branch.currentHash +
+        '...',
         'Get Premerge Diff')
           .then(text => {
             resolve(this.parseDiffString(text, DiffHeaderStagedState.NONE));
@@ -76,8 +87,8 @@ export class GitClient {
   setConfigItem(item: ConfigItemModel): Promise<ConfigItemModel[]> {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
       const command = this.getBashedGit() + ' config ' + (item.value ? '--replace-all ' : '') +
-        (item.sourceFile.trim() ? '--file ' + item.sourceFile.replace(/^.*?:/, '') + ' ' : '') +
-        (item.value ? '' : '--unset ') + item.key + ' ' + (item.value ? '"' + item.value + '"' : '');
+                      (item.sourceFile.trim() ? '--file ' + item.sourceFile.replace(/^.*?:/, '') + ' ' : '') +
+                      (item.value ? '' : '--unset ') + item.key + ' ' + (item.value ? '"' + item.value + '"' : '');
       this.execute(command, 'Set Config Item')
           .then(text => this.getConfigItems().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
@@ -248,14 +259,20 @@ export class GitClient {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       let promises = [];
       if (unstaged.trim()) {
-        let command: string = this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' -- ' +
-          unstaged;
+        let command: string = this.getGitPath() +
+                              ' diff' +
+                              (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') +
+                              ' -- ' +
+                              unstaged;
         promises.push(this.execute(command, 'Get Unstaged Changes Diff')
                           .then(text => this.parseDiffString(text, DiffHeaderStagedState.UNSTAGED)));
       }
       if (staged.trim()) {
-        let command: string = this.getGitPath() + ' diff' + (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') + ' --staged -- ' +
-          staged;
+        let command: string = this.getGitPath() +
+                              ' diff' +
+                              (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') +
+                              ' --staged -- ' +
+                              staged;
         promises.push(this.execute(command, 'Get Staged Changes Diff')
                           .then(text => this.parseDiffString(text, DiffHeaderStagedState.STAGED)));
       }
@@ -277,7 +294,11 @@ export class GitClient {
     return new Promise<CommitModel>((resolve, reject) => {
       let s = message.replace(/\"/g, '').replace(/\r?\n/g, '" -m "');
       this.execute(
-        this.getBashedGit() + '  commit -m "' + s + '"' + (push ? '\' && ' + this.getGitPath() + '  push' : ''),
+        this.getBashedGit() +
+        '  commit -m "' +
+        s +
+        '"' +
+        (push ? '\' && ' + this.getGitPath() + '  push -u origin HEAD' : ''),
         'Commit')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
@@ -299,8 +320,8 @@ export class GitClient {
       let command = this.getGitPath() + ' stash push -k -u -- ' + file;
       if (staged) {
         command += ' && ' + this.getGitPath() + ' reset -- ' + file +
-          ' && ' + this.getGitPath() + ' checkout HEAD -- ' + file +
-          ' && ' + this.getGitPath() + ' stash pop';
+                   ' && ' + this.getGitPath() + ' checkout HEAD -- ' + file +
+                   ' && ' + this.getGitPath() + ' stash pop';
       } else {
         command += ' && ' + this.getGitPath() + ' stash drop stash@{1}';
       }
@@ -330,7 +351,10 @@ export class GitClient {
 
   stash(unstagedOnly: boolean, stashName: string): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      const command = this.getBashedGit() + ' stash push' + (unstagedOnly ? ' -k -u' : '') + (stashName ? ' -m "' + stashName + '"' : '');
+      const command = this.getBashedGit() +
+                      ' stash push' +
+                      (unstagedOnly ? ' -k -u' : '') +
+                      (stashName ? ' -m "' + stashName + '"' : '');
       this.execute(
         command,
         'Stash Changes')
@@ -418,7 +442,12 @@ export class GitClient {
   getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
       this.execute(
-        this.getGitPath() + ' rev-list -n' + (count || 50) + ' --remotes --skip=' + (skip || 0) + ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%P|%B"\n',
+        this.getGitPath() +
+        ' rev-list -n' +
+        (count || 50) +
+        ' --remotes --skip=' +
+        (skip || 0) +
+        ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%P|%B"\n',
         'Get Commit History')
           .then(text => {
             // this.execute(this.getGitPath() + " log -n300 --pretty=format:\"||||%H|%an|%ae|%ad|%D|%B\"\n --all --full-history", "Get Commit History").then(text => {
@@ -522,7 +551,7 @@ export class GitClient {
       'Add Worktree',
       this.getBashPath().replace(/"/g, ''),
       ['-c', this.getGitPath().replace(/"/g, '') + ' worktree add "' + location + '" ' +
-      branch.replace(/^origin\//, '')],
+             branch.replace(/^origin\//, '')],
       callback);
   }
 
@@ -721,8 +750,8 @@ export class GitClient {
     }), new Promise<string>((resolve, reject) => {
       setTimeout(() => {
         reject('command timed out (>' + GitClient.settings.commandTimeoutSeconds + 's): ' + command +
-          '\n\nEither adjust the timeout in the Settings menu or ' +
-          '\nfind the root cause of the timeout');
+               '\n\nEither adjust the timeout in the Settings menu or ' +
+               '\nfind the root cause of the timeout');
       }, GitClient.settings.commandTimeoutSeconds * 1000);
     })]);
   }

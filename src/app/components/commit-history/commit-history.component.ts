@@ -71,7 +71,8 @@ export class CommitHistoryComponent implements OnInit {
         return FilterPipe.fuzzyFilter(needle, c.message.toLowerCase()) ||
                FilterPipe.fuzzyFilter(needle, c.authorName.toLowerCase()) ||
                FilterPipe.fuzzyFilter(needle, c.authorEmail.toLowerCase()) ||
-               FilterPipe.fuzzyFilter(needle, c.authorDate.toString().toLowerCase());
+               FilterPipe.fuzzyFilter(needle, c.authorDate.toString().toLowerCase()) ||
+               c.hash.indexOf(needle) >= 0;
       });
     }
   }
