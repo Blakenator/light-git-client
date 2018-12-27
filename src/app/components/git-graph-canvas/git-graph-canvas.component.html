@@ -1,4 +1,3 @@
-<!--<canvas  class="position-absolute" (click)="drawConnectors()"  #canvas></canvas>-->
 <svg class="position-absolute" height="100%" [attr.width]="getSvgWidth()">
   <g *ngFor="let block of commit.graphBlockTargets">
     <path *ngIf="block.target>=0"

@@ -16,27 +16,6 @@ export class GitGraphCanvasComponent implements OnInit {
   }
 
   ngOnInit() {
-    // setTimeout(() => {
-    //   this.drawConnectors();
-    // }, 100);
-  }
-
-  drawConnectors() {
-    let ctx: CanvasRenderingContext2D = this.canvas.nativeElement.getContext('2d');
-    for (let i = 0; i < this.commit.graphBlockTargets.length; i++) {
-      let block = this.commit.graphBlockTargets[i];
-      if (block.target >= 0) {
-        ctx.lineWidth = 2;
-
-        ctx.beginPath();
-        ctx.moveTo(block.source * 14 + 8, 25);
-        ctx.bezierCurveTo(block.source * 14 + 8, 12.5, block.target * 14 + 8, 12.5, block.target * 14 + 8, 0);
-
-        ctx.strokeStyle = CommitSummaryModel.getCommitBranchColor(block.branchIndex);
-
-        ctx.stroke();
-      }
-    }
   }
 
   getSvgDef(block: { target: number; source: number; isCommit: boolean; branchIndex: number; isMerge: boolean }) {
@@ -75,6 +54,6 @@ export class GitGraphCanvasComponent implements OnInit {
   }
 
   getSvgWidth() {
-    return this.getSafeHoriz(Math.max(...this.commit.graphBlockTargets.map(x => Math.max(x.target, x.source)))+1);
+    return this.getSafeHoriz(Math.max(...this.commit.graphBlockTargets.map(x => Math.max(x.target, x.source))) + 1);
   }
 }
