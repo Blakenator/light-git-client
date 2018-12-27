@@ -305,6 +305,16 @@ export class GitClient {
     });
   }
 
+  cherryPickCommit(hash: string): Promise<CommitModel> {
+    return new Promise<CommitModel>((resolve, reject) => {
+      this.execute(
+        this.getBashedGit() + ' cherry-pick ' + hash,
+        'Commit')
+          .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
+          .catch(err => reject(serializeError(err)));
+    });
+  }
+
   checkout(tag: string, toNewBranch: boolean, branchName: string = ''): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
       this.execute(this.getGitPath() + ' checkout ' + tag + (toNewBranch ? ' -b ' + (branchName || tag.replace(
