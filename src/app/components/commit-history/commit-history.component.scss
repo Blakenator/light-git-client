@@ -56,13 +56,13 @@ td .btn {
 
   .expand-container {
     opacity: 0;
-    width: 0;
-    transition: opacity .3s 1s, width .3s 1s;
+    right: -6em;
+    transition: right .3s 1s, opacity .3s 1s;
   }
 
   &:hover .expand-container {
     opacity: 1;
-    width: 6em;
+    right: 0;
   }
 }
 

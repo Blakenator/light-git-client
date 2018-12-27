@@ -44,12 +44,12 @@
         {{c.authorDate | date : 'short'}}
       </td>
       <td class="hidden-until-hover" [title]="c.hash">{{c.hash.substr(0, 8)}}</td>
-      <td>
-        <div class="btn-group-sm btn-group expand-container">
-          <button class="btn btn-outline-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
+      <td class="position-relative">
+        <div class="btn-group-sm btn-group expand-container position-absolute">
+          <button class="btn btn-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
             <i class="fa fa-eye"></i>
           </button>
-          <button class="btn btn-outline-info" title="Cherry-pick commit" (click)="cherryPickCommit(c)">
+          <button class="btn btn-info" title="Cherry-pick commit" (click)="cherryPickCommit(c)">
             <i class="fa fa-band-aid"></i>
           </button>
         </div>
