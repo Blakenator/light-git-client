@@ -9,6 +9,7 @@ import {ErrorModel} from '../../../../shared/common/error.model';
 import {DiffHunkModel} from '../../../../shared/git/diff.hunk.model';
 import {DiffLineModel, LineState} from '../../../../shared/git/diff.line.model';
 import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
+import {FilterPipe} from '../common/pipes/filter.pipe';
 
 @Component({
   selector: 'app-diff-viewer',
@@ -24,8 +25,10 @@ export class DiffViewerComponent implements OnInit {
   editedText: string;
   @Output() onHunkChanged = new EventEmitter<CommitModel>();
   @Output() onHunkChangeError = new EventEmitter<ErrorModel>();
+  @Output() onIngoreWhitespaceClicked = new EventEmitter<boolean>();
   scrollOffset = 10;
   numPerPage = 3;
+  diffFilter: string;
 
   constructor(public settingsService: SettingsService,
               private errorService: ErrorService,
@@ -57,8 +60,9 @@ export class DiffViewerComponent implements OnInit {
       } else {
         return 'Changed';
       }
-    } else if (header.fromFilename.substring(header.fromFilename.lastIndexOf('/')) == header.toFilename.substring(header.toFilename.lastIndexOf(
-      '/'))) {
+    } else if (header.fromFilename.substring(header.fromFilename.lastIndexOf('/')) ==
+               header.toFilename.substring(header.toFilename.lastIndexOf(
+                 '/'))) {
       return 'Moved';
     } else if (header.fromFilename.substring(0, header.fromFilename.lastIndexOf('/')) == header.toFilename.substring(0,
       header.toFilename.lastIndexOf('/'))) {
@@ -67,7 +71,10 @@ export class DiffViewerComponent implements OnInit {
   }
 
   saveSettings() {
-    setTimeout(() => this.settingsService.saveSettings(), 100);
+    setTimeout(() => {
+      this.settingsService.saveSettings();
+      this.onIngoreWhitespaceClicked.emit(this.settingsService.settings.diffIgnoreWhitespace);
+    }, 100);
   }
 
   getEditableCode(hunk: DiffHunkModel) {
@@ -103,7 +110,12 @@ export class DiffViewerComponent implements OnInit {
   }
 
   isEditingHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
-    return this.editingHunk && this.editingHeader && this.editingHunk.fromStartLine == hunk.fromStartLine && this.editingHeader.fromFilename == header.fromFilename;
+    return this.editingHunk &&
+           this.editingHeader &&
+           this.editingHunk.fromStartLine ==
+           hunk.fromStartLine &&
+           this.editingHeader.fromFilename ==
+           header.fromFilename;
   }
 
   undoHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
@@ -131,6 +143,17 @@ export class DiffViewerComponent implements OnInit {
     }
     this.scrollOffset = Math.round(Math.max(this.numPerPage * 3,
       Math.min(this.scrollOffset, this.diffHeaders.length - this.numPerPage)));
+  }
+
+  getFilteredDiffHeaders() {
+    if (!this.diffFilter) {
+      return this.diffHeaders;
+    } else {
+      return this.diffHeaders.filter(header => {
+        return FilterPipe.fuzzyFilter(this.diffFilter, header.fromFilename) ||
+               FilterPipe.fuzzyFilter(this.diffFilter, header.toFilename);
+      });
+    }
   }
 
   private getTemporaryHunk(header: DiffHeaderModel, hunk: DiffHunkModel) {

@@ -15,7 +15,7 @@
                 (click)="getFileChanges(false,true)"
                 title="Refresh All Changes (local and remote)"><i class="fas fa-sync-alt"></i></button>
         <button class="btn btn-warning"
-                (click)="hardReset()"
+                (click)="modalService.setModalVisible('discardAllModal',true)"
                 title="Discard All Changes Since the Last Commit (CAN'T UNDO!)">
           <i class="fa fa-undo"></i>
           Discard All
@@ -192,10 +192,11 @@
            (scrolled)="maxCommandsVisible=maxCommandsVisible + commandsPerPage"
            (scrolledUp)="maxCommandsVisible=commandsPerPage">
         <div *ngFor="let c of commandHistory.slice().reverse() | filterObject : getCommandHistoryFilterableText : commandHistoryFilter | slice : 0 : maxCommandsVisible">
-          <span class="command-title"><i class="fa {{c.isError?'fa-exclamation-triangle':'fa-check-circle'}}"></i> <i>{{c.name}}</i> ({{c.durationMs}}ms @ {{c.executedAt | date : 'mediumTime'}})</span>
+          <span class="command-title"><i class="fa {{c.isError?'fa-exclamation-triangle':'fa-check-circle'}}"></i> <i>{{c.name}}</i> ({{c.durationMs}}
+            ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
           <pre class="p-2 bg-light command-output">Output Characters 0-1000:
-{{(c.errorOutput||c.output).substring(0,3000)}}</pre>
+            {{(c.errorOutput || c.output).substring(0, 3000)}}</pre>
           <hr/>
         </div>
       </div>
@@ -222,7 +223,7 @@
         <div class="change-body branch-container" *ngIf="getExpandState('staged')">
           <app-change-list [changes]="changes.stagedChanges"
                            (onSelectChanged)="selectionChanged($event,true)"
-                           (onUndoFileClicked)="undoFileChanges($event)"
+                           (onUndoFileClicked)="undoFileChanges($event,true)"
                            (onMergeClicked)="merge($event)"
                            (onDeleteClicked)="deleteClicked($event)"
                            [changeFilter]="stagedChangesFilter"></app-change-list>
@@ -246,7 +247,7 @@
         <div class="change-body branch-container" *ngIf="getExpandState('unstaged')">
           <app-change-list [changes]="changes.unstagedChanges"
                            (onSelectChanged)="selectionChanged($event,false)"
-                           (onUndoFileClicked)="undoFileChanges($event)"
+                           (onUndoFileClicked)="undoFileChanges($event,false)"
                            (onMergeClicked)="merge($event)"
                            (onDeleteClicked)="deleteClicked($event)"
                            [changeFilter]="unstagedChangesFilter"></app-change-list>
@@ -257,7 +258,7 @@
       <div class="pretty p-switch p-fill mx-2">
         <input type="checkbox" [(ngModel)]="commitAndPush" (change)="applicationRef.tick()"/>
         <div class="state">
-          <label>{{commitAndPush?'Commit and Push':'Commit'}}</label>
+          <label>{{commitAndPush ? 'Commit and Push' : 'Commit'}}</label>
         </div>
       </div>
       <div class="d-flex flex-row bg-light">
@@ -299,6 +300,7 @@
                            [diffCommitInfo]="diffCommitInfo"
                            (onHunkChanged)="handleFileChanges($event,false)"
                            (onHunkChangeError)="hunkChangeError($event)"
+                           (onIngoreWhitespaceClicked)="getFileDiff()"
                            (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
         </div>
         <app-commit-history [commitHistory]="commitHistory"
@@ -328,4 +330,8 @@
   <app-code-watcher-alerts (onCommitClicked)="commit()"></app-code-watcher-alerts>
   <app-add-worktree [branches]="repo.remoteBranches" (onAddWorktree)="getFileChanges()"></app-add-worktree>
   <app-add-submodule (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
+  <app-confirm-modal modalTitle="Confirm Discard All" (onConfirm)="hardReset()" modalId="discardAllModal">
+    Are you sure you want to discard <i>all changes</i>?<br/>
+    <b>This cannot be undone</b>
+  </app-confirm-modal>
 </div>

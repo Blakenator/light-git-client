@@ -395,9 +395,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  undoFileChanges(file: string, revision: string = '') {
+  undoFileChanges(file: string, staged: boolean, revision: string = '') {
     this.setLoading(true);
-    this.electronService.rpc(Channels.UNDOFILECHANGES, [this.repo.path, file, revision])
+    this.electronService.rpc(Channels.UNDOFILECHANGES, [this.repo.path, file, revision, staged])
         .then(changes => {
           this.handleFileChanges(changes);
         })

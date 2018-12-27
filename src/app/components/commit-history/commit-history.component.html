@@ -1,3 +1,7 @@
+<div class="p-2">
+  <input class="form-control" placeholder="Filter...    Hash, Message, Date, Author Name/Email" [(ngModel)]="commitFilter">
+</div>
+
 <div class="commit-wrapper"
      infinite-scroll
      [scrollWindow]="false"
@@ -6,25 +10,28 @@
   <table class="table table-striped">
     <thead>
     <tr>
-      <th></th>
+      <th *ngIf="!commitFilter"></th>
       <th>Message</th>
       <th>Author</th>
-      <th class="d-none d-sm-table-cell">Email</th>
+      <th class="d-none d-sm-table-cell" *ngIf="commitFilter">Email</th>
       <th>Date</th>
       <th>Hash</th>
       <th width="1%"></th>
     </tr>
     </thead>
     <tbody>
-    <tr *ngFor="let c of commitHistory | slice : 0 : scrollOffset+numPerPage" class="commit-row">
-      <td class="position-relative p-0">
+    <tr *ngFor="let c of getFilteredCommitHistory()" class="commit-row">
+      <td class="position-relative p-0" *ngIf="!commitFilter">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
         <div [style.width]="getSpacerList(c).length*14+'px'">
           <div class="position-absolute graph-spacer"
                [style.left]="i*14+'px'"
                [style.borderRightColor]="getColor(block.branchIndex)"
                *ngFor="let block of getSpacerList(c); let i= index">
-            <i class="fa fa-circle commit-indicator" *ngIf="block.isCommit"></i>
+            <i class="fa commit-indicator fa-circle"
+               *ngIf="block.isCommit && !block.isMerge"></i>
+            <i class="fa commit-indicator merge fa-chevron-up"
+               *ngIf="block.isCommit && block.isMerge"></i>
           </div>
         </div>
       </td>
@@ -39,7 +46,9 @@
         </div>
       </td>
       <td class="hidden-until-hover" [title]="c.authorName">{{c.authorName}}</td>
-      <td class="hidden-until-hover d-none d-sm-table-cell" [title]="c.authorEmail">{{c.authorEmail}}</td>
+      <td class="hidden-until-hover d-none d-sm-table-cell"
+          [title]="c.authorEmail"
+          *ngIf="commitFilter">{{c.authorEmail}}</td>
       <td class="hidden-until-hover" [title]="c.authorDate | date : 'full'">
         {{c.authorDate | date : 'short'}}
       </td>

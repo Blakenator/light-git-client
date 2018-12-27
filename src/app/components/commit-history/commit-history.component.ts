@@ -1,5 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
+import {FilterPipe} from '../common/pipes/filter.pipe';
 
 @Component({
   selector: 'app-commit-history',
@@ -12,7 +13,7 @@ export class CommitHistoryComponent implements OnInit {
   @Output() onScrollDown = new EventEmitter<any>();
   scrollOffset = 0;
   numPerPage = 50;
-
+  commitFilter: string;
   getColor = CommitSummaryModel.getCommitBranchColor;
 
   constructor() {
@@ -44,15 +45,35 @@ export class CommitHistoryComponent implements OnInit {
     let res = [];
     c.graphBlockTargets.forEach(x => {
       let isCommit = x.isCommit;
-      let branch=x.branchIndex;
+      let isMerge = x.isMerge;
+      let branch = x.branchIndex;
+
       if (res[x.source]) {
-        isCommit =isCommit|| res[x.source].isCommit;
-        branch=res[x.source].branchIndex;
+        isCommit = isCommit || res[x.source].isCommit;
+        isMerge = isMerge || res[x.source].isMerge;
+        branch = res[x.source].branchIndex;
       }
-      res[x.source] = Object.assign({},x);
+
+      res[x.source] = Object.assign({}, x);
       res[x.source].isCommit = isCommit;
+      res[x.source].isMerge = isMerge;
       res[x.source].branchIndex = branch;
     });
     return res;
+  }
+
+  getFilteredCommitHistory() {
+    if (!this.commitFilter) {
+      return this.commitHistory.slice(0, this.scrollOffset + this.numPerPage);
+    } else {
+      return this.commitHistory.filter(c => {
+        const needle = this.commitFilter.toLowerCase();
+        return FilterPipe.fuzzyFilter(needle, c.message.toLowerCase()) ||
+               FilterPipe.fuzzyFilter(needle, c.authorName.toLowerCase()) ||
+               FilterPipe.fuzzyFilter(needle, c.authorEmail.toLowerCase()) ||
+               FilterPipe.fuzzyFilter(needle, c.authorDate.toString().toLowerCase()) ||
+               c.hash.indexOf(needle) >= 0;
+      });
+    }
   }
 }

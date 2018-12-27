@@ -12,10 +12,13 @@ export class ErrorMessageComponent implements OnInit {
   currentError = 0;
   showDialog: boolean;
   getRootError = ErrorModel.getRootError;
-  getRootErrorMessage = ErrorModel.getRootErrorMessage;
 
   constructor(private errorService: ErrorService) {
     errorService.onErrorReceived.asObservable().subscribe(error => this.handleError(error));
+  }
+
+  getRootErrorMessage(error: any) {
+    return ErrorModel.reduceErrorContent(ErrorModel.getRootError(error));
   }
 
   ngOnInit() {

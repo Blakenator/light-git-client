@@ -20,12 +20,27 @@ export class ErrorModel {
 
   static getRootError(error: ErrorModel) {
     return error && (typeof error.content == 'string' || !ErrorModel.isErrorModel(error.content)) ?
-           error :
-           this.getRootError(<ErrorModel>error.content);
+      error :
+      this.getRootError(<ErrorModel>error.content);
+  }
+
+  static reduceErrorContent(error: ErrorModel) {
+    if (error.content && typeof error.content === 'string') {
+      try {
+        let internal = JSON.parse(error.content);
+        if (internal.message) {
+          return internal.message;
+        } else {
+          return error.content;
+        }
+      } catch (e) {
+        return error.content;
+      }
+    }
   }
 
   static getRootErrorMessage(error: any) {
     return error && ErrorModel.isErrorModel(error) ? ErrorModel.getRootError(error).content :
-           (error.message ? error.message : JSON.stringify(error));
+      (error.message ? error.message : JSON.stringify(error));
   }
 }
