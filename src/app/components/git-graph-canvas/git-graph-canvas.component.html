@@ -1,1 +1,35 @@
-<canvas height="25" class="position-absolute" (click)="drawConnectors()" [width]="commit.graphBlockTargets.length*14" #canvas></canvas>
+<svg class="position-absolute" height="100%" [attr.width]="getSvgWidth()">
+  <g *ngFor="let block of commit.graphBlockTargets">
+    <path *ngIf="block.target>=0"
+          [attr.d]="getSvgDef(block)"
+          [attr.stroke]="getCommitBranchColor(block.branchIndex)"
+          stroke-width="2"
+          fill="transparent"></path>
+  </g>
+  <g *ngFor="let spacer of getSpacerList(commit)">
+    <path
+      [attr.d]="getSpacerPathDef(spacer)"
+      [attr.stroke]="getCommitBranchColor(spacer.branchIndex)"
+      [style.borderRightColor]="getCommitBranchColor(spacer.branchIndex)"
+      stroke-width="2px"
+      *ngFor="let spacer of getSpacerList(commit)">
+    </path>
+  </g>
+  <g *ngFor="let spacer of getSpacerList(commit)">
+    <text [attr.x]="(getSafeHoriz(spacer.source)-6)+'px'"
+          [attr.y]="32"
+          [attr.fill]="getCommitBranchColor(spacer.branchIndex)"
+          class="commit-marker"
+          *ngIf="spacer.isCommit && !spacer.isMerge"
+          font-size=".85em">&#xf111;
+    </text>
+    <text [attr.x]="(getSafeHoriz(spacer.source)-6)+'px'"
+          [attr.y]="32"
+          class="commit-marker"
+          [attr.fill]="settingsService.settings.darkMode?'white':'black'"
+          *ngIf="spacer.isCommit && spacer.isMerge">&#xf077;
+    </text>
+  </g>
+</svg>
+<div [style.width]="getSvgWidth()+'px'">
+</div>

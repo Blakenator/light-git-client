@@ -25,17 +25,6 @@
     <tr *ngFor="let c of getFilteredCommitHistory()" class="commit-row">
       <td class="position-relative p-0" *ngIf="!commitFilter">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
-        <div [style.width]="getSpacerList(c).length*14+'px'">
-          <div class="position-absolute graph-spacer"
-               [style.left]="i*14+'px'"
-               [style.borderRightColor]="getColor(block.branchIndex)"
-               *ngFor="let block of getSpacerList(c); let i= index">
-            <i class="fa commit-indicator fa-circle"
-               *ngIf="block.isCommit && !block.isMerge"></i>
-            <i class="fa commit-indicator merge fa-chevron-up"
-               *ngIf="block.isCommit && block.isMerge"></i>
-          </div>
-        </div>
       </td>
       <td class="commit-message-cell">
         <div class="vertical-content-hidden">
@@ -55,12 +44,12 @@
         {{c.authorDate | date : 'short'}}
       </td>
       <td class="hidden-until-hover" [title]="c.hash">{{c.hash.substr(0, 8)}}</td>
-      <td>
-        <div class="btn-group-sm btn-group expand-container">
-          <button class="btn btn-outline-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
+      <td class="position-relative">
+        <div class="btn-group-sm btn-group expand-container position-absolute">
+          <button class="btn btn-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
             <i class="fa fa-eye"></i>
           </button>
-          <button class="btn btn-outline-info" title="Cherry-pick commit" (click)="cherryPickCommit(c)">
+          <button class="btn btn-info" title="Cherry-pick commit" (click)="cherryPickCommit(c)">
             <i class="fa fa-band-aid"></i>
           </button>
         </div>
