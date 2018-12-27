@@ -11,6 +11,7 @@ export namespace Channels {
   export const LOADSETTINGS = "loadSettings";
   export const SAVESETTINGS = "saveSettings";
   export const LOADREPO = "loadRepo";
+  export const CHERRYPICKCOMMIT = "cherryPickCommit";
   export const OPENFOLDER = "openFolder";
   export const SETTINGSCHANGED = "settingsChanged";
   export const OPENURL = "openUrl";

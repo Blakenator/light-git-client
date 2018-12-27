@@ -1,5 +1,7 @@
 <div class="p-2">
-  <input class="form-control" placeholder="Filter...    Hash, Message, Date, Author Name/Email" [(ngModel)]="commitFilter">
+  <input class="form-control"
+         placeholder="Filter...    Hash, Message, Date, Author Name/Email"
+         [(ngModel)]="commitFilter">
 </div>
 
 <div class="commit-wrapper"
@@ -43,9 +45,14 @@
       </td>
       <td class="hidden-until-hover" [title]="c.hash">{{c.hash.substr(0, 8)}}</td>
       <td>
-        <button class="btn btn-sm btn-outline-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
-          <i class="fa fa-eye"></i>
-        </button>
+        <div class="btn-group-sm btn-group expand-container">
+          <button class="btn btn-outline-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
+            <i class="fa fa-eye"></i>
+          </button>
+          <button class="btn btn-outline-info" title="Cherry-pick commit" (click)="cherryPickCommit(c)">
+            <i class="fa fa-band-aid"></i>
+          </button>
+        </div>
       </td>
     </tr>
     </tbody>
