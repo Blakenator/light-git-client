@@ -113,7 +113,9 @@ function loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
   return loadedRepos[repoPath];
 }
 
-function handleGitPromise(p: Promise<any>, event: { sender: { send: (channel: string, content: any) => {} } }, args: any[]) {
+function handleGitPromise(p: Promise<any>,
+                          event: { sender: { send: (channel: string, content: any) => {} } },
+                          args: any[]) {
   p.then(content => event.sender.send(getReplyChannel(args), new ElectronResponse(content)))
    .catch(content => event.sender.send(getReplyChannel(args), new ElectronResponse(content, false)));
 }
@@ -269,6 +271,10 @@ try {
 
   ipcMain.on(Channels.COMMIT, (event, args) => {
     handleGitPromise(gitClients[args[1]].commit(args[2], args[3]), event, args);
+  });
+
+  ipcMain.on(Channels.CHERRYPICKCOMMIT, (event, args) => {
+    handleGitPromise(gitClients[args[1]].cherryPickCommit(args[2]), event, args);
   });
 
   ipcMain.on(Channels.GETCOMMITHISTORY, (event, args) => {

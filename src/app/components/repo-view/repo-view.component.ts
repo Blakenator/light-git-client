@@ -297,6 +297,21 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
+  cherryPickCommit(commit: CommitSummaryModel) {
+    this.setLoading(true, true);
+    this.electronService.rpc(Channels.COMMIT, [this.repo.path, commit.hash])
+        .then(changes => {
+          this.handleFileChanges(changes);
+          this.getFileDiff();
+          this.setLoading(false, true);
+          this.applicationRef.tick();
+        })
+        .catch(err => this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'cherryPickCommit',
+          'cherry-picking commit onto current branch',
+          err)));
+    this.clearSelectedChanges();
+  }
+
   checkout(branch: string, newBranch: boolean) {
     this.setLoading(true);
     this.electronService.rpc(Channels.CHECKOUT, [this.repo.path, branch, newBranch])
@@ -459,8 +474,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         .then(changes => this.handleBranchChanges(changes))
         .catch((err: string) => {
           if (err && err
-              .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
-            (!this.firstNoRemoteErrorDisplayed || manualFetch)) {
+                    .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
+              (!this.firstNoRemoteErrorDisplayed || manualFetch)) {
             this.handleErrorMessage(new ErrorModel(
               this._errorClassLocation + 'fetch',
               'fetching remote changes',
@@ -537,7 +552,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.diffCommitInfo = new CommitSummaryModel();
           const currentBranch = this.repo.localBranches.find(x => x.isCurrentBranch);
           this.diffCommitInfo.hash = branch.currentHash + ' <--> ' + currentBranch.currentHash;
-          this.diffCommitInfo.message = 'Diff of all changes since last common ancestor between \'' + branch.name + '\' and \'' + currentBranch.name + '\'';
+          this.diffCommitInfo.message = 'Diff of all changes since last common ancestor between \'' +
+                                        branch.name +
+                                        '\' and \'' +
+                                        currentBranch.name +
+                                        '\'';
           this.isLoading = false;
           this.applicationRef.tick();
         })
@@ -670,8 +689,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.changes.description = this.changes.description.substring(
       0,
       this.currentCommitCursorPosition - this.positionInAutoComplete) +
-      this.suggestions[this.selectedAutocopleteItem] +
-      this.changes.description.substring(this.currentCommitCursorPosition + (removeEnter ? 1 : 0));
+                               this.suggestions[this.selectedAutocopleteItem] +
+                               this.changes.description.substring(this.currentCommitCursorPosition +
+                               (removeEnter ? 1 : 0));
     this.selectedAutocopleteItem = 0;
     this.suggestions = [];
   }

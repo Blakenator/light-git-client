@@ -12,7 +12,7 @@
 
 .vertical-content-hidden {
   max-height: 2.5em;
-  transition: max-height .5s ease-in-out;
+  transition: max-height .5s .3s ease-in-out;
   overflow: hidden;
 
   &:hover {
@@ -53,6 +53,17 @@ td .btn {
 
 .commit-row {
   overflow-y: hidden;
+
+  .expand-container {
+    opacity: 0;
+    right: -6em;
+    transition: right .3s 1s, opacity .3s 1s;
+  }
+
+  &:hover .expand-container {
+    opacity: 1;
+    right: 0;
+  }
 }
 
 .commit-indicator {

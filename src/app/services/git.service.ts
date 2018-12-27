@@ -76,6 +76,10 @@ export class GitService {
     return this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]);
   }
 
+  cherryPickCommit(hash: string): Promise<CommitModel> {
+    return this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, hash]);
+  }
+
   checkGitBashVersions() {
     const handleResult = (err: { git: boolean, bash: boolean }) => {
       let errors = [];

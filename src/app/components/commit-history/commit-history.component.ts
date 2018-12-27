@@ -11,10 +11,10 @@ export class CommitHistoryComponent implements OnInit {
   @Input() commitHistory: CommitSummaryModel[];
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
   @Output() onScrollDown = new EventEmitter<any>();
+  @Output() onClickCherryPick = new EventEmitter<CommitSummaryModel>();
   scrollOffset = 0;
   numPerPage = 50;
   commitFilter: string;
-  getColor = CommitSummaryModel.getCommitBranchColor;
 
   constructor() {
   }
@@ -41,27 +41,6 @@ export class CommitHistoryComponent implements OnInit {
     }
   }
 
-  getSpacerList(c: CommitSummaryModel) {
-    let res = [];
-    c.graphBlockTargets.forEach(x => {
-      let isCommit = x.isCommit;
-      let isMerge = x.isMerge;
-      let branch = x.branchIndex;
-
-      if (res[x.source]) {
-        isCommit = isCommit || res[x.source].isCommit;
-        isMerge = isMerge || res[x.source].isMerge;
-        branch = res[x.source].branchIndex;
-      }
-
-      res[x.source] = Object.assign({}, x);
-      res[x.source].isCommit = isCommit;
-      res[x.source].isMerge = isMerge;
-      res[x.source].branchIndex = branch;
-    });
-    return res;
-  }
-
   getFilteredCommitHistory() {
     if (!this.commitFilter) {
       return this.commitHistory.slice(0, this.scrollOffset + this.numPerPage);
@@ -75,5 +54,9 @@ export class CommitHistoryComponent implements OnInit {
                c.hash.indexOf(needle) >= 0;
       });
     }
+  }
+
+  cherryPickCommit(commit: CommitSummaryModel) {
+    this.onClickCherryPick.emit(commit);
   }
 }

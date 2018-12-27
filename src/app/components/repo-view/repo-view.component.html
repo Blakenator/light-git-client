@@ -306,6 +306,7 @@
         <app-commit-history [commitHistory]="commitHistory"
                             *ngIf="!showDiff"
                             (onClickCommitDiff)="viewCommitDiff($event)"
+                            (onClickCherryPick)="cherryPickCommit($event)"
                             (onScrollDown)="getCommitHistory(commitHistory.length)"></app-commit-history>
       </div>
     </div>
