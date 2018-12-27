@@ -23,17 +23,6 @@
     <tr *ngFor="let c of getFilteredCommitHistory()" class="commit-row">
       <td class="position-relative p-0" *ngIf="!commitFilter">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
-        <div [style.width]="getSpacerList(c).length*14+'px'">
-          <div class="position-absolute graph-spacer"
-               [style.left]="i*14+'px'"
-               [style.borderRightColor]="getColor(block.branchIndex)"
-               *ngFor="let block of getSpacerList(c); let i= index">
-            <i class="fa commit-indicator fa-circle"
-               *ngIf="block.isCommit && !block.isMerge"></i>
-            <i class="fa commit-indicator merge fa-chevron-up"
-               *ngIf="block.isCommit && block.isMerge"></i>
-          </div>
-        </div>
       </td>
       <td class="commit-message-cell">
         <div class="vertical-content-hidden">

@@ -14,7 +14,6 @@ export class CommitHistoryComponent implements OnInit {
   scrollOffset = 0;
   numPerPage = 50;
   commitFilter: string;
-  getColor = CommitSummaryModel.getCommitBranchColor;
 
   constructor() {
   }
@@ -39,27 +38,6 @@ export class CommitHistoryComponent implements OnInit {
     if (this.scrollOffset >= this.commitHistory.length - this.numPerPage) {
       this.onScrollDown.emit();
     }
-  }
-
-  getSpacerList(c: CommitSummaryModel) {
-    let res = [];
-    c.graphBlockTargets.forEach(x => {
-      let isCommit = x.isCommit;
-      let isMerge = x.isMerge;
-      let branch = x.branchIndex;
-
-      if (res[x.source]) {
-        isCommit = isCommit || res[x.source].isCommit;
-        isMerge = isMerge || res[x.source].isMerge;
-        branch = res[x.source].branchIndex;
-      }
-
-      res[x.source] = Object.assign({}, x);
-      res[x.source].isCommit = isCommit;
-      res[x.source].isMerge = isMerge;
-      res[x.source].branchIndex = branch;
-    });
-    return res;
   }
 
   getFilteredCommitHistory() {
