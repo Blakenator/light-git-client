@@ -29,6 +29,7 @@
           <label>Ignore Whitespace</label>
         </div>
       </div>
+      <div class="m-1 badge badge-pill badge-info" *ngIf="diffFilter"><i class="fa fa-filter"></i> Filtered Results</div>
     </div>
     <div *ngIf="diffHeaders.length==0" class="text-muted">
       No differences detected...

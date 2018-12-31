@@ -5,11 +5,12 @@ import {SettingsModel} from '../../../../shared/SettingsModel';
 import {Channels} from '../../../../shared/Channels';
 import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
 import {GitService} from '../../services/git.service';
+import {ConfigItemModel} from '../../../../shared/git/config-item.model';
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
-  styleUrls: ['./settings.component.scss']
+  styleUrls: ['./settings.component.scss'],
 })
 export class SettingsComponent implements OnInit {
   showSettingsDialog = false;
@@ -17,6 +18,8 @@ export class SettingsComponent implements OnInit {
   version: string;
   advanced: boolean;
   currentTab = 0;
+  tabs: string[] = ['General', 'Code Watchers', 'Config Shortcuts'];
+  configItems: ConfigItemModel[];
   @Output() onSaveAction = new EventEmitter<SettingsModel>();
 
   constructor(private electronService: ElectronService,
@@ -37,6 +40,12 @@ export class SettingsComponent implements OnInit {
   }
 
   saveSettings() {
+    if (this.tempSettings.username != this.settingsService.settings.username || this.tempSettings.email != this.settingsService.settings.email) {
+      this.gitService.setBulkGitSettings({
+        ['user.name']: this.tempSettings.username,
+        ['user.email']: this.tempSettings.email,
+      });
+    }
     this.setThemeTemp();
     this.settingsService.saveSettings(this.tempSettings);
     this.tempSettings = this.settingsService.settings;
@@ -52,6 +61,15 @@ export class SettingsComponent implements OnInit {
   copyTempSettings() {
     this.tempSettings = this.settingsService.settings.clone();
     this.showSettingsDialog = true;
+    this.gitService.getConfigItems().then(configItems => {
+      this.configItems = configItems;
+      let username = this.configItems.find(x => x.key == 'user.name');
+      this.tempSettings.username = username ? username.value + '' : '';
+      this.settingsService.settings.username = username ? username.value + '' : '';
+      let email = this.configItems.find(x => x.key == 'user.email');
+      this.tempSettings.email = email ? email.value + '' : '';
+      this.settingsService.settings.email = email ? email.value + '' : '';
+    });
   }
 
   cancelChanges() {

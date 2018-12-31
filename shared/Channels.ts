@@ -37,6 +37,7 @@ export namespace Channels {
   export const CLOSEWINDOW = "closeWindow";
   export const COMMITDIFF = "commitDiff";
   export const STASH = "stash";
+  export const SETGITSETTINGS = "setBulkGitSettings";
   export const APPLYSTASH = "applyStash";
   export const DELETESTASH = "deleteStash";
   export const RENAMEBRANCH = "renameBranch";

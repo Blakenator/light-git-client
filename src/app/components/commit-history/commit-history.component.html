@@ -13,7 +13,9 @@
     <thead>
     <tr>
       <th *ngIf="!commitFilter"></th>
-      <th>Message</th>
+      <th>Message
+        <i class="fa fa-filter" *ngIf="commitFilter" ngbTooltip="Filtered Results"></i>
+      </th>
       <th>Author</th>
       <th class="d-none d-sm-table-cell" *ngIf="commitFilter">Email</th>
       <th>Date</th>

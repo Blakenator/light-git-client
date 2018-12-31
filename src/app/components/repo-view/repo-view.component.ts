@@ -61,7 +61,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   showCreateBranch = false;
   showCreateStash = false;
   stashOnlyUnstaged = true;
-  selectedAutocopleteItem = 0;
+  selectedAutocompleteItem = 0;
   suggestions: string[] = [];
   positionInAutoComplete: number;
   commandHistory: CommandHistoryModel[];
@@ -449,7 +449,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   updateSubmodules(recursive: boolean, branch?: string) {
     this.setLoading(true);
     this.gitService.updateSubmodules(branch, recursive)
-        .then(() => this.getBranchChanges())
+        .then(() => this.getFileChanges())
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'updateSubmodules',
           'updating the submodules',
@@ -676,23 +676,23 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       $event.preventDefault();
       this.chooseAutocomleteItem(true);
     } else if ($event.key == 'ArrowUp') {
-      this.selectedAutocopleteItem = Math.max(0, this.selectedAutocopleteItem - 1);
+      this.selectedAutocompleteItem = Math.max(0, this.selectedAutocompleteItem - 1);
     } else if ($event.key == 'ArrowDown') {
-      this.selectedAutocopleteItem = Math.min(this.suggestions.length, this.selectedAutocopleteItem + 1);
+      this.selectedAutocompleteItem = Math.min(this.suggestions.length, this.selectedAutocompleteItem + 1);
     } else if ($event.key == 'Escape') {
       this.suggestions = [];
     }
   }
 
   chooseAutocomleteItem(removeEnter: boolean, item?: number) {
-    this.selectedAutocopleteItem = item || this.selectedAutocopleteItem;
+    this.selectedAutocompleteItem = item || this.selectedAutocompleteItem;
     this.changes.description = this.changes.description.substring(
       0,
       this.currentCommitCursorPosition - this.positionInAutoComplete) +
-                               this.suggestions[this.selectedAutocopleteItem] +
+                               this.suggestions[this.selectedAutocompleteItem] +
                                this.changes.description.substring(this.currentCommitCursorPosition +
                                (removeEnter ? 1 : 0));
-    this.selectedAutocopleteItem = 0;
+    this.selectedAutocompleteItem = 0;
     this.suggestions = [];
   }
 

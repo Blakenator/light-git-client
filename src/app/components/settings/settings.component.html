@@ -11,8 +11,10 @@
       </div>
       <div class="modal-body">
         <div>
-          <div [ngClass]="{'settings-tab':true,active:currentTab==0}" (click)="currentTab=0">General</div>
-          <div [ngClass]="{'settings-tab':true,active:currentTab==1}" (click)="currentTab=1">Code Watchers</div>
+          <div *ngFor="let tab of tabs;let i = index"
+               class="btn btn-secondary"
+               [ngClass]="{'settings-tab':true,active:currentTab==i}"
+               (click)="currentTab=i">{{tab}}</div>
         </div>
         <div *ngIf="currentTab==0">
           <div>
@@ -27,7 +29,7 @@
               <div class="pretty p-switch p-fill my-3 d-block">
                 <input type="checkbox" [(ngModel)]="tempSettings.darkMode" (change)="setThemeTemp()"/>
                 <div class="state">
-                  <label>{{tempSettings.darkMode?'Dark':'Light'}} Mode</label>
+                  <label>{{tempSettings.darkMode ? 'Dark' : 'Light'}} Mode</label>
                 </div>
               </div>
               <div class="pretty p-switch p-fill my-3 d-block">
@@ -119,6 +121,20 @@
             </tbody>
           </table>
           <button class="btn btn-info" (click)="addWatcher()">Add Watcher</button>
+        </div>
+        <div *ngIf="currentTab==2">
+          <div class="row">
+            <div class="col-6">
+              <label>Display Name</label>
+              <div class="input-group">
+                <input class="form-control" [(ngModel)]="tempSettings.username">
+              </div>
+              <label>Display Email</label>
+              <div class="input-group">
+                <input class="form-control" [(ngModel)]="tempSettings.email">
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">

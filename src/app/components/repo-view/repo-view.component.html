@@ -271,7 +271,7 @@
                     (keyup)="setCurrentCursorPosition($event)"
                     (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
           <div class="dropdown-menu show" *ngIf="suggestions.length>0">
-            <a [ngClass]="{'dropdown-item':true,'active':i==selectedAutocopleteItem}"
+            <a [ngClass]="{'dropdown-item':true,'active':i==selectedAutocompleteItem}"
                *ngFor="let s of suggestions; let i = index"
                (click)="chooseAutocomleteItem(false,i)">{{s}}</a>
             <div class="dropdown-divider"></div>

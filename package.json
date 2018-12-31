@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -33,11 +33,13 @@
   },
   "dependencies": {
     "@ng-bootstrap/ng-bootstrap": "^4.0.0",
+    "@types/node-notifier": "0.0.28",
     "browserify": "^16.2.3",
     "codelyzer": "^4.4.2",
     "electron-log": "^2.2.14",
     "electron-updater": "^4.0.5",
     "highlight.js": "^9.13.1",
+    "keytar": "^4.3.0",
     "ng-diff-match-patch": "^3.0.1",
     "ngx-highlightjs": "^2.1.4",
     "ngx-infinite-scroll": "^6.0.1",
