@@ -59,8 +59,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   unstagedChangesFilter: string;
   commandHistoryFilter: string;
   submoduleFilter: string;
-  showCreateBranch = false;
-  showCreateStash = false;
   stashOnlyUnstaged = true;
   selectedAutocompleteItem = 0;
   suggestions: string[] = [];
@@ -389,7 +387,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   stash(onlyUnstaged: boolean) {
     this.stashOnlyUnstaged = onlyUnstaged;
-    this.showCreateStash = true;
+    this.showModal('createStash');
+  }
+
+  showModal(id: string, val: boolean = true) {
+    this.modalService.setModalVisible(id + this.repoViewUid, val);
   }
 
   createStash(stashName: string) {
@@ -605,7 +607,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         .then(changes => {
           this.handleBranchChanges(changes);
           this.getCommitHistory();
-          this.showCreateBranch = false;
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'createBranch',
@@ -702,7 +703,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   setAddWorktreeVisible(val: boolean) {
-    this.modalService.setModalVisible('addWorktree' + this.repoViewUid, val);
+    this.showModal('addWorktree', val);
   }
 
   getCommandHistoryFilterableText(command: CommandHistoryModel) {
@@ -735,7 +736,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   viewSubmodule(submodule: SubmoduleModel) {
     this.activeSubmodule = submodule;
-    this.modalService.setModalVisible('submoduleViewer' + this.repoViewUid, true);
+    this.showModal('submoduleViewer');
   }
 
   private levenshtein(a: string, b: string): number {

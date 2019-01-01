@@ -1,19 +1,19 @@
 import {Component, OnInit} from '@angular/core';
 import {ErrorService} from '../../services/error.service';
 import {ErrorModel} from '../../../../../../shared/common/error.model';
+import {ModalService} from '../../../../services/modal.service';
 
 @Component({
   selector: 'app-error-message',
   templateUrl: './error-message.component.html',
-  styleUrls: ['./error-message.component.scss']
+  styleUrls: ['./error-message.component.scss'],
 })
 export class ErrorMessageComponent implements OnInit {
   errors: ErrorModel[] = [];
   currentError = 0;
-  showDialog: boolean;
   getRootError = ErrorModel.getRootError;
 
-  constructor(private errorService: ErrorService) {
+  constructor(private errorService: ErrorService, private modalService: ModalService) {
     errorService.onErrorReceived.asObservable().subscribe(error => this.handleError(error));
   }
 
@@ -25,8 +25,8 @@ export class ErrorMessageComponent implements OnInit {
   }
 
   close() {
-    this.showDialog = false;
     this.errors = [];
+    this.modalService.setModalVisible('error', false);
   }
 
   cycleError(next: number) {
@@ -36,6 +36,6 @@ export class ErrorMessageComponent implements OnInit {
   private handleError(error: ErrorModel) {
     console.log(error);
     this.errors.push(error);
-    this.showDialog = true;
+    this.modalService.setModalVisible('error', true);
   }
 }

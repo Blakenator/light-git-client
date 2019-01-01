@@ -15,7 +15,7 @@
                 (click)="getFileChanges(false,true)"
                 title="Refresh All Changes (local and remote)"><i class="fas fa-sync-alt"></i></button>
         <button class="btn btn-warning"
-                (click)="modalService.setModalVisible('discardAllModal',true)"
+                (click)="showModal('discardAllModal')"
                 title="Discard All Changes Since the Last Commit (CAN'T UNDO!)">
           <i class="fa fa-undo"></i>
           Discard All
@@ -30,7 +30,7 @@
                placeholder="Filter..."
                [(ngModel)]="localBranchFilter" (click)="$event.stopPropagation()">
         <button class="btn btn-primary btn-sm mx-1"
-                (click)="showCreateBranch=true; $event.stopPropagation()"
+                (click)="showModal('createBranch'); $event.stopPropagation()"
                 title="Create branch off current HEAD">
           <i class="fa fa-code-branch"></i></button>
       </div>
@@ -120,7 +120,7 @@
                [(ngModel)]="submoduleFilter" (click)="$event.stopPropagation()">
         <button class="btn btn-sm btn-primary mx-1"
                 title="Add Submodule"
-                (click)="modalService.setModalVisible('addSubmodule',true);$event.stopPropagation()">
+                (click)="showModal('addSubmodule');$event.stopPropagation()">
           <i class="fa fa-plus"></i>
         </button>
         <div class="btn-group btn-group-sm" ngbDropdown (click)="$event.stopPropagation()">
@@ -334,23 +334,23 @@
       </div>
     </div>
   </div>
-  <app-input-modal [show]="showCreateBranch"
+  <app-input-modal modalId="createBranch"
+                   [uidSalt]="repoViewUid"
                    modalTitle="Create Branch"
                    message="Create branch off current HEAD"
                    validPattern="[a-zA-Z0-9/-]*[a-zA-Z0-9-]"
                    invalidMessage="Please enter a valid branch name"
                    inputPlaceholder="Branch name..."
-                   (onClickOk)="createBranch($event)"
-                   (onClickCancel)="showCreateBranch=false"></app-input-modal>
-  <app-input-modal [show]="showCreateStash"
+                   (onClickOk)="createBranch($event)"></app-input-modal>
+  <app-input-modal modalId="createStash"
+                   [uidSalt]="repoViewUid"
                    [modalTitle]="'Stash '+(stashOnlyUnstaged?'Unstaged':'All')+' Changes'"
                    message="Please enter a name for the stash"
                    validPattern='^[^\\"]*$'
                    invalidMessage="Stash name cannot include double quotes"
                    inputPlaceholder="Stash name..."
                    [defaultText]="getCreateStashDefaultText()"
-                   (onClickOk)="createStash($event)"
-                   (onClickCancel)="showCreateStash=false"></app-input-modal>
+                   (onClickOk)="createStash($event)"></app-input-modal>
   <app-code-watcher-alerts (onCommitClicked)="commit()"></app-code-watcher-alerts>
   <app-add-worktree [uidSalt]="repoViewUid"
                     [branches]="repo.remoteBranches"

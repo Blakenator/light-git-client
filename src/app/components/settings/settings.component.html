@@ -3,144 +3,139 @@
   <i class="material-icons">settings</i>
   <span class="ml-1">Global</span>
 </button>
-<div class="dialog-container" *ngIf="showSettingsDialog">
-  <div class="dialog-window dialog-wide card">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Settings</h5>
+<app-modal modalTitle="Settings"
+           modalTitleIcon="fa-cog"
+           modalId="settings"
+           affirmativeButtonText="Save"
+           (onFinish)="saveSettings()"
+           (onCancel)="cancelChanges()"
+           modalClass="dialog-wide">
+  <div *ngIf="tempSettings">
+    <div>
+      <div *ngFor="let tab of tabs;let i = index"
+           class="btn btn-secondary"
+           [ngClass]="{'settings-tab':true,active:currentTab==i}"
+           (click)="currentTab=i">{{tab}}</div>
+    </div>
+    <div *ngIf="currentTab==0">
+      <div>
+        Light Git v{{version}}
+        <button class="btn btn-sm btn-primary" (click)="checkForUpdates()">
+          Check for Updates
+          <i class="fa fa-sync"></i>
+        </button>
       </div>
-      <div class="modal-body">
-        <div>
-          <div *ngFor="let tab of tabs;let i = index"
-               class="btn btn-secondary"
-               [ngClass]="{'settings-tab':true,active:currentTab==i}"
-               (click)="currentTab=i">{{tab}}</div>
+      <div class="row">
+        <div class="col-6">
+          <div class="pretty p-switch p-fill my-3 d-block">
+            <input type="checkbox" [(ngModel)]="tempSettings.darkMode" (change)="setThemeTemp()"/>
+            <div class="state">
+              <label>{{tempSettings.darkMode ? 'Dark' : 'Light'}} Mode</label>
+            </div>
+          </div>
+          <div class="pretty p-switch p-fill my-3 d-block">
+            <input type="checkbox" [(ngModel)]="tempSettings.showTrackingPath"/>
+            <div class="state">
+              <label>Show branch tracking path</label>
+            </div>
+          </div>
+          <div class="pretty p-switch p-fill my-3 d-block">
+            <input type="checkbox" [(ngModel)]="tempSettings.commitMessageAutocomplete"/>
+            <div class="state">
+              <label>Show autocomplete when typing commit message</label>
+            </div>
+          </div>
         </div>
-        <div *ngIf="currentTab==0">
+        <div class="col-6">
+          <app-file-input [filePath]="tempSettings.gitPath"
+                          (onPathChanged)="tempSettings.gitPath=$event"
+                          [label]="'Git Path (required if not in PATH)'"></app-file-input>
+          <app-file-input [filePath]="tempSettings.bashPath"
+                          (onPathChanged)="tempSettings.bashPath=$event"
+                          [label]="'Bash Path (required if not in PATH)'"></app-file-input>
           <div>
-            Light Git v{{version}}
-            <button class="btn btn-sm btn-primary" (click)="checkForUpdates()">
-              Check for Updates
-              <i class="fa fa-sync"></i>
-            </button>
-          </div>
-          <div class="row">
-            <div class="col-6">
-              <div class="pretty p-switch p-fill my-3 d-block">
-                <input type="checkbox" [(ngModel)]="tempSettings.darkMode" (change)="setThemeTemp()"/>
-                <div class="state">
-                  <label>{{tempSettings.darkMode ? 'Dark' : 'Light'}} Mode</label>
-                </div>
-              </div>
-              <div class="pretty p-switch p-fill my-3 d-block">
-                <input type="checkbox" [(ngModel)]="tempSettings.showTrackingPath"/>
-                <div class="state">
-                  <label>Show branch tracking path</label>
-                </div>
-              </div>
-              <div class="pretty p-switch p-fill my-3 d-block">
-                <input type="checkbox" [(ngModel)]="tempSettings.commitMessageAutocomplete"/>
-                <div class="state">
-                  <label>Show autocomplete when typing commit message</label>
-                </div>
-              </div>
-            </div>
-            <div class="col-6">
-              <app-file-input [filePath]="tempSettings.gitPath"
-                              (onPathChanged)="tempSettings.gitPath=$event"
-                              [label]="'Git Path (required if not in PATH)'"></app-file-input>
-              <app-file-input [filePath]="tempSettings.bashPath"
-                              (onPathChanged)="tempSettings.bashPath=$event"
-                              [label]="'Bash Path (required if not in PATH)'"></app-file-input>
-              <div>
-                <label>
-                  Mergetool
-                  <input class="form-control" [(ngModel)]="tempSettings.mergetool">
-                </label>
-              </div>
-            </div>
-          </div>
-          <div class="pretty p-switch p-fill mx-2">
-            <input type="checkbox" [(ngModel)]="advanced"/>
-            <div class="state">
-              <label>Advanced</label>
-            </div>
-          </div>
-          <div *ngIf="advanced">
-            <label>Command timeout</label>
-            <div class="input-group">
-              <input class="form-control form-control-sm" [(ngModel)]="tempSettings.commandTimeoutSeconds">
-              <div class="input-group-append">
-                <span class="input-group-text">s</span>
-              </div>
-            </div>
-            <button class="btn btn-light" (click)="openDevTools()"><i class="fa fa-bug"></i> Debugger</button>
-          </div>
-        </div>
-        <div *ngIf="currentTab==1">
-          <p>Watch your code changes for specified patterns, and alert you before you commit</p>
-          <div class="pretty p-switch p-fill mb-1 d-block">
-            <input type="checkbox" [(ngModel)]="tempSettings.includeUnchangedInWatcherAnalysis"/>
-            <div class="state">
-              <label>Include Unchanged Surrounding Code in Analysis</label>
-            </div>
-          </div>
-          <table class="table table-striped">
-            <thead>
-            <tr>
-              <th>Name</th>
-              <th>Regex</th>
-              <th>Flags</th>
-              <th>Filename Filter</th>
-              <th>Enabled</th>
-              <th style="width: 1%"></th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr *ngFor="let w of tempSettings.codeWatchers; let i=index">
-              <td><input class="form-control" [(ngModel)]="w.name" placeholder="Watcher Name..."></td>
-              <td><input class="form-control" [(ngModel)]="w.regex" placeholder="Regex..."></td>
-              <td><input class="form-control small-input"
-                         [(ngModel)]="w.regexFlags"
-                         placeholder="Flags..."
-                         [pattern]="'[gmisuy]*'"></td>
-              <td><input class="form-control" [(ngModel)]="w.activeFilter" placeholder="Filename Regex..."></td>
-              <td>
-                <div class="pretty p-switch p-fill mx-2">
-                  <input type="checkbox" [(ngModel)]="w.enabled"/>
-                  <div class="state">
-                    <label></label>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <button class="btn btn-light td-btn" (click)="tempSettings.codeWatchers.splice(i,1)">
-                  <i class="fa fa-trash"></i></button>
-              </td>
-            </tr>
-            </tbody>
-          </table>
-          <button class="btn btn-info" (click)="addWatcher()">Add Watcher</button>
-        </div>
-        <div *ngIf="currentTab==2">
-          <div class="row">
-            <div class="col-6">
-              <label>Display Name</label>
-              <div class="input-group">
-                <input class="form-control" [(ngModel)]="tempSettings.username">
-              </div>
-              <label>Display Email</label>
-              <div class="input-group">
-                <input class="form-control" [(ngModel)]="tempSettings.email">
-              </div>
-            </div>
+            <label>
+              Mergetool
+              <input class="form-control" [(ngModel)]="tempSettings.mergetool">
+            </label>
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-success" (click)="saveSettings()">Save</button>
-        <button class="btn btn-secondary" (click)="cancelChanges()">Cancel</button>
+      <div class="pretty p-switch p-fill mx-2">
+        <input type="checkbox" [(ngModel)]="advanced"/>
+        <div class="state">
+          <label>Advanced</label>
+        </div>
+      </div>
+      <div *ngIf="advanced">
+        <label>Command timeout</label>
+        <div class="input-group">
+          <input class="form-control form-control-sm" [(ngModel)]="tempSettings.commandTimeoutSeconds">
+          <div class="input-group-append">
+            <span class="input-group-text">s</span>
+          </div>
+        </div>
+        <button class="btn btn-light" (click)="openDevTools()"><i class="fa fa-bug"></i> Debugger</button>
+      </div>
+    </div>
+    <div *ngIf="currentTab==1">
+      <p>Watch your code changes for specified patterns, and alert you before you commit</p>
+      <div class="pretty p-switch p-fill mb-1 d-block">
+        <input type="checkbox" [(ngModel)]="tempSettings.includeUnchangedInWatcherAnalysis"/>
+        <div class="state">
+          <label>Include Unchanged Surrounding Code in Analysis</label>
+        </div>
+      </div>
+      <table class="table table-striped">
+        <thead>
+        <tr>
+          <th>Name</th>
+          <th>Regex</th>
+          <th>Flags</th>
+          <th>Filename Filter</th>
+          <th>Enabled</th>
+          <th style="width: 1%"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let w of tempSettings.codeWatchers; let i=index">
+          <td><input class="form-control" [(ngModel)]="w.name" placeholder="Watcher Name..."></td>
+          <td><input class="form-control" [(ngModel)]="w.regex" placeholder="Regex..."></td>
+          <td><input class="form-control small-input"
+                     [(ngModel)]="w.regexFlags"
+                     placeholder="Flags..."
+                     [pattern]="'[gmisuy]*'"></td>
+          <td><input class="form-control" [(ngModel)]="w.activeFilter" placeholder="Filename Regex..."></td>
+          <td>
+            <div class="pretty p-switch p-fill mx-2">
+              <input type="checkbox" [(ngModel)]="w.enabled"/>
+              <div class="state">
+                <label></label>
+              </div>
+            </div>
+          </td>
+          <td>
+            <button class="btn btn-light td-btn" (click)="tempSettings.codeWatchers.splice(i,1)">
+              <i class="fa fa-trash"></i></button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-info" (click)="addWatcher()">Add Watcher</button>
+    </div>
+    <div *ngIf="currentTab==2">
+      <div class="row">
+        <div class="col-6">
+          <label>Display Name</label>
+          <div class="input-group">
+            <input class="form-control" [(ngModel)]="tempSettings.username">
+          </div>
+          <label>Display Email</label>
+          <div class="input-group">
+            <input class="form-control" [(ngModel)]="tempSettings.email">
+          </div>
+        </div>
       </div>
     </div>
   </div>
-</div>
+</app-modal>

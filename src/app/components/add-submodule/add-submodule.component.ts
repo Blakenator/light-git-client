@@ -4,45 +4,38 @@ import {ModalService} from '../../services/modal.service';
 @Component({
   selector: 'app-add-submodule',
   templateUrl: './add-submodule.component.html',
-  styleUrls: ['./add-submodule.component.scss']
+  styleUrls: ['./add-submodule.component.scss'],
 })
 export class AddSubmoduleComponent implements OnInit {
   @Input() uidSalt = '';
   @Output() onAddClicked = new EventEmitter<{ url: string, path: string }>();
-  showWindow = false;
   url: string;
   path: string;
   urlError: string;
   pathError: string;
 
   constructor(private modalService: ModalService, private applicationRef: ApplicationRef) {
-    this.modalService.registerModal('addSubmodule'+this.uidSalt).asObservable().subscribe(val => {
-      this.showWindow = val;
-      if (val) {
-        this.path = '';
-        this.url = '';
-        this.pathError = '';
-        this.urlError = '';
-      }
-      this.applicationRef.tick();
-    });
   }
 
   ngOnInit() {
-  }
-
-  cancel() {
-    this.modalService.setModalVisible('addSubmodule'+this.uidSalt, false);
   }
 
   addSubmodule() {
     const valid = this.url.trim();
     if (!this.url.trim()) {
       this.pathError = 'Please enter a valid url';
+      this.applicationRef.tick();
     }
     if (valid) {
-      this.modalService.setModalVisible('addSubmodule', false);
+      this.modalService.setModalVisible('addSubmodule' + this.uidSalt, false);
       this.onAddClicked.emit({url: this.url, path: this.path});
     }
+  }
+
+  resetFields() {
+    this.path = '';
+    this.url = '';
+    this.pathError = '';
+    this.urlError = '';
   }
 }

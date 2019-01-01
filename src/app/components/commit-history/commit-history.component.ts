@@ -48,15 +48,25 @@ export class CommitHistoryComponent implements OnInit {
       return this.commitHistory.filter(c => {
         const needle = this.commitFilter.toLowerCase();
         return FilterPipe.fuzzyFilter(needle, c.message.toLowerCase()) ||
-               FilterPipe.fuzzyFilter(needle, c.authorName.toLowerCase()) ||
-               FilterPipe.fuzzyFilter(needle, c.authorEmail.toLowerCase()) ||
-               FilterPipe.fuzzyFilter(needle, c.authorDate.toString().toLowerCase()) ||
-               c.hash.indexOf(needle) >= 0;
+          FilterPipe.fuzzyFilter(needle, c.authorName.toLowerCase()) ||
+          FilterPipe.fuzzyFilter(needle, c.authorEmail.toLowerCase()) ||
+          FilterPipe.fuzzyFilter(needle, c.authorDate.toString().toLowerCase()) ||
+          c.hash.indexOf(needle) >= 0;
       });
     }
   }
 
   cherryPickCommit(commit: CommitSummaryModel) {
     this.onClickCherryPick.emit(commit);
+  }
+
+  getTagClasses(tag: string) {
+    return {
+      'badge ml-1': true,
+      'badge-info': !tag.startsWith('tag: ') && !tag.startsWith('origin/') && !tag.startsWith('HEAD'),
+      'badge-warning': tag.startsWith('tag: '),
+      'badge-primary': tag.startsWith('origin/'),
+      'badge-success': tag.startsWith('HEAD'),
+    };
   }
 }

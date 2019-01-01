@@ -1,5 +1,5 @@
 import {ApplicationRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {ModalService} from '../../services/modal.service';
+import {ModalService} from '../../../../services/modal.service';
 
 @Component({
   selector: 'app-modal',
@@ -10,13 +10,18 @@ export class ModalComponent implements OnInit {
   show = false;
   render = false;
   @Output() onCancel = new EventEmitter();
+  @Output() onOpen = new EventEmitter();
   @Output() onFinish = new EventEmitter<string>();
   @Input() modalTitleIcon = '';
   @Input() modalClass = '';
   @Input() leaveOpen = false;
+  @Input() customModal = false;
+  @Input() hasAffirmative = true;
+  @Input() hasNegative = true;
   @Input() modalTitle: string;
   @Input() modalId: string;
   @Input() affirmativeButtonText = 'Ok';
+  @Input() affirmativeButtonDisabled = false;
   @Input() negativeButtonText = 'Cancel';
 
   constructor(private modalService: ModalService, private applicationRef: ApplicationRef) {

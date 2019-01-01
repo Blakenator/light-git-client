@@ -3,14 +3,14 @@ import {GitService} from '../../services/git.service';
 import {ConfigItemModel} from '../../../../shared/git/config-item.model';
 import {ErrorService} from '../common/services/error.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
+import {ModalService} from '../../services/modal.service';
 
 @Component({
   selector: 'app-git-config',
   templateUrl: './git-config.component.html',
-  styleUrls: ['./git-config.component.scss']
+  styleUrls: ['./git-config.component.scss'],
 })
 export class GitConfigComponent implements OnInit {
-  showWindow = false;
   isLoading = false;
   items: ConfigItemModel[] = [];
   currentEdit: ConfigItemModel;
@@ -20,6 +20,7 @@ export class GitConfigComponent implements OnInit {
 
   constructor(private gitService: GitService,
               private errorService: ErrorService,
+              private modalService: ModalService,
               private applicationRef: ApplicationRef) {
   }
 
@@ -27,12 +28,13 @@ export class GitConfigComponent implements OnInit {
   }
 
   show() {
-    this.showWindow = true;
+    this.modalService.setModalVisible('gitConfig', true);
     this.isLoading = true;
     this.gitService.getConfigItems()
         .then(items => this.handleItemsUpdate(items))
         .catch(error => this.errorService.receiveError(
-          new ErrorModel('Git config component, getConfigItems',
+          new ErrorModel(
+            'Git config component, getConfigItems',
             'getting config items',
             error)));
   }
@@ -56,7 +58,7 @@ export class GitConfigComponent implements OnInit {
   }
 
   close() {
-    this.showWindow = false;
+    this.modalService.setModalVisible('gitConfig', false);
     this.currentEdit = undefined;
   }
 
@@ -111,7 +113,8 @@ export class GitConfigComponent implements OnInit {
           }
           this.editedItem = originalItem;
           this.errorService.receiveError(
-            new ErrorModel('Git config component, setConfigItem',
+            new ErrorModel(
+              'Git config component, setConfigItem',
               'setting the config item',
               error || 'the section or key is invalid'));
         });
