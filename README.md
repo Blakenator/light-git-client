@@ -2,11 +2,15 @@
 A light, elegant git client
 
 ## Installation
-[Download from Github](https://github.com/Blakenator/light-git-client/releases/latest)
+[Download](https://blake.industries/p/light-git-client)
 
 Options:
-* Portable (\*.7zip, \*.zip) - no auto-updates, run the .exe
-* Installer (\*-setup-#-#-#.exe) - auto updates, run the .exe to install, then run from start menu
+* Portable
+  * No install necessary, no auto-update (except Linux)
+  * Mac (.dmg), Windows, Linux
+* Installer
+  * Installs app, with auto-update
+  * Windows
 
 ## Background
 This is a WIP project to address the following failings of other git clients:
@@ -38,7 +42,7 @@ This is a WIP project to address the following failings of other git clients:
 
 ### TODO:
 * Clone &check; (10/1/18)
-* Branching visualization
+* Branching visualization &check; (12/19/18)
 * Tag editor (tags currently visible in commit history)
 * Ability to move tabs
 * More force- options

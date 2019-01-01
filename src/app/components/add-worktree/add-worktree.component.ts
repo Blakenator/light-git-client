@@ -7,7 +7,7 @@ import {Observable} from 'rxjs';
 @Component({
   selector: 'app-add-worktree',
   templateUrl: './add-worktree.component.html',
-  styleUrls: ['./add-worktree.component.scss']
+  styleUrls: ['./add-worktree.component.scss'],
 })
 export class AddWorktreeComponent implements OnInit {
   showWindow: Observable<boolean>;
@@ -15,12 +15,15 @@ export class AddWorktreeComponent implements OnInit {
   path = '';
   selectedBranch: BranchModel;
   @Input() branches: BranchModel[];
+  @Input() uidSalt = '';
   @Output() onAddWorktree = new EventEmitter();
   output: { err: string, out: string, done: boolean }[] = [];
   isLoading = false;
 
-  constructor(private gitService: GitService, private applicationRef: ApplicationRef, public modalService: ModalService) {
-    this.showWindow = modalService.registerModal('addWorktree').asObservable();
+  constructor(private gitService: GitService,
+              private applicationRef: ApplicationRef,
+              public modalService: ModalService) {
+    this.showWindow = modalService.registerModal('addWorktree' + this.uidSalt).asObservable();
   }
 
   ngOnInit() {

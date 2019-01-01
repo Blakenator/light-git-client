@@ -81,19 +81,30 @@
         </button>
       </div>
       <div class="card-body branch-container" *ngIf="getExpandState('worktrees')">
-        <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter">
+        <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter" class="d-flex">
           <span [title]="w.path"
-                [ngClass]="{'bold':w.isCurrent}">
+                [ngClass]="{'bold':w.isCurrent}"
+                class="flex-grow-1">
             {{w.name}}
             <small *ngIf="w.currentBranch=='detached'">(detached)</small>
           </span>
-          <div class="d-inline-block ml-3">
+          <div class="flex-grow-0 ml-3">
             <button class="btn btn-info btn-sm" (click)="openFolder(w.path)" title="Open folder at Worktree root"><i
               class="fas fa-folder-open"></i></button>
-            <button *ngIf="!w.isCurrent" class="btn btn-light btn-sm" (click)="loadRepo(w.path)">
+            <button class="btn btn-primary btn-sm"
+                    title="Open in New Tab"
+                    *ngIf="w.currentHash!='bare' && !w.isCurrent"
+                    (click)="onOpenRepoNewTab.emit(w.path)">
+              <i class="fa fa-external-link-square-alt"></i>
+            </button>
+            <button *ngIf="w.currentHash!='bare' && !w.isCurrent"
+                    class="btn btn-light btn-sm"
+                    (click)="loadRepo(w.path)">
               <i class="fa fa-exchange-alt"></i>
             </button>
-            <button *ngIf="!w.isCurrent" class="btn btn-danger btn-sm" (click)="deleteWorktree(w)">
+            <button *ngIf="w.currentHash!='bare' && !w.isCurrent"
+                    class="btn btn-danger btn-sm"
+                    (click)="deleteWorktree(w)">
               <i class="fa fa-trash"></i>
             </button>
           </div>
@@ -130,13 +141,25 @@
         </div>
       </div>
       <div class="card-body branch-container" *ngIf="getExpandState('submodules')">
-        <div *ngFor="let w of repo.submodules | filterObject : 'path' : submoduleFilter">
-          <span [title]="w.path">
+        <div *ngFor="let w of repo.submodules | filterObject : 'path' : submoduleFilter" class="d-flex">
+          <span [title]="w.path" class="flex-grow-1">
             <span class="badge badge-light badge-pill" *ngFor="let r of w.path.split('/');let i=index">
               {{r}}
               <i class="mx-1 fa fa-arrow-right" *ngIf="i<w.path.split('/').length-1"></i>
             </span>
           </span>
+          <div class="flex-grow-0">
+            <button class="btn btn-primary btn-sm"
+                    title="Open in New Tab"
+                    (click)="onOpenRepoNewTab.emit(repo.path+'/'+w.path)">
+              <i class="fa fa-external-link-square-alt"></i>
+            </button>
+            <button class="btn btn-warning btn-sm"
+                    title="Quick View"
+                    (click)="viewSubmodule(w)">
+              <i class="fa fa-eye"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -329,10 +352,27 @@
                    (onClickOk)="createStash($event)"
                    (onClickCancel)="showCreateStash=false"></app-input-modal>
   <app-code-watcher-alerts (onCommitClicked)="commit()"></app-code-watcher-alerts>
-  <app-add-worktree [branches]="repo.remoteBranches" (onAddWorktree)="getFileChanges()"></app-add-worktree>
-  <app-add-submodule (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
-  <app-confirm-modal modalTitle="Confirm Discard All" (onConfirm)="hardReset()" modalId="discardAllModal">
+  <app-add-worktree [uidSalt]="repoViewUid"
+                    [branches]="repo.remoteBranches"
+                    (onAddWorktree)="getFileChanges()"></app-add-worktree>
+  <app-add-submodule [uidSalt]="repoViewUid" (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
+  <app-confirm-modal modalTitle="Confirm Discard All"
+                     (onConfirm)="hardReset()"
+                     [modalId]="'discardAllModal'+repoViewUid">
     Are you sure you want to discard <i>all changes</i>?<br/>
     <b>This cannot be undone</b>
   </app-confirm-modal>
+  <app-modal [modalId]="'submoduleViewer'+repoViewUid"
+             [modalTitle]="'Submodule: ' + activeSubmodule?.path"
+             class="position-relative"
+             modalClass="embedded-repo-view"
+             (onCancel)="activeSubmodule=null"
+             (onFinish)="activeSubmodule=null">
+    <div *ngIf="activeSubmodule">
+      <app-repo-view [repoPath]="repo.path+'/'+ activeSubmodule.path"
+                     (onLoadingChange)="onLoadingChange.emit($event)"
+                     (onOpenRepoNewTab)="onOpenRepoNewTab.emit($event)"
+                     (onLoadRepoFailed)="onLoadRepoFailed.emit($event)"></app-repo-view>
+    </div>
+  </app-modal>
 </div>

@@ -78,8 +78,8 @@ html, body {
 
 ::-webkit-scrollbar {
   -webkit-appearance: none;
-  width: .4em;
-  height: .4em;
+  width: .4rem;
+  height: .4rem;
   background: transparent;
 }
 
@@ -100,7 +100,7 @@ body {
   overflow-x: hidden;
 }
 
-.dialog-container {
+.dialog-container, .modal {
   position: fixed;
   width: 100%;
   height: 100%;
@@ -115,10 +115,9 @@ body {
   position: fixed;
   width: 30em;
   max-width: 100%;
-  left: 0;
-  right: 0;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
   margin: auto;
   max-height: 60%;
   box-shadow: $material-dialog-shadow;
@@ -130,7 +129,33 @@ body {
     .modal-body {
       overflow-y: auto;
       flex-grow: 1;
+      max-height: 100%;
     }
+  }
+
+  &.dialog-wide {
+    width: 60em;
+  }
+}
+
+.modal-dialog > .modal-content {
+  z-index: 100;
+  position: fixed;
+  width: 30em;
+  max-width: 100%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: auto;
+  max-height: 60%;
+  box-shadow: $material-dialog-shadow;
+  display: flex;
+  flex-direction: column;
+
+  .modal-body {
+    overflow-y: auto;
+    flex-grow: 1;
+    max-height: 100%;
   }
 
   &.dialog-wide {
@@ -256,4 +281,11 @@ svg text {
   font-family: "Font Awesome 5 Free";
   font-size: .9em;
   font-weight: 900;
+}
+
+app-modal .embedded-repo-view {
+  width: 90vw !important;
+  height: 90vh !important;
+  max-height: unset !important;
+  max-width: unset !important;
 }

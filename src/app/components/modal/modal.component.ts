@@ -12,6 +12,7 @@ export class ModalComponent implements OnInit {
   @Output() onCancel = new EventEmitter();
   @Output() onFinish = new EventEmitter<string>();
   @Input() modalTitleIcon = '';
+  @Input() modalClass = '';
   @Input() leaveOpen = false;
   @Input() modalTitle: string;
   @Input() modalId: string;

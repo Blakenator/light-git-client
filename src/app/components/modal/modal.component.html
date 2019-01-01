@@ -1,6 +1,6 @@
 <div class="modal fade d-block text-body" [ngClass]="{show:show}" *ngIf="render" (click)="setVisible(false)">
   <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
-    <div class="modal-content">
+    <div class="modal-content {{modalClass}}">
       <div class="modal-header">
         <h5 class="modal-title"><i class="fa {{modalTitleIcon}}" *ngIf="modalTitleIcon"></i> {{modalTitle}}</h5>
       </div>

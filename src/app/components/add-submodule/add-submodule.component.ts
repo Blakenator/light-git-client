@@ -1,4 +1,4 @@
-import {ApplicationRef, Component, EventEmitter, OnInit, Output} from '@angular/core';
+import {ApplicationRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {ModalService} from '../../services/modal.service';
 
 @Component({
@@ -7,6 +7,7 @@ import {ModalService} from '../../services/modal.service';
   styleUrls: ['./add-submodule.component.scss']
 })
 export class AddSubmoduleComponent implements OnInit {
+  @Input() uidSalt = '';
   @Output() onAddClicked = new EventEmitter<{ url: string, path: string }>();
   showWindow = false;
   url: string;
@@ -15,7 +16,7 @@ export class AddSubmoduleComponent implements OnInit {
   pathError: string;
 
   constructor(private modalService: ModalService, private applicationRef: ApplicationRef) {
-    this.modalService.registerModal('addSubmodule').asObservable().subscribe(val => {
+    this.modalService.registerModal('addSubmodule'+this.uidSalt).asObservable().subscribe(val => {
       this.showWindow = val;
       if (val) {
         this.path = '';
@@ -31,7 +32,7 @@ export class AddSubmoduleComponent implements OnInit {
   }
 
   cancel() {
-    this.modalService.setModalVisible('addSubmodule', false);
+    this.modalService.setModalVisible('addSubmodule'+this.uidSalt, false);
   }
 
   addSubmodule() {

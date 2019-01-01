@@ -8,7 +8,7 @@ import {SettingsModel} from '../shared/SettingsModel';
 import {WorktreeModel} from '../shared/git/worktree.model';
 import {logger} from 'codelyzer/util/logger';
 import {StashModel} from '../shared/git/stash.model';
-import {DiffHeaderModel, DiffHeaderStagedState} from '../shared/git/diff.header.model';
+import {DiffHeaderAction, DiffHeaderModel, DiffHeaderStagedState} from '../shared/git/diff.header.model';
 import {ConfigItemModel} from '../shared/git/config-item.model';
 import * as fs from 'fs';
 import {ErrorModel} from '../shared/common/error.model';
@@ -97,16 +97,16 @@ export class GitClient {
 
   openRepo(): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      if (!fs.existsSync(path.join(this.workingDir, '.git'))) {
-        reject('Not a valid git repository');
-        return;
-      }
-      this.getBranches().then(rep => {
-        let res = Object.assign(new RepositoryModel(), rep || {});
-        res.path = this.workingDir;
-        res.name = path.basename(this.workingDir);
-        resolve(res);
-      }).catch(err => reject(serializeError(err)));
+      this.execute(this.getGitPath() + ' rev-parse --is-inside-work-tree', 'Check Is Git Working Tree').then(() => {
+        this.getBranches().then(rep => {
+          let res = Object.assign(new RepositoryModel(), rep || {});
+          res.path = this.workingDir;
+          res.name = path.basename(this.workingDir);
+          resolve(res);
+        }).catch(err => reject(serializeError(err)));
+      }).catch(() => {
+        reject('Not a valid git repository, submodule, or worktree');
+      });
     });
   }
 
@@ -670,11 +670,17 @@ export class GitClient {
         }
       }).catch(err => new ErrorModel('getRemoteBranches', 'getting the list of remote branches', err)));
       Promise.all(promises).then(ignore => {
-        let currentBranch = result.localBranches.find(x => x.isCurrentBranch);
-        if (currentBranch) {
-          let currentBranchPath = currentBranch.name;
-          result.worktrees[result.worktrees.findIndex(x => x.currentBranch == currentBranchPath)].isCurrent = true;
+        // let currentBranch = result.localBranches.find(x => x.isCurrentBranch);
+        // console.log(currentBranch);
+        // console.log(result.worktrees);
+        // if (currentBranch) {
+        //   let currentBranchPath = currentBranch.name;
+        //   let index = result.worktrees.findIndex(x => x.currentBranch == currentBranchPath);
+        let index = result.worktrees.findIndex(x => x.path == this.workingDir);
+        if (index >= 0) {
+          result.worktrees[index].isCurrent = true;
         }
+        // }
         resolve(result);
       }).catch(error => {
         reject(serializeError(error));
@@ -686,7 +692,7 @@ export class GitClient {
   };
 
   private parseDiffString(text: string, state: DiffHeaderStagedState): DiffHeaderModel[] {
-    let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)(\r?\n(?!@@).*)+?((\r?\n(?!diff).*)*)/gm;
+    let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
     let hunk = /\s*@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
     let line = /^([+\- ])(.*)$/gm;
     let headerMatch = diffHeader.exec(text);
@@ -696,7 +702,19 @@ export class GitClient {
       header.fromFilename = headerMatch[1];
       header.toFilename = headerMatch[3];
       header.stagedState = state;
-      let hunkMatch = hunk.exec(headerMatch[6]);
+      let extraHeaders = headerMatch[5];
+      if (extraHeaders.indexOf('\nrename') >= 0) {
+        header.action = DiffHeaderAction.RENAMED;
+      } else if (extraHeaders.indexOf('\ncopy') >= 0) {
+        header.action = DiffHeaderAction.COPIED;
+      } else if (extraHeaders.indexOf('\ndeleted') >= 0) {
+        header.action = DiffHeaderAction.DELETED;
+      } else if (extraHeaders.indexOf('\nnew file') >= 0) {
+        header.action = DiffHeaderAction.ADDED;
+      } else {
+        header.action = DiffHeaderAction.CHANGED;
+      }
+      let hunkMatch = hunk.exec(headerMatch[7]);
       while (hunkMatch) {
         let h = new DiffHunkModel();
         let startTo = +hunkMatch[1];
