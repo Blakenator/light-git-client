@@ -308,7 +308,7 @@ export class GitClient {
 
   commit(message: string, push: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      let s = message.replace(/\"/g, '').replace(/\r?\n/g, '" -m "');
+      let s = message.replace(/'/g, '').replace(/"/g, '').replace(/\r?\n/g, '" -m "');
       this.execute(
         this.getBashedGit() +
         '  commit -m "' +
@@ -472,7 +472,7 @@ export class GitClient {
         this.getGitPath() +
         ' rev-list -n' +
         (count || 50) +
-        ' --remotes --skip=' +
+        ' --branches --tags --remotes --skip=' +
         (skip || 0) +
         ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%P|%B"\n',
         'Get Commit History')
@@ -670,17 +670,10 @@ export class GitClient {
         }
       }).catch(err => new ErrorModel('getRemoteBranches', 'getting the list of remote branches', err)));
       Promise.all(promises).then(ignore => {
-        // let currentBranch = result.localBranches.find(x => x.isCurrentBranch);
-        // console.log(currentBranch);
-        // console.log(result.worktrees);
-        // if (currentBranch) {
-        //   let currentBranchPath = currentBranch.name;
-        //   let index = result.worktrees.findIndex(x => x.currentBranch == currentBranchPath);
         let index = result.worktrees.findIndex(x => x.path == this.workingDir);
         if (index >= 0) {
           result.worktrees[index].isCurrent = true;
         }
-        // }
         resolve(result);
       }).catch(error => {
         reject(serializeError(error));
