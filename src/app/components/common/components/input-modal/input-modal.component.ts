@@ -1,4 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
+import {ModalService} from '../../../../services/modal.service';
 
 @Component({
   selector: 'app-input-modal',
@@ -19,7 +20,7 @@ export class InputModalComponent implements OnInit {
   value: string;
   errorMessage: string;
 
-  constructor() {
+  constructor(private modalService: ModalService) {
     this.value = this.defaultText;
   }
 
@@ -30,6 +31,7 @@ export class InputModalComponent implements OnInit {
     if (this.value.match(this.validPattern)) {
       this.onClickOk.emit(this.value);
       this.errorMessage = '';
+      this.modalService.setModalVisible(this.modalId + this.uidSalt, false);
     } else {
       this.errorMessage = this.invalidMessage;
     }

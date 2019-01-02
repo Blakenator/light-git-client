@@ -21,6 +21,7 @@ export class SettingsComponent implements OnInit {
   tabs: string[] = ['General', 'Code Watchers', 'Config Shortcuts'];
   configItems: ConfigItemModel[];
   @Output() onSaveAction = new EventEmitter<SettingsModel>();
+  setGlobalDefaultUserConfig = false;
 
   constructor(private electronService: ElectronService,
               private gitService: GitService,
@@ -43,9 +44,10 @@ export class SettingsComponent implements OnInit {
 
   saveSettings() {
     if (this.tempSettings.username != this.settingsService.settings.username || this.tempSettings.email != this.settingsService.settings.email) {
+      let useGlobal = (this.setGlobalDefaultUserConfig ? '--global ' : '');
       this.gitService.setBulkGitSettings({
-        ['user.name']: this.tempSettings.username,
-        ['user.email']: this.tempSettings.email,
+        [useGlobal + 'user.name']: this.tempSettings.username,
+        [useGlobal + 'user.email']: this.tempSettings.email,
       });
     }
     this.setThemeTemp();

@@ -741,7 +741,7 @@ export class GitClient {
           lineMatch = line.exec(hunkMatch[7]);
         }
         header.hunks.push(h);
-        hunkMatch = hunk.exec(headerMatch[6]);
+        hunkMatch = hunk.exec(headerMatch[7]);
       }
       result.push(header);
       headerMatch = diffHeader.exec(text);
