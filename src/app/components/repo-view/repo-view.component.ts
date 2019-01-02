@@ -51,6 +51,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   isLoading = false;
   @Output() onLoadingChange = new EventEmitter<boolean>();
   @Output() onLoadRepoFailed = new EventEmitter<ErrorModel>();
+  @Output() onOpenRepoNewTab = new EventEmitter<string>();
   worktreeFilter: string;
   diffCommitInfo: CommitSummaryModel;
   stashFilter: string;
@@ -58,8 +59,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   unstagedChangesFilter: string;
   commandHistoryFilter: string;
   submoduleFilter: string;
-  showCreateBranch = false;
-  showCreateStash = false;
   stashOnlyUnstaged = true;
   selectedAutocompleteItem = 0;
   suggestions: string[] = [];
@@ -68,6 +67,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   maxCommandsVisible = 10;
   commandsPerPage = 10;
   debounceRefreshTimer: number;
+  repoViewUid: number;
+  activeSubmodule: SubmoduleModel;
   private interval;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -86,6 +87,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.commandHistory = history;
       this.applicationRef.tick();
     });
+    this.repoViewUid = Math.round(Math.random() * 10000000);
   }
 
   getStashFilterText(stash: StashModel) {
@@ -306,7 +308,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.setLoading(false, true);
           this.applicationRef.tick();
         })
-        .catch(err => this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'cherryPickCommit',
+        .catch(err => this.handleErrorMessage(new ErrorModel(
+          this._errorClassLocation + 'cherryPickCommit',
           'cherry-picking commit onto current branch',
           err)));
     this.clearSelectedChanges();
@@ -384,7 +387,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   stash(onlyUnstaged: boolean) {
     this.stashOnlyUnstaged = onlyUnstaged;
-    this.showCreateStash = true;
+    this.showModal('createStash');
+  }
+
+  showModal(id: string, val: boolean = true) {
+    this.modalService.setModalVisible(id + this.repoViewUid, val);
   }
 
   createStash(stashName: string) {
@@ -474,8 +481,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         .then(changes => this.handleBranchChanges(changes))
         .catch((err: string) => {
           if (err && err
-                    .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
-              (!this.firstNoRemoteErrorDisplayed || manualFetch)) {
+              .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
+            (!this.firstNoRemoteErrorDisplayed || manualFetch)) {
             this.handleErrorMessage(new ErrorModel(
               this._errorClassLocation + 'fetch',
               'fetching remote changes',
@@ -553,10 +560,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           const currentBranch = this.repo.localBranches.find(x => x.isCurrentBranch);
           this.diffCommitInfo.hash = branch.currentHash + ' <--> ' + currentBranch.currentHash;
           this.diffCommitInfo.message = 'Diff of all changes since last common ancestor between \'' +
-                                        branch.name +
-                                        '\' and \'' +
-                                        currentBranch.name +
-                                        '\'';
+            branch.name +
+            '\' and \'' +
+            currentBranch.name +
+            '\'';
           this.isLoading = false;
           this.applicationRef.tick();
         })
@@ -600,7 +607,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         .then(changes => {
           this.handleBranchChanges(changes);
           this.getCommitHistory();
-          this.showCreateBranch = false;
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'createBranch',
@@ -689,15 +695,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.changes.description = this.changes.description.substring(
       0,
       this.currentCommitCursorPosition - this.positionInAutoComplete) +
-                               this.suggestions[this.selectedAutocompleteItem] +
-                               this.changes.description.substring(this.currentCommitCursorPosition +
-                               (removeEnter ? 1 : 0));
+      this.suggestions[this.selectedAutocompleteItem] +
+      this.changes.description.substring(this.currentCommitCursorPosition +
+        (removeEnter ? 1 : 0));
     this.selectedAutocompleteItem = 0;
     this.suggestions = [];
   }
 
   setAddWorktreeVisible(val: boolean) {
-    this.modalService.setModalVisible('addWorktree', val);
+    this.showModal('addWorktree', val);
   }
 
   getCommandHistoryFilterableText(command: CommandHistoryModel) {
@@ -726,6 +732,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   hunkChangeError($event: any) {
     this.handleErrorMessage(
       new ErrorModel('', 'saving changes to the hunk', $event));
+  }
+
+  viewSubmodule(submodule: SubmoduleModel) {
+    this.activeSubmodule = submodule;
+    this.showModal('submoduleViewer');
   }
 
   private levenshtein(a: string, b: string): number {

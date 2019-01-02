@@ -1,57 +1,54 @@
-<div class="dialog-container" *ngIf="showWindow | async">
-  <div class="dialog-window dialog-wide card">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add Worktree </h5>
-      </div>
-      <div class="modal-body">
-        <div *ngIf="!selectedBranch" class="form-group">
-          <label>Choose Branch</label>
-          <input class="form-control"
-                 [(ngModel)]="filter"
-                 placeholder="Branch filter...">
-          <div class="branch-list">
-            <table class="table table-striped table-hover">
-              <tr *ngFor="let b of branches | filterObject : 'name' : filter">
-                <td>{{b.name}}</td>
-                <td>
-                  <button class="btn btn-primary" (click)="chooseBranch(b)">Select</button>
-                </td>
-              </tr>
-            </table>
-          </div>
-        </div>
-        <div *ngIf="selectedBranch">
-          Selected Branch:
-          <span class="badge badge-primary p-2 selected-branch" (click)="selectedBranch=undefined">
+<app-modal [modalId]="'addWorktree'+uidSalt"
+           modalTitle="Add Worktree"
+           modalTitleIcon="fa-copy"
+           affirmativeButtonText="Add"
+           modalClass="dialog-wide"
+           [affirmativeButtonDisabled]="isLoading"
+           [negativeButtonText]="isLoading?'Close':'Cancel'"
+           (onCancel)="cancel()"
+           (onFinish)="add()"
+           [leaveOpen]="true">
+  <div *ngIf="!selectedBranch" class="form-group">
+    <label>Choose Branch</label>
+    <input class="form-control"
+           [(ngModel)]="filter"
+           placeholder="Branch filter...">
+    <small class="error-message" *ngIf="branchError">{{branchError}}</small>
+    <div class="branch-list">
+      <table class="table table-striped table-hover">
+        <tr *ngFor="let b of branches | filterObject : 'name' : filter">
+          <td>{{b.name}}</td>
+          <td>
+            <button class="btn btn-primary" (click)="chooseBranch(b)">Select</button>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <div *ngIf="selectedBranch">
+    Selected Branch:
+    <span class="badge badge-primary p-2 selected-branch" (click)="selectedBranch=undefined">
             {{selectedBranch.name}}
-            <i class="fa fa-times"></i>
-          </span>
-        </div>
-        <app-file-input [allowMultiple]="false"
-                        [isFolder]="true"
-                        label="Worktree Location"
-                        [filePath]="path"
-                        (onPathChanged)="path=$event"
-                        [disabled]="isLoading"></app-file-input>
-
-        <div class="card">
-          <div class="card-header">Output
-            <app-loading-spinner class="d-inline-block" [show]="isLoading"></app-loading-spinner>
-          </div>
-          <div class="card-body">
-            <div *ngFor="let o of output">
-              <pre *ngIf="o.err" style="color:rgba(250,150,150,.5)">{{o.err}}</pre>
-              <pre *ngIf="o.out">{{o.out}}</pre>
-              <pre *ngIf="o.done" class="text-muted">command execution finished -------------</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-warning" (click)="add()" [disabled]="isLoading">Add</button>
-        <button class="btn btn-secondary" (click)="cancel()">{{isLoading?'Close':'Cancel'}}</button>
+      <i class="fa fa-times"></i>
+    </span>
+  </div>
+  <app-file-input [allowMultiple]="false"
+                  [isFolder]="true"
+                  label="Worktree Location"
+                  [filePath]="path"
+                  (onPathChanged)="path=$event"
+                  [disabled]="isLoading"></app-file-input>
+  <small class="error-message" *ngIf="pathError">{{pathError}}</small>
+  <div class="card">
+    <div class="card-header">Output
+      <app-loading-spinner class="d-inline-block" [show]="isLoading"></app-loading-spinner>
+    </div>
+    <div class="card-body">
+      <div *ngFor="let o of output">
+        <pre *ngIf="o.err" style="color:rgba(250,150,150,.5)">{{o.err}}</pre>
+        <pre *ngIf="o.out">{{o.out}}</pre>
+        <pre *ngIf="o.done" class="text-muted">command execution finished -------------</pre>
       </div>
     </div>
   </div>
-</div>
+</app-modal>

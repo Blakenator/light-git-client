@@ -14,7 +14,7 @@ import {FilterPipe} from '../common/pipes/filter.pipe';
 @Component({
   selector: 'app-diff-viewer',
   templateUrl: './diff-viewer.component.html',
-  styleUrls: ['./diff-viewer.component.scss']
+  styleUrls: ['./diff-viewer.component.scss'],
 })
 export class DiffViewerComponent implements OnInit {
   @Input() diffHeaders: DiffHeaderModel[];
@@ -51,25 +51,6 @@ export class DiffViewerComponent implements OnInit {
     return LineState.REMOVED == line.state;
   }
 
-  getHeaderTag(header: DiffHeaderModel) {
-    if (header.toFilename == header.fromFilename) {
-      if (header.hunks.every(x => x.fromNumLines == 0)) {
-        return 'Added';
-      } else if (header.hunks.every(x => x.toNumLines == 0)) {
-        return 'Deleted';
-      } else {
-        return 'Changed';
-      }
-    } else if (header.fromFilename.substring(header.fromFilename.lastIndexOf('/')) ==
-               header.toFilename.substring(header.toFilename.lastIndexOf(
-                 '/'))) {
-      return 'Moved';
-    } else if (header.fromFilename.substring(0, header.fromFilename.lastIndexOf('/')) == header.toFilename.substring(0,
-      header.toFilename.lastIndexOf('/'))) {
-      return 'Renamed';
-    }
-  }
-
   saveSettings() {
     setTimeout(() => {
       this.settingsService.saveSettings();
@@ -98,7 +79,8 @@ export class DiffViewerComponent implements OnInit {
           this.editingHeader = undefined;
           this.editingHunk = undefined;
         })
-        .catch(error => this.onHunkChangeError.emit(new ErrorModel('Diff viewer component, changeHunk',
+        .catch(error => this.onHunkChangeError.emit(new ErrorModel(
+          'Diff viewer component, changeHunk',
           'saving hunk changes',
           error)));
   }
@@ -111,11 +93,11 @@ export class DiffViewerComponent implements OnInit {
 
   isEditingHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
     return this.editingHunk &&
-           this.editingHeader &&
-           this.editingHunk.fromStartLine ==
-           hunk.fromStartLine &&
-           this.editingHeader.fromFilename ==
-           header.fromFilename;
+      this.editingHeader &&
+      this.editingHunk.fromStartLine ==
+      hunk.fromStartLine &&
+      this.editingHeader.fromFilename ==
+      header.fromFilename;
   }
 
   undoHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
@@ -125,7 +107,8 @@ export class DiffViewerComponent implements OnInit {
   }
 
   hasConflictingWatcher(hunk: DiffHunkModel, header: DiffHeaderModel) {
-    return CodeWatcherService.getWatcherAlerts(this.settingsService.settings,
+    return CodeWatcherService.getWatcherAlerts(
+      this.settingsService.settings,
       [this.getTemporaryHunk(header, hunk)]).length > 0;
   }
 
@@ -141,7 +124,8 @@ export class DiffViewerComponent implements OnInit {
     if (!down) {
       this.scrollOffset = this.numPerPage * 3;
     }
-    this.scrollOffset = Math.round(Math.max(this.numPerPage * 3,
+    this.scrollOffset = Math.round(Math.max(
+      this.numPerPage * 3,
       Math.min(this.scrollOffset, this.diffHeaders.length - this.numPerPage)));
   }
 
@@ -150,8 +134,9 @@ export class DiffViewerComponent implements OnInit {
       return this.diffHeaders;
     } else {
       return this.diffHeaders.filter(header => {
-        return FilterPipe.fuzzyFilter(this.diffFilter, header.fromFilename) ||
-               FilterPipe.fuzzyFilter(this.diffFilter, header.toFilename);
+        let needle = this.diffFilter.toLowerCase();
+        return FilterPipe.fuzzyFilter(needle, header.fromFilename.toLowerCase()) ||
+          FilterPipe.fuzzyFilter(needle, header.toFilename.toLowerCase());
       });
     }
   }

@@ -20,6 +20,7 @@
 .change-body {
   max-height: 50vh;
   overflow: auto;
+
   table {
     width: 100%;
   }
@@ -44,6 +45,7 @@
   overflow-y: hidden;
   transition: max-height .5s;
   padding-top: .5em;
+
   &:hover {
     max-height: 10em;
     overflow-y: auto;
@@ -55,6 +57,7 @@
   overflow-y: hidden;
   transition: max-height .5s;
   margin-bottom: 0;
+
   &:hover {
     max-height: 20em;
     overflow-y: auto;
@@ -65,6 +68,7 @@
   .fa-exclamation-triangle {
     color: rgba(225, 128, 128, .5);
   }
+
   .fa-check-circle {
     color: rgba(128, 225, 128, .5);
   }
@@ -97,6 +101,7 @@
   -ms-transition: max-width .3s;
   -o-transition: max-width .3s;
   transition: max-width .3s;
+
   &:active, &:focus {
     max-width: 30em;
   }

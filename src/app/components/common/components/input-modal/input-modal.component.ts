@@ -3,11 +3,13 @@ import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 @Component({
   selector: 'app-input-modal',
   templateUrl: './input-modal.component.html',
-  styleUrls: ['./input-modal.component.scss']
+  styleUrls: ['./input-modal.component.scss'],
 })
 export class InputModalComponent implements OnInit {
   @Input() modalTitle = '';
+  @Input() modalId;
   @Input() message = '';
+  @Input() uidSalt = '';
   @Input() inputPlaceholder = '';
   @Input() validPattern = '';
   @Input() invalidMessage = '';
@@ -18,14 +20,7 @@ export class InputModalComponent implements OnInit {
   errorMessage: string;
 
   constructor() {
-  }
-
-  _show = false;
-
-  @Input() set show(val: boolean) {
-    this._show = val;
     this.value = this.defaultText;
-    this.errorMessage = '';
   }
 
   ngOnInit() {
@@ -34,23 +29,20 @@ export class InputModalComponent implements OnInit {
   okClicked() {
     if (this.value.match(this.validPattern)) {
       this.onClickOk.emit(this.value);
-      this.show = false;
       this.errorMessage = '';
     } else {
       this.errorMessage = this.invalidMessage;
     }
-  }
-
-  cancelClicked() {
-    this.onClickCancel.emit(this.value);
-    this.show = false;
   }
 
   checkValid() {
     if (!this.value.match(this.validPattern)) {
       this.errorMessage = this.invalidMessage;
+      return false;
     } else {
       this.errorMessage = '';
+      return true;
     }
   }
+
 }

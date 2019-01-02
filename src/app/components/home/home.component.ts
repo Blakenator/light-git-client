@@ -10,7 +10,7 @@ import {ErrorService} from '../common/services/error.service';
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss']
+  styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit {
   isLoading = false;
@@ -33,7 +33,8 @@ export class HomeComponent implements OnInit {
     this.settingsService.loadSettings(callback => {
       this.repoPaths = this.settingsService.settings.openRepos;
       this.activeTab = this.settingsService.settings.activeTab;
-      this.tabNames = this.settingsService.settings.tabNames.map((x, index) => x || this.basename(this.settingsService.settings.openRepos[index]));
+      this.tabNames = this.settingsService.settings.tabNames.map((x,
+                                                                  index) => x || this.basename(this.settingsService.settings.openRepos[index]));
       this.tabs = [...this.repoPaths.keys()];
       this.repoPaths.forEach((p) => {
         this.repoCache[p] = new RepositoryModel();
@@ -51,11 +52,17 @@ export class HomeComponent implements OnInit {
     this.saveOpenRepos();
   }
 
-  addTab() {
+  addTab(path: string = '') {
     this.activeTab = this.tabs.length;
     this.tabs.push(this.tabs.length);
     this.repoPaths.push('');
     this.tabNames.push('Tab ' + this.activeTab);
+    if (path) {
+      setTimeout(() => {
+        this.loadRepo(path);
+        this.applicationRef.tick();
+      }, 100);
+    }
     this.saveOpenRepos();
   }
 

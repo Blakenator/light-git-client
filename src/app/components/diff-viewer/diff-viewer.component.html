@@ -48,10 +48,10 @@
           </span>
         </div>
         <div class="flex-grow-0 center-text-vertical tag-container">
-          <span [class]="'tag '+getHeaderTag(header)">{{getHeaderTag(header)}}</span>
+          <span [class]="'tag '+header.action">{{header.action}}</span>
         </div>
       </div>
-      <div class="diff-header">
+      <div class="diff-header" *ngIf="header.action!='Deleted'">
         <div *ngFor="let hunk of header.hunks">
           <div class="btn btn-block btn-warning mt-3 d-flex justify-content-between"
                *ngIf="!isEditingHunk(hunk,header) && hasConflictingWatcher(hunk,header)"
