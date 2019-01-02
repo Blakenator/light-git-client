@@ -80,6 +80,10 @@ export class GitService {
     return this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, hash]);
   }
 
+  setBulkGitSettings(config: { [key: string]: string|number }): Promise<any> {
+    return this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config]);
+  }
+
   checkGitBashVersions() {
     const handleResult = (err: { git: boolean, bash: boolean }) => {
       let errors = [];

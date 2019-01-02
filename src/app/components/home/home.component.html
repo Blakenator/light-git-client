@@ -6,6 +6,9 @@
     <div class="tab-container btn-group nav-item flex-grow-1">
       <button *ngFor="let t of tabs"
               (click)="changeTab(t)"
+              [ngbTooltip]="repoPaths[t]"
+              placement="bottom"
+              container="body"
               [ngClass]="{'tab-btn btn center-text-vertical':true,'btn-primary':t==activeTab,'btn-light':t!=activeTab}">
         <span class="pr-1 center-text-vertical">
           <span *ngIf="editingTab!=t">{{tabNames[t]}}</span>
@@ -33,6 +36,7 @@
                      [repoPath]="repoPaths[activeTab]"
                      (onLoadingChange)="isLoading=$event"
                      (onLoadRepoFailed)="repoLoadFailed($event)"
+                     (onOpenRepoNewTab)="addTab($event)"
                      [repoCache]="repoCache[repoPaths[activeTab]]"></app-repo-view>
     </div>
   </div>

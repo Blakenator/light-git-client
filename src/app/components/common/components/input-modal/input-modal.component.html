@@ -1,24 +1,15 @@
-<div class="dialog-container" *ngIf="_show">
-  <div class="dialog-window card">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title center-text-vertical">{{modalTitle}}</h5>
-      </div>
-      <div class="modal-body">
-        <p>{{message}}</p>
-        <input class="form-control"
-               [(ngModel)]="value"
-               [placeholder]="inputPlaceholder"
-               [pattern]="validPattern"
-               (keyup)="checkValid()"
-               [autofocus]
-               (keyup.enter)="okClicked()">
-        <p *ngIf="errorMessage" class="error-message"><i class="fa fa-exclamation-circle mr-2"></i>{{errorMessage}}</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" (click)="okClicked()">Ok</button>
-        <button class="btn btn-secondary" (click)="cancelClicked()">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
+<app-modal [modalId]="modalId+uidSalt"
+           [modalTitle]="modalTitle"
+           (onFinish)="okClicked()"
+           [affirmativeButtonDisabled]="!checkValid()"
+           (onCancel)="this.onClickCancel.emit(this.value);">
+  <p>{{message}}</p>
+  <input class="form-control"
+         [(ngModel)]="value"
+         [placeholder]="inputPlaceholder"
+         [pattern]="validPattern"
+         (keyup)="checkValid()"
+         [autofocus]
+         (keyup.enter)="okClicked()">
+  <p *ngIf="errorMessage" class="error-message"><i class="fa fa-exclamation-circle mr-2"></i>{{errorMessage}}</p>
+</app-modal>

@@ -21,6 +21,8 @@ export class SettingsModel {
   public commandTimeoutSeconds: number;
   public codeWatchers: CodeWatcherModel[];
   public includeUnchangedInWatcherAnalysis: boolean;
+  public username: string;
+  public email: string;
 
   constructor(darkMode: boolean = false,
               openRepos: string[] = [''],
@@ -30,12 +32,14 @@ export class SettingsModel {
               mergetool: string = 'sourcetree',
               bashPath: string = 'bash',
               commandTimeoutSeconds: number = 10,
-              expandStates: { [key: string]: boolean } = {},
+              expandStates: { [p: string]: boolean } = {},
               showTrackingPath: boolean = false,
               commitMessageAutcomplete: boolean = false,
               diffIgnoreWhitespace: boolean = false,
               includeUnchangedInWatcherAnalysis: boolean = true,
-              codeWatchers: CodeWatcherModel[] = defaultCodeWatchers) {
+              codeWatchers: CodeWatcherModel[] = defaultCodeWatchers,
+              username: string = '',
+              email: string = '') {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
     this.tabNames = tabNames;
@@ -50,6 +54,8 @@ export class SettingsModel {
     this.mergetool = mergetool;
     this.codeWatchers = codeWatchers;
     this.includeUnchangedInWatcherAnalysis = includeUnchangedInWatcherAnalysis;
+    this.username = username;
+    this.email = email;
   }
 
   static sanitizePath(path) {
@@ -72,6 +78,8 @@ export class SettingsModel {
     res.diffIgnoreWhitespace = this.diffIgnoreWhitespace;
     res.mergetool = this.mergetool;
     res.includeUnchangedInWatcherAnalysis = this.includeUnchangedInWatcherAnalysis;
+    res.username = this.username + '';
+    res.email = this.email + '';
     return res;
   }
 }

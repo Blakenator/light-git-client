@@ -9,7 +9,7 @@
     background-color: rgba(128, 128, 128, .3);
   }
   &.active {
-    border-bottom: .3em solid rgba(128, 128, 255, .5);
+    border-bottom: .3em solid rgba(128, 128, 255, .5) !important;
   }
 }
 

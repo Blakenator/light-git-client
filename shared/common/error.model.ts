@@ -20,8 +20,8 @@ export class ErrorModel {
 
   static getRootError(error: ErrorModel) {
     return error && (typeof error.content == 'string' || !ErrorModel.isErrorModel(error.content)) ?
-      error :
-      this.getRootError(<ErrorModel>error.content);
+           error :
+           (!error ? '' : this.getRootError(<ErrorModel>error.content));
   }
 
   static reduceErrorContent(error: ErrorModel) {
@@ -41,6 +41,6 @@ export class ErrorModel {
 
   static getRootErrorMessage(error: any) {
     return error && ErrorModel.isErrorModel(error) ? ErrorModel.getRootError(error).content :
-      (error.message ? error.message : JSON.stringify(error));
+           (error.message ? error.message : JSON.stringify(error));
   }
 }

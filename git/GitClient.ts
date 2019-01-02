@@ -8,7 +8,7 @@ import {SettingsModel} from '../shared/SettingsModel';
 import {WorktreeModel} from '../shared/git/worktree.model';
 import {logger} from 'codelyzer/util/logger';
 import {StashModel} from '../shared/git/stash.model';
-import {DiffHeaderModel, DiffHeaderStagedState} from '../shared/git/diff.header.model';
+import {DiffHeaderAction, DiffHeaderModel, DiffHeaderStagedState} from '../shared/git/diff.header.model';
 import {ConfigItemModel} from '../shared/git/config-item.model';
 import * as fs from 'fs';
 import {ErrorModel} from '../shared/common/error.model';
@@ -87,8 +87,8 @@ export class GitClient {
   setConfigItem(item: ConfigItemModel): Promise<ConfigItemModel[]> {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
       const command = this.getBashedGit() + ' config ' + (item.value ? '--replace-all ' : '') +
-                      (item.sourceFile.trim() ? '--file ' + item.sourceFile.replace(/^.*?:/, '') + ' ' : '') +
-                      (item.value ? '' : '--unset ') + item.key + ' ' + (item.value ? '"' + item.value + '"' : '');
+        (item.sourceFile.trim() ? '--file ' + item.sourceFile.replace(/^.*?:/, '') + ' ' : '') +
+        (item.value ? '' : '--unset ') + item.key + ' ' + (item.value ? '"' + item.value + '"' : '');
       this.execute(command, 'Set Config Item')
           .then(text => this.getConfigItems().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
@@ -97,16 +97,16 @@ export class GitClient {
 
   openRepo(): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      if (!fs.existsSync(path.join(this.workingDir, '.git'))) {
-        reject('Not a valid git repository');
-        return;
-      }
-      this.getBranches().then(rep => {
-        let res = Object.assign(new RepositoryModel(), rep || {});
-        res.path = this.workingDir;
-        res.name = path.basename(this.workingDir);
-        resolve(res);
-      }).catch(err => reject(serializeError(err)));
+      this.execute(this.getGitPath() + ' rev-parse --is-inside-work-tree', 'Check Is Git Working Tree').then(() => {
+        this.getBranches().then(rep => {
+          let res = Object.assign(new RepositoryModel(), rep || {});
+          res.path = this.workingDir;
+          res.name = path.basename(this.workingDir);
+          resolve(res);
+        }).catch(err => reject(serializeError(err)));
+      }).catch(() => {
+        reject('Not a valid git repository, submodule, or worktree');
+      });
     });
   }
 
@@ -153,9 +153,25 @@ export class GitClient {
     });
   }
 
+  setBulkGitSettings(config: { [key: string]: string | number }) {
+    return new Promise<any>((resolve, reject) => {
+      Promise.all(Object.keys(config).map(key => {
+        let value = config[key];
+        if (value === -1) {
+          value = process.argv[0] + ' -a';
+        }
+        return this.execute(
+          this.getGitPath() + ' config ' + (config[key] ? '--replace-all ' : '--unset ') + key + ' ' + value + '',
+          'Set git settings');
+      }))
+             .then(text => resolve())
+             .catch(err => reject(serializeError(err)));
+    });
+  }
+
   deleteBranch(branch: string) {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' branch -d -- ' + branch, 'Delete Branch')
+      this.execute(this.getGitPath() + ' branch -D -- ' + branch, 'Delete Branch')
           .then(text => this.getBranches().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
     });
@@ -260,19 +276,19 @@ export class GitClient {
       let promises = [];
       if (unstaged.trim()) {
         let command: string = this.getGitPath() +
-                              ' diff' +
-                              (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') +
-                              ' -- ' +
-                              unstaged;
+          ' diff' +
+          (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') +
+          ' -- ' +
+          unstaged;
         promises.push(this.execute(command, 'Get Unstaged Changes Diff')
                           .then(text => this.parseDiffString(text, DiffHeaderStagedState.UNSTAGED)));
       }
       if (staged.trim()) {
         let command: string = this.getGitPath() +
-                              ' diff' +
-                              (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') +
-                              ' --staged -- ' +
-                              staged;
+          ' diff' +
+          (GitClient.settings.diffIgnoreWhitespace ? ' -w' : '') +
+          ' --staged -- ' +
+          staged;
         promises.push(this.execute(command, 'Get Staged Changes Diff')
                           .then(text => this.parseDiffString(text, DiffHeaderStagedState.STAGED)));
       }
@@ -292,7 +308,7 @@ export class GitClient {
 
   commit(message: string, push: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      let s = message.replace(/\"/g, '').replace(/\r?\n/g, '" -m "');
+      let s = message.replace(/'/g, '').replace(/"/g, '').replace(/\r?\n/g, '" -m "');
       this.execute(
         this.getBashedGit() +
         '  commit -m "' +
@@ -330,13 +346,14 @@ export class GitClient {
       let command = this.getGitPath() + ' stash push -k -u -- ' + file;
       if (staged) {
         command += ' && ' + this.getGitPath() + ' reset -- ' + file +
-                   ' && ' + this.getGitPath() + ' checkout HEAD -- ' + file +
-                   ' && ' + this.getGitPath() + ' stash pop';
+          ' && ' + this.getGitPath() + ' checkout HEAD -- ' + file +
+          ' && ' + this.getGitPath() + ' stash pop';
       } else {
         command += ' && ' + this.getGitPath() + ' stash drop stash@{1}';
       }
 
-      this.execute(command,
+      this.execute(
+        command,
         'Undo File Changes')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
@@ -362,9 +379,9 @@ export class GitClient {
   stash(unstagedOnly: boolean, stashName: string): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
       const command = this.getBashedGit() +
-                      ' stash push' +
-                      (unstagedOnly ? ' -k -u' : '') +
-                      (stashName ? ' -m "' + stashName + '"' : '');
+        ' stash push' +
+        (unstagedOnly ? ' -k -u' : '') +
+        (stashName ? ' -m "' + stashName + '"' : '');
       this.execute(
         command,
         'Stash Changes')
@@ -455,7 +472,7 @@ export class GitClient {
         this.getGitPath() +
         ' rev-list -n' +
         (count || 50) +
-        ' --remotes --skip=' +
+        ' --branches --remotes --skip=' +
         (skip || 0) +
         ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%P|%B"\n',
         'Get Commit History')
@@ -495,7 +512,7 @@ export class GitClient {
                     source: newIndex,
                     isCommit: false,
                     branchIndex: stack[j].branchIndex,
-                    isMerge: false
+                    isMerge: false,
                   });
                   encounteredSeeking.push(stack[j].seeking);
                   newStack.push(Object.assign(stack[j], {from: newIndex}));
@@ -506,7 +523,7 @@ export class GitClient {
                     source: encounteredSeeking.indexOf(currentHash),
                     isCommit: true,
                     branchIndex: stack[j].branchIndex,
-                    isMerge: false
+                    isMerge: false,
                   });
                   added = true;
                 } else if (encounteredSeeking.indexOf(currentHash) < 0) {
@@ -515,7 +532,7 @@ export class GitClient {
                     source: newIndex,
                     isCommit: true,
                     branchIndex: stack[j].branchIndex,
-                    isMerge: parentHashes.length > 1
+                    isMerge: parentHashes.length > 1,
                   });
                   encounteredSeeking.push(stack[j].seeking);
                   added = true;
@@ -538,7 +555,7 @@ export class GitClient {
                   source: fromIndex,
                   isCommit: true,
                   branchIndex: currentBranch,
-                  isMerge: parentHashes.length > 1
+                  isMerge: parentHashes.length > 1,
                 });
                 for (let p of parentHashes) {
                   newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
@@ -561,7 +578,7 @@ export class GitClient {
       'Add Worktree',
       this.getBashPath().replace(/"/g, ''),
       ['-c', this.getGitPath().replace(/"/g, '') + ' worktree add "' + location + '" ' +
-             branch.replace(/^origin\//, '')],
+      branch.replace(/^origin\//, '')],
       callback);
   }
 
@@ -653,10 +670,9 @@ export class GitClient {
         }
       }).catch(err => new ErrorModel('getRemoteBranches', 'getting the list of remote branches', err)));
       Promise.all(promises).then(ignore => {
-        let currentBranch = result.localBranches.find(x => x.isCurrentBranch);
-        if (currentBranch) {
-          let currentBranchPath = currentBranch.name;
-          result.worktrees[result.worktrees.findIndex(x => x.currentBranch == currentBranchPath)].isCurrent = true;
+        let index = result.worktrees.findIndex(x => x.path == this.workingDir);
+        if (index >= 0) {
+          result.worktrees[index].isCurrent = true;
         }
         resolve(result);
       }).catch(error => {
@@ -669,7 +685,7 @@ export class GitClient {
   };
 
   private parseDiffString(text: string, state: DiffHeaderStagedState): DiffHeaderModel[] {
-    let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)(\r?\n(?!@@).*)+?((\r?\n(?!diff).*)*)/gm;
+    let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
     let hunk = /\s*@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
     let line = /^([+\- ])(.*)$/gm;
     let headerMatch = diffHeader.exec(text);
@@ -679,7 +695,19 @@ export class GitClient {
       header.fromFilename = headerMatch[1];
       header.toFilename = headerMatch[3];
       header.stagedState = state;
-      let hunkMatch = hunk.exec(headerMatch[6]);
+      let extraHeaders = headerMatch[5];
+      if (extraHeaders.indexOf('\nrename') >= 0) {
+        header.action = DiffHeaderAction.RENAMED;
+      } else if (extraHeaders.indexOf('\ncopy') >= 0) {
+        header.action = DiffHeaderAction.COPIED;
+      } else if (extraHeaders.indexOf('\ndeleted') >= 0) {
+        header.action = DiffHeaderAction.DELETED;
+      } else if (extraHeaders.indexOf('\nnew file') >= 0) {
+        header.action = DiffHeaderAction.ADDED;
+      } else {
+        header.action = DiffHeaderAction.CHANGED;
+      }
+      let hunkMatch = hunk.exec(headerMatch[7]);
       while (hunkMatch) {
         let h = new DiffHunkModel();
         let startTo = +hunkMatch[1];
@@ -713,7 +741,7 @@ export class GitClient {
           lineMatch = line.exec(hunkMatch[7]);
         }
         header.hunks.push(h);
-        hunkMatch = hunk.exec(headerMatch[6]);
+        hunkMatch = hunk.exec(headerMatch[7]);
       }
       result.push(header);
       headerMatch = diffHeader.exec(text);
@@ -760,8 +788,8 @@ export class GitClient {
     }), new Promise<string>((resolve, reject) => {
       setTimeout(() => {
         reject('command timed out (>' + GitClient.settings.commandTimeoutSeconds + 's): ' + command +
-               '\n\nEither adjust the timeout in the Settings menu or ' +
-               '\nfind the root cause of the timeout');
+          '\n\nEither adjust the timeout in the Settings menu or ' +
+          '\nfind the root cause of the timeout');
       }, GitClient.settings.commandTimeoutSeconds * 1000);
     })]);
   }
