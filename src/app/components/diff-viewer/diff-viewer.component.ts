@@ -134,8 +134,9 @@ export class DiffViewerComponent implements OnInit {
       return this.diffHeaders;
     } else {
       return this.diffHeaders.filter(header => {
-        return FilterPipe.fuzzyFilter(this.diffFilter, header.fromFilename) ||
-          FilterPipe.fuzzyFilter(this.diffFilter, header.toFilename);
+        let needle = this.diffFilter.toLowerCase();
+        return FilterPipe.fuzzyFilter(needle, header.fromFilename.toLowerCase()) ||
+          FilterPipe.fuzzyFilter(needle, header.toFilename.toLowerCase());
       });
     }
   }
