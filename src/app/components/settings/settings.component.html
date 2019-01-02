@@ -134,6 +134,12 @@
           <div class="input-group">
             <input class="form-control" [(ngModel)]="tempSettings.email">
           </div>
+          <div class="pretty p-switch p-fill mx-2">
+            <input type="checkbox" [(ngModel)]="setGlobalDefaultUserConfig"/>
+            <div class="state">
+              <label>Set as Global Defaults</label>
+            </div>
+          </div>
         </div>
       </div>
     </div>
