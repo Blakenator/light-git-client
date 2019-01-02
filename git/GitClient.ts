@@ -472,7 +472,7 @@ export class GitClient {
         this.getGitPath() +
         ' rev-list -n' +
         (count || 50) +
-        ' --branches --tags --remotes --skip=' +
+        ' --branches --remotes --skip=' +
         (skip || 0) +
         ' --pretty=format:"||||%H|%an|%ae|%ad|%D|%P|%B"\n',
         'Get Commit History')
