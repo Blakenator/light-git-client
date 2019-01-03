@@ -45,6 +45,7 @@
                               (onForcePullClicked)="pull(true)"
                               (onDeleteClicked)="deleteBranch($event)"
                               (onMergeClicked)="mergeBranch($event)"
+                              (onFastForwardClicked)="fastForwardBranch($event)"
                               (onBranchPremergeClicked)="getBranchPremerge($event)"
                               [worktrees]="repo.worktrees"
                               (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
