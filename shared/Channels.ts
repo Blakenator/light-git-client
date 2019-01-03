@@ -28,6 +28,7 @@ export namespace Channels {
   export const DELETEFILES = "deleteFiles";
   export const HARDRESET = "hardReset";
   export const DELETEBRANCH = "deleteBranch";
+  export const FASTFORWARDBRANCH = "fastForwardBranch";
   export const LOG = "log";
   export const GETVERSION = "getVersion";
   export const CHECKFORUPDATES = "checkForUpdates";

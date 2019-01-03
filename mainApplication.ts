@@ -269,6 +269,10 @@ export class MainApplication extends GenericApplication {
       this.handleGitPromise(this.gitClients[args[1]].deleteBranch(args[2]), event, args);
     });
 
+    ipcMain.on(Channels.FASTFORWARDBRANCH, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].fastForward(args[2]), event, args);
+    });
+
     ipcMain.on(Channels.DELETEWORKTREE, (event, args) => {
       this.handleGitPromise(this.gitClients[args[1]].deleteWorktree(args[2]), event, args);
     });

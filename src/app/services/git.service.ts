@@ -80,6 +80,10 @@ export class GitService {
     return this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, hash]);
   }
 
+  fastForwardBranch(branch: string): Promise<CommitModel> {
+    return this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]);
+  }
+
   setBulkGitSettings(config: { [key: string]: string|number }): Promise<any> {
     return this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config]);
   }
