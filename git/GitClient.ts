@@ -313,7 +313,7 @@ export class GitClient {
       fs.writeFileSync(commitFilePath, message, {encoding: 'utf8'});
       this.execute(
         this.getBashedGit() +
-        '  commit --file ' + commitFilePath +
+        '  commit --file "' + commitFilePath + '"' +
         (push ? '\' && ' + this.getGitPath() + '  push -u origin HEAD' : ''),
         'Commit')
           .then(text => {
