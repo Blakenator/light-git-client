@@ -17,6 +17,7 @@ import {DiffLineModel, LineState} from '../shared/git/diff.line.model';
 import * as serializeError from 'serialize-error';
 import {spawn} from 'child_process';
 import {SubmoduleModel} from '../shared/git/submodule.model';
+import {app} from 'electron';
 
 const exec = require('child_process').exec;
 
@@ -308,15 +309,17 @@ export class GitClient {
 
   commit(message: string, push: boolean): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      let s = message.replace(/'/g, '').replace(/"/g, '').replace(/\r?\n/g, '" -m "');
+      let commitFilePath = path.join(app.getPath('userData'), 'commit.msg');
+      fs.writeFileSync(commitFilePath, message, {encoding: 'utf8'});
       this.execute(
         this.getBashedGit() +
-        '  commit -m "' +
-        s +
-        '"' +
+        '  commit --file ' + commitFilePath +
         (push ? '\' && ' + this.getGitPath() + '  push -u origin HEAD' : ''),
         'Commit')
-          .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
+          .then(text => {
+            fs.unlinkSync(commitFilePath);
+            return this.getChanges().then(resolve).catch(err => reject(serializeError(err)));
+          })
           .catch(err => reject(serializeError(err)));
     });
   }
@@ -400,7 +403,7 @@ export class GitClient {
 
   fastForward(branch: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this.execute(this.getBashedGit() + ' fetch origin ' + branch+':'+branch, 'Fast-Forward Branch')
+      this.execute(this.getBashedGit() + ' fetch origin ' + branch + ':' + branch, 'Fast-Forward Branch')
           .then(text => resolve())
           .catch(err => reject(serializeError(err)));
     });
