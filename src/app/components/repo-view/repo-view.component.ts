@@ -200,6 +200,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           err)));
   }
 
+  fastForwardBranch(branch: string) {
+    this.setLoading(true);
+    this.gitService.fastForwardBranch(branch)
+        .then(() => this.getBranchChanges())
+        .catch(err => this.handleErrorMessage(new ErrorModel(
+          this._errorClassLocation + 'fastForwardBranch',
+          'fast forwarding the branch',
+          err)));
+  }
+
   mergeBranch(branch: string) {
     this.setLoading(true);
     this.gitService.mergeBranch(branch)
@@ -301,7 +311,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   cherryPickCommit(commit: CommitSummaryModel) {
     this.setLoading(true, true);
-    this.electronService.rpc(Channels.COMMIT, [this.repo.path, commit.hash])
+    this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, commit.hash])
         .then(changes => {
           this.handleFileChanges(changes);
           this.getFileDiff();

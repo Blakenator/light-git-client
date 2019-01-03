@@ -179,7 +179,7 @@ export class GitClient {
 
   mergeBranch(branch: string) {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath() + ' merge -- ' + branch, 'Merge Branch into Current Branch')
+      this.execute(this.getGitPath() + ' merge ' + branch, 'Merge Branch into Current Branch')
           .then(text => this.getBranches().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
     });
@@ -325,7 +325,7 @@ export class GitClient {
     return new Promise<CommitModel>((resolve, reject) => {
       this.execute(
         this.getBashedGit() + ' cherry-pick ' + hash,
-        'Commit')
+        'Cherry-pick')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
           .catch(err => reject(serializeError(err)));
     });
@@ -394,6 +394,14 @@ export class GitClient {
     return new Promise<CommitModel>((resolve, reject) => {
       this.execute(this.getBashedGit() + ' stash apply --index ' + index, 'Apply Stashed Changes')
           .then(text => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
+          .catch(err => reject(serializeError(err)));
+    });
+  }
+
+  fastForward(branch: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this.execute(this.getBashedGit() + ' fetch origin ' + branch+':'+branch, 'Fast-Forward Branch')
+          .then(text => resolve())
           .catch(err => reject(serializeError(err)));
     });
   }

@@ -23,9 +23,9 @@
           <span *ngIf="b.trackingPath">
             <small class="text-muted" [title]="b.trackingPath"><i class="fa fa-cloud"></i></small>
             <i *ngIf="settingsService.settings.showTrackingPath">({{b.trackingPath}})</i>
-            <span class="badge badge-info ml-1" *ngIf="b.ahead">{{b.ahead||0}} <i class="fas fa-arrow-up"></i></span>
+            <span class="badge badge-info ml-1" *ngIf="b.ahead">{{b.ahead || 0}} <i class="fas fa-arrow-up"></i></span>
             <span class="badge badge-info ml-1"
-                  *ngIf="b.behind">{{b.behind||0}} <i class="fas fa-arrow-down"></i></span>
+                  *ngIf="b.behind">{{b.behind || 0}} <i class="fas fa-arrow-down"></i></span>
           </span>
         </div>
         <div *ngIf="activeRenames[b.name]" class="input-group input-group-sm">
@@ -59,7 +59,18 @@
                   title="View all changes in current branch since this branch">
             <i class="fa fa-history"></i>
           </button>
-          <div class="btn-group btn-group-sm mx-1" ngbDropdown placement="left" (click)="$event.stopPropagation()" *ngIf="b.isCurrentBranch && b.trackingPath">
+          <button class="btn btn-light btn-sm"
+                  (click)="onFastForwardClicked.emit(b.name)"
+                  *ngIf="!b.isCurrentBranch"
+                  [disabled]="b.ahead || !b.behind"
+                  title="Fast Forward Branch">
+            <i class="fa fa-fast-forward"></i>
+          </button>
+          <div class="btn-group btn-group-sm mx-1"
+               ngbDropdown
+               placement="left"
+               (click)="$event.stopPropagation()"
+               *ngIf="b.isCurrentBranch && b.trackingPath">
             <button class="btn btn-light" (click)="onPullClicked.emit()" title="Pull">
               <i class="fa fa-arrow-down"></i>
             </button>
@@ -121,6 +132,7 @@
                             (onPullClicked)="onPullClicked.emit()"
                             (onDeleteClicked)="onDeleteClicked.emit($event)"
                             (onBranchPremergeClicked)="onBranchPremergeClicked.emit($event)"
+                            (onFastForwardClicked)="onFastForwardClicked.emit($event)"
                             (onMergeClicked)="onMergeClicked.emit($event)"
                             [localBranches]="localBranches"
                             [worktrees]="worktrees"
