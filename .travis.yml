@@ -37,6 +37,7 @@ script:
         docker run --rm \
           -e CSC_LINK=$CSC_LINK \
           -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
+          -e GH_TOKEN=$GH_TOKEN \
           -v ${PWD}:/project \
           -v ~/.cache/electron:/root/.cache/electron \
           -v ~/.cache/electron-builder:/root/.cache/electron-builder \
@@ -46,6 +47,7 @@ script:
         docker run --rm \
           -e CSC_LINK=$CSC_LINK \
           -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
+          -e GH_TOKEN=$GH_TOKEN \
           -v ${PWD}:/project \
           -v ~/.cache/electron:/root/.cache/electron \
           -v ~/.cache/electron-builder:/root/.cache/electron-builder \
