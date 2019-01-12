@@ -1,6 +1,6 @@
 import {app, ipcMain, shell} from 'electron';
 import {SettingsModel} from './shared/SettingsModel';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import {RepositoryModel} from './shared/git/Repository.model';
 import {GitClient} from './git/GitClient';
 import * as path from 'path';
@@ -394,7 +394,7 @@ export class MainApplication extends GenericApplication {
       for (let f of files) {
         promises.push(new Promise((resolve, reject) => {
           let path1 = path.join(args[1], f);
-          fs.unlink(path1, err => {
+          fs.remove(path1, err => {
             if (err) {
               reject(err);
             } else {

@@ -54,7 +54,7 @@
         <button class="btn btn-outline-danger btn-sm"
                 title="Delete file"
                 (click)="deleteClicked(c.file)"
-                *ngIf="getChangeType(c)!='minus'">
+                *ngIf="getChangeType(c)=='plus'||getChangeType(c)=='question-circle'">
           <i class="material-icons">delete</i>
         </button>
       </div>
