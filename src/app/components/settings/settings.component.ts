@@ -1,12 +1,12 @@
 import {ApplicationRef, Component, EventEmitter, OnInit, Output} from '@angular/core';
-import {ElectronService} from '../../services/electron.service';
+import {ElectronService} from '../../common/services/electron.service';
 import {SettingsService} from '../../services/settings.service';
 import {SettingsModel} from '../../../../shared/SettingsModel';
 import {Channels} from '../../../../shared/Channels';
 import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
 import {GitService} from '../../services/git.service';
 import {ConfigItemModel} from '../../../../shared/git/config-item.model';
-import {ModalService} from '../../services/modal.service';
+import {ModalService} from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-settings',

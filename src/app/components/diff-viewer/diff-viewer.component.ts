@@ -4,12 +4,12 @@ import {DiffHeaderModel} from '../../../../shared/git/diff.header.model';
 import {SettingsService} from '../../services/settings.service';
 import {GitService} from '../../services/git.service';
 import {CommitModel} from '../../../../shared/git/Commit.model';
-import {ErrorService} from '../common/services/error.service';
+import {ErrorService} from '../../common/services/error.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
 import {DiffHunkModel} from '../../../../shared/git/diff.hunk.model';
 import {DiffLineModel, LineState} from '../../../../shared/git/diff.line.model';
 import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
-import {FilterPipe} from '../common/pipes/filter.pipe';
+import {FilterPipe} from '../../common/pipes/filter.pipe';
 
 @Component({
   selector: 'app-diff-viewer',

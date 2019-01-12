@@ -1,6 +1,6 @@
 import {ErrorHandler, Injectable} from '@angular/core';
-import {ElectronService} from "../../../services/electron.service";
-import {Channels} from "../../../../../shared/Channels";
+import {ElectronService} from "./electron.service";
+import {Channels} from "../../../../shared/Channels";
 
 @Injectable()
 export class GlobalErrorHandlerService implements ErrorHandler {

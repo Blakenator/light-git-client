@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {ErrorService} from '../../services/error.service';
-import {ErrorModel} from '../../../../../../shared/common/error.model';
-import {ModalService} from '../../../../services/modal.service';
+import {ErrorModel} from '../../../../../shared/common/error.model';
+import {ModalService} from '../../services/modal.service';
 
 @Component({
   selector: 'app-error-message',

@@ -9,24 +9,24 @@ import {
   OnInit,
   Output,
 } from '@angular/core';
-import {ElectronService} from '../../services/electron.service';
+import {ElectronService} from '../../common/services/electron.service';
 import {SettingsService} from '../../services/settings.service';
 import {RepositoryModel} from '../../../../shared/git/Repository.model';
 import {CommitModel} from '../../../../shared/git/Commit.model';
 import {Channels} from '../../../../shared/Channels';
 import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
 import {BranchModel} from '../../../../shared/git/Branch.model';
-import {GlobalErrorHandlerService} from '../common/services/global-error-handler.service';
+import {GlobalErrorHandlerService} from '../../common/services/global-error-handler.service';
 import {StashModel} from '../../../../shared/git/stash.model';
 import {WorktreeModel} from '../../../../shared/git/worktree.model';
 import {DiffHeaderModel} from '../../../../shared/git/diff.header.model';
-import {FilterPipe} from '../common/pipes/filter.pipe';
+import {FilterPipe} from '../../common/pipes/filter.pipe';
 import {CommandHistoryModel} from '../../../../shared/git/command-history.model';
 import {GitService} from '../../services/git.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
-import {ErrorService} from '../common/services/error.service';
+import {ErrorService} from '../../common/services/error.service';
 import {CodeWatcherService} from '../../services/code-watcher.service';
-import {ModalService} from '../../services/modal.service';
+import {ModalService} from '../../common/services/modal.service';
 import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 
 @Component({

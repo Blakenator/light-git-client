@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
-import {FilterPipe} from '../common/pipes/filter.pipe';
+import {FilterPipe} from '../../common/pipes/filter.pipe';
 
 @Component({
   selector: 'app-commit-history',

@@ -1,7 +1,7 @@
 import {ApplicationRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {GitService} from '../../services/git.service';
 import {BranchModel} from '../../../../shared/git/Branch.model';
-import {ModalService} from '../../services/modal.service';
+import {ModalService} from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-add-worktree',

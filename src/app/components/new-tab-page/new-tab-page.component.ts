@@ -1,5 +1,5 @@
 import {Component, EventEmitter, OnInit, Output} from '@angular/core';
-import {ModalService} from '../../services/modal.service';
+import {ModalService} from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-new-tab-page',

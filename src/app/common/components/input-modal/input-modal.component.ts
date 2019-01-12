@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {ModalService} from '../../../../services/modal.service';
+import {ModalService} from '../../services/modal.service';
 
 @Component({
   selector: 'app-input-modal',

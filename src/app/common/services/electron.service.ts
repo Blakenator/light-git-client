@@ -4,7 +4,7 @@ import {Injectable} from '@angular/core';
 import {ipcRenderer, remote, webFrame} from 'electron';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
-import {ElectronResponse} from '../../../shared/common/electron-response';
+import {ElectronResponse} from '../../../../shared/common/electron-response';
 
 @Injectable()
 export class ElectronService {

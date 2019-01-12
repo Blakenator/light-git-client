@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {Channels} from '../../../shared/Channels';
 import {RepositoryModel} from '../../../shared/git/Repository.model';
-import {ElectronService} from './electron.service';
+import {ElectronService} from '../common/services/electron.service';
 import {ConfigItemModel} from '../../../shared/git/config-item.model';
 import {DiffHeaderModel} from '../../../shared/git/diff.header.model';
 import {CommitModel} from '../../../shared/git/Commit.model';
@@ -9,7 +9,7 @@ import {Subject} from 'rxjs';
 import {CommandHistoryModel} from '../../../shared/git/command-history.model';
 import {DiffHunkModel} from '../../../shared/git/diff.hunk.model';
 import {ErrorModel} from '../../../shared/common/error.model';
-import {ErrorService} from '../components/common/services/error.service';
+import {ErrorService} from '../common/services/error.service';
 
 @Injectable({
   providedIn: 'root'
