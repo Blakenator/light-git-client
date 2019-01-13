@@ -7,7 +7,6 @@ import * as path from 'path';
 import {ElectronResponse} from './shared/common/electron-response';
 import {autoUpdater} from 'electron-updater';
 import {Channels} from './shared/Channels';
-import * as NodeNotifier from 'node-notifier';
 import {GenericApplication} from './genericApplication';
 
 const opn = require('opn');
@@ -22,8 +21,8 @@ export class MainApplication extends GenericApplication {
   private readonly iconFile = './src/favicon.512x512.png';
   private readonly notificationTitle = 'Light Git';
 
-  constructor(logger: Console, version: string, notifier: NodeNotifier.NodeNotifier) {
-    super(logger, version, notifier);
+  constructor(logger: Console) {
+    super(logger);
   }
 
   beforeQuit() {
@@ -330,14 +329,14 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.ADDWORKTREE, (event, args) => {
-      this.gitClients[args[1]].addWorktree(args[2], args[3], (out, err, done) => {
-        this.defaultReply(event, args, {out, err, done});
+      this.gitClients[args[1]].addWorktree(args[2], args[3]).subscribe(event => {
+        this.defaultReply(event, args, {out: event.out, err: event.error, done: event.done});
       });
     });
 
     ipcMain.on(Channels.CLONE, (event, args) => {
-      new GitClient(args[1]).clone(args[2], args[3], (out, err, done) => {
-        this.defaultReply(event, args, {out, err, done});
+      new GitClient(args[1]).clone(args[2], args[3]).subscribe(event => {
+        this.defaultReply(event, args, {out: event.out, err: event.error, done: event.done});
       });
     });
 

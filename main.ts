@@ -15,8 +15,6 @@ process.on('uncaughtException', function (error) {
   throw error;
 });
 
-const notifier = require('node-notifier');
-const version = require('./package.json');
 
 // no error dialogs shown to users
 try {
@@ -25,7 +23,7 @@ try {
   // if (args.some(x => x == '--askpass' || x == '-a')) {
   //   new AskPassApplication(logger, version.version, notifier).start();
   // } else {
-  new MainApplication(logger, version.version, notifier).start();
+  new MainApplication(logger).start();
   // }
 } catch (e) {
   // Catch Error

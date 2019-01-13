@@ -1,13 +1,13 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "outDir": "./dist/out-tsc",
+    "outDir": "./",
     "sourceMap": true,
     "declaration": false,
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "target": "es6",
+    "target": "es5",
     "typeRoots": [
       "node_modules/@types"
     ],
@@ -17,8 +17,13 @@
       "es2015",
       "es5",
       "es6",
-      "es7",
       "dom"
     ]
-  }
+  },
+  "exclude": [
+    "src/**/*"
+  ],
+  "files":  [
+    "./main.ts"
+  ]
 }

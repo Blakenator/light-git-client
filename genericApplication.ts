@@ -4,6 +4,9 @@ import * as path from 'path';
 import * as NodeNotifier from 'node-notifier';
 import {ElectronResponse} from './shared/common/electron-response';
 
+const notifier = require('node-notifier');
+const version = require('./package.json');
+
 export abstract class GenericApplication {
   public logger: Console;
   public version: string;
@@ -14,7 +17,7 @@ export abstract class GenericApplication {
   protected rootHtmlPath: string;
   protected startMaximized = true;
 
-  protected constructor(logger: Console, version: string, notifier: NodeNotifier.NodeNotifier) {
+  protected constructor(logger: Console) {
     this.logger = logger;
     this.version = version;
     this.notifier = notifier;
@@ -82,12 +85,13 @@ export abstract class GenericApplication {
   beforeQuit() {
   }
 
-  getReplyChannel(arg) {
-    return arg[0] + 'reply';
-  }
 
   defaultReply(event, args, data?: any, success: boolean = true) {
     event.sender.send(this.getReplyChannel(args), new ElectronResponse(data, success));
+  }
+
+  getReplyChannel(arg) {
+    return arg[0] + 'reply';
   }
 
   start() {

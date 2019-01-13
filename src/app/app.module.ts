@@ -44,6 +44,7 @@ import {AddSubmoduleComponent} from './components/add-submodule/add-submodule.co
 import {GitGraphCanvasComponent} from './components/git-graph-canvas/git-graph-canvas.component';
 import {ModalComponent} from './common/components/modal/modal.component';
 import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
+import { AskPassComponent } from './screens/ask-pass/ask-pass.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -78,6 +79,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     AddSubmoduleComponent,
     GitGraphCanvasComponent,
     ConfirmModalComponent,
+    AskPassComponent,
   ],
   imports: [
     BrowserModule,
