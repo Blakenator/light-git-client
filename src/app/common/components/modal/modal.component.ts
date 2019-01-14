@@ -21,7 +21,7 @@ export class ModalComponent implements OnInit {
   @Input() modalTitle: string;
   @Input() modalId: string;
   @Input() affirmativeButtonText = 'Ok';
-  @Input() affirmativeButtonDisabled = false;
+  @Input() affirmativeButtonDisabled: string | boolean = false;
   @Input() negativeButtonText = 'Cancel';
 
   constructor(private modalService: ModalService, private applicationRef: ApplicationRef) {

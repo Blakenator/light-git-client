@@ -162,7 +162,7 @@ export class GitClient {
     });
   }
 
-  setBulkGitSettings(config: { [key: string]: string | number }) {
+  setBulkGitSettings(config: { [key: string]: string | number }, useGlobal: boolean) {
     return new Promise<any>((resolve, reject) => {
       Promise.all(Object.keys(config).map(key => {
         let value = config[key];
@@ -170,7 +170,8 @@ export class GitClient {
           value = process.argv[0] + ' -a';
         }
         return this.execute(
-          this.getGitPath(), ['config', (config[key] ? '--replace-all' : '--unset'), key, '' + value],
+          this.getGitPath(),
+          ['config', (config[key] ? '--replace-all' : '--unset'), useGlobal ? '--global' : '', key, '' + value],
           'Set git settings');
       }))
              .then(() => resolve())

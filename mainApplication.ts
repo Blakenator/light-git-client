@@ -289,7 +289,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.SETGITSETTINGS, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].setBulkGitSettings(args[2]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].setBulkGitSettings(args[2],args[3]), event, args);
     });
 
     ipcMain.on(Channels.UPDATESUBMODULES, (event, args) => {

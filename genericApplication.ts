@@ -21,7 +21,7 @@ export abstract class GenericApplication {
 
   protected constructor(logger: Console) {
     this.logger = logger;
-    this.version = version;
+    this.version = version.version;
     this.notifier = notifier;
   }
 

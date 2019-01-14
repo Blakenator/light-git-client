@@ -12,11 +12,12 @@
                 class="btn btn-secondary"
                 (click)="cancel()"
                 *ngIf="hasNegative">{{negativeButtonText}}</button>
+        <span [ngbTooltip]="affirmativeButtonDisabled">
         <button type="button"
                 class="btn btn-primary"
                 [disabled]="affirmativeButtonDisabled"
                 (click)="accept()"
-                *ngIf="hasAffirmative">{{affirmativeButtonText}}</button>
+                *ngIf="hasAffirmative">{{affirmativeButtonText}}</button></span>
       </div>
     </div>
     <div class="modal-content {{modalClass}}" *ngIf="customModal">

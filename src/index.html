@@ -102,6 +102,7 @@
     head.insertBefore(link, head.firstChild);
   };
   window.setTheme('light');
+  setTimeout(() => setLoading(false), 6000);
 
   function setLoading(val) {
     let classes = document.getElementById('loadingScreen').classList;

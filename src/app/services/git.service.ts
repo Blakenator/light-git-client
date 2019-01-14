@@ -84,8 +84,8 @@ export class GitService {
     return this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]);
   }
 
-  setBulkGitSettings(config: { [key: string]: string|number }): Promise<any> {
-    return this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config]);
+  setBulkGitSettings(config: { [key: string]: string|number },useGlobal:boolean): Promise<any> {
+    return this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config,useGlobal]);
   }
 
   checkGitBashVersions() {

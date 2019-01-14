@@ -30,8 +30,11 @@ export class AskPassComponent implements OnInit {
   }
 
   getHostUrl() {
+    if(!this.host){
+      return '';
+    }
     if (this.needsUsername()) {
-      return this.host;
+      return this.host.replace(/https?:\/\//,'');
     } else {
       return this.host.split('@')[1];
     }
