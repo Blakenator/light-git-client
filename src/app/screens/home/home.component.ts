@@ -35,7 +35,7 @@ export class HomeComponent implements OnInit {
       this.activeTab = this.settingsService.settings.activeTab;
       this.tabNames = this.settingsService.settings.tabNames.map((x, index) =>
         x || this.basename(this.settingsService.settings.openRepos[index]));
-      this.tabs = this.tabs.map((ignore, i) => i);
+      this.tabs = this.tabNames.map((ignore, i) => i);
       this.repoPaths.forEach((p) => {
         this.repoCache[p] = new RepositoryModel();
         this.repoCache[p].path = this.repoPaths[p];
@@ -73,7 +73,7 @@ export class HomeComponent implements OnInit {
     this.tabs.splice(t, 1);
     this.repoPaths.splice(t, 1);
     this.tabNames.splice(t, 1);
-    this.tabs = this.tabs.map((ignore, i) => i);
+    this.tabs = this.tabNames.map((ignore, i) => i);
     if (this.tabs.length == 0) {
       this.addTab();
     }

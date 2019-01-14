@@ -59,7 +59,7 @@ export class SettingsModel {
   }
 
   static sanitizePath(path) {
-    return '"' + path.replace(/\\/g, '\\\\\\\\') + '"';
+    return path.replace(/\\/g, '\\\\\\\\').replace(/"/, '');
   }
 
   public clone(): SettingsModel {

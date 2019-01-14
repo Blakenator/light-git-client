@@ -250,15 +250,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   getFileDiff() {
     let unstaged = Object.keys(this.selectedUnstagedChanges)
                          .filter(x => this.selectedUnstagedChanges[x])
-                         .map(x => x.replace(/.*->\s*/, ''))
-                         .join(' ');
+                         .map(x => x.replace(/.*->\s*/, ''));
     let staged = Object.keys(this.selectedStagedChanges)
                        .filter(x => this.selectedStagedChanges[x])
-                       .map(x => x.replace(/.*->\s*/, ''))
-                       .join(' ');
-    if (!staged.trim() && !unstaged.trim()) {
-      unstaged = '.';
-      staged = '.';
+                       .map(x => x.replace(/.*->\s*/, ''));
+    if (staged.length==0 && unstaged.length==0) {
+      unstaged = ['.'];
+      staged = ['.'];
     }
     this.setLoading(true);
     this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged])

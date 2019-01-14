@@ -2,15 +2,15 @@ import {GenericApplication} from './genericApplication';
 import {ipcMain} from 'electron';
 import {Observable, Subject} from 'rxjs';
 
-/**
- * TODO: DO NOT USE, PROMPT WORKS BUT CONNECTION DOES NOT
- */
 export class AskPassApplication extends GenericApplication {
-  constructor(logger: Console) {
+  private finished = false;
+
+  constructor(logger: Console, private host?: string) {
     super(logger);
-    this.windowWidth = 200;
-    this.windowHeight = 200;
-    this.rootHtmlPath = 'dist/index.html#password';
+    this.windowWidth = 400;
+    this.windowHeight = 400;
+    this.rootHtmlPath = 'dist/index.html';
+    this.rootHtmlHash = '/password';
     this.startMaximized = false;
   }
 
@@ -22,13 +22,23 @@ export class AskPassApplication extends GenericApplication {
 
   start() {
     super.start();
-    ipcMain.on('CRED', (event, args) => {
-      this.finish(args[0], args[1]);
+    ipcMain.once('CRED', (event, args) => {
+      this.finish(args[1], args[2]);
+    });
+    ipcMain.once('getHost', (event, args) => {
+      this.defaultReply(event, args, this.host);
     });
   }
 
+  protected windowClosed() {
+    if (!this.finished) {
+      this._onLogin.next(null);
+    }
+  }
+
   private finish(username, password) {
+    this.finished = true;
+    this.window.close();
     this._onLogin.next({username, password});
-    this.quit();
   }
 }

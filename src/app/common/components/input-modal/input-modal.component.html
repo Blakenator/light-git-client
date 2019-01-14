@@ -2,7 +2,8 @@
            [modalTitle]="modalTitle"
            (onFinish)="okClicked()"
            [affirmativeButtonDisabled]="!checkValid()"
-           (onCancel)="this.onClickCancel.emit(this.value);">
+           (onCancel)="this.onClickCancel.emit(this.value);"
+           (onOpen)="value=''">
   <p>{{message}}</p>
   <input class="form-control"
          [(ngModel)]="value"

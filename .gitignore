@@ -48,6 +48,6 @@ package-lock.json
 Thumbs.db
 shared/**/*.js
 sh.exe.stackdump
-/git/**/*.js
+git/**/*.js
 /*.js
-/**/*.map.js
+**/*.js.map

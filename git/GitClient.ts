@@ -15,19 +15,20 @@ import {ErrorModel} from '../shared/common/error.model';
 import {DiffHunkModel} from '../shared/git/diff.hunk.model';
 import {DiffLineModel, LineState} from '../shared/git/diff.line.model';
 import * as serializeError from 'serialize-error';
-import {spawn} from 'child_process';
 import {SubmoduleModel} from '../shared/git/submodule.model';
 import {app} from 'electron';
 import {AskPassApplication} from '../askPassApplication';
 import {Observable, Subject} from 'rxjs';
-import {skip} from 'rxjs/operators';
+import * as stripAnsi from 'strip-ansi';
+import {take} from 'rxjs/operators';
 
-const exec = require('child_process').exec;
+const pty = require('node-pty-prebuilt');
 
 export class GitClient {
   static logger: Console;
   static settings: SettingsModel;
   private commandHistory: CommandHistoryModel[] = [];
+  private _askPassApplication: AskPassApplication;
 
   constructor(private workingDir: string) {
   }
@@ -35,6 +36,7 @@ export class GitClient {
   getCommitDiff(commitHash: any): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.execute(this.getGitPath(), [
+        '--no-pager',
         'diff',
         (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
         commitHash + '~',
@@ -49,8 +51,9 @@ export class GitClient {
   getBranchPremerge(branch: BranchModel): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.execute(this.getGitPath(), [
+        '--no-pager',
         'diff',
-        (GitClient.settings.diffIgnoreWhitespace ? ' -w' : ''),
+        (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
         branch.currentHash + '...'], 'Get Premerge Diff')
           .then(text => {
             resolve(this.parseDiffString(text, DiffHeaderStagedState.NONE));
@@ -68,7 +71,7 @@ export class GitClient {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
       this.execute(this.getGitPath(), ['config', '--list', '--show-origin'], 'Get Config Items').then(text => {
 
-        let configItem = /^(.*?)\t(.*)=(.*)$/gm;
+        let configItem = /^\s*(.*?)\s+(.*)=(.*)$/gm;
         let match = configItem.exec(text);
         let result: ConfigItemModel[] = [];
         while (match) {
@@ -93,7 +96,7 @@ export class GitClient {
       }
       commandArgs.push(item.key);
       if (item.value) {
-        commandArgs.push('"' + item.value + '"');
+        commandArgs.push('' + item.value + '');
       }
       this.execute(this.getGitPath(), commandArgs, 'Set Config Item')
           .then(() => this.getConfigItems().then(resolve).catch(err => reject(serializeError(err))))
@@ -234,7 +237,9 @@ export class GitClient {
   fetch() {
     return new Promise<RepositoryModel>((resolve, reject) => {
       this.execute(this.getGitPath(), ['fetch', '-p'], 'Fetch Remote Branches')
-          .then(() => this.getBranches().then(resolve).catch(err => reject(serializeError(err))))
+          .then(text => {
+            this.getBranches().then(resolve).catch(err => reject(serializeError(err)));
+          })
           .catch(err => reject(serializeError(err)));
     });
   }
@@ -280,22 +285,22 @@ export class GitClient {
     });
   }
 
-  getDiff(unstaged: string, staged: string): Promise<DiffHeaderModel[]> {
+  getDiff(unstaged: string[], staged: string[]): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       let promises = [];
-      if (unstaged.trim()) {
+      if (unstaged && unstaged.length > 0) {
         let command: string = this.getGitPath();
         promises.push(this.execute(
           command,
-          [' diff', (GitClient.settings.diffIgnoreWhitespace ? ' -w' : ''), '--', unstaged],
+          ['--no-pager', 'diff', (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''), '--', ...unstaged],
           'Get Unstaged Changes Diff')
                           .then(text => this.parseDiffString(text, DiffHeaderStagedState.UNSTAGED)));
       }
-      if (staged.trim()) {
+      if (staged && staged.length > 0) {
         let command: string = this.getGitPath();
         promises.push(this.execute(
           command,
-          [' diff', (GitClient.settings.diffIgnoreWhitespace ? ' -w' : ''), '--staged', '--', staged],
+          ['--no-pager', 'diff', (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''), '--staged', '--', ...staged],
           'Get Staged Changes Diff')
                           .then(text => this.parseDiffString(text, DiffHeaderStagedState.STAGED)));
       }
@@ -318,7 +323,7 @@ export class GitClient {
       let commitFilePath = path.join(app.getPath('userData'), 'commit.msg');
       fs.writeFileSync(commitFilePath, message, {encoding: 'utf8'});
       this.execute(this.getGitPath(), [
-        'commit', '--file', '"' + commitFilePath + '"'], 'Commit')
+        'commit', '--file', commitFilePath], 'Commit')
           .then(() => {
             fs.unlinkSync(commitFilePath);
             if (!push) {
@@ -385,7 +390,7 @@ export class GitClient {
       }
       if (stashName) {
         commandArgs.push('-m');
-        commandArgs.push('"' + stashName + '"');
+        commandArgs.push(stashName);
       }
       this.execute(this.getGitPath(), commandArgs, 'Stash Changes')
           .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
@@ -452,16 +457,16 @@ export class GitClient {
       let result = {git: false, bash: false};
       let promises = [];
       promises.push(this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
-                        .then(text => result.git = text && text.indexOf('git version') >= 0)
-                        .catch(() => result.git = false));
+                        .then(text => {
+                          return result.git = text && text.indexOf('git version') >= 0;
+                        })
+                        .catch(error => {
+                          return result.git = false;
+                        }));
       promises.push(this.execute(this.getBashPath(), ['--version'], 'Check Bash Version')
                         .then(text => result.bash = text && text.indexOf('GNU bash') >= 0)
                         .catch(() => result.bash = false));
-      Promise.race([
-        Promise.all(promises),
-        new Promise((resolve1, reject1) => {
-          setTimeout(() => reject1(), 1000);
-        })]).then(() => resolve(result)).catch(() => reject(result));
+      Promise.all(promises).then(() => resolve(result)).catch(() => reject(result));
     });
   }
 
@@ -481,13 +486,14 @@ export class GitClient {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
       this.execute(
         this.getGitPath(),
-        [' rev-list',
+        ['--no-pager',
+          'rev-list',
           '-n',
           (count || 50) + '',
           ' --branches',
           '--remotes',
           '--skip=' + (skip || 0),
-          '--pretty=format:"||||%H|%an|%ae|%ad|%D|%P|%B"\n'],
+          '--pretty=format:||||%H|%an|%ae|%ad|%D|%P|%B\n'],
         'Get Commit History')
           .then(text => {
             let result: CommitSummaryModel[] = [];
@@ -589,23 +595,19 @@ export class GitClient {
               branch: string): Observable<CommandEvent> {
     return this.executeLive(
       'Add Worktree',
-      this.getBashPath().replace(/"/g, ''),
-      ['-c', this.getGitPath().replace(/"/g, '') + ' worktree add "' + location + '" ' +
-      branch.replace(/^origin\//, '')]);
+      this.getGitPath(),
+      ['worktree', 'add', location, branch.replace(/^origin\//, '')]);
   }
 
   clone(location: string, url: string): Observable<CommandEvent> {
-    return this.executeLive(
-      'Clone Repository',
-      this.getBashPath().replace(/"/g, ''),
-      ['-c', this.getGitPath().replace(/"/g, '') + ' clone ' + url + ' "' + location + '"']);
+    return this.executeLive('Clone Repository', this.getGitPath(), ['clone', url, location]);
   }
 
   getBranches(): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>(((resolve, reject) => {
       let result = new RepositoryModel();
       let promises = [];
-      let branchList = /^(\*)?\s*(\S+)\s+(\S+)\s+(\[\s*(\S+?)(\s*:\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\s*(.*)?$/gm;
+      let branchList = /^\s*(\*)?\s*(\S+)\s+(\S+)\s+(\[\s*(\S+?)(\s*:\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\s*(.*)?$/gm;
       promises.push(
         this.execute(this.getGitPath(), ['branch', '-v', '-v', '--track'], 'Get Local Branches')
             .then(text => {
@@ -765,10 +767,6 @@ export class GitClient {
     return result;
   }
 
-  private getBashedGit() {
-    return this.getBashPath() + ' -c \'' + this.getGitPath();
-  }
-
   private getGitPath() {
     return SettingsModel.sanitizePath(GitClient.settings.gitPath);
   }
@@ -780,38 +778,30 @@ export class GitClient {
   private execute(command: string, args: string[], name: string): Promise<string> {
     let start = new Date();
 
-    let timeoutErrorMessage = 'command timed out (>' + GitClient.settings.commandTimeoutSeconds + 's): ' + command +
-      '\n\nEither adjust the timeout in the Settings menu or ' +
-      '\nfind the root cause of the timeout';
+    let timeoutErrorMessage = 'command timed out (>' + GitClient.settings.commandTimeoutSeconds + 's): ' + command + ' ' +
+      args.join(' ') + '\n\nEither adjust the timeout in the Settings menu or ' + '\nfind the root cause of the timeout';
 
     return new Promise<string>((resolve, reject) => {
       let currentOut = '', currentErr = '';
       let race = setTimeout(() => reject(timeoutErrorMessage), GitClient.settings.commandTimeoutSeconds * 1000);
-      this.executeLive(name, command, args).pipe(skip(1)).subscribe(event => {
+      this.executeLive(name, command, args, false).subscribe(event => {
         clearTimeout(race);
         race = undefined;
+        if (event.error) {
+          currentErr += event.error;
+        }
+        if (event.out) {
+          currentOut += event.out;
+        }
         if (!event.done) {
-          if (event.error) {
-            currentErr += event.error;
-          }
-          if (event.out) {
-            currentOut += event.out;
-          }
           race = setTimeout(() => reject(timeoutErrorMessage), GitClient.settings.commandTimeoutSeconds * 1000);
         } else {
-          const commandHistoryModel = new CommandHistoryModel(name,
-            command + ' ' + args.join(' '),
-            currentErr,
-            currentOut,
-            start, new Date().getTime() - start.getTime(),
-            !!currentErr);
-          this.commandHistory.push(commandHistoryModel);
-          this.commandHistoryListener(this.commandHistory);
+          if (currentErr) {
+            currentErr = currentOut;
+          }
           if (currentErr.split(/\r?\n/).every(x => x.trim().length == 0 || x.trim().startsWith('warning:'))) {
             resolve(currentOut);
           } else {
-            console.error(JSON.stringify(commandHistoryModel));
-            logger.error(JSON.stringify(commandHistoryModel));
             reject(currentErr);
           }
 
@@ -822,35 +812,56 @@ export class GitClient {
 
   private executeLive(commandName: string,
                       command: string,
-                      args: string[]): Observable<CommandEvent> {
+                      args: string[], includeCommand: boolean = true): Observable<CommandEvent> {
     let subject = new Subject<CommandEvent>();
     let start = new Date();
     let stderr = '', stdout = '';
-    subject.next(new CommandEvent(command + ' ' + args.join(' '), undefined, false));
-    let progress = spawn(command, args, {cwd: this.workingDir});
-    progress.stdout.on('data', data => {
-      if (data.toString().startsWith('Username for ')) {
-        let askPass = new AskPassApplication(GitClient.logger);
-        askPass.start();
-        askPass.onLogin.subscribe(creds => {
-          progress.stdin.write(`${creds.username}\n${creds.password}\n`);
+    let safeArgs = args.filter(x => !!x && !!x.trim()).map(x => x.trim());
+    if (includeCommand) {
+      subject.next(new CommandEvent(command + ' ' + safeArgs.join(' '), undefined, false));
+    }
+    let progress = pty.spawn(
+      command,
+      safeArgs,
+      {
+        cwd: this.workingDir,
+        name: 'xterm',
+        cols: 80,
+        rows: 30,
+      });
+    let askingUsername = false;
+    progress.on('data', data => {
+      let text = stripAnsi(data.toString().replace(/(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]/gi, '').replace(' \b', ''));
+      let needsUsername = text.match(/^Username\s+for\s+'(\S+?)'/m);
+      let needsPassword = text.match(/^Password\s+for\s+'(\S+?)'/m);
+      if (needsUsername) {
+        askingUsername = true;
+        this.getAskPassInstance(needsUsername[1]).subscribe(creds => {
+          if (creds != null) {
+            progress.write(`${creds.username}\n${creds.password}\n`);
+          } else {
+            subject.next(new CommandEvent(undefined, 'Password prompt closed, cannot proceed', true));
+            progress.kill();
+          }
         });
-      } else if (!data.toString().startsWith('Password for ')) {
-        stdout += data.toString();
-        subject.next(new CommandEvent(data.toString(), undefined, false));
+      } else if (needsPassword && !askingUsername) {
+        this.getAskPassInstance(needsPassword[1]).subscribe(creds => {
+          if (creds != null) {
+            progress.write(creds.password + '\n');
+          } else {
+            subject.next(new CommandEvent(undefined, 'Password prompt closed, cannot proceed', true));
+            progress.kill();
+          }
+        });
+      } else {
+        stdout += text;
+        subject.next(new CommandEvent(text, undefined, false));
       }
-    });
-    progress.stderr.on('data', data => {
-      stderr += data.toString();
-      subject.next(new CommandEvent(undefined, data.toString(), false));
-    });
-    progress.on('error', err => {
-      subject.next(new CommandEvent(undefined, JSON.stringify(serializeError(err)), false));
     });
     progress.on('exit', code => {
       subject.next(new CommandEvent(undefined, code != 0 ? 'Non-zero exit code: ' + code : undefined, true));
       let commandHistoryModel = new CommandHistoryModel(commandName,
-        command + ' ' + args.join(' '),
+        command + ' ' + safeArgs.join(' '),
         stderr,
         stdout,
         start, new Date().getTime() - start.getTime(),
@@ -859,6 +870,17 @@ export class GitClient {
       this.commandHistoryListener(this.commandHistory);
     });
     return subject.asObservable();
+  }
+
+  private getAskPassInstance(host: string) {
+    if (!this._askPassApplication) {
+      this._askPassApplication = new AskPassApplication(GitClient.logger, host);
+      this._askPassApplication.onLogin.pipe(take(1)).subscribe(() => {
+        this._askPassApplication = undefined;
+      });
+      this._askPassApplication.start();
+    }
+    return this._askPassApplication.onLogin.pipe(take(1));
   }
 }
 

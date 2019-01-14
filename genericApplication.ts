@@ -1,8 +1,9 @@
 import {app, BrowserWindow, screen} from 'electron';
-import * as url from 'url';
 import * as path from 'path';
 import * as NodeNotifier from 'node-notifier';
 import {ElectronResponse} from './shared/common/electron-response';
+import * as url from 'url';
+import {UrlObject} from 'url';
 
 const notifier = require('node-notifier');
 const version = require('./package.json');
@@ -16,6 +17,7 @@ export abstract class GenericApplication {
   protected windowHeight: number;
   protected rootHtmlPath: string;
   protected startMaximized = true;
+  protected rootHtmlHash: string;
 
   protected constructor(logger: Console) {
     this.logger = logger;
@@ -27,10 +29,15 @@ export abstract class GenericApplication {
     // This method will be called when Electron has finished
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
-    app.on('ready', () => {
+    if (app.isReady()) {
       this.createWindow();
       this.onReady();
-    });
+    } else {
+      app.on('ready', () => {
+        this.createWindow();
+        this.onReady();
+      });
+    }
 
     // Quit when all windows are closed.
     app.on('window-all-closed', () => {
@@ -65,11 +72,15 @@ export abstract class GenericApplication {
     }
 
 
-    this.window.loadURL(url.format({
+    let aurl: UrlObject = {
       pathname: path.join(__dirname, this.rootHtmlPath || 'dist/index.html'),
       protocol: 'file:',
       slashes: true,
-    }));
+    };
+    if (this.rootHtmlHash) {
+      aurl.hash = this.rootHtmlHash;
+    }
+    this.window.loadURL(url.format(aurl));
     // win.webContents.openDevTools();
 
     // Emitted when the window is closed.
@@ -77,6 +88,7 @@ export abstract class GenericApplication {
       // Dereference the window object, usually you would store window
       // in an array if your app supports multi windows, this is the time
       // when you should delete the corresponding element.
+      this.windowClosed();
       this.window = null;
     });
 
@@ -104,6 +116,10 @@ export abstract class GenericApplication {
   }
 
   protected onReady() {
+
+  }
+
+  protected windowClosed() {
 
   }
 }

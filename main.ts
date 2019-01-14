@@ -18,13 +18,7 @@ process.on('uncaughtException', function (error) {
 
 // no error dialogs shown to users
 try {
-  // TODO: SAVE FOR PASSWORD PROMPT
-  // const args = process.argv.slice(1);
-  // if (args.some(x => x == '--askpass' || x == '-a')) {
-  //   new AskPassApplication(logger, version.version, notifier).start();
-  // } else {
   new MainApplication(logger).start();
-  // }
 } catch (e) {
   // Catch Error
   // throw e;

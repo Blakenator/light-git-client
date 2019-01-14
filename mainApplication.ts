@@ -329,14 +329,14 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.ADDWORKTREE, (event, args) => {
-      this.gitClients[args[1]].addWorktree(args[2], args[3]).subscribe(event => {
-        this.defaultReply(event, args, {out: event.out, err: event.error, done: event.done});
+      this.gitClients[args[1]].addWorktree(args[2], args[3]).subscribe(eventData => {
+        this.defaultReply(event, args, {out: eventData.out, err: eventData.error, done: eventData.done});
       });
     });
 
     ipcMain.on(Channels.CLONE, (event, args) => {
-      new GitClient(args[1]).clone(args[2], args[3]).subscribe(event => {
-        this.defaultReply(event, args, {out: event.out, err: event.error, done: event.done});
+      new GitClient(args[1]).clone(args[2], args[3]).subscribe(eventData => {
+        this.defaultReply(event, args, {out: eventData.out, err: eventData.error, done: eventData.done});
       });
     });
 
