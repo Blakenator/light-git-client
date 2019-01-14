@@ -36,7 +36,7 @@ export class SettingsComponent implements OnInit {
               private gitService: GitService,
               private modalService: ModalService,
               private applicationRef: ApplicationRef,
-              private settingsService: SettingsService) {
+              public settingsService: SettingsService) {
   }
 
   ngOnInit() {
