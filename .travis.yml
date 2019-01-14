@@ -33,7 +33,7 @@ script:
   - echo $SIGNING64 | base64 --decode > ~/codesign.pfx
   - |
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      if [ "$TRAVIS_BRANCH" == "master" ]; then
+      if [ "$TRAVIS_BRANCH" == "master" || "$TRAVIS_BRANCH" == "testing/build" ]; then
         docker run --rm \
           -e CSC_LINK=$CSC_LINK \
           -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
@@ -55,7 +55,7 @@ script:
           /bin/bash -c "npm i && npm run electron:ci"
       fi
     else
-      if [ "$TRAVIS_BRANCH" == "master" ]; then
+      if [ "$TRAVIS_BRANCH" == "master" || "$TRAVIS_BRANCH" == "testing/build" ]; then
         npm run release:mac
       else
         npm run electron:mac
@@ -68,3 +68,4 @@ branches:
   only:
     - staging
     - master
+    - testing/build
