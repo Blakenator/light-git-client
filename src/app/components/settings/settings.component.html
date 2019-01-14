@@ -46,6 +46,12 @@
               <label>Show autocomplete when typing commit message</label>
             </div>
           </div>
+          <div class="pretty p-switch p-fill my-3 d-block">
+            <input type="checkbox" [(ngModel)]="tempSettings.allowStats"/>
+            <div class="state">
+              <label>Send anonymized statistics to help improve Light-Git</label>
+            </div>
+          </div>
         </div>
         <div class="col-6">
           <app-file-input [filePath]="tempSettings.gitPath"
@@ -179,4 +185,13 @@
       </div>
     </div>
   </div>
+</app-modal>
+<app-modal modalId="stats"
+           modalTitle="Send Anonymized Usage Data"
+           affirmativeButtonText="Yes"
+           negativeButtonText="No"
+           modalTitleIcon="fa-chart-line"
+           (onCancel)="settingsService.settings.allowStats=-1;settingsService.saveSettings()"
+           (onFinish)="settingsService.settings.allowStats=1;settingsService.saveSettings()">
+  <div>Can we automatically collect anonymized usage data and errors to help improve Light-Git?</div>
 </app-modal>

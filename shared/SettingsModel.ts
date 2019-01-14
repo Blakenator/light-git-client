@@ -23,6 +23,8 @@ export class SettingsModel {
   public includeUnchangedInWatcherAnalysis: boolean;
   public username: string;
   public email: string;
+  public allowStats: number;
+  public statsId: string;
 
   constructor(darkMode: boolean = false,
               openRepos: string[] = [''],
@@ -56,6 +58,7 @@ export class SettingsModel {
     this.includeUnchangedInWatcherAnalysis = includeUnchangedInWatcherAnalysis;
     this.username = username;
     this.email = email;
+    this.statsId = Math.pow(32, 16).toString(32);
   }
 
   static sanitizePath(path) {

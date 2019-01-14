@@ -45,6 +45,9 @@ export class SettingsComponent implements OnInit {
         (<any>window).setTheme(this.settingsService.settings.darkMode ? 'dark' : 'light');
       }
       this.tempSettings = this.settingsService.settings;
+      if (!this.settingsService.settings.allowStats) {
+        this.modalService.setModalVisible('stats', true);
+      }
     };
     this.settingsService.loadSettings(() => callback(true));
     this.settingsService.listenSettings(() => callback());

@@ -8,10 +8,12 @@ import {ElectronResponse} from './shared/common/electron-response';
 import {autoUpdater} from 'electron-updater';
 import {Channels} from './shared/Channels';
 import {GenericApplication} from './genericApplication';
+import * as ua from 'universal-analytics';
 
 const opn = require('opn');
 
 export class MainApplication extends GenericApplication {
+  private static readonly STATS_GENERAL = 'general';
   private updateDownloaded = false;
   private settings: SettingsModel = new SettingsModel();
   private userInitiatedUpdate = false;
@@ -20,6 +22,7 @@ export class MainApplication extends GenericApplication {
   private gitClients: { [key: string]: GitClient } = {};
   private readonly iconFile = './src/favicon.512x512.png';
   private readonly notificationTitle = 'Light Git';
+  private analytics;
 
   constructor(logger: Console) {
     super(logger);
@@ -44,6 +47,11 @@ export class MainApplication extends GenericApplication {
         const res = Object.assign(new SettingsModel(), JSON.parse(data));
         Object.assign(this.settings, res);
         GitClient.settings = res;
+        if (this.settings.allowStats == 1) {
+          this.analytics = ua('UA-83786273-2', this.settings.statsId);
+        }
+        this.sendEvent(MainApplication.STATS_GENERAL, 'tabs-open', this.settings.tabNames.length);
+        this.sendEvent(MainApplication.STATS_GENERAL, 'version', this.version);
         callback(res);
       });
     } else {
@@ -51,6 +59,17 @@ export class MainApplication extends GenericApplication {
       this.saveSettings(this.settings);
       GitClient.settings = this.settings;
       callback(this.settings);
+    }
+  }
+
+  sendEvent(category: string, action: string, label: string | number, value?: number) {
+    if (this.analytics) {
+      this.analytics.event({
+        ec: category,
+        ea: action,
+        el: label + '',
+        ev: value,
+      }).send();
     }
   }
 
@@ -80,6 +99,7 @@ export class MainApplication extends GenericApplication {
     this.checkForUpdates();
     this.configureApp();
     this.bindEventHandlers();
+    setTimeout(() => this.sendEvent('general', 'window-opened', 'main-window'), 20000);
   }
 
   checkForUpdates() {
@@ -289,7 +309,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.SETGITSETTINGS, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].setBulkGitSettings(args[2],args[3]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].setBulkGitSettings(args[2], args[3]), event, args);
     });
 
     ipcMain.on(Channels.UPDATESUBMODULES, (event, args) => {
