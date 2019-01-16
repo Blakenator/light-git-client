@@ -25,6 +25,7 @@ export class SettingsModel {
   public email: string;
   public allowStats: number;
   public statsId: string;
+  public allowPrerelease: boolean;
 
   constructor(darkMode: boolean = false,
               openRepos: string[] = [''],
@@ -41,7 +42,8 @@ export class SettingsModel {
               includeUnchangedInWatcherAnalysis: boolean = true,
               codeWatchers: CodeWatcherModel[] = defaultCodeWatchers,
               username: string = '',
-              email: string = '') {
+              email: string = '',
+              allowPrerelease: boolean = false) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
     this.tabNames = tabNames;
@@ -59,6 +61,7 @@ export class SettingsModel {
     this.username = username;
     this.email = email;
     this.statsId = Math.pow(32, 16).toString(32);
+    this.allowPrerelease = allowPrerelease;
   }
 
   static sanitizePath(path) {
@@ -83,6 +86,9 @@ export class SettingsModel {
     res.includeUnchangedInWatcherAnalysis = this.includeUnchangedInWatcherAnalysis;
     res.username = this.username + '';
     res.email = this.email + '';
+    res.allowStats = this.allowStats;
+    res.allowPrerelease = this.allowPrerelease;
+    res.statsId = this.statsId + '';
     return res;
   }
 }

@@ -103,6 +103,7 @@ export class MainApplication extends GenericApplication {
   }
 
   checkForUpdates() {
+    autoUpdater.allowPrerelease = this.settings.allowPrerelease;
     autoUpdater.checkForUpdates().catch(error => {
       this.notifier.notify({
         title: this.notificationTitle,

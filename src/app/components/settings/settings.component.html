@@ -21,7 +21,14 @@
     <div *ngIf="currentTab==0">
       <div>
         Light Git <span class="badge badge-pill badge-info mx-1">v{{version}}</span>
-        <button class="btn btn-sm btn-primary" (click)="checkForUpdates()">
+
+        <div class="pretty p-switch p-fill my-3 mx-1">
+          <input type="checkbox" [(ngModel)]="tempSettings.allowPrerelease"/>
+          <div class="state">
+            <label>Bleeding Edge Builds</label>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-primary mx-1" (click)="checkForUpdates()">
           Check for Updates
           <i class="fa fa-sync"></i>
         </button>

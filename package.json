@@ -21,7 +21,7 @@
     "build:dev": "npm run build -- -c dev",
     "build:prod": "npm run build -- -c production",
     "ng:serve": "npx del-cli dist/**/* && ng build --watch",
-    "electron:tsc": "npx tsc --p tsconfig-electron.json || echo && npx cpx {package.json,dev-app-update.yml} dist",
+    "electron:tsc": "npx tsc --p tsconfig-electron.json || echo",
     "electron:serve": "nodemon --ignore dist --watch ./ -e ts,html,scss --exec \"npm run electron:tsc && electron --inspect .\"",
     "electron:local": "npm run build:prod && electron .",
     "electron:linux": "npm run build:prod && npx electron-builder build --linux",
