@@ -36,7 +36,6 @@ export class GitClient {
   getCommitDiff(commitHash: any): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.execute(this.getGitPath(), [
-        '--no-pager',
         'diff',
         (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
         commitHash + '~',
@@ -51,7 +50,6 @@ export class GitClient {
   getBranchPremerge(branch: BranchModel): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.execute(this.getGitPath(), [
-        '--no-pager',
         'diff',
         (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
         branch.currentHash + '...'], 'Get Premerge Diff')
@@ -293,7 +291,7 @@ export class GitClient {
         let command: string = this.getGitPath();
         promises.push(this.execute(
           command,
-          ['--no-pager', 'diff', (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''), '--', ...unstaged],
+          ['diff', (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''), '--', ...unstaged],
           'Get Unstaged Changes Diff')
                           .then(text => this.parseDiffString(text, DiffHeaderStagedState.UNSTAGED)));
       }
@@ -301,7 +299,7 @@ export class GitClient {
         let command: string = this.getGitPath();
         promises.push(this.execute(
           command,
-          ['--no-pager', 'diff', (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''), '--staged', '--', ...staged],
+          ['diff', (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''), '--staged', '--', ...staged],
           'Get Staged Changes Diff')
                           .then(text => this.parseDiffString(text, DiffHeaderStagedState.STAGED)));
       }
@@ -487,8 +485,7 @@ export class GitClient {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
       this.execute(
         this.getGitPath(),
-        ['--no-pager',
-          'rev-list',
+        ['rev-list',
           '-n',
           (count || 50) + '',
           ' --branches',
@@ -817,6 +814,9 @@ export class GitClient {
     let subject = new Subject<CommandEvent>();
     let start = new Date();
     let stderr = '', stdout = '';
+    if (command == this.getGitPath()) {
+      args.unshift('--no-pager');
+    }
     let safeArgs = args.filter(x => !!x && !!x.trim()).map(x => x.trim());
     if (includeCommand) {
       subject.next(new CommandEvent(command + ' ' + safeArgs.join(' '), undefined, false));
