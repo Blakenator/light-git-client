@@ -41,8 +41,8 @@ script:
           -v ${PWD}:/project \
           -v ~/.cache/electron:/root/.cache/electron \
           -v ~/.cache/electron-builder:/root/.cache/electron-builder \
-          electronuserland/builder:wine \
-          /bin/bash -c "npm i && npm run release"
+          electronuserland/builder:10 \
+          /bin/bash -c "npm i && npm run release:linux"
       else
         docker run --rm \
           -e CSC_LINK=$CSC_LINK \
@@ -52,7 +52,7 @@ script:
           -v ~/.cache/electron:/root/.cache/electron \
           -v ~/.cache/electron-builder:/root/.cache/electron-builder \
           electronuserland/builder:wine \
-          /bin/bash -c "npm i && npm run electron:ci"
+          /bin/bash -c "npm i && npm run electron:linux"
       fi
     else
       if [ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "testing/build" ]; then

@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.7.7",
+  "version": "0.7.7-alpha3",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -26,9 +26,9 @@
     "electron:local": "npm run build:prod && electron .",
     "electron:linux": "npm run build:prod && npx electron-builder build --linux",
     "electron:windows": "npm run build:prod && npx electron-builder build --windows",
-    "electron:ci": "npm run build:prod && npx electron-builder build --windows --linux",
     "electron:mac": "npm run build:prod && npx electron-builder build --mac",
-    "release": "npm run build:prod && npx electron-builder build --windows --linux -p always",
+    "release:linux": "npm run build:prod && npx electron-builder build --linux -p always",
+    "release:windows": "npm run build:prod && npx electron-builder build --windows -p always",
     "release:mac": "npm run build:prod && npx electron-builder build --mac -p always"
   },
   "dependencies": {
