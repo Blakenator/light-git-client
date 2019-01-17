@@ -11,7 +11,7 @@
     "url": "https://github.com/Blakenator/light-git-client.git"
   },
   "main": "main.js",
-  "private": true,
+  "private": false,
   "scripts": {
     "postinstall": "npx electron-builder install-app-deps ",
     "ng": "ng",
