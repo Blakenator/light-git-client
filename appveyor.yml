@@ -22,13 +22,7 @@ install:
 
 build_script:
   - echo %APPVEYOR_REPO_BRANCH%
-  - |
-    IF "%APPVEYOR_REPO_BRANCH%" == "staging" (
-      echo build-only
-      npm run electron:windows
-    ) ELSE (
-      echo release
-      npm run release:windows
-    )
+  - IF "%APPVEYOR_REPO_BRANCH%" == "staging" (echo staging) ELSE (echo release)
+  - IF "%APPVEYOR_REPO_BRANCH%" == "staging" (npm run electron:windows) ELSE (npm run release:windows)
 
 test: off
