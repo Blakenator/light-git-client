@@ -19,8 +19,7 @@ import {SubmoduleModel} from '../shared/git/submodule.model';
 import {app} from 'electron';
 import {AskPassApplication} from '../askPassApplication';
 import {Observable, Subject} from 'rxjs';
-import * as stripAnsi from 'strip-ansi';
-import {take} from 'rxjs/operators';
+import {spawn} from 'child_process';
 
 const pty = require('node-pty-prebuilt');
 
@@ -774,10 +773,14 @@ export class GitClient {
   }
 
   private execute(command: string, args: string[], name: string): Promise<string> {
-    let start = new Date();
-
-    let timeoutErrorMessage = 'command timed out (>' + GitClient.settings.commandTimeoutSeconds + 's): ' + command + ' ' +
-      args.join(' ') + '\n\nEither adjust the timeout in the Settings menu or ' + '\nfind the root cause of the timeout';
+    let timeoutErrorMessage = 'command timed out (>' +
+                              GitClient.settings.commandTimeoutSeconds +
+                              's): ' +
+                              command +
+                              ' ' +
+                              args.join(' ') +
+                              '\n\nEither adjust the timeout in the Settings menu or ' +
+                              '\nfind the root cause of the timeout';
 
     return new Promise<string>((resolve, reject) => {
       let currentOut = '', currentErr = '';
@@ -814,50 +817,22 @@ export class GitClient {
     let subject = new Subject<CommandEvent>();
     let start = new Date();
     let stderr = '', stdout = '';
-    if (command == this.getGitPath()) {
-      args.unshift('--no-pager');
-    }
     let safeArgs = args.filter(x => !!x && !!x.trim()).map(x => x.trim());
     if (includeCommand) {
       subject.next(new CommandEvent(command + ' ' + safeArgs.join(' '), undefined, false));
     }
-    let progress = pty.spawn(
+
+    let progress = spawn(
       command,
       safeArgs,
       {
         cwd: this.workingDir,
-        name: 'xterm',
-        cols: 80,
-        rows: 30,
+        env: {PATH: process.env.PATH, GIT_ASKPASS: process.argv[0]},
       });
-    let askingUsername = false;
-    progress.on('data', data => {
-      let text = stripAnsi(data.toString().replace(/(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]/gi, '').replace(' \b', ''));
-      let needsUsername = text.match(/^Username\s+for\s+'(\S+?)'/m);
-      let needsPassword = text.match(/^Password\s+for\s+'(\S+?)'/m);
-      if (needsUsername) {
-        askingUsername = true;
-        this.getAskPassInstance(needsUsername[1]).subscribe(creds => {
-          if (creds != null) {
-            progress.write(`${creds.username}\n${creds.password}\n`);
-          } else {
-            subject.next(new CommandEvent(undefined, 'Password prompt closed, cannot proceed', true));
-            progress.kill();
-          }
-        });
-      } else if (needsPassword && !askingUsername) {
-        this.getAskPassInstance(needsPassword[1]).subscribe(creds => {
-          if (creds != null) {
-            progress.write(creds.password + '\n');
-          } else {
-            subject.next(new CommandEvent(undefined, 'Password prompt closed, cannot proceed', true));
-            progress.kill();
-          }
-        });
-      } else {
-        stdout += text;
-        subject.next(new CommandEvent(text, undefined, false));
-      }
+    progress.stdout.on('data', data => {
+      let text = data.toString();
+      stdout += text;
+      subject.next(new CommandEvent(text, undefined, false));
     });
     progress.on('exit', code => {
       subject.next(new CommandEvent(undefined, code != 0 ? 'Non-zero exit code: ' + code : undefined, true));
@@ -871,17 +846,6 @@ export class GitClient {
       this.commandHistoryListener(this.commandHistory);
     });
     return subject.asObservable();
-  }
-
-  private getAskPassInstance(host: string) {
-    if (!this._askPassApplication) {
-      this._askPassApplication = new AskPassApplication(GitClient.logger, host);
-      this._askPassApplication.onLogin.pipe(take(1)).subscribe(() => {
-        this._askPassApplication = undefined;
-      });
-      this._askPassApplication.start();
-    }
-    return this._askPassApplication.onLogin.pipe(take(1));
   }
 }
 

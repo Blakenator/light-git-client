@@ -61,22 +61,37 @@ export class SettingsComponent implements OnInit {
   }
 
   saveSettings() {
-    if (this.tempSettings.username != this.settingsService.settings.username || this.tempSettings.email != this.settingsService.settings.email) {
-      this.gitService.setBulkGitSettings({
-        'user.name': this.tempSettings.username,
-        'user.email': this.tempSettings.email,
-      }, this.setGlobalDefaultUserConfig);
-    }
-    if (this.mergetoolName.trim() && (!this.mergetoolConfig || this.mergetoolName != this.mergetoolConfig.value || this.mergetoolCommandConfig.value != this.mergetoolCommand)) {
-      this.gitService.setBulkGitSettings({
-        'merge.tool': this.mergetoolName,
-        ['mergetool.' + this.mergetoolName + '.cmd']: this.mergetoolCommand,
-      }, this.setGlobalDefaultMergetoolConfig);
-    }
-    if (!this.credentialHelperConfig || this.credentialHelper != this.credentialHelperConfig.value || this.credentialHelper == 'cache') {
-      this.gitService.setBulkGitSettings({
-        'credential.helper': this.credentialHelper + (this.credentialHelper == 'cache' ? ' --timeout ' + this.cacheHelperSeconds : ''),
-      }, true);
+    if (this.gitService.repo) {
+      if (this.tempSettings.username !=
+          this.settingsService.settings.username ||
+          this.tempSettings.email !=
+          this.settingsService.settings.email) {
+        this.gitService.setBulkGitSettings({
+          'user.name': this.tempSettings.username,
+          'user.email': this.tempSettings.email,
+        }, this.setGlobalDefaultUserConfig);
+      }
+      if (this.mergetoolName.trim() &&
+          (!this.mergetoolConfig ||
+           this.mergetoolName !=
+           this.mergetoolConfig.value ||
+           this.mergetoolCommandConfig.value !=
+           this.mergetoolCommand)) {
+        this.gitService.setBulkGitSettings({
+          'merge.tool': this.mergetoolName,
+          ['mergetool.' + this.mergetoolName + '.cmd']: this.mergetoolCommand,
+        }, this.setGlobalDefaultMergetoolConfig);
+      }
+      if (!this.credentialHelperConfig ||
+          this.credentialHelper !=
+          this.credentialHelperConfig.value ||
+          this.credentialHelper ==
+          'cache') {
+        this.gitService.setBulkGitSettings({
+          'credential.helper': this.credentialHelper +
+                               (this.credentialHelper == 'cache' ? ' --timeout ' + this.cacheHelperSeconds : ''),
+        }, true);
+      }
     }
     this.setThemeTemp();
     this.settingsService.saveSettings(this.tempSettings);
@@ -106,7 +121,8 @@ export class SettingsComponent implements OnInit {
       this.credentialHelperConfig = this.configItems.find(item => item.key == 'credential.helper');
       if (this.credentialHelperConfig) {
         this.credentialHelper = this.credentialHelperConfig.value.split(' ')[0];
-        this.cacheHelperSeconds = this.credentialHelper == 'cache' ? this.credentialHelperConfig.value.split(' ')[2] : 15 * 60 + '';
+        this.cacheHelperSeconds = this.credentialHelper ==
+                                  'cache' ? this.credentialHelperConfig.value.split(' ')[2] : 15 * 60 + '';
       } else {
         this.credentialHelper = 'cache';
         this.cacheHelperSeconds = 15 * 60 + '';
