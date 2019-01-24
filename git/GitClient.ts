@@ -21,8 +21,6 @@ import {AskPassApplication} from '../askPassApplication';
 import {Observable, Subject} from 'rxjs';
 import {spawn} from 'child_process';
 
-const pty = require('node-pty-prebuilt');
-
 export class GitClient {
   static logger: Console;
   static settings: SettingsModel;
