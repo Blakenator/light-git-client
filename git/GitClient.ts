@@ -749,7 +749,12 @@ export class GitClient {
       stdout += text;
       subject.next(new CommandEvent(text, undefined, false));
     });
-    progress.on('exit', code => {
+    progress.stderr.on('data', data => {
+      let text = data.toString();
+      stderr += text;
+      subject.next(new CommandEvent(undefined, text, false));
+    });
+    progress.on('close', code => {
       subject.next(new CommandEvent(undefined, code != 0 ? 'Non-zero exit code: ' + code : undefined, true));
       let commandHistoryModel = new CommandHistoryModel(commandName,
         command + ' ' + safeArgs.join(' '),
