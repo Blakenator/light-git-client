@@ -25,7 +25,7 @@ function getAskPassInstance(host: string) {
 
 // no error dialogs shown to users
 try {
-  if (process.argv.length > 1) {
+  if (process.argv.slice(1).some(x => !!x.match(/Password|Username/))) {
     let text = process.argv[1];
     let needsUsername = text.match(/^Username\s+for\s+'(\S+?)'/m);
     let needsPassword = text.match(/^Password\s+for\s+'(\S+?)'/m);

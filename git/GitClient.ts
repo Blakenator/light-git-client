@@ -17,7 +17,6 @@ import {DiffLineModel, LineState} from '../shared/git/diff.line.model';
 import * as serializeError from 'serialize-error';
 import {SubmoduleModel} from '../shared/git/submodule.model';
 import {app} from 'electron';
-import {AskPassApplication} from '../askPassApplication';
 import {Observable, Subject} from 'rxjs';
 import {spawn} from 'child_process';
 
@@ -25,7 +24,7 @@ export class GitClient {
   static logger: Console;
   static settings: SettingsModel;
   private commandHistory: CommandHistoryModel[] = [];
-  private _askPassApplication: AskPassApplication;
+  private commandHistoryListener = new Subject<CommandHistoryModel[]>();
 
   constructor(private workingDir: string) {
   }
@@ -44,12 +43,12 @@ export class GitClient {
     });
   }
 
-  getBranchPremerge(branch: BranchModel): Promise<DiffHeaderModel[]> {
+  getBranchPremerge(branchHash: string): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.execute(this.getGitPath(), [
         'diff',
         (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
-        branch.currentHash + '...'], 'Get Premerge Diff')
+        branchHash + '...'], 'Get Premerge Diff')
           .then(text => {
             resolve(this.parseDiffString(text, DiffHeaderStagedState.NONE));
           })
@@ -58,7 +57,7 @@ export class GitClient {
   }
 
   getCommandHistory(listenCallback: (history: CommandHistoryModel[]) => any): Promise<CommandHistoryModel[]> {
-    this.commandHistoryListener = listenCallback;
+    this.commandHistoryListener.subscribe(history => listenCallback(history));
     return Promise.resolve(this.commandHistory);
   }
 
@@ -142,19 +141,11 @@ export class GitClient {
   }
 
   stage(file: string) {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['add', '--', file], 'Stage File')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['add', '--', file], 'Stage File');
   }
 
   unstage(file: string) {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['reset', '--', file], 'Unstage File')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['reset', '--', file], 'Unstage File');
   }
 
   setBulkGitSettings(config: { [key: string]: string | number }, useGlobal: boolean) {
@@ -169,99 +160,81 @@ export class GitClient {
           ['config', (config[key] ? '--replace-all' : '--unset'), useGlobal ? '--global' : '', key, '' + value],
           'Set git settings');
       }))
-             .then(() => resolve())
+             .then(resolve)
              .catch(err => reject(serializeError(err)));
     });
   }
 
   deleteBranch(branch: string) {
-    return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['branch', '-D', '--', branch], 'Delete Branch')
-          .then(() => this.getBranches().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['branch', '-D', '--', branch], 'Delete Branch');
   }
 
   mergeBranch(branch: string) {
-    return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['merge', branch], 'Merge Branch into Current Branch')
-          .then(() => this.getBranches().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['merge', branch], 'Merge Branch into Current Branch');
   }
 
   changeHunk(filename: string, hunk: DiffHunkModel, changedText: string) {
-    return new Promise<CommitModel>((resolve, reject) => {
-      fs.readFile(filename, (err, data) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        let text = data.toString();
-        let eol = /\r?\n/g;
-        let match = null;
-        let start = 0, end = 0, currentLine = 1;
-        while (match || currentLine == 1) {
-          if (hunk.toStartLine == currentLine) {
-            if (!match) {
-              start = 0;
-            } else {
-              start = match.index + match[0].length;
+    return new Promise<any>((resolve, reject) => {
+      try {
+        fs.readFile(filename, (err, data) => {
+          try {
+            if (err) {
+              reject(serializeError(err));
+              return;
             }
-          } else if (hunk.toStartLine + hunk.toNumLines == currentLine) {
-            end = match.index;
-            break;
+            let text = data.toString();
+            let eol = /\r?\n/g;
+            let match = null;
+            let start = 0, end = 0, currentLine = 1;
+            while (match || currentLine == 1) {
+              if (hunk.toStartLine == currentLine) {
+                if (!match) {
+                  start = 0;
+                } else {
+                  start = match.index + match[0].length;
+                }
+              } else if (hunk.toStartLine + hunk.toNumLines == currentLine) {
+                end = match.index;
+                break;
+              }
+              currentLine++;
+              match = eol.exec(text);
+            }
+            if (end == 0) {
+              end = text.length;
+            }
+            let modified = text.substring(0, start) + changedText + text.substring(end);
+            fs.writeFile(filename, modified, (err) => {
+              if (err) {
+                reject(serializeError(err));
+                return;
+              }
+              resolve();
+            });
+          } catch (e) {
+            reject(serializeError(e));
           }
-          currentLine++;
-          match = eol.exec(text);
-        }
-        if (end == 0) {
-          end = text.length;
-        }
-        let modified = text.substring(0, start) + changedText + text.substring(end);
-        fs.writeFile(filename, modified, (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          this.getChanges().then(resolve).catch(err => reject(serializeError(err)));
         });
-      });
+      } catch (e) {
+        reject(serializeError(e));
+      }
     });
   }
 
   fetch() {
-    return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['fetch', '-p'], 'Fetch Remote Branches')
-          .then(text => {
-            this.getBranches().then(resolve).catch(err => reject(serializeError(err)));
-          })
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['fetch', '-p'], 'Fetch Remote Branches');
   }
 
   renameBranch(oldName: string, newName: string) {
-    return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['branch', '-m', oldName, newName], 'Rename Branch')
-          .then(() => this.getBranches().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['branch', '-m', oldName, newName], 'Rename Branch');
   }
 
   createBranch(branchName: string) {
-    return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['checkout', '-b', branchName], 'Create Branch')
-          .then(() => this.getBranches().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['checkout', '-b', branchName], 'Create Branch');
   }
 
   deleteWorktree(worktree: string) {
-    return new Promise<RepositoryModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['worktree', 'remove', worktree], 'Delete Worktree')
-          .then(() => this.getBranches().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['worktree', 'remove', worktree], 'Delete Worktree');
   }
 
   openTerminal() {
@@ -314,8 +287,8 @@ export class GitClient {
     });
   }
 
-  commit(message: string, push: boolean): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
+  commit(message: string, push: boolean): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
       let commitFilePath = path.join(app.getPath('userData'), 'commit.msg');
       fs.writeFileSync(commitFilePath, message, {encoding: 'utf8'});
       this.execute(this.getGitPath(), [
@@ -323,129 +296,84 @@ export class GitClient {
           .then(() => {
             fs.unlinkSync(commitFilePath);
             if (!push) {
-              this.getChanges().then(resolve).catch(err => reject(serializeError(err)));
+              resolve();
             } else {
-              this.execute(this.getGitPath(), ['push', '-u', 'origin', 'HEAD'], 'Push Current Branch').then(() => {
-                this.getChanges().then(resolve).catch(err => reject(serializeError(err)));
-              }).catch(err => reject(serializeError(err)));
+              this.execute(this.getGitPath(), ['push', '-u', 'origin', 'HEAD'], 'Push Current Branch')
+                  .then(resolve)
+                  .catch(err => reject(serializeError(err)));
             }
           })
           .catch(err => reject(serializeError(err)));
     });
   }
 
-  cherryPickCommit(hash: string): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['cherry-pick', hash], 'Cherry-pick')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  cherryPickCommit(hash: string): Promise<any> {
+    return this.simpleOperation(this.getGitPath(), ['cherry-pick', hash], 'Cherry-pick');
   }
 
-  checkout(tag: string, toNewBranch: boolean, branchName: string = ''): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(
-        this.getGitPath(),
-        ['checkout', tag, (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '')],
-        'Checkout')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  checkout(tag: string, toNewBranch: boolean, branchName: string = ''): Promise<any> {
+    return this.simpleOperation(
+      this.getGitPath(),
+      ['checkout', tag, (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '')],
+      'Checkout');
   }
 
-  undoFileChanges(file: string, revision: string, staged: boolean): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['checkout', (revision || 'HEAD'), '--', file], 'Undo File Changes')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  undoFileChanges(file: string, revision: string, staged: boolean): Promise<any> {
+    return this.simpleOperation(this.getGitPath(), ['checkout', (revision || 'HEAD'), '--', file], 'Undo File Changes');
   }
 
-  hardReset(): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['reset', '--hard'], 'Hard Reset/Undo All')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  hardReset(): Promise<any> {
+    return this.simpleOperation(this.getGitPath(), ['reset', '--hard'], 'Hard Reset/Undo All');
   }
 
-  merge(file: string, tool: string): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['mergetool', '--tool=' + (tool || 'meld'), file], 'Resolve Merge Conflict')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  merge(file: string, tool: string): Promise<any> {
+    return this.simpleOperation(
+      this.getGitPath(),
+      ['mergetool', '--tool=' + (tool || 'meld'), file],
+      'Resolve Merge Conflict');
   }
 
-  stash(unstagedOnly: boolean, stashName: string): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      let commandArgs = ['stash', 'push'];
-      if (unstagedOnly) {
-        commandArgs.push('-k');
-        commandArgs.push('-u');
-      }
-      if (stashName) {
-        commandArgs.push('-m');
-        commandArgs.push(stashName);
-      }
-      this.execute(this.getGitPath(), commandArgs, 'Stash Changes')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  stash(unstagedOnly: boolean, stashName: string): Promise<any> {
+    let commandArgs = ['stash', 'push'];
+    if (unstagedOnly) {
+      commandArgs.push('-k');
+      commandArgs.push('-u');
+    }
+    if (stashName) {
+      commandArgs.push('-m');
+      commandArgs.push(stashName);
+    }
+    return this.simpleOperation(this.getGitPath(), commandArgs, 'Stash Changes');
   }
 
-  applyStash(index: number): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['stash', 'apply', '--index', '' + index], 'Apply Stashed Changes')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  applyStash(index: number): Promise<any> {
+    return this.simpleOperation(this.getGitPath(), ['stash', 'apply', '--index', '' + index], 'Apply Stashed Changes');
   }
 
   fastForward(branch: string): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['fetch', 'origin', branch + ':' + branch], 'Fast-Forward Branch')
-          .then(() => resolve())
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['fetch', 'origin', branch + ':' + branch], 'Fast-Forward Branch');
   }
 
-  deleteStash(index: number): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['stash', 'drop', 'stash@{' + index + '}'], 'Delete Stash')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  deleteStash(index: number): Promise<any> {
+    return this.simpleOperation(this.getGitPath(), ['stash', 'drop', 'stash@{' + index + '}'], 'Delete Stash');
   }
 
-  pushBranch(branch: string, force: boolean): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(
-        this.getGitPath(),
-        ['push', 'origin', (branch ? branch + ':' + branch : ''), (force ? ' --force' : '')],
-        'Push')
-          .then(() => this.getChanges().then(resolve).catch(err => reject(serializeError(err))))
-          .catch(err => reject(serializeError(err)));
-    });
+  pushBranch(branch: string, force: boolean): Promise<any> {
+    return this.simpleOperation(
+      this.getGitPath(),
+      ['push', 'origin', (branch ? branch + ':' + branch : ''), (force ? ' --force' : '')],
+      'Push');
   }
 
   updateSubmodules(branch: string, recursive: boolean): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
-      this.execute(
-        this.getGitPath(),
-        ['submodule', 'update', '--init', (recursive ? ' --recursive' : ''), '--', (branch || '.')],
-        'Update Submodule')
-          .then(resolve)
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(
+      this.getGitPath(),
+      ['submodule', 'update', '--init', (recursive ? ' --recursive' : ''), '--', (branch || '.')],
+      'Update Submodule');
   }
 
   addSubmodule(url: string, path: string): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['submodule', 'add', url, (path || '')], 'Update Submodule')
-          .then(resolve)
-          .catch(err => reject(serializeError(err)));
-    });
+    return this.simpleOperation(this.getGitPath(), ['submodule', 'add', url, (path || '')], 'Update Submodule');
   }
 
   checkGitBashVersions(): Promise<{ bash: boolean, git: boolean }> {
@@ -466,16 +394,8 @@ export class GitClient {
     });
   }
 
-  pull(force: boolean): Promise<CommitModel> {
-    return new Promise<CommitModel>((resolve, reject) => {
-      this.execute(this.getGitPath(), ['pull', (force ? ' -f' : '')], 'Pull')
-          .then(() => {
-            this.getChanges().then(resolve).catch(err => reject(serializeError(err)));
-          })
-          .catch(() => {
-            this.getChanges().then(resolve).catch(err => reject(serializeError(err)));
-          });
-    });
+  pull(force: boolean): Promise<any> {
+    return this.simpleOperation(this.getGitPath(), ['pull', (force ? ' -f' : '')], 'Pull');
   }
 
   getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
@@ -694,9 +614,6 @@ export class GitClient {
     }));
   }
 
-  private commandHistoryListener: (history: CommandHistoryModel[]) => any = () => {
-  };
-
   private parseDiffString(text: string, state: DiffHeaderStagedState): DiffHeaderModel[] {
     let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
     let hunk = /\s*@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
@@ -772,13 +689,13 @@ export class GitClient {
 
   private execute(command: string, args: string[], name: string): Promise<string> {
     let timeoutErrorMessage = 'command timed out (>' +
-                              GitClient.settings.commandTimeoutSeconds +
-                              's): ' +
-                              command +
-                              ' ' +
-                              args.join(' ') +
-                              '\n\nEither adjust the timeout in the Settings menu or ' +
-                              '\nfind the root cause of the timeout';
+      GitClient.settings.commandTimeoutSeconds +
+      's): ' +
+      command +
+      ' ' +
+      args.join(' ') +
+      '\n\nEither adjust the timeout in the Settings menu or ' +
+      '\nfind the root cause of the timeout';
 
     return new Promise<string>((resolve, reject) => {
       let currentOut = '', currentErr = '';
@@ -825,7 +742,7 @@ export class GitClient {
       safeArgs,
       {
         cwd: this.workingDir,
-        env: {PATH: process.env.PATH, GIT_ASKPASS: process.argv[0]},
+        env: {PATH: process.env.PATH, GIT_ASKPASS: process.env['GIT_ASKPASS'] || process.argv[0]},
       });
     progress.stdout.on('data', data => {
       let text = data.toString();
@@ -841,9 +758,17 @@ export class GitClient {
         start, new Date().getTime() - start.getTime(),
         !!stderr);
       this.commandHistory.push(commandHistoryModel);
-      this.commandHistoryListener(this.commandHistory);
+      this.commandHistoryListener.next(this.commandHistory);
     });
     return subject.asObservable();
+  }
+
+  private simpleOperation(command: string, args: string[], name: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.execute(command, args, name)
+          .then(resolve)
+          .catch(err => reject(serializeError(err)));
+    });
   }
 }
 

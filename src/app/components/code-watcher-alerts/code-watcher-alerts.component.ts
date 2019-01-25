@@ -36,7 +36,7 @@ export class CodeWatcherAlertsComponent implements OnInit {
     if (request.forHeader) {
       this.parseDiffInformation([request.forHeader]);
     } else {
-      this.gitService.getFileChanges('.', '.')
+      this.gitService.getFileDiff(['.'], ['.'])
           .then((diff: DiffHeaderModel[]) => {
             this.parseDiffInformation(diff);
           })

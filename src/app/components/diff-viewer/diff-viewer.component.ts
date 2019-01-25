@@ -74,8 +74,8 @@ export class DiffViewerComponent implements OnInit {
       return;
     }
     this.gitService.changeHunk(this.editingHeader.toFilename, this.editingHunk, this.editedText)
-        .then(changes => {
-          this.onHunkChanged.emit(changes);
+        .then(() => {
+          this.onHunkChanged.emit();
           this.editingHeader = undefined;
           this.editingHunk = undefined;
         })

@@ -4,15 +4,15 @@ import {RepositoryModel} from '../../../shared/git/Repository.model';
 import {ElectronService} from '../common/services/electron.service';
 import {ConfigItemModel} from '../../../shared/git/config-item.model';
 import {DiffHeaderModel} from '../../../shared/git/diff.header.model';
-import {CommitModel} from '../../../shared/git/Commit.model';
 import {Subject} from 'rxjs';
 import {CommandHistoryModel} from '../../../shared/git/command-history.model';
 import {DiffHunkModel} from '../../../shared/git/diff.hunk.model';
 import {ErrorModel} from '../../../shared/common/error.model';
 import {ErrorService} from '../common/services/error.service';
+import {CommitModel} from '../../../shared/git/Commit.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class GitService {
   public repo: RepositoryModel;
@@ -30,13 +30,14 @@ export class GitService {
     if (rename) {
       rename.value = '';
       return this.electronService.rpc(Channels.SETCONFIGITEM, [this.repo.path, rename])
-                 .then(ignore => this.electronService.rpc(Channels.SETCONFIGITEM,
+                 .then(ignore => this.electronService.rpc(
+                   Channels.SETCONFIGITEM,
                    [this.repo.path, item]));
     }
     return this.electronService.rpc(Channels.SETCONFIGITEM, [this.repo.path, item]);
   }
 
-  mergeBranch(branch: string): Promise<RepositoryModel> {
+  mergeBranch(branch: string): Promise<void> {
     return this.electronService.rpc(Channels.MERGEBRANCH, [this.repo.path, branch]);
   }
 
@@ -60,32 +61,64 @@ export class GitService {
     });
   }
 
-  changeHunk(filename: string, hunk: DiffHunkModel, changedText: string): Promise<CommitModel> {
+  changeHunk(filename: string, hunk: DiffHunkModel, changedText: string): Promise<void> {
     return this.electronService.rpc(Channels.CHANGEHUNK, [this.repo.path, filename, hunk, changedText]);
   }
 
-  updateSubmodules(branch: string, recursive: boolean): Promise<any> {
+  applyStash(index:number): Promise<void> {
+    return this.electronService.rpc(Channels.APPLYSTASH, [this.repo.path, index]);
+  }
+
+  deleteStash(index:number): Promise<void> {
+    return this.electronService.rpc(Channels.DELETESTASH, [this.repo.path, index]);
+  }
+
+  updateSubmodules(branch: string, recursive: boolean): Promise<void> {
     return this.electronService.rpc(Channels.UPDATESUBMODULES, [this.repo.path, branch, recursive]);
   }
 
-  addSubmodule(url: string, path: string): Promise<any> {
+  addSubmodule(url: string, path: string): Promise<void> {
     return this.electronService.rpc(Channels.ADDSUBMODULE, [this.repo.path, url, path]);
   }
 
-  getFileChanges(unstaged: string, staged: string): Promise<DiffHeaderModel[]> {
+  getFileDiff(unstaged: string[], staged: string[]): Promise<DiffHeaderModel[]> {
     return this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]);
   }
 
-  cherryPickCommit(hash: string): Promise<CommitModel> {
+  getBranchPremerge(branchHash:string): Promise<DiffHeaderModel[]> {
+    return this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.repo.path, branchHash]);
+  }
+
+  getCommitDiff(hash: string): Promise<DiffHeaderModel[]> {
+    return this.electronService.rpc(Channels.COMMITDIFF, [this.repo.path, hash]);
+  }
+
+  cherryPickCommit(hash: string): Promise<void> {
     return this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, hash]);
   }
 
-  fastForwardBranch(branch: string): Promise<CommitModel> {
+  fastForwardBranch(branch: string): Promise<void> {
     return this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]);
   }
 
-  setBulkGitSettings(config: { [key: string]: string|number },useGlobal:boolean): Promise<any> {
-    return this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config,useGlobal]);
+  checkout(branchOrHash: string,toNewBranch:boolean): Promise<void> {
+    return this.electronService.rpc(Channels.CHECKOUT, [this.repo.path, branchOrHash, toNewBranch]);
+  }
+
+  pull(force:boolean): Promise<void> {
+    return this.electronService.rpc(Channels.PULL, [this.repo.path, force]);
+  }
+
+  push(branch: string, force:boolean): Promise<void> {
+    return this.electronService.rpc(Channels.PUSH, [this.repo.path, branch, force]);
+  }
+
+  deleteFiles(files:string[]): Promise<void> {
+    return this.electronService.rpc(Channels.DELETEFILES, [this.repo.path, files]);
+  }
+
+  setBulkGitSettings(config: { [key: string]: string | number }, useGlobal: boolean): Promise<void> {
+    return this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config, useGlobal]);
   }
 
   checkGitBashVersions() {
@@ -98,12 +131,73 @@ export class GitService {
         errors.push('bash');
       }
       if (errors.length > 0) {
-        this.errorService.receiveError(new ErrorModel('home component, git bash version check',
+        this.errorService.receiveError(new ErrorModel(
+          'home component, git bash version check',
           'checking the versions of Git and Bash',
           'Invalid path configuration(s) detected:\n\t' + errors.join('\n\t') +
           '\n\nPlease configure your paths correctly in the Settings menu'));
       }
     };
     this.electronService.rpc(Channels.CHECKGITBASHVERSIONS, ['./']).then(handleResult).catch(handleResult);
+  }
+
+  stage(file: string): Promise<void> {
+    return this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, file]);
+  }
+
+  unstage(file: string): Promise<void> {
+    return this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, file]);
+  }
+
+  createBranch(branchName: string): Promise<void> {
+    return this.electronService.rpc(Channels.CREATEBRANCH, [this.repo.path, branchName]);
+  }
+
+  deleteBranch(branchName: string): Promise<void> {
+    return this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branchName]);
+  }
+
+  mergeFile(file: string,mergetool:string): Promise<void> {
+    return this.electronService.rpc(Channels.MERGE, [this.repo.path, file, mergetool]);
+  }
+
+  deleteWorktree(worktreeName: string): Promise<void> {
+    return this.electronService.rpc(Channels.DELETEWORKTREE, [this.repo.path, worktreeName]);
+  }
+
+  stashChanges(onlyUnstaged:boolean,stashName:string): Promise<void> {
+    return this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged, stashName]);
+  }
+
+  fetch(): Promise<void> {
+    return this.electronService.rpc(Channels.FETCH, [this.repo.path]);
+  }
+
+  undoFileChanges(file:string,revision:string,staged:boolean): Promise<void> {
+    return this.electronService.rpc(Channels.UNDOFILECHANGES, [this.repo.path, file, revision, staged]);
+  }
+
+  hardReset(): Promise<void> {
+    return this.electronService.rpc(Channels.HARDRESET, [this.repo.path]);
+  }
+
+  commit(description: string, commitAndPush: boolean): Promise<void> {
+    return this.electronService.rpc(Channels.COMMIT, [this.repo.path, description, commitAndPush]);
+  }
+
+  getBranchChanges(): Promise<RepositoryModel> {
+    return this.electronService.rpc(Channels.GETBRANCHES, [this.repo.path]);
+  }
+
+  getFileChanges(): Promise<CommitModel> {
+    return this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path]);
+  }
+
+  getCommandHistory(): Promise<CommandHistoryModel[]> {
+    return this.electronService.rpc(Channels.GETCOMMANDHISTORY, [this.repo.path]);
+  }
+
+  renameBranch(branch: { oldName: string, newName: string }): Promise<void> {
+    return this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName]);
   }
 }
