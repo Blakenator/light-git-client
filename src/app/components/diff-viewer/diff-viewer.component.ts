@@ -19,13 +19,14 @@ import {FilterPipe} from '../../common/pipes/filter.pipe';
 export class DiffViewerComponent implements OnInit {
   @Input() diffHeaders: DiffHeaderModel[];
   @Input() diffCommitInfo: CommitSummaryModel;
-  matchingSelection = 'words';
   editingHunk: DiffHunkModel;
   editingHeader: DiffHeaderModel;
   editedText: string;
   @Output() onHunkChanged = new EventEmitter<CommitModel>();
   @Output() onHunkChangeError = new EventEmitter<ErrorModel>();
   @Output() onIngoreWhitespaceClicked = new EventEmitter<boolean>();
+  @Output() onExitCommitClicked = new EventEmitter<void>();
+  @Output() onNavigateToHash = new EventEmitter<string>();
   scrollOffset = 10;
   numPerPage = 3;
   diffFilter: string;

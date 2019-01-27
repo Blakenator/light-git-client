@@ -233,7 +233,7 @@ export class GitClient {
   }
 
   createBranch(branchName: string) {
-    return this.simpleOperation(this.getGitPath(), ['checkout', '-b', branchName], 'Create Branch');
+    return this.simpleOperation(this.getGitPath(), ['checkout', '-q', '-b', branchName], 'Create Branch');
   }
 
   deleteWorktree(worktree: string) {
@@ -317,12 +317,15 @@ export class GitClient {
   checkout(tag: string, toNewBranch: boolean, branchName: string = ''): Promise<any> {
     return this.simpleOperation(
       this.getGitPath(),
-      ['checkout', tag, (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '')],
+      ['checkout', '-q', tag, (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '')],
       'Checkout');
   }
 
   undoFileChanges(file: string, revision: string, staged: boolean): Promise<any> {
-    return this.simpleOperation(this.getGitPath(), ['checkout', (revision || 'HEAD'), '--', file], 'Undo File Changes');
+    return this.simpleOperation(
+      this.getGitPath(),
+      ['checkout', '-q', (revision || 'HEAD'), '--', file],
+      'Undo File Changes');
   }
 
   hardReset(): Promise<any> {
@@ -371,12 +374,12 @@ export class GitClient {
   updateSubmodules(branch: string, recursive: boolean): Promise<any> {
     return this.simpleOperation(
       this.getGitPath(),
-      ['submodule', 'update', '--init', (recursive ? ' --recursive' : ''), '--', (branch || '.')],
+      ['submodule', 'update','-q', '--init', (recursive ? ' --recursive' : ''), '--', (branch || '.')],
       'Update Submodule');
   }
 
   addSubmodule(url: string, path: string): Promise<any> {
-    return this.simpleOperation(this.getGitPath(), ['submodule', 'add', url, (path || '')], 'Update Submodule');
+    return this.simpleOperation(this.getGitPath(), ['submodule', 'add', '-q', url, (path || '')], 'Update Submodule');
   }
 
   checkGitBashVersions(): Promise<{ bash: boolean, git: boolean }> {
@@ -434,15 +437,14 @@ export class GitClient {
 
               // git graph
               commitSummary.graphBlockTargets = [];
-              let parentHashes = match[6].split(/\s/);
-              let currentHash = commitSummary.hash;
+              commitSummary.parentHashes = match[6].split(/\s/);
 
               let newIndex = 0;
               let encounteredSeeking: string[] = [];
               let added = false;
               let newStack: { seeking: string, from: number, branchIndex: number }[] = [];
               for (let j = 0; j < stack.length; j++) {
-                if (stack[j].seeking != currentHash) {
+                if (stack[j].seeking != commitSummary.hash) {
                   commitSummary.graphBlockTargets.push({
                     target: stack[j].from,
                     source: newIndex,
@@ -453,27 +455,27 @@ export class GitClient {
                   encounteredSeeking.push(stack[j].seeking);
                   newStack.push(Object.assign(stack[j], {from: newIndex}));
                   newIndex++;
-                } else if (encounteredSeeking.indexOf(currentHash) >= 0) {
+                } else if (encounteredSeeking.indexOf(commitSummary.hash) >= 0) {
                   commitSummary.graphBlockTargets.push({
                     target: stack[j].from,
-                    source: encounteredSeeking.indexOf(currentHash),
+                    source: encounteredSeeking.indexOf(commitSummary.hash),
                     isCommit: true,
                     branchIndex: stack[j].branchIndex,
                     isMerge: false,
                   });
                   added = true;
-                } else if (encounteredSeeking.indexOf(currentHash) < 0) {
+                } else if (encounteredSeeking.indexOf(commitSummary.hash) < 0) {
                   commitSummary.graphBlockTargets.push({
                     target: stack[j].from,
                     source: newIndex,
                     isCommit: true,
                     branchIndex: stack[j].branchIndex,
-                    isMerge: parentHashes.length > 1,
+                    isMerge: commitSummary.parentHashes.length > 1,
                   });
                   encounteredSeeking.push(stack[j].seeking);
                   added = true;
                   let useCurrentBranch = true;
-                  for (let p of parentHashes) {
+                  for (let p of commitSummary.parentHashes) {
                     if (useCurrentBranch) {
                       newStack.push({seeking: p, from: newIndex, branchIndex: stack[j].branchIndex});
                       useCurrentBranch = false;
@@ -491,9 +493,9 @@ export class GitClient {
                   source: fromIndex,
                   isCommit: true,
                   branchIndex: currentBranch,
-                  isMerge: parentHashes.length > 1,
+                  isMerge: commitSummary.parentHashes.length > 1,
                 });
-                for (let p of parentHashes) {
+                for (let p of commitSummary.parentHashes) {
                   newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
                 }
               }
@@ -692,13 +694,13 @@ export class GitClient {
 
   private execute(command: string, args: string[], name: string): Promise<string> {
     let timeoutErrorMessage = 'command timed out (>' +
-                              GitClient.settings.commandTimeoutSeconds +
-                              's): ' +
-                              command +
-                              ' ' +
-                              args.join(' ') +
-                              '\n\nEither adjust the timeout in the Settings menu or ' +
-                              '\nfind the root cause of the timeout';
+      GitClient.settings.commandTimeoutSeconds +
+      's): ' +
+      command +
+      ' ' +
+      args.join(' ') +
+      '\n\nEither adjust the timeout in the Settings menu or ' +
+      '\nfind the root cause of the timeout';
 
     return new Promise<string>((resolve, reject) => {
       let currentOut = '', currentErr = '';
@@ -715,9 +717,6 @@ export class GitClient {
         if (!event.done) {
           race = setTimeout(() => reject(timeoutErrorMessage), GitClient.settings.commandTimeoutSeconds * 1000);
         } else {
-          if (currentErr) {
-            currentErr = currentOut;
-          }
           if (currentErr.split(/\r?\n/).every(x => x.trim().length == 0 || x.trim().startsWith('warning:'))) {
             resolve(currentOut);
           } else {

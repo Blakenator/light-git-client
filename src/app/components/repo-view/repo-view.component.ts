@@ -49,7 +49,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   localBranchFilter = '';
   remoteBranchFilter = '';
   globalErrorHandlerService: GlobalErrorHandlerService;
-  isLoading = false;
   @Output() onLoadRepoFailed = new EventEmitter<ErrorModel>();
   @Output() onOpenRepoNewTab = new EventEmitter<string>();
   worktreeFilter: string;
@@ -412,14 +411,24 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     setTimeout(() => this.showDiff = true, 300);
   }
 
-  viewCommitDiff(commit: CommitSummaryModel) {
+  leaveCommitDiff() {
+    this.diffCommitInfo = undefined;
+    this.showDiff = false;
+    this.getFileDiff();
+  }
+
+  viewCommitDiff(commit: string) {
+    let commitToView = this.commitHistory.find(x => x.hash == commit || x.hash.startsWith(commit));
+    if (!commitToView) {
+      return;
+    }
     this.loadingService.setLoading(true);
-    this.gitService.getCommitDiff(commit.hash)
+    this.gitService.getCommitDiff(commit)
         .then(diff => {
           this.diffHeaders = diff;
           this.showDiff = true;
-          this.diffCommitInfo = commit;
-          this.isLoading = false;
+          this.diffCommitInfo = commitToView;
+          this.loadingService.setLoading(false);
           this.applicationRef.tick();
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
@@ -442,7 +451,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
             '\' and \'' +
             currentBranch.name +
             '\'';
-          this.isLoading = false;
+          this.loadingService.setLoading(false);
           this.applicationRef.tick();
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(

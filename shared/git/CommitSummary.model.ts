@@ -5,7 +5,8 @@ export class CommitSummaryModel {
   public authorDate: Date;
   public message: string;
   public currentTags: string[];
-  public graphBlockTargets: { target: number, source: number, isCommit: boolean, branchIndex: number,isMerge:boolean}[];
+  public parentHashes: string[];
+  public graphBlockTargets: { target: number, source: number, isCommit: boolean, branchIndex: number, isMerge: boolean }[];
 
   static getCommitBranchColor(index: number) {
     let rgb = CommitSummaryModel.HSVtoRGB((index * .27) % 1, .8, .8);

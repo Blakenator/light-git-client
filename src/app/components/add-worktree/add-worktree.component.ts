@@ -2,6 +2,7 @@ import {ApplicationRef, Component, EventEmitter, Input, OnInit, Output} from '@a
 import {GitService} from '../../services/git.service';
 import {BranchModel} from '../../../../shared/git/Branch.model';
 import {ModalService} from '../../common/services/modal.service';
+import {WorktreeModel} from '../../../../shared/git/worktree.model';
 
 @Component({
   selector: 'app-add-worktree',
@@ -13,6 +14,7 @@ export class AddWorktreeComponent implements OnInit {
   path = '';
   selectedBranch: BranchModel;
   @Input() branches: BranchModel[];
+  @Input() worktrees: WorktreeModel[];
   @Input() uidSalt = '';
   @Output() onAddWorktree = new EventEmitter();
   output: { err: string, out: string, done: boolean }[] = [];
@@ -62,6 +64,10 @@ export class AddWorktreeComponent implements OnInit {
   cancel() {
     this.modalService.setModalVisible('addWorktree' + this.uidSalt, false);
     this.clearModal();
+  }
+
+  branchLockedOtherWorktree(b: BranchModel) {
+    return this.worktrees.find(x => x.currentBranch == b.name.replace('origin/', ''));
   }
 
   private clearModal() {
