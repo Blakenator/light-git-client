@@ -68,7 +68,7 @@ export class GitClient {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
       this.execute(this.getGitPath(), ['config', '--list', '--show-origin'], 'Get Config Items').then(text => {
 
-        let configItem = /^\s*(.*?)\s+(.*)=(.*)$/gm;
+        let configItem = /^\s*(.*?)\s+(\S+)=(.*)$/gm;
         let match = configItem.exec(text);
         let result: ConfigItemModel[] = [];
         while (match) {
@@ -744,7 +744,7 @@ export class GitClient {
       safeArgs,
       {
         cwd: this.workingDir,
-        env: {PATH: process.env.PATH, GIT_ASKPASS: process.env['GIT_ASKPASS'] || process.argv[0]},
+        env: Object.assign({}, process.env, {GIT_ASKPASS: process.env['GIT_ASKPASS'] || process.argv[0]}),
       });
     progress.stdout.on('data', data => {
       let text = data.toString();
