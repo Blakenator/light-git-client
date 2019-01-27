@@ -28,6 +28,7 @@ import {ErrorService} from '../../common/services/error.service';
 import {CodeWatcherService} from '../../services/code-watcher.service';
 import {ModalService} from '../../common/services/modal.service';
 import {SubmoduleModel} from '../../../../shared/git/submodule.model';
+import {LoadingService} from '../../services/loading.service';
 
 @Component({
   selector: 'app-repo-view',
@@ -49,7 +50,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   remoteBranchFilter = '';
   globalErrorHandlerService: GlobalErrorHandlerService;
   isLoading = false;
-  @Output() onLoadingChange = new EventEmitter<boolean>();
   @Output() onLoadRepoFailed = new EventEmitter<ErrorModel>();
   @Output() onOpenRepoNewTab = new EventEmitter<string>();
   worktreeFilter: string;
@@ -69,7 +69,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   debounceRefreshTimer: number;
   repoViewUid: number;
   activeSubmodule: SubmoduleModel;
-  private interval;
+  private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
   private firstNoRemoteErrorDisplayed = false;
@@ -77,6 +77,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
               private errorService: ErrorService,
+              public loadingService: LoadingService,
               public codeWatcherService: CodeWatcherService,
               public modalService: ModalService,
               errorHandler: ErrorHandler,
@@ -99,7 +100,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    clearInterval(this.interval);
+    clearInterval(this.refreshDebounce);
   }
 
   @HostListener('window:focus', ['$event'])
@@ -149,7 +150,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.fetch(manualFetch);
       this.getCommitHistory();
       this.getFileDiff();
-      this.setLoading(true);
+      this.loadingService.setLoading(true);
       this.gitService.getFileChanges()
           .then(changes => this.handleFileChanges(changes, keepDiffCommitSelection))
           .catch(err => this.handleErrorMessage(new ErrorModel(
@@ -161,7 +162,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   getBranchChanges() {
     // not simple
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.gitService.getBranchChanges()
         .then(changes => this.handleBranchChanges(changes))
         .catch(err => this.handleErrorMessage(new ErrorModel(
@@ -187,13 +188,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   openTerminal() {
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.electronService.rpc(Channels.OPENTERMINAL, [this.repo.path]).then(ignore => {
     }).catch(err => this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'openTerminal', '', err)));
   }
 
   openFolder(path: string = '') {
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.electronService.rpc(Channels.OPENFOLDER, [this.repo.path, path])
         .then(ignore => {
         })
@@ -214,12 +215,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       unstaged = ['.'];
       staged = ['.'];
     }
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.gitService.getFileDiff(unstaged, staged)
         .then(diff => {
           this.diffHeaders = diff;
           this.applicationRef.tick();
-          this.setLoading(false);
+          this.loadingService.setLoading(false);
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'getFileDiff',
@@ -228,7 +229,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getCommitHistory(skip: number = 0) {
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip])
         .then(commits => {
           if (!skip || skip == 0) {
@@ -248,7 +249,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (this.changes.stagedChanges.length == 0) {
       return;
     }
-    this.setLoading(true, true);
+    this.loadingService.setLoading(true);
     this.gitService.commit(this.changes.description, this.commitAndPush)
         .then(() => {
           this.changes.description = '';
@@ -356,7 +357,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   fetch(manualFetch: boolean = false) {
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.gitService.fetch()
         .catch((err: string) => {
           if (err && err
@@ -379,7 +380,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getCommandHistory() {
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.gitService.getCommandHistory()
         .then(history => {
           this.commandHistory = history;
@@ -412,7 +413,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   viewCommitDiff(commit: CommitSummaryModel) {
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.gitService.getCommitDiff(commit.hash)
         .then(diff => {
           this.diffHeaders = diff;
@@ -428,7 +429,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getBranchPremerge(branch: BranchModel) {
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.gitService.getBranchPremerge(branch.currentHash)
         .then(diff => {
           this.diffHeaders = diff;
@@ -569,14 +570,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.getFileDiff();
       this.diffCommitInfo = undefined;
     }
-    this.getCommandHistory();
     this.applicationRef.tick();
-    this.setLoading(false);
+    this.loadingService.setLoading(false);
   }
 
   handleErrorMessage(error: ErrorModel) {
     this.errorService.receiveError(error);
-    this.setLoading(false, true);
+    this.loadingService.setLoading(false);
   }
 
   hunkChangeError($event: any) {
@@ -590,7 +590,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   private simpleOperation(op: Promise<void>, functionName: string, occurredWhile: string, fullRefresh: boolean = true) {
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     op.then(() => {
       if (fullRefresh) {
         this.getFullRefresh();
@@ -634,17 +634,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   private loadRepo(path: string = '') {
     this.repoPath = path || this.repoPath;
     this.repo = this.repoCache;
-    this.setLoading(true);
+    this.loadingService.setLoading(true);
     this.electronService.rpc(Channels.LOADREPO, [this.repoPath]).then(repo => {
       this.repo = new RepositoryModel().copy(repo);
       this.gitService.repo = this.repo;
       this.repoCache = this.repo;
+      this.getCommandHistory();
       this.getFullRefresh(false);
-      this.fetch();
       this.applicationRef.tick();
-      this.interval = setInterval(() => this.getFullRefresh(), 1000 * 60 * 5);
+      this.refreshDebounce = setInterval(() => this.getFullRefresh(), 1000 * 60 * 5);
     }).catch(err => {
-      this.setLoading(false);
+      this.loadingService.setLoading(false);
       this.onLoadRepoFailed.emit(new ErrorModel(this._errorClassLocation + 'loadRepo', 'loading the repo', err));
     });
   }
@@ -661,15 +661,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
     Object.assign(this.repoCache, this.repo || {});
-    this.getCommandHistory();
     this.applicationRef.tick();
-    this.setLoading(false);
-  }
-
-  private setLoading(val: boolean, lockCommitInfo: boolean = false) {
-    if (!val || lockCommitInfo) {
-      this.isLoading = val;
-    }
-    this.onLoadingChange.emit(val);
+    this.loadingService.setLoading(false);
   }
 }

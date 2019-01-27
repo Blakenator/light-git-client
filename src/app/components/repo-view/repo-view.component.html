@@ -290,7 +290,7 @@
           <textarea class="form-control"
                     [(ngModel)]="changes.description"
                     placeholder="Commit message"
-                    [disabled]="isLoading"
+                    [disabled]="loadingService.isLoading"
                     (keyup.control.enter)="codeWatcherService.showWatchers()"
                     (keyup)="setCurrentCursorPosition($event)"
                     (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
@@ -302,7 +302,7 @@
             <a class="dropdown-item" (click)="suggestions=[]">Hide Suggestions</a>
           </div>
         </div>
-        <button class="btn btn-success" (click)="codeWatcherService.showWatchers()" [disabled]="isLoading">Commit
+        <button class="btn btn-success" (click)="codeWatcherService.showWatchers()" [disabled]="loadingService.isLoading">Commit
         </button>
       </div>
     </div>

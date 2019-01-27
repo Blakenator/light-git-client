@@ -84,6 +84,11 @@ export class MainApplication extends GenericApplication {
   loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
     this.gitClients[repoPath] = new GitClient(repoPath);
     this.loadedRepos[repoPath] = this.gitClients[repoPath].openRepo();
+    this.gitClients[repoPath].onCommandExecuted.subscribe(
+      history =>
+        this.window.webContents.send(
+          this.getReplyChannel([Channels.COMMANDHISTORYCHANGED]),
+          new ElectronResponse(history)));
     return this.loadedRepos[repoPath];
   }
 
@@ -369,13 +374,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.GETCOMMANDHISTORY, (event, args) => {
-      this.handleGitPromise(
-        this.gitClients[args[1]].getCommandHistory(
-          history => event.sender.send(
-            this.getReplyChannel([Channels.COMMANDHISTORYCHANGED]),
-            new ElectronResponse(history))),
-        event,
-        args);
+      this.handleGitPromise(this.gitClients[args[1]].getCommandHistory(), event, args);
     });
 
     ipcMain.on(Channels.RENAMEBRANCH, (event, args) => {

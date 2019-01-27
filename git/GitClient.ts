@@ -29,6 +29,10 @@ export class GitClient {
   constructor(private workingDir: string) {
   }
 
+  public get onCommandExecuted() {
+    return this.commandHistoryListener.asObservable();
+  }
+
   getCommitDiff(commitHash: any): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.execute(this.getGitPath(), [
@@ -56,8 +60,7 @@ export class GitClient {
     });
   }
 
-  getCommandHistory(listenCallback: (history: CommandHistoryModel[]) => any): Promise<CommandHistoryModel[]> {
-    this.commandHistoryListener.subscribe(history => listenCallback(history));
+  getCommandHistory(): Promise<CommandHistoryModel[]> {
     return Promise.resolve(this.commandHistory);
   }
 
@@ -720,7 +723,6 @@ export class GitClient {
           } else {
             reject(currentErr);
           }
-
         }
       });
     });
@@ -762,7 +764,8 @@ export class GitClient {
         stdout,
         start, new Date().getTime() - start.getTime(),
         !!stderr);
-      this.commandHistory.push(commandHistoryModel);
+      this.commandHistory = this.commandHistory.slice(Math.max(this.commandHistory.length - 300, 0))
+                                .concat(commandHistoryModel);
       this.commandHistoryListener.next(this.commandHistory);
     });
     return subject.asObservable();

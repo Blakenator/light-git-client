@@ -1,4 +1,4 @@
-import {ApplicationRef, Component, OnInit} from '@angular/core';
+import {ChangeDetectorRef, Component, OnInit} from '@angular/core';
 import {ElectronService} from '../../common/services/electron.service';
 import {HttpClient} from '@angular/common/http';
 import {SettingsService} from '../../services/settings.service';
@@ -6,6 +6,7 @@ import {RepositoryModel} from '../../../../shared/git/Repository.model';
 import {GitService} from '../../services/git.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
 import {ErrorService} from '../../common/services/error.service';
+import {LoadingService} from '../../services/loading.service';
 
 @Component({
   selector: 'app-home',
@@ -24,12 +25,17 @@ export class HomeComponent implements OnInit {
   constructor(private electronService: ElectronService,
               public settingsService: SettingsService,
               public errorService: ErrorService,
+              private loadingService: LoadingService,
               private http: HttpClient,
-              private applicationRef: ApplicationRef,
+              private cd: ChangeDetectorRef,
               private gitService: GitService) {
   }
 
   ngOnInit() {
+    this.loadingService.onLoadingChanged.subscribe(val => {
+      this.isLoading = val;
+      this.cd.detectChanges();
+    });
     this.settingsService.loadSettings(callback => {
       this.repoPaths = this.settingsService.settings.openRepos;
       this.activeTab = this.settingsService.settings.activeTab;
@@ -47,7 +53,7 @@ export class HomeComponent implements OnInit {
 
   changeTab(t: number) {
     this.activeTab = -1;
-    this.applicationRef.tick();
+    this.cd.detectChanges();
     this.activeTab = t;
     this.saveOpenRepos();
   }
@@ -60,7 +66,7 @@ export class HomeComponent implements OnInit {
     if (path) {
       setTimeout(() => {
         this.loadRepo(path);
-        this.applicationRef.tick();
+        this.cd.detectChanges();
       }, 100);
     }
     this.saveOpenRepos();
@@ -104,7 +110,7 @@ export class HomeComponent implements OnInit {
     this.errorService.receiveError($event);
     this.repoPaths[this.activeTab] = '';
     this.tabNames[this.activeTab] = 'Tab ' + this.activeTab;
-    this.applicationRef.tick();
+    this.cd.detectChanges();
   }
 
   private basename(folderPath: string) {
