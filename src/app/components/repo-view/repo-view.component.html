@@ -289,17 +289,23 @@
         <div class="d-flex flex-row">
           <div class="dropup flex-grow-1 mt-1">
             <div class="input-group">
-          <textarea class="form-control"
-                    [(ngModel)]="changes.description"
-                    placeholder="Commit message"
-                    [disabled]="loadingService.isLoading"
-                    (keyup.control.enter)="codeWatcherService.showWatchers()"
-                    (keyup)="setCurrentCursorPosition($event)"
-                    (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
+              <textarea class="form-control"
+                        [(ngModel)]="changes.description"
+                        placeholder="Commit message"
+                        [disabled]="loadingService.isLoading"
+                        (keyup.control.enter)="codeWatcherService.showWatchers()"
+                        (keyup)="setCurrentCursorPosition($event)"
+                        (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
               <div class="input-group-append">
                 <button class="btn btn-success"
                         (click)="codeWatcherService.showWatchers()"
                         [disabled]="loadingService.isLoading">Commit
+                </button>
+              </div>
+              <div class="input-group-append" *ngIf="hasWatcherAlerts">
+                <button class="btn btn-warning"
+                        (click)="codeWatcherService.showWatchers({isCommit:false})">
+                  <span class="fa fa-glasses"></span>
                 </button>
               </div>
             </div>

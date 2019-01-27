@@ -6,7 +6,10 @@
       </div>
       <div class="modal-body">
         <p>The following hunks have watcher alerts:</p>
-        <input class="form-control" [(ngModel)]="filter" placeholder="Filename filter..." *ngIf="!showWatchersRequest.forHeader">
+        <input class="form-control"
+               [(ngModel)]="filter"
+               placeholder="Filename filter..."
+               *ngIf="!showWatchersRequest.forHeader">
         <div *ngFor="let f of watcherAlerts | filterObject : 'file' : filter" class="card">
           <div class="card-header">{{f.file}}</div>
           <div>
@@ -22,7 +25,13 @@
                 <td width="1%">
                   <pre class="code-block"><code highlight [code]="getHunkCode(h.hunk)"></code></pre>
                 </td>
-                <td><p *ngFor="let w of h.watchers">{{w.name}} (line {{getLineFromMatch(h.hunk,w)}})</p></td>
+                <td style="vertical-align: top">
+                  <div *ngFor="let w of h.watchers">
+                    <p *ngFor="let line of getLinesFromMatch(h.hunk,w)">
+                      {{w.name}} (line {{line}})
+                    </p>
+                  </div>
+                </td>
               </tr>
               </tbody>
             </table>

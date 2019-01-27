@@ -68,6 +68,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   debounceRefreshTimer: number;
   repoViewUid: number;
   activeSubmodule: SubmoduleModel;
+  hasWatcherAlerts = false;
   private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -218,6 +219,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.gitService.getFileDiff(unstaged, staged)
         .then(diff => {
           this.diffHeaders = diff;
+          this.hasWatcherAlerts = this.codeWatcherService.getWatcherAlerts(this.diffHeaders).length > 0;
           this.applicationRef.tick();
           this.loadingService.setLoading(false);
         })

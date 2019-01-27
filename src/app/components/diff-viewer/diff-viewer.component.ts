@@ -108,9 +108,7 @@ export class DiffViewerComponent implements OnInit {
   }
 
   hasConflictingWatcher(hunk: DiffHunkModel, header: DiffHeaderModel) {
-    return CodeWatcherService.getWatcherAlerts(
-      this.settingsService.settings,
-      [this.getTemporaryHunk(header, hunk)]).length > 0;
+    return this.codeWatcherService.getWatcherAlerts([this.getTemporaryHunk(header, hunk)]).length > 0;
   }
 
   watcherClick(hunk: DiffHunkModel, header: DiffHeaderModel) {

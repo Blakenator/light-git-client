@@ -301,7 +301,7 @@ export class GitClient {
             if (!push) {
               resolve();
             } else {
-              this.execute(this.getGitPath(), ['push', '-u', 'origin', 'HEAD'], 'Push Current Branch')
+              this.execute(this.getGitPath(), ['push', '-q', '-u', 'origin', 'HEAD'], 'Push Current Branch')
                   .then(resolve)
                   .catch(err => reject(serializeError(err)));
             }
@@ -367,14 +367,14 @@ export class GitClient {
   pushBranch(branch: string, force: boolean): Promise<any> {
     return this.simpleOperation(
       this.getGitPath(),
-      ['push', 'origin', (branch ? branch + ':' + branch : ''), (force ? ' --force' : '')],
+      ['push', '-q', 'origin', (branch ? branch + ':' + branch : ''), (force ? ' --force' : '')],
       'Push');
   }
 
   updateSubmodules(branch: string, recursive: boolean): Promise<any> {
     return this.simpleOperation(
       this.getGitPath(),
-      ['submodule', 'update','-q', '--init', (recursive ? ' --recursive' : ''), '--', (branch || '.')],
+      ['submodule', 'update', '-q', '--init', (recursive ? ' --recursive' : ''), '--', (branch || '.')],
       'Update Submodule');
   }
 
