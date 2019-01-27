@@ -606,7 +606,7 @@ export class GitClient {
         }
       }).catch(err => new ErrorModel('getRemoteBranches', 'getting the list of remote branches', err)));
       Promise.all(promises).then(ignore => {
-        let index = result.worktrees.findIndex(x => x.path == this.workingDir);
+        let index = result.worktrees.findIndex(x => !path.relative(x.path, this.workingDir));
         if (index >= 0) {
           result.worktrees[index].isCurrent = true;
         }
@@ -692,13 +692,13 @@ export class GitClient {
 
   private execute(command: string, args: string[], name: string): Promise<string> {
     let timeoutErrorMessage = 'command timed out (>' +
-      GitClient.settings.commandTimeoutSeconds +
-      's): ' +
-      command +
-      ' ' +
-      args.join(' ') +
-      '\n\nEither adjust the timeout in the Settings menu or ' +
-      '\nfind the root cause of the timeout';
+                              GitClient.settings.commandTimeoutSeconds +
+                              's): ' +
+                              command +
+                              ' ' +
+                              args.join(' ') +
+                              '\n\nEither adjust the timeout in the Settings menu or ' +
+                              '\nfind the root cause of the timeout';
 
     return new Promise<string>((resolve, reject) => {
       let currentOut = '', currentErr = '';
