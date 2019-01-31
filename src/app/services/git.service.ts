@@ -17,6 +17,8 @@ import {CommitModel} from '../../../shared/git/Commit.model';
 export class GitService {
   public repo: RepositoryModel;
   public onCommandHistoryUpdated = new Subject<CommandHistoryModel[]>();
+  private _onCrlfError = new Subject<{ start: string, end: string }>();
+  public readonly onCrlfError = this._onCrlfError.asObservable();
 
   constructor(private electronService: ElectronService, private errorService: ErrorService) {
     electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
@@ -65,11 +67,11 @@ export class GitService {
     return this.electronService.rpc(Channels.CHANGEHUNK, [this.repo.path, filename, hunk, changedText]);
   }
 
-  applyStash(index:number): Promise<void> {
+  applyStash(index: number): Promise<void> {
     return this.electronService.rpc(Channels.APPLYSTASH, [this.repo.path, index]);
   }
 
-  deleteStash(index:number): Promise<void> {
+  deleteStash(index: number): Promise<void> {
     return this.electronService.rpc(Channels.DELETESTASH, [this.repo.path, index]);
   }
 
@@ -82,10 +84,10 @@ export class GitService {
   }
 
   getFileDiff(unstaged: string[], staged: string[]): Promise<DiffHeaderModel[]> {
-    return this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]);
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]));
   }
 
-  getBranchPremerge(branchHash:string): Promise<DiffHeaderModel[]> {
+  getBranchPremerge(branchHash: string): Promise<DiffHeaderModel[]> {
     return this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.repo.path, branchHash]);
   }
 
@@ -101,19 +103,19 @@ export class GitService {
     return this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]);
   }
 
-  checkout(branchOrHash: string,toNewBranch:boolean): Promise<void> {
+  checkout(branchOrHash: string, toNewBranch: boolean): Promise<void> {
     return this.electronService.rpc(Channels.CHECKOUT, [this.repo.path, branchOrHash, toNewBranch]);
   }
 
-  pull(force:boolean): Promise<void> {
+  pull(force: boolean): Promise<void> {
     return this.electronService.rpc(Channels.PULL, [this.repo.path, force]);
   }
 
-  push(branch: string, force:boolean): Promise<void> {
+  push(branch: string, force: boolean): Promise<void> {
     return this.electronService.rpc(Channels.PUSH, [this.repo.path, branch, force]);
   }
 
-  deleteFiles(files:string[]): Promise<void> {
+  deleteFiles(files: string[]): Promise<void> {
     return this.electronService.rpc(Channels.DELETEFILES, [this.repo.path, files]);
   }
 
@@ -157,7 +159,7 @@ export class GitService {
     return this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branchName]);
   }
 
-  mergeFile(file: string,mergetool:string): Promise<void> {
+  mergeFile(file: string, mergetool: string): Promise<void> {
     return this.electronService.rpc(Channels.MERGE, [this.repo.path, file, mergetool]);
   }
 
@@ -165,7 +167,7 @@ export class GitService {
     return this.electronService.rpc(Channels.DELETEWORKTREE, [this.repo.path, worktreeName]);
   }
 
-  stashChanges(onlyUnstaged:boolean,stashName:string): Promise<void> {
+  stashChanges(onlyUnstaged: boolean, stashName: string): Promise<void> {
     return this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged, stashName]);
   }
 
@@ -173,7 +175,7 @@ export class GitService {
     return this.electronService.rpc(Channels.FETCH, [this.repo.path]);
   }
 
-  undoFileChanges(file:string,revision:string,staged:boolean): Promise<void> {
+  undoFileChanges(file: string, revision: string, staged: boolean): Promise<void> {
     return this.electronService.rpc(Channels.UNDOFILECHANGES, [this.repo.path, file, revision, staged]);
   }
 
@@ -199,5 +201,20 @@ export class GitService {
 
   renameBranch(branch: { oldName: string, newName: string }): Promise<void> {
     return this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName]);
+  }
+
+  private detectCrlfWarning(promise: Promise<DiffHeaderModel[]>) {
+    return new Promise<DiffHeaderModel[]>((resolve, reject) => {
+      promise.then(resolve).catch(err => {
+        const crlf = /^(warning:\s+((CR)?LF)\s+will\s+be\s+replaced\s+by\s+((CR)?LF)\s+in\s+(.+?)(\r?\nThe\s+file\s+will\s+have\s+its\s+original.+?\r?\n?)?)+$/i;
+        let crlfMatch = err.content.match(crlf);
+        if (ErrorModel.isErrorModel(err) && crlfMatch) {
+          this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
+          resolve([]);
+        } else {
+          reject(err);
+        }
+      });
+    });
   }
 }

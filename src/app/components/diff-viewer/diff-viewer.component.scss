@@ -93,23 +93,23 @@ pre code {
 }
 
 .Changed {
-  background-color: rgba(222, 143, 31, 0.6);
+  background-color: $status-changed;
 }
 
 .Moved {
-  background-color: rgba(24, 35, 222, 0.6);
+  background-color: $status-moved;
 }
 
 .Renamed {
-  background-color: rgba(203, 24, 222, 0.6);
+  background-color: $status-renamed;
 }
 
 .Added {
-  background-color: rgba(63, 222, 36, 0.6);
+  background-color: $status-added;
 }
 
 .Deleted {
-  background-color: rgba(222, 35, 14, 0.6);
+  background-color: $status-deleted;
 }
 
 .card-header .badge {

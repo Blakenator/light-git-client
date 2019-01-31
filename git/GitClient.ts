@@ -225,7 +225,7 @@ export class GitClient {
   }
 
   fetch() {
-    return this.simpleOperation(this.getGitPath(), ['fetch', '-p'], 'Fetch Remote Branches');
+    return this.simpleOperation(this.getGitPath(), ['fetch','-q', '-p'], 'Fetch Remote Branches');
   }
 
   renameBranch(oldName: string, newName: string) {
@@ -357,7 +357,7 @@ export class GitClient {
   }
 
   fastForward(branch: string): Promise<any> {
-    return this.simpleOperation(this.getGitPath(), ['fetch', 'origin', branch + ':' + branch], 'Fast-Forward Branch');
+    return this.simpleOperation(this.getGitPath(), ['fetch','-q', 'origin', branch + ':' + branch], 'Fast-Forward Branch');
   }
 
   deleteStash(index: number): Promise<any> {

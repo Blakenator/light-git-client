@@ -288,7 +288,7 @@
         </div>
         <div class="d-flex flex-row">
           <div class="dropup flex-grow-1 mt-1">
-            <div class="input-group">
+            <div class="input-group position-relative">
               <textarea class="form-control"
                         [(ngModel)]="changes.description"
                         placeholder="Commit message"
@@ -301,6 +301,15 @@
                         (click)="codeWatcherService.showWatchers()"
                         [disabled]="loadingService.isLoading">Commit
                 </button>
+                <div class="crlf-warning alert alert-warning d-flex justify-content-between p-0"
+                     [ngClass]="{'crlf-warning-show':crlfError}">
+                  <div *ngIf="crlfError" class="pl-4 py-2">
+                    {{crlfError.start}} will be replaced by {{crlfError.end}} on commit
+                  </div>
+                  <button class="close px-2" (click)="crlfError=undefined">
+                    <small><span class="fa fa-times"></span></small>
+                  </button>
+                </div>
               </div>
               <div class="input-group-append" *ngIf="hasWatcherAlerts">
                 <button class="btn btn-warning"

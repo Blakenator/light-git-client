@@ -74,6 +74,30 @@
   }
 }
 
+.crlf-warning {
+  position: absolute;
+  bottom: 100%;
+  opacity: 0;
+  width: 15em;
+  pointer-events: none;
+  max-width: 0;
+  max-height: 0;
+  overflow: hidden;
+  z-index: 100;
+  transition: opacity .3s ease-in-out, max-width .3s ease-in-out, max-height .3s ease-in-out;
+
+  &.crlf-warning-show {
+    opacity: 1;
+    pointer-events: all;
+    max-width: 15em;
+    max-height: 8em;
+  }
+
+  .close {
+    font-size: 1em;
+  }
+}
+
 ///////////////////////small///////////////////////
 .card-body {
   padding: .3em;

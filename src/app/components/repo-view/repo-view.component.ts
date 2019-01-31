@@ -69,6 +69,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   repoViewUid: number;
   activeSubmodule: SubmoduleModel;
   hasWatcherAlerts = false;
+  crlfError: { start: string, end: string };
+  crlfErrorToastTimeout: number;
   private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -87,6 +89,19 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.gitService.onCommandHistoryUpdated.asObservable().subscribe(history => {
       this.commandHistory = history;
       this.applicationRef.tick();
+    });
+    this.gitService.onCrlfError.subscribe(status => {
+      if (this.crlfErrorToastTimeout) {
+        clearTimeout(this.crlfErrorToastTimeout);
+        this.crlfErrorToastTimeout = undefined;
+      }
+      this.crlfError = status;
+      this.applicationRef.tick();
+      this.crlfErrorToastTimeout = window.setTimeout(() => {
+        this.crlfError = undefined;
+        this.crlfErrorToastTimeout = undefined;
+        this.applicationRef.tick();
+      }, 5000);
     });
     this.repoViewUid = Math.round(Math.random() * 10000000);
   }
@@ -180,7 +195,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   mergeBranch(branch: string) {
-    this.simpleOperation(this.gitService.mergeBranch(branch), 'mergeBranch', 'merging the branch');
+    this.simpleOperation(this.gitService.mergeBranch(branch), 'mergeBranch', 'merging the branch')
+        .then(() => {
+          if (!this.changes.description && !this.changes.description.trim()) {
+            this.changes.description = `Merged ${branch} into ${this.repo.localBranches.find(
+              b => b.isCurrentBranch).name}`;
+          }
+        });
   }
 
   renameBranch(branch: { oldName: string, newName: string }) {
@@ -600,12 +621,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.showModal('submoduleViewer');
   }
 
-  private simpleOperation(op: Promise<void>, functionName: string, occurredWhile: string, fullRefresh: boolean = true) {
+  private simpleOperation(op: Promise<void>,
+                          functionName: string,
+                          occurredWhile: string,
+                          fullRefresh: boolean = true): Promise<void> {
     this.loadingService.setLoading(true);
-    op.then(() => {
+    return op.then(() => {
       if (fullRefresh) {
         this.getFullRefresh();
       }
+      return Promise.resolve();
     }).catch(err => this.handleErrorMessage(new ErrorModel(
       this._errorClassLocation + functionName,
       occurredWhile,
