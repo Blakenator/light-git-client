@@ -18,7 +18,7 @@ import * as serializeError from 'serialize-error';
 import {SubmoduleModel} from '../shared/git/submodule.model';
 import {app} from 'electron';
 import {Observable, Subject} from 'rxjs';
-import {spawn} from 'child_process';
+import {exec, spawn} from 'child_process';
 
 export class GitClient {
   static logger: Console;
@@ -225,7 +225,7 @@ export class GitClient {
   }
 
   fetch() {
-    return this.simpleOperation(this.getGitPath(), ['fetch','-q', '-p'], 'Fetch Remote Branches');
+    return this.simpleOperation(this.getGitPath(), ['fetch', '-q', '-p'], 'Fetch Remote Branches');
   }
 
   renameBranch(oldName: string, newName: string) {
@@ -242,18 +242,20 @@ export class GitClient {
 
   openTerminal() {
     let startCommand = 'start';
-    let startArgs = ['"Bash Command Window"', this.getBashPath(), ' --login'];
+    let startArgs = ['"Bash Command Window"', '"' + this.getBashPath() + '"', ' --login'];
     if (process.platform == 'darwin') {
       startCommand = 'open';
-      startArgs = ['-a', 'Terminal', this.workingDir];
+      startArgs = ['-a', 'Terminal', '"' + this.workingDir + '"'];
     } else if (process.platform != 'win32') {
       startCommand = 'x-terminal-emulator';
-      startArgs = ['--working-directory=' + this.workingDir];
+      startArgs = ['--working-directory="' + this.workingDir + '"'];
     }
 
-    this.execute(startCommand, startArgs, 'Open Terminal').then(console.log).catch(error => {
-      console.error(JSON.stringify(serializeError(error)));
-      logger.error(JSON.stringify(serializeError(error)));
+    exec(startCommand + ' ' + startArgs.join(' '), {cwd: this.workingDir}, (error, stdout, stderr) => {
+      if (error) {
+        console.error(JSON.stringify(serializeError(error)));
+        logger.error(JSON.stringify(serializeError(error)));
+      }
     });
   }
 
@@ -694,13 +696,13 @@ export class GitClient {
 
   private execute(command: string, args: string[], name: string): Promise<string> {
     let timeoutErrorMessage = 'command timed out (>' +
-      GitClient.settings.commandTimeoutSeconds +
-      's): ' +
-      command +
-      ' ' +
-      args.join(' ') +
-      '\n\nEither adjust the timeout in the Settings menu or ' +
-      '\nfind the root cause of the timeout';
+                              GitClient.settings.commandTimeoutSeconds +
+                              's): ' +
+                              command +
+                              ' ' +
+                              args.join(' ') +
+                              '\n\nEither adjust the timeout in the Settings menu or ' +
+                              '\nfind the root cause of the timeout';
 
     return new Promise<string>((resolve, reject) => {
       let currentOut = '', currentErr = '';
@@ -743,7 +745,12 @@ export class GitClient {
       safeArgs,
       {
         cwd: this.workingDir,
-        env: Object.assign({}, process.env, {GIT_ASKPASS: process.env['GIT_ASKPASS'] || process.argv[0]}),
+        env: Object.assign({},
+          process.env,
+          {
+            GIT_ASKPASS: process.env['GIT_ASKPASS'] || process.argv[0],
+            PATH: 'C:\\Windows\\System32\\;' + process.env['PATH']
+          }),
       });
     progress.stdout.on('data', data => {
       let text = data.toString();
