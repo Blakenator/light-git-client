@@ -29,6 +29,7 @@ export class BranchTreeItemComponent implements OnInit {
   leaves: BranchModel[];
   children;
   activeRenames: { [key: string]: string } = {};
+  actionExpanded: { [key: string]: boolean } = {} ;
 
   constructor(public settingsService: SettingsService) {
   }
@@ -101,7 +102,7 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   cancelRename(branchName: string) {
-    delete(this.activeRenames[branchName]);
+    delete (this.activeRenames[branchName]);
   }
 
   startRename(branchName: string) {
