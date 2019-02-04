@@ -145,11 +145,11 @@ export class GitService {
   }
 
   stage(file: string): Promise<void> {
-    return this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, file]);
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, file]), true);
   }
 
   unstage(file: string): Promise<void> {
-    return this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, file]);
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, file]), true);
   }
 
   createBranch(branchName: string): Promise<void> {
@@ -204,21 +204,45 @@ export class GitService {
     return this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName]);
   }
 
-  private detectCrlfWarning(promise: Promise<CommandOutputModel<DiffHeaderModel[]>>) {
-    return new Promise<DiffHeaderModel[]>((resolve, reject) => {
-      promise.then(output => {
-        const crlf = /^(warning:\s+((CR)?LF)\s+will\s+be\s+replaced\s+by\s+((CR)?LF)\s+in\s+(.+?)(\r?\nThe\s+file\s+will\s+have\s+its\s+original.+?\r?\n?)?)+$/i;
-        if (!output.errorOutput) {
-          resolve(output.content);
-        }
-        let crlfMatch = output.errorOutput.match(crlf);
-        if (crlfMatch) {
-          this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
-          resolve(output.content);
-        } else {
-          reject(output.errorOutput);
-        }
-      });
+  private detectCrlfWarning<T>(promise: Promise<CommandOutputModel<T>>, onCatch: boolean = false) {
+    return new Promise<T>((resolve, reject) => {
+      if (onCatch) {
+        promise.then(output => output ? resolve(output.content) : resolve()).catch(output => {
+          this._detectCrlfWarningInternal(output, resolve, reject);
+        });
+      } else {
+        promise.then(output => {
+          this._detectCrlfWarningInternal(output, resolve, reject);
+        }).catch(output => output ? reject(output.errorOutput || output) : reject());
+      }
     });
+  }
+
+  private _detectCrlfWarningInternal(output: string | CommandOutputModel, resolve: Function, reject: Function) {
+    const crlf = /^(warning:\s+((CR)?LF)\s+will\s+be\s+replaced\s+by\s+((CR)?LF)\s+in\s+(.+?)(\r?\nThe\s+file\s+will\s+have\s+its\s+original.+?\r?\n?)?)+$/i;
+    if (output == undefined) {
+      resolve();
+      return;
+    }
+    if (typeof output == 'string') {
+      let crlfMatch = output.match(crlf);
+      if (crlfMatch) {
+        this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
+        resolve();
+      } else {
+        reject(output);
+      }
+    } else {
+      if (!output.errorOutput) {
+        resolve(output.content);
+      }
+      let crlfMatch = output.errorOutput.match(crlf);
+      if (crlfMatch) {
+        this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
+        resolve(output.content);
+      } else {
+        reject(output.errorOutput);
+      }
+    }
   }
 }

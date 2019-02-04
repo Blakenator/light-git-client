@@ -148,11 +148,11 @@ export class GitClient {
   }
 
   stage(file: string) {
-    return this.simpleOperation(this.getGitPath(), ['add', '--', file], 'Stage File', true);
+    return this.simpleOperation(this.getGitPath(), ['add', '--', file], 'Stage File');
   }
 
   unstage(file: string) {
-    return this.simpleOperation(this.getGitPath(), ['reset', '--', file], 'Unstage File', true);
+    return this.simpleOperation(this.getGitPath(), ['reset', '--', file], 'Unstage File');
   }
 
   setBulkGitSettings(config: { [key: string]: string | number }, useGlobal: boolean) {
@@ -178,7 +178,7 @@ export class GitClient {
   }
 
   mergeBranch(branch: string) {
-    return this.simpleOperation(this.getGitPath(), ['merge', branch], 'Merge Branch into Current Branch');
+    return this.simpleOperation(this.getGitPath(), ['merge', '-q', branch], 'Merge Branch into Current Branch');
   }
 
   changeHunk(filename: string, hunk: DiffHunkModel, changedText: string) {
@@ -334,8 +334,7 @@ export class GitClient {
   }
 
   undoFileChanges(file: string, revision: string, staged: boolean): Promise<any> {
-    return this.simpleOperation(
-      this.getGitPath(),
+    return this.simpleOperation(this.getGitPath(),
       ['checkout', '-q', (revision || 'HEAD'), '--', file],
       'Undo File Changes');
   }
@@ -345,8 +344,7 @@ export class GitClient {
   }
 
   merge(file: string, tool: string): Promise<any> {
-    return this.simpleOperation(
-      this.getGitPath(),
+    return this.simpleOperation(this.getGitPath(),
       ['mergetool', '--tool=' + (tool || 'meld'), file],
       'Resolve Merge Conflict');
   }
@@ -369,8 +367,7 @@ export class GitClient {
   }
 
   fastForward(branch: string): Promise<any> {
-    return this.simpleOperation(
-      this.getGitPath(),
+    return this.simpleOperation(this.getGitPath(),
       ['fetch', '-q', 'origin', branch + ':' + branch],
       'Fast-Forward Branch');
   }
@@ -380,8 +377,7 @@ export class GitClient {
   }
 
   pushBranch(branch: string, force: boolean): Promise<any> {
-    return this.simpleOperation(
-      this.getGitPath(),
+    return this.simpleOperation(this.getGitPath(),
       ['push', '-q', 'origin', (branch ? branch + ':' + branch : ''), (force ? ' --force' : '')],
       'Push');
   }
@@ -406,14 +402,18 @@ export class GitClient {
       let promises = [];
       promises.push(this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
                         .then(output => {
-                          return result.git = output.standardOutput && output.standardOutput.indexOf('git version') >= 0;
+                          return result.git = output.standardOutput &&
+                                              output.standardOutput.indexOf('git version') >=
+                                              0;
                         })
                         .catch(error => {
                           return result.git = false;
                         }));
       promises.push(this.execute(this.getBashPath(), ['--version'], 'Check Bash Version')
                         .then(
-                          output => result.bash = output.standardOutput && output.standardOutput.indexOf('GNU bash') >= 0)
+                          output => result.bash = output.standardOutput &&
+                                                  output.standardOutput.indexOf('GNU bash') >=
+                                                  0)
                         .catch(() => result.bash = false));
       this.handleErrorDefault(Promise.all(promises).then(() => resolve(result)), reject);
     });
@@ -434,9 +434,6 @@ export class GitClient {
           '--skip=' + (skip || 0),
           '--pretty=format:||||%H|%an|%ae|%ad|%D|%P|%B\n'], 'Get Commit History')
             .then(output => {
-              if (!output.errorOutput) {
-                return;
-              }
               let text = output.standardOutput;
               let result: CommitSummaryModel[] = [];
               let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*(?!commit\s+\S+\s*\r?\n\s*\|\|\|\|))/g;
@@ -727,13 +724,13 @@ export class GitClient {
   private execute(command: string, args: string[], name: string,
                   ignoreError: boolean = false): Promise<CommandOutputModel<void>> {
     let timeoutErrorMessage = 'command timed out (>' +
-      GitClient.settings.commandTimeoutSeconds +
-      's): ' +
-      command +
-      ' ' +
-      args.join(' ') +
-      '\n\nEither adjust the timeout in the Settings menu or ' +
-      '\nfind the root cause of the timeout';
+                              GitClient.settings.commandTimeoutSeconds +
+                              's): ' +
+                              command +
+                              ' ' +
+                              args.join(' ') +
+                              '\n\nEither adjust the timeout in the Settings menu or ' +
+                              '\nfind the root cause of the timeout';
 
     return new Promise<CommandOutputModel<void>>((resolve, reject) => {
       let currentOut = '', currentErr = '';
@@ -751,7 +748,7 @@ export class GitClient {
           race = setTimeout(() => reject(timeoutErrorMessage), GitClient.settings.commandTimeoutSeconds * 1000);
         } else {
           if (currentErr.split(/\r?\n/).every(x => x.trim().length == 0 || x.trim().startsWith('warning:')) ||
-            ignoreError) {
+              ignoreError) {
             resolve(CommandOutputModel.command(currentOut, currentErr, event.exit));
           } else {
             reject(CommandOutputModel.command(currentOut, currentErr, event.exit));
@@ -804,13 +801,15 @@ export class GitClient {
     return subject.asObservable();
   }
 
-  private simpleOperation(command: string, args: string[], name: string, ignoreErrors: boolean = false): Promise<any> {
+  private simpleOperation(command: string,
+                          args: string[],
+                          name: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.execute(command, args, name, ignoreErrors)
+      this.execute(command, args, name)
           .then(() => resolve())
           .catch((err: CommandOutputModel<void>) => {
-            if (err && err.standardOutput) {
-              reject(err.standardOutput);
+            if (err && err.errorOutput) {
+              reject(err.errorOutput);
             } else {
               reject(serializeError(err));
             }
