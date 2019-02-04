@@ -10,6 +10,7 @@ import {DiffHunkModel} from '../../../shared/git/diff.hunk.model';
 import {ErrorModel} from '../../../shared/common/error.model';
 import {ErrorService} from '../common/services/error.service';
 import {CommitModel} from '../../../shared/git/Commit.model';
+import {CommandOutputModel} from '../../../shared/common/command.output.model';
 
 @Injectable({
   providedIn: 'root',
@@ -203,16 +204,19 @@ export class GitService {
     return this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName]);
   }
 
-  private detectCrlfWarning(promise: Promise<DiffHeaderModel[]>) {
+  private detectCrlfWarning(promise: Promise<CommandOutputModel<DiffHeaderModel[]>>) {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
-      promise.then(resolve).catch(err => {
+      promise.then(output => {
         const crlf = /^(warning:\s+((CR)?LF)\s+will\s+be\s+replaced\s+by\s+((CR)?LF)\s+in\s+(.+?)(\r?\nThe\s+file\s+will\s+have\s+its\s+original.+?\r?\n?)?)+$/i;
-        let crlfMatch = err.content.match(crlf);
-        if (ErrorModel.isErrorModel(err) && crlfMatch) {
+        if (!output.errorOutput) {
+          resolve(output.content);
+        }
+        let crlfMatch = output.errorOutput.match(crlf);
+        if (crlfMatch) {
           this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
-          resolve([]);
+          resolve(output.content);
         } else {
-          reject(err);
+          reject(output.errorOutput);
         }
       });
     });

@@ -1,4 +1,4 @@
-export class ElectronResponse {
+  export class ElectronResponse {
   public success: boolean;
   public content: any;
 
