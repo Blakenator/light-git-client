@@ -12,6 +12,9 @@ export class CommitHistoryComponent implements OnInit {
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
   @Output() onScrollDown = new EventEmitter<any>();
   @Output() onClickCherryPick = new EventEmitter<CommitSummaryModel>();
+  @Output() onClickCheckout = new EventEmitter<CommitSummaryModel>();
+  lastIndex: number;
+  lastChunkIndex = 0;
   scrollOffset = 0;
   numPerPage = 50;
   commitFilter: string;
@@ -26,19 +29,16 @@ export class CommitHistoryComponent implements OnInit {
     this.onClickCommitDiff.emit(commit);
   }
 
-  scrolled(down: boolean) {
-    if (down) {
+  scrolled(currentIndex: number) {
+    if (currentIndex > this.lastIndex && Math.floor(currentIndex / this.numPerPage * 4) > this.lastChunkIndex) {
       this.scrollOffset += this.numPerPage / 4;
-    }
-    if (!down) {
-      this.scrollOffset -= this.numPerPage / 4;
-    }
-    this.scrollOffset = Math.round(Math.max(
-      0,
-      Math.min(this.scrollOffset, this.commitHistory.length - this.numPerPage)));
-    if (this.scrollOffset >= this.commitHistory.length - this.numPerPage) {
+      this.scrollOffset = Math.round(Math.max(
+        0,
+        Math.min(this.scrollOffset, this.commitHistory.length - this.numPerPage)));
       this.onScrollDown.emit();
+      this.lastChunkIndex = Math.floor(currentIndex / this.numPerPage * 4);
     }
+    this.lastIndex = currentIndex;
   }
 
   getFilteredCommitHistory() {
@@ -60,13 +60,20 @@ export class CommitHistoryComponent implements OnInit {
     this.onClickCherryPick.emit(commit);
   }
 
+  checkout(commit: CommitSummaryModel) {
+    this.onClickCheckout.emit(commit);
+  }
+
   getTagClasses(tag: string) {
     return {
-      'badge ml-1': true,
       'badge-info': !tag.startsWith('tag: ') && !tag.startsWith('origin/') && !tag.startsWith('HEAD'),
       'badge-warning': tag.startsWith('tag: '),
       'badge-primary': tag.startsWith('origin/'),
       'badge-success': tag.startsWith('HEAD'),
     };
+  }
+
+  getSplitCommitMessage(commit: CommitSummaryModel) {
+    return commit.message.split(/\r?\n/g);
   }
 }

@@ -56,7 +56,9 @@ td .btn {
 
   .expand-container {
     opacity: 0;
-    right: -6em;
+    right: -100%;
+    top: 50%;
+    transform: translateY(-50%);
     transition: right .3s 1s, opacity .3s 1s;
   }
 

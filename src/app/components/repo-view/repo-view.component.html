@@ -356,7 +356,8 @@
                             *ngIf="!showDiff"
                             (onClickCommitDiff)="viewCommitDiff($event.hash)"
                             (onClickCherryPick)="cherryPickCommit($event)"
-                            (onScrollDown)="getCommitHistory(commitHistory.length)"></app-commit-history>
+                            (onScrollDown)="getCommitHistory(commitHistory.length)"
+                            (onClickCheckout)="checkout($event.hash,false)"></app-commit-history>
       </div>
     </div>
   </div>
