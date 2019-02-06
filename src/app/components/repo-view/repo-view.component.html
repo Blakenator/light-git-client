@@ -34,7 +34,7 @@
                 title="Create branch off current HEAD">
           <i class="fa fa-code-branch"></i></button>
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('locals')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('locals')">
         <app-branch-tree-item [isLocal]="true"
                               [filter]="localBranchFilter"
                               [branches]="repo.localBranches"
@@ -59,7 +59,7 @@
                placeholder="Filter..."
                [(ngModel)]="remoteBranchFilter" (click)="$event.stopPropagation()">
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('remotes')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('remotes')">
         <app-branch-tree-item [isLocal]="false"
                               [filter]="remoteBranchFilter"
                               [branches]="repo.remoteBranches"
@@ -81,7 +81,7 @@
           <i class="fa fa-plus"></i>
         </button>
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('worktrees')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('worktrees')">
         <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter" class="d-flex">
           <span [title]="w.path"
                 [ngClass]="{'bold':w.isCurrent}"
@@ -141,7 +141,7 @@
           </div>
         </div>
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('submodules')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('submodules')">
         <div *ngFor="let w of repo.submodules | filterObject : 'path' : submoduleFilter" class="d-flex">
           <span [title]="w.path" class="flex-grow-1">
             <span class="badge badge-light badge-pill" *ngFor="let r of w.path.split('/');let i=index">
@@ -184,19 +184,24 @@
           </div>
         </div>
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('stashes')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('stashes')">
         <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter" class="d-flex">
           <div class="stash-message flex-grow-1">
             <span class="badge badge-info">{{s.index}}</span>
             : {{s.message}}
           </div>
-          <div class="d-inline-block ml-3 flex-shrink-0 d-flex">
-            <button class="btn btn-light btn-sm" (click)="applyStash(s.index)" title="Apply Stash">
-              <i class="fa fa-box-open"></i>
-            </button>
-            <button class="btn btn-danger btn-sm" (click)="deleteStash(s.index)" title="Delete Stash">
-              <i class="fa fa-trash"></i>
-            </button>
+          <div class="d-inline-block ml-3 flex-shrink-0">
+            <div class="d-flex">
+              <button class="btn btn-warning btn-sm mx-1" (click)="viewStash(s.index)" title="View Stash Diff">
+                <i class="fa fa-eye"></i>
+              </button>
+              <button class="btn btn-light btn-sm mx-1" (click)="applyStash(s.index)" title="Apply Stash">
+                <i class="fa fa-box-open"></i>
+              </button>
+              <button class="btn btn-danger btn-sm mx-1" (click)="deleteStash(s.index)" title="Delete Stash">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -209,7 +214,7 @@
                placeholder="Filter..."
                [(ngModel)]="commandHistoryFilter" (click)="$event.stopPropagation()">
       </div>
-      <div class="card-body branch-container"
+      <div class="card-body repo-section-container"
            *ngIf="getExpandState('command-history') && commandHistory"
            infinite-scroll
            [scrollWindow]="false"
@@ -244,7 +249,7 @@
                  placeholder="Filter..."
                  [(ngModel)]="stagedChangesFilter" (click)="$event.stopPropagation()">
         </div>
-        <div class="change-body branch-container" *ngIf="getExpandState('staged')">
+        <div class="change-body repo-section-container" *ngIf="getExpandState('staged')">
           <app-change-list [changes]="changes.stagedChanges"
                            (onSelectChanged)="selectionChanged($event,true)"
                            (onUndoFileClicked)="undoFileChanges($event,true)"
@@ -268,7 +273,7 @@
                  placeholder="Filter..."
                  [(ngModel)]="unstagedChangesFilter" (click)="$event.stopPropagation()">
         </div>
-        <div class="change-body branch-container" *ngIf="getExpandState('unstaged')">
+        <div class="change-body repo-section-container" *ngIf="getExpandState('unstaged')">
           <app-change-list [changes]="changes.unstagedChanges"
                            (onSelectChanged)="selectionChanged($event,false)"
                            (onUndoFileClicked)="undoFileChanges($event,false)"

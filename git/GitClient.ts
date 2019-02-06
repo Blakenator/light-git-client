@@ -34,7 +34,7 @@ export class GitClient {
     return this.commandHistoryListener.asObservable();
   }
 
-  getCommitDiff(commitHash: any): Promise<DiffHeaderModel[]> {
+  getCommitDiff(commitHash: string): Promise<DiffHeaderModel[]> {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.handleErrorDefault(
         this.execute(this.getGitPath(), [
@@ -42,6 +42,20 @@ export class GitClient {
           (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
           commitHash + '~',
           commitHash], 'Get Diff for Commit')
+            .then(output => {
+              resolve(this.parseDiffString(output.standardOutput, DiffHeaderStagedState.NONE));
+            }), reject);
+    });
+  }
+
+  getStashDiff(stashIndex: number): Promise<DiffHeaderModel[]> {
+    return new Promise<DiffHeaderModel[]>((resolve, reject) => {
+      this.handleErrorDefault(
+        this.execute(this.getGitPath(), [
+          'diff',
+          (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
+          'stash@{' + stashIndex + '}',
+          'HEAD'], 'Get Diff for Stash')
             .then(output => {
               resolve(this.parseDiffString(output.standardOutput, DiffHeaderStagedState.NONE));
             }), reject);

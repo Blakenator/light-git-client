@@ -113,6 +113,10 @@ export class GitService {
     return this.electronService.rpc(Channels.COMMITDIFF, [this.repo.path, hash]);
   }
 
+  getStashDiff(stashIndex: number): Promise<DiffHeaderModel[]> {
+    return this.electronService.rpc(Channels.STASHDIFF, [this.repo.path, stashIndex]);
+  }
+
   cherryPickCommit(hash: string): Promise<void> {
     return this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, hash]);
   }

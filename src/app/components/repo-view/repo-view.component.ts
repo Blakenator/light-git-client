@@ -1,5 +1,5 @@
 import {
-  ApplicationRef, ChangeDetectorRef,
+  ChangeDetectorRef,
   Component,
   ErrorHandler,
   EventEmitter,
@@ -490,6 +490,23 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   applyStash(index: number) {
     this.simpleOperation(this.gitService.applyStash(index), 'applyStash', 'applying the stash');
     this.clearSelectedChanges();
+  }
+
+  viewStash(index: number) {
+    this.gitService.getStashDiff(index)
+        .then(diff => {
+          this.diffHeaders = diff;
+          this.showDiff = true;
+          let commitInfo = new CommitSummaryModel();
+          commitInfo.message = this.repo.stashes[index].message;
+          this.diffCommitInfo = commitInfo;
+          this.loadingService.setLoading(false);
+          this.changeDetectorRef.detectChanges();
+        })
+        .catch(err => this.handleErrorMessage(new ErrorModel(
+          this._errorClassLocation + 'viewStashDiff',
+          'getting file differences for the stash',
+          err)));
   }
 
   deleteStash(index: number) {

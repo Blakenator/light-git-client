@@ -37,6 +37,7 @@ export namespace Channels {
   export const RESTORE = "restoreWindow";
   export const CLOSEWINDOW = "closeWindow";
   export const COMMITDIFF = "commitDiff";
+  export const STASHDIFF = "stashDiff";
   export const STASH = "stash";
   export const SETGITSETTINGS = "setBulkGitSettings";
   export const APPLYSTASH = "applyStash";

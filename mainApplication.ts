@@ -306,6 +306,10 @@ export class MainApplication extends GenericApplication {
       this.handleGitPromise(this.gitClients[args[1]].getCommitDiff(args[2]), event, args);
     });
 
+    ipcMain.on(Channels.STASHDIFF, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getStashDiff(args[2]), event, args);
+    });
+
     ipcMain.on(Channels.GETBRANCHPREMERGE, (event, args) => {
       this.handleGitPromise(this.gitClients[args[1]].getBranchPremerge(args[2]), event, args);
     });

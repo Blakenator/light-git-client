@@ -55,6 +55,7 @@ export class DiffViewerComponent implements OnInit {
   saveSettings() {
     setTimeout(() => {
       this.settingsService.saveSettings();
+      this.onExitCommitClicked.emit();
       this.onIngoreWhitespaceClicked.emit(this.settingsService.settings.diffIgnoreWhitespace);
     }, 100);
   }
