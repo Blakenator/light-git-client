@@ -6,7 +6,9 @@ export class ErrorModel {
   constructor(source: string, occurredWhile: string, content: any) {
     this.source = source;
     this.occurredWhile = occurredWhile;
-    this.content = ErrorModel.isErrorModel(content) || typeof content == 'string' ? content : JSON.stringify(content);
+    this.content = ErrorModel.isErrorModel(content) || typeof content == 'string' ?
+                   content :
+                   JSON.stringify(content, ((key, value) => '[circular] ' + value.toString()));
   }
 
   static isErrorModel(error: any) {
