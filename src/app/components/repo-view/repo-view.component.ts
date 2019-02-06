@@ -1,5 +1,5 @@
 import {
-  ApplicationRef,
+  ApplicationRef, ChangeDetectorRef,
   Component,
   ErrorHandler,
   EventEmitter,
@@ -83,12 +83,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               public codeWatcherService: CodeWatcherService,
               public modalService: ModalService,
               errorHandler: ErrorHandler,
-              public applicationRef: ApplicationRef,
+              public changeDetectorRef: ChangeDetectorRef,
               private gitService: GitService) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
     this.gitService.onCommandHistoryUpdated.asObservable().subscribe(history => {
       this.commandHistory = history;
-      this.applicationRef.tick();
+      this.changeDetectorRef.detectChanges();
     });
     this.gitService.onCrlfError.subscribe(status => {
       if (this.crlfErrorToastTimeout) {
@@ -96,11 +96,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         this.crlfErrorToastTimeout = undefined;
       }
       this.crlfError = status;
-      this.applicationRef.tick();
+      this.changeDetectorRef.detectChanges();
       this.crlfErrorToastTimeout = window.setTimeout(() => {
         this.crlfError = undefined;
         this.crlfErrorToastTimeout = undefined;
-        this.applicationRef.tick();
+        this.changeDetectorRef.detectChanges();
       }, 5000);
     });
     this.repoViewUid = Math.round(Math.random() * 10000000);
@@ -241,7 +241,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         .then(diff => {
           this.diffHeaders = diff;
           this.hasWatcherAlerts = this.codeWatcherService.getWatcherAlerts(this.diffHeaders).length > 0;
-          this.applicationRef.tick();
+          this.changeDetectorRef.detectChanges();
           this.loadingService.setLoading(false);
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
@@ -251,15 +251,19 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getCommitHistory(skip: number = 0) {
+    if (!this.gitService.isRepoLoaded) {
+      setTimeout(() => this.getCommitHistory(skip), 100);
+      return;
+    }
     this.loadingService.setLoading(true);
-    this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip])
+    this.gitService.getCommitHistory(skip)
         .then(commits => {
           if (!skip || skip == 0) {
             this.commitHistory = commits;
           } else {
             this.commitHistory = this.commitHistory.concat(commits);
           }
-          this.applicationRef.tick();
+          this.changeDetectorRef.detectChanges();
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'getCommitHistory',
@@ -406,7 +410,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.gitService.getCommandHistory()
         .then(history => {
           this.commandHistory = history;
-          this.applicationRef.tick();
+          this.changeDetectorRef.detectChanges();
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'getCommandHistory',
@@ -452,7 +456,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.showDiff = true;
           this.diffCommitInfo = commitToView;
           this.loadingService.setLoading(false);
-          this.applicationRef.tick();
+          this.changeDetectorRef.detectChanges();
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'viewCommitDiff',
@@ -475,7 +479,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
             currentBranch.name +
             '\'';
           this.loadingService.setLoading(false);
-          this.applicationRef.tick();
+          this.changeDetectorRef.detectChanges();
         })
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'branchPremerge',
@@ -602,7 +606,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.getFileDiff();
       this.diffCommitInfo = undefined;
     }
-    this.applicationRef.tick();
+    this.changeDetectorRef.detectChanges();
     this.loadingService.setLoading(false);
   }
 
@@ -671,15 +675,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repoPath = path || this.repoPath;
     this.repo = this.repoCache;
     this.loadingService.setLoading(true);
-    this.electronService.rpc(Channels.LOADREPO, [this.repoPath]).then(repo => {
-      this.repo = new RepositoryModel().copy(repo);
-      this.gitService.repo = this.repo;
-      this.repoCache = this.repo;
-      this.getCommandHistory();
-      this.getFullRefresh(false);
-      this.applicationRef.tick();
-      this.refreshDebounce = setInterval(() => this.getFullRefresh(), 1000 * 60 * 5);
-    }).catch(err => {
+    this.gitService.loadRepo(this.repoPath)
+        .then(repo => {
+          this.repo = repo;
+          this.repoCache = this.repo;
+          this.getCommandHistory();
+          this.getFullRefresh(false);
+          this.changeDetectorRef.detectChanges();
+          this.refreshDebounce = setInterval(() => this.getFullRefresh(), 1000 * 60 * 5);
+        }).catch(err => {
       this.loadingService.setLoading(false);
       this.onLoadRepoFailed.emit(new ErrorModel(this._errorClassLocation + 'loadRepo', 'loading the repo', err));
     });
@@ -697,7 +701,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
     Object.assign(this.repoCache, this.repo || {});
-    this.applicationRef.tick();
+    this.changeDetectorRef.detectChanges();
     this.loadingService.setLoading(false);
   }
 }

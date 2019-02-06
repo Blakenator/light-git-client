@@ -18,7 +18,7 @@ import * as serializeError from 'serialize-error';
 import {SubmoduleModel} from '../shared/git/submodule.model';
 import {app} from 'electron';
 import {Observable, Subject} from 'rxjs';
-import {spawn} from 'child_process';
+import {exec, spawn} from 'child_process';
 import {CommandOutputModel} from '../shared/common/command.output.model';
 
 export class GitClient {
@@ -246,19 +246,18 @@ export class GitClient {
   }
 
   openTerminal() {
-    let startCommand = 'start';
-    let startArgs = ['"Bash Command Window"', this.getBashPath(), ' --login'];
+    let startCommand = 'start "Bash Command Window" ' + this.getBashPath() + ' --login';
     if (process.platform == 'darwin') {
-      startCommand = 'open';
-      startArgs = ['-a', 'Terminal', this.workingDir];
+      startCommand = 'open -a Terminal ' + this.workingDir;
     } else if (process.platform != 'win32') {
-      startCommand = 'x-terminal-emulator';
-      startArgs = ['--working-directory=' + this.workingDir];
+      startCommand = 'x-terminal-emulator --working-directory=' + this.workingDir;
     }
 
-    this.execute(startCommand, startArgs, 'Open Terminal').then(console.log).catch(error => {
-      console.error(JSON.stringify(serializeError(error)));
-      logger.error(JSON.stringify(serializeError(error)));
+    exec(startCommand, {cwd: this.workingDir}, (error) => {
+      if (error) {
+        console.error(JSON.stringify(serializeError(error)));
+        logger.error(JSON.stringify(serializeError(error)));
+      }
     });
   }
 
@@ -334,7 +333,8 @@ export class GitClient {
   }
 
   undoFileChanges(file: string, revision: string, staged: boolean): Promise<any> {
-    return this.simpleOperation(this.getGitPath(),
+    return this.simpleOperation(
+      this.getGitPath(),
       ['checkout', '-q', (revision || 'HEAD'), '--', file],
       'Undo File Changes');
   }
@@ -344,7 +344,8 @@ export class GitClient {
   }
 
   merge(file: string, tool: string): Promise<any> {
-    return this.simpleOperation(this.getGitPath(),
+    return this.simpleOperation(
+      this.getGitPath(),
       ['mergetool', '--tool=' + (tool || 'meld'), file],
       'Resolve Merge Conflict');
   }
@@ -367,7 +368,8 @@ export class GitClient {
   }
 
   fastForward(branch: string): Promise<any> {
-    return this.simpleOperation(this.getGitPath(),
+    return this.simpleOperation(
+      this.getGitPath(),
       ['fetch', '-q', 'origin', branch + ':' + branch],
       'Fast-Forward Branch');
   }
@@ -377,7 +379,8 @@ export class GitClient {
   }
 
   pushBranch(branch: string, force: boolean): Promise<any> {
-    return this.simpleOperation(this.getGitPath(),
+    return this.simpleOperation(
+      this.getGitPath(),
       ['push', '-q', 'origin', (branch ? branch + ':' + branch : ''), (force ? ' --force' : '')],
       'Push');
   }
@@ -403,8 +406,8 @@ export class GitClient {
       promises.push(this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
                         .then(output => {
                           return result.git = output.standardOutput &&
-                                              output.standardOutput.indexOf('git version') >=
-                                              0;
+                            output.standardOutput.indexOf('git version') >=
+                            0;
                         })
                         .catch(error => {
                           return result.git = false;
@@ -412,8 +415,8 @@ export class GitClient {
       promises.push(this.execute(this.getBashPath(), ['--version'], 'Check Bash Version')
                         .then(
                           output => result.bash = output.standardOutput &&
-                                                  output.standardOutput.indexOf('GNU bash') >=
-                                                  0)
+                            output.standardOutput.indexOf('GNU bash') >=
+                            0)
                         .catch(() => result.bash = false));
       this.handleErrorDefault(Promise.all(promises).then(() => resolve(result)), reject);
     });
@@ -724,13 +727,13 @@ export class GitClient {
   private execute(command: string, args: string[], name: string,
                   ignoreError: boolean = false): Promise<CommandOutputModel<void>> {
     let timeoutErrorMessage = 'command timed out (>' +
-                              GitClient.settings.commandTimeoutSeconds +
-                              's): ' +
-                              command +
-                              ' ' +
-                              args.join(' ') +
-                              '\n\nEither adjust the timeout in the Settings menu or ' +
-                              '\nfind the root cause of the timeout';
+      GitClient.settings.commandTimeoutSeconds +
+      's): ' +
+      command +
+      ' ' +
+      args.join(' ') +
+      '\n\nEither adjust the timeout in the Settings menu or ' +
+      '\nfind the root cause of the timeout';
 
     return new Promise<CommandOutputModel<void>>((resolve, reject) => {
       let currentOut = '', currentErr = '';
@@ -748,7 +751,7 @@ export class GitClient {
           race = setTimeout(() => reject(timeoutErrorMessage), GitClient.settings.commandTimeoutSeconds * 1000);
         } else {
           if (currentErr.split(/\r?\n/).every(x => x.trim().length == 0 || x.trim().startsWith('warning:')) ||
-              ignoreError) {
+            ignoreError) {
             resolve(CommandOutputModel.command(currentOut, currentErr, event.exit));
           } else {
             reject(CommandOutputModel.command(currentOut, currentErr, event.exit));

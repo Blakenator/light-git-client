@@ -28,7 +28,7 @@
     transition: opacity .3s;
   }
 
-  &:hover .quick-actions-expand {
+  &:hover .quick-actions-expand, .quick-actions-expand.expanded {
     opacity: 1;
   }
 }

@@ -11,6 +11,7 @@ import {ErrorModel} from '../../../shared/common/error.model';
 import {ErrorService} from '../common/services/error.service';
 import {CommitModel} from '../../../shared/git/Commit.model';
 import {CommandOutputModel} from '../../../shared/common/command.output.model';
+import {CommitSummaryModel} from '../../../shared/git/CommitSummary.model';
 
 @Injectable({
   providedIn: 'root',
@@ -18,8 +19,11 @@ import {CommandOutputModel} from '../../../shared/common/command.output.model';
 export class GitService {
   public repo: RepositoryModel;
   public onCommandHistoryUpdated = new Subject<CommandHistoryModel[]>();
+  public isRepoLoaded = false;
   private _onCrlfError = new Subject<{ start: string, end: string }>();
   public readonly onCrlfError = this._onCrlfError.asObservable();
+  private _repoLoaded = new Subject<void>();
+  public readonly onRepoLoaded = this._repoLoaded.asObservable();
 
   constructor(private electronService: ElectronService, private errorService: ErrorService) {
     electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
@@ -90,6 +94,19 @@ export class GitService {
 
   getBranchPremerge(branchHash: string): Promise<DiffHeaderModel[]> {
     return this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.repo.path, branchHash]);
+  }
+
+  getCommitHistory(skip: number): Promise<CommitSummaryModel[]> {
+    return this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip]);
+  }
+
+  loadRepo(repoPath: string): Promise<RepositoryModel> {
+    return this.electronService.rpc(Channels.LOADREPO, [repoPath]).then(repo => {
+      this.repo = new RepositoryModel().copy(repo);
+      this.isRepoLoaded = true;
+      this._repoLoaded.next();
+      return Promise.resolve(this.repo);
+    });
   }
 
   getCommitDiff(hash: string): Promise<DiffHeaderModel[]> {

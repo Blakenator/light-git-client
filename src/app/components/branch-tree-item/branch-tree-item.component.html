@@ -30,9 +30,10 @@
           </span>
           </div>
           <button class="btn btn-sm btn-secondary flex-grow-0 py-0 m-0 quick-actions-expand"
+                  [ngClass]="{'expanded':actionExpanded[b.name]}"
                   (click)="actionExpanded[b.name]=!actionExpanded[b.name]">
             <span class="fa"
-                  [ngClass]="{'fa-bolt':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
+                  [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
           </button>
         </div>
         <div *ngIf="activeRenames[b.name]" class="input-group input-group-sm">
@@ -41,12 +42,12 @@
                  (keyup.enter)="renameBranch(b.name)"
                  [(ngModel)]="activeRenames[b.name]">
           <div class="input-group-append">
-            <button class="btn btn-sm btn-light"
+            <button class="btn btn-sm btn-light mx-1"
                     title="Cancel rename"
                     (click)="cancelRename(b.name)">
               <i class="fa fa-times-circle"></i>
             </button>
-            <button class="btn btn-sm btn-success" title="Rename local branch" (click)="renameBranch(b.name)">
+            <button class="btn btn-sm btn-success mx-1" title="Rename local branch" (click)="renameBranch(b.name)">
               <i class="fa fa-check"></i></button>
           </div>
         </div>
@@ -127,7 +128,7 @@
                   *ngIf="!isRemoteAlreadyCheckedOut(b.name)"
                   (click)="actionExpanded[b.name]=!actionExpanded[b.name]">
             <span class="fa"
-                  [ngClass]="{'fa-bolt':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
+                  [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
           </button>
         </div>
         <div class="branch-button-bar text-right" [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">

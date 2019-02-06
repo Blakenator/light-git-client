@@ -4,11 +4,7 @@
          [(ngModel)]="commitFilter">
 </div>
 
-<div class="commit-wrapper"
-     infinite-scroll
-     [scrollWindow]="false"
-     (scrolled)="scrolled(true)"
-     (scrolledUp)="scrolled(false)">
+<cdk-virtual-scroll-viewport class="commit-wrapper" itemSize="40" (scrolledIndexChange)="scrolled(true)">
   <table class="table table-striped">
     <thead>
     <tr>
@@ -24,7 +20,7 @@
     </tr>
     </thead>
     <tbody>
-    <tr *ngFor="let c of getFilteredCommitHistory()" class="commit-row">
+    <tr *cdkVirtualFor="let c of getFilteredCommitHistory()" class="commit-row">
       <td class="position-relative p-0" *ngIf="!commitFilter">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
       </td>
@@ -59,4 +55,4 @@
     </tr>
     </tbody>
   </table>
-</div>
+</cdk-virtual-scroll-viewport>
