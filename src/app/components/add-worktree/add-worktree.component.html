@@ -19,7 +19,11 @@
         <tr *ngFor="let b of branches | filterObject : 'name' : filter">
           <td>{{b.name}}</td>
           <td>
-            <button class="btn btn-primary" (click)="chooseBranch(b)">Select</button>
+            <button class="btn btn-primary" (click)="chooseBranch(b)" [disabled]="branchLockedOtherWorktree(b)">Select
+            </button>
+            <span class="fa fa-lock ml-2"
+                  *ngIf="branchLockedOtherWorktree(b) as lock"
+                  [ngbTooltip]="'Branch already checked out in worktree \''+lock.name+'\''"></span>
           </td>
         </tr>
       </table>

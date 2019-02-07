@@ -1,7 +1,7 @@
 <head *ngIf="repo">
   <title>Light Git - {{repo.name}} - {{getCurrentBranch().name}}</title>
 </head>
-<div *ngIf="repo" (focus)="getFileChanges()" class="row full-width">
+<div *ngIf="repo" (focus)="getFullRefresh()" class="row full-width">
   <div class="col-sm col-md-3 d-flex flex-column mb-1">
     <h1>{{repo.name}}
       <span class="d-inline-block btn-group">
@@ -12,7 +12,7 @@
                 (click)="openFolder()"
                 title="Open Folder at Repo Root"><i class="fas fa-folder-open"></i></button>
         <button class="btn btn-primary"
-                (click)="getFileChanges(false,true)"
+                (click)="getFullRefresh(false,true)"
                 title="Refresh All Changes (local and remote)"><i class="fas fa-sync-alt"></i></button>
         <button class="btn btn-warning"
                 (click)="showModal('discardAllModal')"
@@ -34,7 +34,7 @@
                 title="Create branch off current HEAD">
           <i class="fa fa-code-branch"></i></button>
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('locals')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('locals')">
         <app-branch-tree-item [isLocal]="true"
                               [filter]="localBranchFilter"
                               [branches]="repo.localBranches"
@@ -59,7 +59,7 @@
                placeholder="Filter..."
                [(ngModel)]="remoteBranchFilter" (click)="$event.stopPropagation()">
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('remotes')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('remotes')">
         <app-branch-tree-item [isLocal]="false"
                               [filter]="remoteBranchFilter"
                               [branches]="repo.remoteBranches"
@@ -81,7 +81,7 @@
           <i class="fa fa-plus"></i>
         </button>
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('worktrees')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('worktrees')">
         <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter" class="d-flex">
           <span [title]="w.path"
                 [ngClass]="{'bold':w.isCurrent}"
@@ -124,7 +124,7 @@
                 (click)="showModal('addSubmodule');$event.stopPropagation()">
           <i class="fa fa-plus"></i>
         </button>
-        <div class="btn-group btn-group-sm" ngbDropdown (click)="$event.stopPropagation()">
+        <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown (click)="$event.stopPropagation()">
           <button class="btn btn-primary"
                   title="Update Submodules"
                   (click)="updateSubmodules(false)">
@@ -141,7 +141,7 @@
           </div>
         </div>
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('submodules')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('submodules')">
         <div *ngFor="let w of repo.submodules | filterObject : 'path' : submoduleFilter" class="d-flex">
           <span [title]="w.path" class="flex-grow-1">
             <span class="badge badge-light badge-pill" *ngFor="let r of w.path.split('/');let i=index">
@@ -149,7 +149,7 @@
               <i class="mx-1 fa fa-arrow-right" *ngIf="i<w.path.split('/').length-1"></i>
             </span>
           </span>
-          <div class="flex-grow-0">
+          <div class="flex-grow-0 d-flex">
             <button class="btn btn-primary btn-sm"
                     title="Open in New Tab"
                     (click)="onOpenRepoNewTab.emit(repo.path+'/'+w.path)">
@@ -184,19 +184,24 @@
           </div>
         </div>
       </div>
-      <div class="card-body branch-container" *ngIf="getExpandState('stashes')">
+      <div class="card-body repo-section-container" *ngIf="getExpandState('stashes')">
         <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter" class="d-flex">
-          <div class="stash-message">
+          <div class="stash-message flex-grow-1">
             <span class="badge badge-info">{{s.index}}</span>
             : {{s.message}}
           </div>
-          <div class="d-inline-block ml-3">
-            <button class="btn btn-light btn-sm" (click)="applyStash(s.index)" title="Apply Stash">
-              <i class="fa fa-box-open"></i>
-            </button>
-            <button class="btn btn-danger btn-sm" (click)="deleteStash(s.index)" title="Delete Stash">
-              <i class="fa fa-trash"></i>
-            </button>
+          <div class="d-inline-block ml-3 flex-shrink-0">
+            <div class="d-flex">
+              <button class="btn btn-warning btn-sm mx-1" (click)="viewStash(s.index)" title="View Stash Diff">
+                <i class="fa fa-eye"></i>
+              </button>
+              <button class="btn btn-light btn-sm mx-1" (click)="applyStash(s.index)" title="Apply Stash">
+                <i class="fa fa-box-open"></i>
+              </button>
+              <button class="btn btn-danger btn-sm mx-1" (click)="deleteStash(s.index)" title="Delete Stash">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -209,7 +214,7 @@
                placeholder="Filter..."
                [(ngModel)]="commandHistoryFilter" (click)="$event.stopPropagation()">
       </div>
-      <div class="card-body branch-container"
+      <div class="card-body repo-section-container"
            *ngIf="getExpandState('command-history') && commandHistory"
            infinite-scroll
            [scrollWindow]="false"
@@ -244,7 +249,7 @@
                  placeholder="Filter..."
                  [(ngModel)]="stagedChangesFilter" (click)="$event.stopPropagation()">
         </div>
-        <div class="change-body branch-container" *ngIf="getExpandState('staged')">
+        <div class="change-body repo-section-container" *ngIf="getExpandState('staged')">
           <app-change-list [changes]="changes.stagedChanges"
                            (onSelectChanged)="selectionChanged($event,true)"
                            (onUndoFileClicked)="undoFileChanges($event,true)"
@@ -268,7 +273,7 @@
                  placeholder="Filter..."
                  [(ngModel)]="unstagedChangesFilter" (click)="$event.stopPropagation()">
         </div>
-        <div class="change-body branch-container" *ngIf="getExpandState('unstaged')">
+        <div class="change-body repo-section-container" *ngIf="getExpandState('unstaged')">
           <app-change-list [changes]="changes.unstagedChanges"
                            (onSelectChanged)="selectionChanged($event,false)"
                            (onUndoFileClicked)="undoFileChanges($event,false)"
@@ -278,32 +283,55 @@
         </div>
       </div>
     </div>
-    <div class="bg-light commit-area">
-      <div class="pretty p-switch p-fill mx-2">
-        <input type="checkbox" [(ngModel)]="commitAndPush" (change)="applicationRef.tick()"/>
-        <div class="state">
-          <label>{{commitAndPush ? 'Commit and Push' : 'Commit'}}</label>
-        </div>
-      </div>
-      <div class="d-flex flex-row bg-light">
-        <div class="dropup flex-grow-1 mt-1">
-          <textarea class="form-control"
-                    [(ngModel)]="changes.description"
-                    placeholder="Commit message"
-                    [disabled]="isLoading"
-                    (keyup.control.enter)="codeWatcherService.showWatchers()"
-                    (keyup)="setCurrentCursorPosition($event)"
-                    (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
-          <div class="dropdown-menu show" *ngIf="suggestions.length>0">
-            <a [ngClass]="{'dropdown-item':true,'active':i==selectedAutocompleteItem}"
-               *ngFor="let s of suggestions; let i = index"
-               (click)="chooseAutocomleteItem(false,i)">{{s}}</a>
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" (click)="suggestions=[]">Hide Suggestions</a>
+    <div class="card">
+      <div class="card-body p-3">
+        <div class="pretty p-switch p-fill mx-2">
+          <input type="checkbox" [(ngModel)]="commitAndPush" (change)="changeDetectorRef.detectChanges()"/>
+          <div class="state">
+            <label>{{commitAndPush ? 'Commit and Push' : 'Commit'}}</label>
           </div>
         </div>
-        <button class="btn btn-success" (click)="codeWatcherService.showWatchers()" [disabled]="isLoading">Commit
-        </button>
+        <div class="d-flex flex-row">
+          <div class="dropup flex-grow-1 mt-1 position-relative">
+            <div class="input-group">
+              <textarea class="form-control"
+                        [(ngModel)]="changes.description"
+                        placeholder="Commit message"
+                        [disabled]="loadingService.isLoading"
+                        (keyup.control.enter)="codeWatcherService.showWatchers()"
+                        (keyup)="setCurrentCursorPosition($event)"
+                        (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
+              <div class="input-group-append">
+                <button class="btn btn-success"
+                        (click)="codeWatcherService.showWatchers()"
+                        [disabled]="loadingService.isLoading">Commit
+                </button>
+              </div>
+              <div class="input-group-append" *ngIf="hasWatcherAlerts">
+                <button class="btn btn-warning"
+                        (click)="codeWatcherService.showWatchers({isCommit:false})">
+                  <span class="fa fa-glasses"></span>
+                </button>
+              </div>
+            </div>
+            <div class="crlf-warning alert alert-warning d-flex justify-content-between p-0"
+                 [ngClass]="{'crlf-warning-show':crlfError}">
+              <div *ngIf="crlfError" class="pl-4 py-2">
+                {{crlfError.start}} will be replaced by {{crlfError.end}} on commit
+              </div>
+              <button class="close px-2" (click)="crlfError=undefined">
+                <small><span class="fa fa-times"></span></small>
+              </button>
+            </div>
+            <div class="dropdown-menu show" *ngIf="suggestions.length>0">
+              <a [ngClass]="{'dropdown-item':true,'active':i==selectedAutocompleteItem}"
+                 *ngFor="let s of suggestions; let i = index"
+                 (click)="chooseAutocomleteItem(false,i)">{{s}}</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" (click)="suggestions=[]">Hide Suggestions</a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -322,16 +350,19 @@
         <div class="card-body" *ngIf="showDiff">
           <app-diff-viewer [diffHeaders]="diffHeaders"
                            [diffCommitInfo]="diffCommitInfo"
-                           (onHunkChanged)="handleFileChanges($event,false)"
+                           (onHunkChanged)="getFullRefresh(false)"
                            (onHunkChangeError)="hunkChangeError($event)"
                            (onIngoreWhitespaceClicked)="getFileDiff()"
+                           (onExitCommitClicked)="leaveCommitDiff()"
+                           (onNavigateToHash)="viewCommitDiff($event)"
                            (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
         </div>
         <app-commit-history [commitHistory]="commitHistory"
                             *ngIf="!showDiff"
-                            (onClickCommitDiff)="viewCommitDiff($event)"
+                            (onClickCommitDiff)="viewCommitDiff($event.hash)"
                             (onClickCherryPick)="cherryPickCommit($event)"
-                            (onScrollDown)="getCommitHistory(commitHistory.length)"></app-commit-history>
+                            (onScrollDown)="getCommitHistory(commitHistory.length)"
+                            (onClickCheckout)="checkout($event.hash,false)"></app-commit-history>
       </div>
     </div>
   </div>
@@ -355,7 +386,8 @@
   <app-code-watcher-alerts (onCommitClicked)="commit()"></app-code-watcher-alerts>
   <app-add-worktree [uidSalt]="repoViewUid"
                     [branches]="repo.remoteBranches"
-                    (onAddWorktree)="getFileChanges()"></app-add-worktree>
+                    [worktrees]="repo.worktrees"
+                    (onAddWorktree)="getFullRefresh()"></app-add-worktree>
   <app-add-submodule [uidSalt]="repoViewUid" (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
   <app-confirm-modal modalTitle="Confirm Discard All"
                      (onConfirm)="hardReset()"
@@ -371,7 +403,6 @@
              (onFinish)="activeSubmodule=null">
     <div *ngIf="activeSubmodule">
       <app-repo-view [repoPath]="repo.path+'/'+ activeSubmodule.path"
-                     (onLoadingChange)="onLoadingChange.emit($event)"
                      (onOpenRepoNewTab)="onOpenRepoNewTab.emit($event)"
                      (onLoadRepoFailed)="onLoadRepoFailed.emit($event)"></app-repo-view>
     </div>

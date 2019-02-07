@@ -1,12 +1,12 @@
 import {ApplicationRef, Component, EventEmitter, OnInit, Output} from '@angular/core';
-import {ElectronService} from '../../services/electron.service';
+import {ElectronService} from '../../common/services/electron.service';
 import {SettingsService} from '../../services/settings.service';
 import {SettingsModel} from '../../../../shared/SettingsModel';
 import {Channels} from '../../../../shared/Channels';
 import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
 import {GitService} from '../../services/git.service';
 import {ConfigItemModel} from '../../../../shared/git/config-item.model';
-import {ModalService} from '../../services/modal.service';
+import {ModalService} from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-settings',
@@ -22,12 +22,21 @@ export class SettingsComponent implements OnInit {
   configItems: ConfigItemModel[];
   @Output() onSaveAction = new EventEmitter<SettingsModel>();
   setGlobalDefaultUserConfig = false;
+  setGlobalDefaultMergetoolConfig = false;
+
+  mergetoolName = '';
+  mergetoolCommand = '';
+  credentialHelper: string;
+  cacheHelperSeconds: string;
+  private mergetoolConfig: ConfigItemModel;
+  private mergetoolCommandConfig: ConfigItemModel;
+  private credentialHelperConfig: ConfigItemModel;
 
   constructor(private electronService: ElectronService,
               private gitService: GitService,
               private modalService: ModalService,
               private applicationRef: ApplicationRef,
-              private settingsService: SettingsService) {
+              public settingsService: SettingsService) {
   }
 
   ngOnInit() {
@@ -36,19 +45,49 @@ export class SettingsComponent implements OnInit {
         (<any>window).setTheme(this.settingsService.settings.darkMode ? 'dark' : 'light');
       }
       this.tempSettings = this.settingsService.settings;
+      if (!this.settingsService.settings.allowStats) {
+        this.modalService.setModalVisible('stats', true);
+      }
     };
     this.settingsService.loadSettings(() => callback(true));
     this.settingsService.listenSettings(() => callback());
     this.electronService.rpc(Channels.GETVERSION, []).then(version => this.version = version);
   }
 
+  saveDisabledReason() {
+    return this.credentialHelper == 'cache' &&
+           this.cacheHelperSeconds &&
+           !this.cacheHelperSeconds.match(/^\d+$/) ? 'Cache timeout must be a number' : '';
+  }
+
   saveSettings() {
-    if (this.tempSettings.username != this.settingsService.settings.username || this.tempSettings.email != this.settingsService.settings.email) {
-      let useGlobal = (this.setGlobalDefaultUserConfig ? '--global ' : '');
-      this.gitService.setBulkGitSettings({
-        [useGlobal + 'user.name']: this.tempSettings.username,
-        [useGlobal + 'user.email']: this.tempSettings.email,
-      });
+    if (this.gitService.repo) {
+      if (this.tempSettings.username != this.settingsService.settings.username ||
+        this.tempSettings.email != this.settingsService.settings.email) {
+        this.gitService.setBulkGitSettings({
+          'user.name': this.tempSettings.username || '',
+          'user.email': this.tempSettings.email || '',
+        }, this.setGlobalDefaultUserConfig);
+      }
+      if (this.mergetoolName.trim() &&
+        (!this.mergetoolConfig ||
+          this.mergetoolName != this.mergetoolConfig.value ||
+          this.mergetoolCommandConfig.value != this.mergetoolCommand) &&
+        this.mergetoolName) {
+        this.gitService.setBulkGitSettings({
+          'merge.tool': this.mergetoolName,
+          ['mergetool.' + this.mergetoolName + '.cmd']: this.mergetoolCommand,
+        }, this.setGlobalDefaultMergetoolConfig);
+      }
+      if (this.credentialHelper &&
+        (!this.credentialHelperConfig ||
+          this.credentialHelper != this.credentialHelperConfig.value ||
+          (this.credentialHelper == 'cache' && this.cacheHelperSeconds))) {
+        this.gitService.setBulkGitSettings({
+          'credential.helper': this.credentialHelper +
+            (this.credentialHelper == 'cache' ? ' --timeout ' + this.cacheHelperSeconds : ''),
+        }, true);
+      }
     }
     this.setThemeTemp();
     this.settingsService.saveSettings(this.tempSettings);
@@ -67,7 +106,23 @@ export class SettingsComponent implements OnInit {
     this.modalService.setModalVisible('settings', true);
     this.gitService.getConfigItems().then(configItems => {
       this.configItems = configItems;
-      let username = this.configItems.find(x => x.key == 'user.name');
+      let username = this.configItems.find(item => item.key == 'user.name');
+      this.mergetoolConfig = this.configItems.find(item => item.key == 'merge.tool');
+      if (this.mergetoolConfig) {
+        this.mergetoolName = this.mergetoolConfig.value;
+        this.mergetoolCommandConfig = this.configItems.find(
+          item => item.key == 'mergetool.' + this.mergetoolName + '.cmd');
+        this.mergetoolCommand = this.mergetoolCommandConfig.value;
+      }
+      this.credentialHelperConfig = this.configItems.find(item => item.key == 'credential.helper');
+      if (this.credentialHelperConfig) {
+        this.credentialHelper = this.credentialHelperConfig.value.split(' ')[0];
+        this.cacheHelperSeconds = this.credentialHelper ==
+                                  'cache' ? this.credentialHelperConfig.value.split(' ')[2] : 15 * 60 + '';
+      } else {
+        this.credentialHelper = 'cache';
+        this.cacheHelperSeconds = 15 * 60 + '';
+      }
       this.tempSettings.username = username ? username.value + '' : '';
       this.settingsService.settings.username = username ? username.value + '' : '';
       let email = this.configItems.find(x => x.key == 'user.email');

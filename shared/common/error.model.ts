@@ -6,7 +6,9 @@ export class ErrorModel {
   constructor(source: string, occurredWhile: string, content: any) {
     this.source = source;
     this.occurredWhile = occurredWhile;
-    this.content = ErrorModel.isErrorModel(content) || typeof content == 'string' ? content : JSON.stringify(content);
+    this.content = ErrorModel.isErrorModel(content) || typeof content == 'string' ?
+                   content :
+                   JSON.stringify(content, ((key, value) => '[circular] ' + value.toString()));
   }
 
   static isErrorModel(error: any) {
@@ -19,23 +21,25 @@ export class ErrorModel {
   }
 
   static getRootError(error: ErrorModel) {
-    return error && (typeof error.content == 'string' || !ErrorModel.isErrorModel(error.content)) ?
-           error :
-           (!error ? '' : this.getRootError(<ErrorModel>error.content));
+    if (!error) {
+      return undefined;
+    } else {
+      return !ErrorModel.isErrorModel(error.content) && typeof error.content == 'string' ?
+             error :
+             ErrorModel.getRootError(<ErrorModel>error.content);
+    }
   }
 
   static reduceErrorContent(error: ErrorModel) {
-    if (error.content && typeof error.content === 'string') {
-      try {
-        let internal = JSON.parse(error.content);
-        if (internal.message) {
-          return internal.message;
-        } else {
-          return error.content;
-        }
-      } catch (e) {
+    try {
+      let internal = JSON.parse(error.content.toString());
+      if (internal.message || internal.content) {
+        return internal.message || internal.content;
+      } else {
         return error.content;
       }
+    } catch (e) {
+      return error.content;
     }
   }
 

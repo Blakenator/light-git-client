@@ -1,18 +1,19 @@
 import {app, ipcMain, shell} from 'electron';
 import {SettingsModel} from './shared/SettingsModel';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import {RepositoryModel} from './shared/git/Repository.model';
 import {GitClient} from './git/GitClient';
 import * as path from 'path';
 import {ElectronResponse} from './shared/common/electron-response';
 import {autoUpdater} from 'electron-updater';
 import {Channels} from './shared/Channels';
-import * as NodeNotifier from 'node-notifier';
 import {GenericApplication} from './genericApplication';
+import * as ua from 'universal-analytics';
 
 const opn = require('opn');
 
 export class MainApplication extends GenericApplication {
+  private static readonly STATS_GENERAL = 'general';
   private updateDownloaded = false;
   private settings: SettingsModel = new SettingsModel();
   private userInitiatedUpdate = false;
@@ -21,9 +22,10 @@ export class MainApplication extends GenericApplication {
   private gitClients: { [key: string]: GitClient } = {};
   private readonly iconFile = './src/favicon.512x512.png';
   private readonly notificationTitle = 'Light Git';
+  private analytics;
 
-  constructor(logger: Console, version: string, notifier: NodeNotifier.NodeNotifier) {
-    super(logger, version, notifier);
+  constructor(logger: Console) {
+    super(logger);
   }
 
   beforeQuit() {
@@ -45,6 +47,11 @@ export class MainApplication extends GenericApplication {
         const res = Object.assign(new SettingsModel(), JSON.parse(data));
         Object.assign(this.settings, res);
         GitClient.settings = res;
+        if (this.settings.allowStats == 1) {
+          this.analytics = ua('UA-83786273-2', this.settings.statsId);
+        }
+        this.sendEvent(MainApplication.STATS_GENERAL, 'tabs-open', this.settings.tabNames.length);
+        this.sendEvent(MainApplication.STATS_GENERAL, 'version', this.version);
         callback(res);
       });
     } else {
@@ -52,6 +59,17 @@ export class MainApplication extends GenericApplication {
       this.saveSettings(this.settings);
       GitClient.settings = this.settings;
       callback(this.settings);
+    }
+  }
+
+  sendEvent(category: string, action: string, label: string | number, value?: number) {
+    if (this.analytics) {
+      this.analytics.event({
+        ec: category,
+        ea: action,
+        el: label + '',
+        ev: value,
+      }).send();
     }
   }
 
@@ -66,6 +84,11 @@ export class MainApplication extends GenericApplication {
   loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
     this.gitClients[repoPath] = new GitClient(repoPath);
     this.loadedRepos[repoPath] = this.gitClients[repoPath].openRepo();
+    this.gitClients[repoPath].onCommandExecuted.subscribe(
+      history =>
+        this.window.webContents.send(
+          this.getReplyChannel([Channels.COMMANDHISTORYCHANGED]),
+          new ElectronResponse(history)));
     return this.loadedRepos[repoPath];
   }
 
@@ -81,9 +104,11 @@ export class MainApplication extends GenericApplication {
     this.checkForUpdates();
     this.configureApp();
     this.bindEventHandlers();
+    setTimeout(() => this.sendEvent('general', 'window-opened', 'main-window'), 20000);
   }
 
   checkForUpdates() {
+    autoUpdater.allowPrerelease = this.settings.allowPrerelease;
     autoUpdater.checkForUpdates().catch(error => {
       this.notifier.notify({
         title: this.notificationTitle,
@@ -281,6 +306,10 @@ export class MainApplication extends GenericApplication {
       this.handleGitPromise(this.gitClients[args[1]].getCommitDiff(args[2]), event, args);
     });
 
+    ipcMain.on(Channels.STASHDIFF, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getStashDiff(args[2]), event, args);
+    });
+
     ipcMain.on(Channels.GETBRANCHPREMERGE, (event, args) => {
       this.handleGitPromise(this.gitClients[args[1]].getBranchPremerge(args[2]), event, args);
     });
@@ -290,7 +319,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.SETGITSETTINGS, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].setBulkGitSettings(args[2]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].setBulkGitSettings(args[2], args[3]), event, args);
     });
 
     ipcMain.on(Channels.UPDATESUBMODULES, (event, args) => {
@@ -330,14 +359,14 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.ADDWORKTREE, (event, args) => {
-      this.gitClients[args[1]].addWorktree(args[2], args[3], (out, err, done) => {
-        this.defaultReply(event, args, {out, err, done});
+      this.gitClients[args[1]].addWorktree(args[2], args[3]).subscribe(eventData => {
+        this.defaultReply(event, args, {out: eventData.out, err: eventData.error, done: eventData.done});
       });
     });
 
     ipcMain.on(Channels.CLONE, (event, args) => {
-      new GitClient(args[1]).clone(args[2], args[3], (out, err, done) => {
-        this.defaultReply(event, args, {out, err, done});
+      new GitClient(args[1]).clone(args[2], args[3]).subscribe(eventData => {
+        this.defaultReply(event, args, {out: eventData.out, err: eventData.error, done: eventData.done});
       });
     });
 
@@ -349,13 +378,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.GETCOMMANDHISTORY, (event, args) => {
-      this.handleGitPromise(
-        this.gitClients[args[1]].getCommandHistory(
-          history => event.sender.send(
-            this.getReplyChannel([Channels.COMMANDHISTORYCHANGED]),
-            new ElectronResponse(history))),
-        event,
-        args);
+      this.handleGitPromise(this.gitClients[args[1]].getCommandHistory(), event, args);
     });
 
     ipcMain.on(Channels.RENAMEBRANCH, (event, args) => {
@@ -394,7 +417,7 @@ export class MainApplication extends GenericApplication {
       for (let f of files) {
         promises.push(new Promise((resolve, reject) => {
           let path1 = path.join(args[1], f);
-          fs.unlink(path1, err => {
+          fs.remove(path1, err => {
             if (err) {
               reject(err);
             } else {

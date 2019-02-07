@@ -7,29 +7,41 @@
      (scrolled)="scrolled(true)"
      (scrolledUp)="scrolled(false)">
   <div>
-    <div *ngIf="diffCommitInfo" class="card-body"><p class="text-muted">{{diffCommitInfo.hash}}</p>
-      <p *ngIf="diffCommitInfo.authorName">
-        {{diffCommitInfo.authorName}} &lt;{{diffCommitInfo.authorEmail}}&gt;
-        @ {{diffCommitInfo.authorDate | date : 'short'}}
-      </p>
-      <div>{{diffCommitInfo.message}}</div>
+    <div *ngIf="diffCommitInfo" class="card-body">
+      <div class="d-flex justify-content-between">
+        <div>
+          <p class="text-muted">{{diffCommitInfo.hash}}</p>
+          <p *ngIf="diffCommitInfo.authorName">
+            {{diffCommitInfo.authorName}} &lt;{{diffCommitInfo.authorEmail}}&gt;
+            @ {{diffCommitInfo.authorDate | date : 'short'}}
+          </p>
+          <div>{{diffCommitInfo.message}}</div>
+          <div class="mt-2">
+            <span>Parents:</span>
+            <button *ngFor="let p of diffCommitInfo.parentHashes"
+                    class="btn mx-1 btn-sm btn-outline-warning"
+                    (click)="onNavigateToHash.emit(p)">
+              {{p.substring(0, 8)}}
+              <span class="fa fa-eye"></span></button>
+          </div>
+        </div>
+        <div>
+          <button class="btn btn-primary btn-circle justify-content-center rounded-circle align-items-center"
+                  (click)="onExitCommitClicked.emit()">
+            <span class="fa fa-times"></span>
+          </button>
+        </div>
+      </div>
     </div>
     <div class="form-inline">
-      <!--<label>Match on:-->
-      <!--<select class="form-control" [(ngModel)]="matchingSelection">-->
-      <!--<option value="words">Words</option>-->
-      <!--<option value="lines">Lines</option>-->
-      <!--<option value="none">None</option>-->
-      <!--</select>-->
-      <!--</label>-->
-
       <div class="pretty p-switch p-fill mx-2" (click)="saveSettings()">
         <input type="checkbox" [(ngModel)]="settingsService.settings.diffIgnoreWhitespace"/>
         <div class="state">
           <label>Ignore Whitespace</label>
         </div>
       </div>
-      <div class="m-1 badge badge-pill badge-info" *ngIf="diffFilter"><i class="fa fa-filter"></i> Filtered Results</div>
+      <div class="m-1 badge badge-pill badge-info" *ngIf="diffFilter"><i class="fa fa-filter"></i> Filtered Results
+      </div>
     </div>
     <div *ngIf="diffHeaders.length==0" class="text-muted">
       No differences detected...

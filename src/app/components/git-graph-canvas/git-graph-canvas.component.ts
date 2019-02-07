@@ -18,7 +18,7 @@ export class GitGraphCanvasComponent implements OnInit {
   ngOnInit() {
   }
 
-  getSvgDef(block: { target: number; source: number; isCommit: boolean; branchIndex: number; isMerge: boolean }) {
+  getCurvedPathDef(block: { target: number; source: number; isCommit: boolean; branchIndex: number; isMerge: boolean }) {
     let source = this.getSafeHoriz(block.source);
     let target = this.getSafeHoriz(block.target);
     return `M${source} 25 C ${source} 12.5, ${target} 12.5, ${target} 0`;

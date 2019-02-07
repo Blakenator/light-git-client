@@ -3,6 +3,7 @@
   border-left: dashed .15em rgba(128, 128, 128, .3);
   padding-left: .5em;
   transition: border-left-color .5s;
+
   &:hover {
     border-left-color: rgba(225, 128, 128, .5);
   }
@@ -11,25 +12,35 @@
 .branch {
   padding: .2em;
   transition: background-color .5s;
+
   .branch-button-bar {
     max-height: 0;
-    transition: max-height .5s .2s;
+    transition: max-height .3s, margin-bottom .3s, margin-top .3s;
     overflow: hidden;
-  }
-  &:hover {
-    background-color: rgba(128, 128, 128, .3);
-    .branch-button-bar {
-      max-height: 3em;
+
+    &.expanded {
+      max-height: 5em;
     }
+  }
+
+  .quick-actions-expand {
+    opacity: 0;
+    transition: opacity .3s;
+  }
+
+  &:hover .quick-actions-expand, .quick-actions-expand.expanded {
+    opacity: 1;
   }
 }
 
 .folder {
   cursor: pointer;
   transition: background-color .5s;
+
   &:hover {
     background-color: rgba(128, 128, 128, .3);
   }
+
   &:hover + .children {
     border-left-color: rgba(225, 128, 128, .5);
   }
@@ -58,6 +69,6 @@
   transform: rotate(180deg);
 }
 
-.dropdown-menu{
+.dropdown-menu {
   min-width: unset;
 }

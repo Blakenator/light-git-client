@@ -1,22 +1,29 @@
 import {Injectable} from '@angular/core';
 import {Channels} from '../../../shared/Channels';
 import {RepositoryModel} from '../../../shared/git/Repository.model';
-import {ElectronService} from './electron.service';
+import {ElectronService} from '../common/services/electron.service';
 import {ConfigItemModel} from '../../../shared/git/config-item.model';
 import {DiffHeaderModel} from '../../../shared/git/diff.header.model';
-import {CommitModel} from '../../../shared/git/Commit.model';
 import {Subject} from 'rxjs';
 import {CommandHistoryModel} from '../../../shared/git/command-history.model';
 import {DiffHunkModel} from '../../../shared/git/diff.hunk.model';
 import {ErrorModel} from '../../../shared/common/error.model';
-import {ErrorService} from '../components/common/services/error.service';
+import {ErrorService} from '../common/services/error.service';
+import {CommitModel} from '../../../shared/git/Commit.model';
+import {CommandOutputModel} from '../../../shared/common/command.output.model';
+import {CommitSummaryModel} from '../../../shared/git/CommitSummary.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class GitService {
   public repo: RepositoryModel;
   public onCommandHistoryUpdated = new Subject<CommandHistoryModel[]>();
+  public isRepoLoaded = false;
+  private _onCrlfError = new Subject<{ start: string, end: string }>();
+  public readonly onCrlfError = this._onCrlfError.asObservable();
+  private _repoLoaded = new Subject<void>();
+  public readonly onRepoLoaded = this._repoLoaded.asObservable();
 
   constructor(private electronService: ElectronService, private errorService: ErrorService) {
     electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
@@ -30,13 +37,14 @@ export class GitService {
     if (rename) {
       rename.value = '';
       return this.electronService.rpc(Channels.SETCONFIGITEM, [this.repo.path, rename])
-                 .then(ignore => this.electronService.rpc(Channels.SETCONFIGITEM,
+                 .then(ignore => this.electronService.rpc(
+                   Channels.SETCONFIGITEM,
                    [this.repo.path, item]));
     }
     return this.electronService.rpc(Channels.SETCONFIGITEM, [this.repo.path, item]);
   }
 
-  mergeBranch(branch: string): Promise<RepositoryModel> {
+  mergeBranch(branch: string): Promise<void> {
     return this.electronService.rpc(Channels.MERGEBRANCH, [this.repo.path, branch]);
   }
 
@@ -60,32 +68,81 @@ export class GitService {
     });
   }
 
-  changeHunk(filename: string, hunk: DiffHunkModel, changedText: string): Promise<CommitModel> {
+  changeHunk(filename: string, hunk: DiffHunkModel, changedText: string): Promise<void> {
     return this.electronService.rpc(Channels.CHANGEHUNK, [this.repo.path, filename, hunk, changedText]);
   }
 
-  updateSubmodules(branch: string, recursive: boolean): Promise<any> {
+  applyStash(index: number): Promise<void> {
+    return this.electronService.rpc(Channels.APPLYSTASH, [this.repo.path, index]);
+  }
+
+  deleteStash(index: number): Promise<void> {
+    return this.electronService.rpc(Channels.DELETESTASH, [this.repo.path, index]);
+  }
+
+  updateSubmodules(branch: string, recursive: boolean): Promise<void> {
     return this.electronService.rpc(Channels.UPDATESUBMODULES, [this.repo.path, branch, recursive]);
   }
 
-  addSubmodule(url: string, path: string): Promise<any> {
+  addSubmodule(url: string, path: string): Promise<void> {
     return this.electronService.rpc(Channels.ADDSUBMODULE, [this.repo.path, url, path]);
   }
 
-  getFileChanges(unstaged: string, staged: string): Promise<DiffHeaderModel[]> {
-    return this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]);
+  getFileDiff(unstaged: string[], staged: string[]): Promise<DiffHeaderModel[]> {
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]));
   }
 
-  cherryPickCommit(hash: string): Promise<CommitModel> {
+  getBranchPremerge(branchHash: string): Promise<DiffHeaderModel[]> {
+    return this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.repo.path, branchHash]);
+  }
+
+  getCommitHistory(skip: number): Promise<CommitSummaryModel[]> {
+    return this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip]);
+  }
+
+  loadRepo(repoPath: string): Promise<RepositoryModel> {
+    return this.electronService.rpc(Channels.LOADREPO, [repoPath]).then(repo => {
+      this.repo = new RepositoryModel().copy(repo);
+      this.isRepoLoaded = true;
+      this._repoLoaded.next();
+      return Promise.resolve(this.repo);
+    });
+  }
+
+  getCommitDiff(hash: string): Promise<DiffHeaderModel[]> {
+    return this.electronService.rpc(Channels.COMMITDIFF, [this.repo.path, hash]);
+  }
+
+  getStashDiff(stashIndex: number): Promise<DiffHeaderModel[]> {
+    return this.electronService.rpc(Channels.STASHDIFF, [this.repo.path, stashIndex]);
+  }
+
+  cherryPickCommit(hash: string): Promise<void> {
     return this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, hash]);
   }
 
-  fastForwardBranch(branch: string): Promise<CommitModel> {
+  fastForwardBranch(branch: string): Promise<void> {
     return this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]);
   }
 
-  setBulkGitSettings(config: { [key: string]: string|number }): Promise<any> {
-    return this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config]);
+  checkout(branchOrHash: string, toNewBranch: boolean): Promise<void> {
+    return this.electronService.rpc(Channels.CHECKOUT, [this.repo.path, branchOrHash, toNewBranch]);
+  }
+
+  pull(force: boolean): Promise<void> {
+    return this.electronService.rpc(Channels.PULL, [this.repo.path, force]);
+  }
+
+  push(branch: string, force: boolean): Promise<void> {
+    return this.electronService.rpc(Channels.PUSH, [this.repo.path, branch, force]);
+  }
+
+  deleteFiles(files: string[]): Promise<void> {
+    return this.electronService.rpc(Channels.DELETEFILES, [this.repo.path, files]);
+  }
+
+  setBulkGitSettings(config: { [key: string]: string | number }, useGlobal: boolean): Promise<void> {
+    return this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config, useGlobal]);
   }
 
   checkGitBashVersions() {
@@ -98,12 +155,115 @@ export class GitService {
         errors.push('bash');
       }
       if (errors.length > 0) {
-        this.errorService.receiveError(new ErrorModel('home component, git bash version check',
+        this.errorService.receiveError(new ErrorModel(
+          'home component, git bash version check',
           'checking the versions of Git and Bash',
           'Invalid path configuration(s) detected:\n\t' + errors.join('\n\t') +
           '\n\nPlease configure your paths correctly in the Settings menu'));
       }
     };
     this.electronService.rpc(Channels.CHECKGITBASHVERSIONS, ['./']).then(handleResult).catch(handleResult);
+  }
+
+  stage(file: string): Promise<void> {
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, file]), true);
+  }
+
+  unstage(file: string): Promise<void> {
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, file]), true);
+  }
+
+  createBranch(branchName: string): Promise<void> {
+    return this.electronService.rpc(Channels.CREATEBRANCH, [this.repo.path, branchName]);
+  }
+
+  deleteBranch(branchName: string): Promise<void> {
+    return this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branchName]);
+  }
+
+  mergeFile(file: string, mergetool: string): Promise<void> {
+    return this.electronService.rpc(Channels.MERGE, [this.repo.path, file, mergetool]);
+  }
+
+  deleteWorktree(worktreeName: string): Promise<void> {
+    return this.electronService.rpc(Channels.DELETEWORKTREE, [this.repo.path, worktreeName]);
+  }
+
+  stashChanges(onlyUnstaged: boolean, stashName: string): Promise<void> {
+    return this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged, stashName]);
+  }
+
+  fetch(): Promise<void> {
+    return this.electronService.rpc(Channels.FETCH, [this.repo.path]);
+  }
+
+  undoFileChanges(file: string, revision: string, staged: boolean): Promise<void> {
+    return this.electronService.rpc(Channels.UNDOFILECHANGES, [this.repo.path, file, revision, staged]);
+  }
+
+  hardReset(): Promise<void> {
+    return this.electronService.rpc(Channels.HARDRESET, [this.repo.path]);
+  }
+
+  commit(description: string, commitAndPush: boolean): Promise<void> {
+    return this.electronService.rpc(Channels.COMMIT, [this.repo.path, description, commitAndPush]);
+  }
+
+  getBranchChanges(): Promise<RepositoryModel> {
+    return this.electronService.rpc(Channels.GETBRANCHES, [this.repo.path]);
+  }
+
+  getFileChanges(): Promise<CommitModel> {
+    return this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path]);
+  }
+
+  getCommandHistory(): Promise<CommandHistoryModel[]> {
+    return this.electronService.rpc(Channels.GETCOMMANDHISTORY, [this.repo.path]);
+  }
+
+  renameBranch(branch: { oldName: string, newName: string }): Promise<void> {
+    return this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName]);
+  }
+
+  private detectCrlfWarning<T>(promise: Promise<CommandOutputModel<T>>, onCatch: boolean = false) {
+    return new Promise<T>((resolve, reject) => {
+      if (onCatch) {
+        promise.then(output => output ? resolve(output.content) : resolve()).catch(output => {
+          this._detectCrlfWarningInternal(output, resolve, reject);
+        });
+      } else {
+        promise.then(output => {
+          this._detectCrlfWarningInternal(output, resolve, reject);
+        }).catch(output => output ? reject(output.errorOutput || output) : reject());
+      }
+    });
+  }
+
+  private _detectCrlfWarningInternal(output: string | CommandOutputModel, resolve: Function, reject: Function) {
+    const crlf = /^(warning:\s+((CR)?LF)\s+will\s+be\s+replaced\s+by\s+((CR)?LF)\s+in\s+(.+?)(\r?\nThe\s+file\s+will\s+have\s+its\s+original.+?\r?\n?)?)+$/i;
+    if (output == undefined) {
+      resolve();
+      return;
+    }
+    if (typeof output == 'string') {
+      let crlfMatch = output.match(crlf);
+      if (crlfMatch) {
+        this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
+        resolve();
+      } else {
+        reject(output);
+      }
+    } else {
+      if (!output.errorOutput) {
+        resolve(output.content);
+      }
+      let crlfMatch = output.errorOutput.match(crlf);
+      if (crlfMatch) {
+        this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
+        resolve(output.content);
+      } else {
+        reject(output.errorOutput);
+      }
+    }
   }
 }

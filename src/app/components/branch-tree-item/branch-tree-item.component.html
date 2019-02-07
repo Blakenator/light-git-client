@@ -9,24 +9,32 @@
   <div *ngIf="showChildren" [ngClass]="{children:currentPath}">
     <div *ngFor="let b of filteredLeaves" class="branch" [title]="b.name">
       <div *ngIf="isLocal">
-        <div class="d-inline-block"
+        <div class="d-flex"
              *ngIf="!activeRenames[b.name]"
              [ngClass]="{'bold':b.isCurrentBranch,'text-muted':checkedOutOtherWorktree(b)}">
-          {{getLeafName(b.name)}}
-          <small class="text-info" title="Branch checked out" *ngIf="b.isCurrentBranch">
-            <i class="fa fa-shopping-cart"></i>
-          </small>
-          <small *ngIf="checkedOutOtherWorktree(b)"
-                 [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
-            <i class="fa fa-lock"></i>
-          </small>
-          <span *ngIf="b.trackingPath">
+          <div class="flex-grow-1">
+            {{getLeafName(b.name)}}
+            <small class="text-info" title="Branch checked out" *ngIf="b.isCurrentBranch">
+              <i class="fa fa-shopping-cart"></i>
+            </small>
+            <small *ngIf="checkedOutOtherWorktree(b)"
+                   [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
+              <i class="fa fa-lock"></i>
+            </small>
+            <span *ngIf="b.trackingPath">
             <small class="text-muted" [title]="b.trackingPath"><i class="fa fa-cloud"></i></small>
             <i *ngIf="settingsService.settings.showTrackingPath">({{b.trackingPath}})</i>
             <span class="badge badge-info ml-1" *ngIf="b.ahead">{{b.ahead || 0}} <i class="fas fa-arrow-up"></i></span>
             <span class="badge badge-info ml-1"
                   *ngIf="b.behind">{{b.behind || 0}} <i class="fas fa-arrow-down"></i></span>
           </span>
+          </div>
+          <button class="btn btn-sm btn-secondary flex-grow-0 py-0 m-0 quick-actions-expand"
+                  [ngClass]="{'expanded':actionExpanded[b.name]}"
+                  (click)="actionExpanded[b.name]=!actionExpanded[b.name]">
+            <span class="fa"
+                  [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
+          </button>
         </div>
         <div *ngIf="activeRenames[b.name]" class="input-group input-group-sm">
           <input class="form-control"
@@ -34,16 +42,16 @@
                  (keyup.enter)="renameBranch(b.name)"
                  [(ngModel)]="activeRenames[b.name]">
           <div class="input-group-append">
-            <button class="btn btn-sm btn-light"
+            <button class="btn btn-sm btn-light mx-1"
                     title="Cancel rename"
                     (click)="cancelRename(b.name)">
               <i class="fa fa-times-circle"></i>
             </button>
-            <button class="btn btn-sm btn-success" title="Rename local branch" (click)="renameBranch(b.name)">
+            <button class="btn btn-sm btn-success mx-1" title="Rename local branch" (click)="renameBranch(b.name)">
               <i class="fa fa-check"></i></button>
           </div>
         </div>
-        <div *ngIf="!activeRenames[b.name]" class="branch-button-bar ml-3 float-right">
+        <div *ngIf="!activeRenames[b.name]" class="branch-button-bar text-right" [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
           <button class="btn btn-info btn-sm" (click)="startRename(b.name)" title="Rename local branch">
             <i class="material-icons">edit</i></button>
           <button class="btn btn-light btn-sm"
@@ -109,11 +117,21 @@
         </div>
       </div>
       <div *ngIf="!isLocal">
-        <span>{{getLeafName(b.name)}}</span>
-        <small class="text-muted" title="Branch already checked out" *ngIf="isRemoteAlreadyCheckedOut(b.name)">
-          <i class="fa fa-shopping-cart"></i>
-        </small>
-        <div class="branch-button-bar ml-3 float-right">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <span>{{getLeafName(b.name)}}</span>
+            <small class="text-muted" title="Branch already checked out" *ngIf="isRemoteAlreadyCheckedOut(b.name)">
+              <i class="fa fa-shopping-cart"></i>
+            </small>
+          </div>
+          <button class="btn btn-sm btn-secondary flex-grow-0 py-0 m-0 quick-actions-expand"
+                  *ngIf="!isRemoteAlreadyCheckedOut(b.name)"
+                  (click)="actionExpanded[b.name]=!actionExpanded[b.name]">
+            <span class="fa"
+                  [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
+          </button>
+        </div>
+        <div class="branch-button-bar text-right" [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
           <button class="btn btn-light btn-sm"
                   (click)="onCheckoutClicked.emit(b.name)"
                   *ngIf="!isRemoteAlreadyCheckedOut(b.name)">

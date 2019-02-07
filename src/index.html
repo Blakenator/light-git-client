@@ -11,39 +11,6 @@
   <link href="./assets/diff2html.css" rel="stylesheet">
 </head>
 <body>
-<script>
-  window.setTheme = (theme) => {
-    var head = document.head;
-    var THEME_STYLE = 'themeStyle';
-    let previousTheme = document.getElementById(THEME_STYLE);
-    if (!previousTheme) {
-      setLoading(true);
-    }
-    var link = document.createElement("link");
-
-    link.type = "text/css";
-    link.rel = "stylesheet";
-    link.id = THEME_STYLE;
-    link.href = './assets/' + theme + '.min.css';
-    link.onload = () => {
-      if (previousTheme) {
-        head.removeChild(previousTheme);
-      } else {
-        setTimeout(() => setLoading(false), 1200);
-      }
-    };
-
-    head.insertBefore(link, head.firstChild);
-  };
-  window.setTheme('light');
-
-  function setLoading(val) {
-    let classes = document.getElementById('loadingScreen').classList;
-    if (classes.contains('visible') !== val) {
-      classes.toggle('visible');
-    }
-  }
-</script>
 <style>
   /* roboto-regular - latin */
   @font-face {
@@ -65,6 +32,7 @@
     position: fixed;
     right: 100%;
     left: -100%;
+    overflow: hidden;
     top: 0;
     bottom: 0;
     background-color: #e69119;
@@ -109,5 +77,39 @@
     <h1>Light Git</h1>
   </div>
 </div>
+<script>
+  window.setTheme = (theme) => {
+    var head = document.head;
+    var THEME_STYLE = 'themeStyle';
+    let previousTheme = document.getElementById(THEME_STYLE);
+    if (!previousTheme) {
+      setLoading(true);
+    }
+    var link = document.createElement("link");
+
+    link.type = "text/css";
+    link.rel = "stylesheet";
+    link.id = THEME_STYLE;
+    link.href = './assets/' + theme + '.min.css';
+    link.onload = () => {
+      if (previousTheme) {
+        head.removeChild(previousTheme);
+      } else {
+        setTimeout(() => setLoading(false), 1200);
+      }
+    };
+
+    head.insertBefore(link, head.firstChild);
+  };
+  window.setTheme('light');
+  setTimeout(() => setLoading(false), 6000);
+
+  function setLoading(val) {
+    let classes = document.getElementById('loadingScreen').classList;
+    if (classes.contains('visible') !== val) {
+      classes.toggle('visible');
+    }
+  }
+</script>
 </body>
 </html>

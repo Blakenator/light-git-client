@@ -2,7 +2,7 @@ import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {BranchModel} from '../../../../shared/git/Branch.model';
 import {WorktreeModel} from '../../../../shared/git/worktree.model';
 import {SettingsService} from '../../services/settings.service';
-import {FilterPipe} from '../common/pipes/filter.pipe';
+import {FilterPipe} from '../../common/pipes/filter.pipe';
 
 @Component({
   selector: 'app-branch-tree-item',
@@ -29,6 +29,7 @@ export class BranchTreeItemComponent implements OnInit {
   leaves: BranchModel[];
   children;
   activeRenames: { [key: string]: string } = {};
+  actionExpanded: { [key: string]: boolean } = {} ;
 
   constructor(public settingsService: SettingsService) {
   }
@@ -101,7 +102,7 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   cancelRename(branchName: string) {
-    delete(this.activeRenames[branchName]);
+    delete (this.activeRenames[branchName]);
   }
 
   startRename(branchName: string) {

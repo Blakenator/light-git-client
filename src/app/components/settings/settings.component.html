@@ -9,7 +9,8 @@
            affirmativeButtonText="Save"
            (onFinish)="saveSettings()"
            (onCancel)="cancelChanges()"
-           modalClass="dialog-wide">
+           modalClass="dialog-wide"
+           [affirmativeButtonDisabled]="saveDisabledReason()">
   <div *ngIf="tempSettings">
     <div>
       <div *ngFor="let tab of tabs;let i = index"
@@ -19,8 +20,15 @@
     </div>
     <div *ngIf="currentTab==0">
       <div>
-        Light Git v{{version}}
-        <button class="btn btn-sm btn-primary" (click)="checkForUpdates()">
+        Light Git <span class="badge badge-pill badge-info mx-1">v{{version}}</span>
+
+        <div class="pretty p-switch p-fill my-3 mx-1">
+          <input type="checkbox" [(ngModel)]="tempSettings.allowPrerelease"/>
+          <div class="state">
+            <label>Bleeding Edge Builds</label>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-primary mx-1" (click)="checkForUpdates()">
           Check for Updates
           <i class="fa fa-sync"></i>
         </button>
@@ -45,6 +53,12 @@
               <label>Show autocomplete when typing commit message</label>
             </div>
           </div>
+          <div class="pretty p-switch p-fill my-3 d-block">
+            <input type="checkbox" [(ngModel)]="tempSettings.allowStats"/>
+            <div class="state">
+              <label>Send anonymized statistics to help improve Light-Git</label>
+            </div>
+          </div>
         </div>
         <div class="col-6">
           <app-file-input [filePath]="tempSettings.gitPath"
@@ -53,12 +67,6 @@
           <app-file-input [filePath]="tempSettings.bashPath"
                           (onPathChanged)="tempSettings.bashPath=$event"
                           [label]="'Bash Path (required if not in PATH)'"></app-file-input>
-          <div>
-            <label>
-              Mergetool
-              <input class="form-control" [(ngModel)]="tempSettings.mergetool">
-            </label>
-          </div>
         </div>
       </div>
       <div class="pretty p-switch p-fill mx-2">
@@ -126,12 +134,12 @@
     <div *ngIf="currentTab==2">
       <div class="row">
         <div class="col-6">
-          <label>Display Name</label>
-          <div class="input-group">
+          <div class="form-group">
+            <label>Display Name</label>
             <input class="form-control" [(ngModel)]="tempSettings.username">
           </div>
-          <label>Display Email</label>
-          <div class="input-group">
+          <div class="form-group">
+            <label>Display Email</label>
             <input class="form-control" [(ngModel)]="tempSettings.email">
           </div>
           <div class="pretty p-switch p-fill mx-2">
@@ -140,8 +148,57 @@
               <label>Set as Global Defaults</label>
             </div>
           </div>
+          <hr/>
+          <div class="form-group">
+            <div>Credential Helper</div>
+            <small class="error-message" *ngIf="credentialHelper=='osxkeychain'||credentialHelper=='wincred'">
+              <span *ngIf="credentialHelper=='osxkeychain'">Warning: This only works on Mac</span>
+              <span *ngIf="credentialHelper=='wincred'">Warning: This only works on Windows</span>
+            </small>
+            <select class="form-control" [(ngModel)]="credentialHelper">
+              <option value="cache">Cache</option>
+              <option value="store">Unencrypted</option>
+              <option value="osxkeychain">OSX Keychain</option>
+              <option value="wincred">Windows Credential Manager</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="credentialHelper=='cache'">
+            <label>Cache Timeout</label>
+            <div class="input-group">
+              <input class="form-control" [(ngModel)]="cacheHelperSeconds" pattern="^\d+$">
+              <div class="input-group-append">
+                <span class="input-group-text">seconds</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label>Mergetool Name</label>
+            <input class="form-control" [(ngModel)]="mergetoolName">
+          </div>
+          <div class="form-group">
+            <div>Mergetool Command</div>
+            <small>Supports <code>$BASE $LOCAL $MERGED $REMOTE</code></small>
+            <input class="form-control" [(ngModel)]="mergetoolCommand">
+          </div>
+          <div class="pretty p-switch p-fill mx-2">
+            <input type="checkbox" [(ngModel)]="setGlobalDefaultMergetoolConfig"/>
+            <div class="state">
+              <label>Set as Global Default</label>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
+</app-modal>
+<app-modal modalId="stats"
+           modalTitle="Send Anonymized Usage Data"
+           affirmativeButtonText="Yes"
+           negativeButtonText="No"
+           modalTitleIcon="fa-chart-line"
+           (onCancel)="settingsService.settings.allowStats=-1;settingsService.saveSettings()"
+           (onFinish)="settingsService.settings.allowStats=1;settingsService.saveSettings()">
+  <div>Can we automatically collect anonymized usage data and errors to help improve Light-Git?</div>
 </app-modal>

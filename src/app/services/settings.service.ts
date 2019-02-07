@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {ElectronService} from './electron.service';
+import {ElectronService} from '../common/services/electron.service';
 import {SettingsModel} from '../../../shared/SettingsModel';
 import {Channels} from "../../../shared/Channels";
 

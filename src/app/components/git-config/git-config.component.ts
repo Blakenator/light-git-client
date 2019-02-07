@@ -1,9 +1,9 @@
 import {ApplicationRef, Component, OnInit} from '@angular/core';
 import {GitService} from '../../services/git.service';
 import {ConfigItemModel} from '../../../../shared/git/config-item.model';
-import {ErrorService} from '../common/services/error.service';
+import {ErrorService} from '../../common/services/error.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
-import {ModalService} from '../../services/modal.service';
+import {ModalService} from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-git-config',

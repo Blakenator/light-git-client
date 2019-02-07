@@ -4,11 +4,7 @@
          [(ngModel)]="commitFilter">
 </div>
 
-<div class="commit-wrapper"
-     infinite-scroll
-     [scrollWindow]="false"
-     (scrolled)="scrolled(true)"
-     (scrolledUp)="scrolled(false)">
+<cdk-virtual-scroll-viewport class="commit-wrapper" itemSize="45" (scrolledIndexChange)="scrolled($event)">
   <table class="table table-striped">
     <thead>
     <tr>
@@ -20,22 +16,24 @@
       <th class="d-none d-sm-table-cell" *ngIf="commitFilter">Email</th>
       <th>Date</th>
       <th>Hash</th>
-      <th width="1%"></th>
     </tr>
     </thead>
     <tbody>
-    <tr *ngFor="let c of getFilteredCommitHistory()" class="commit-row">
+    <tr *cdkVirtualFor="let c of getFilteredCommitHistory()" class="commit-row">
       <td class="position-relative p-0" *ngIf="!commitFilter">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
       </td>
       <td class="commit-message-cell">
         <div class="vertical-content-hidden">
-          <div [ngClass]="getTagClasses(tag)"
+          <div class="d-inline-block"
                *ngFor="let tag of c.currentTags">
-            <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
-            {{tag.replace('tag: ', '')}}
+            <div [ngClass]="getTagClasses(tag)" class="badge mx-1">
+              <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
+              {{tag.replace('tag: ', '')}}
+            </div>
           </div>
-          {{c.message}}
+          <span>{{getSplitCommitMessage(c)[0]}}</span>
+          <p *ngFor="let line of getSplitCommitMessage(c).slice(1)">{{line}}</p>
         </div>
       </td>
       <td class="hidden-until-hover" [title]="c.authorName">{{c.authorName}}</td>
@@ -45,18 +43,23 @@
       <td class="hidden-until-hover" [title]="c.authorDate | date : 'full'">
         {{c.authorDate | date : 'short'}}
       </td>
-      <td class="hidden-until-hover" [title]="c.hash">{{c.hash.substr(0, 8)}}</td>
-      <td class="position-relative">
-        <div class="btn-group-sm btn-group expand-container position-absolute">
-          <button class="btn btn-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
-            <i class="fa fa-eye"></i>
-          </button>
-          <button class="btn btn-info" title="Cherry-pick commit" (click)="cherryPickCommit(c)">
-            <i class="fa fa-band-aid"></i>
-          </button>
+      <td [title]="c.hash">
+        <div class="position-relative">
+          {{c.hash.substr(0, 8)}}
+          <div class="btn-group-sm btn-group expand-container position-absolute">
+            <button class="btn btn-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
+              <i class="fa fa-eye"></i>
+            </button>
+            <button class="btn btn-info" title="Cherry-pick commit" (click)="cherryPickCommit(c)">
+              <i class="fa fa-band-aid"></i>
+            </button>
+            <button class="btn btn-secondary" title="Checkout commit" (click)="checkout(c)">
+              <i class="fa fa-shopping-cart"></i>
+            </button>
+          </div>
         </div>
       </td>
     </tr>
     </tbody>
   </table>
-</div>
+</cdk-virtual-scroll-viewport>

@@ -1,0 +1,24 @@
+<app-modal [customModal]="true" modalId="error" (onOpen)="currentError=0">
+  <div class="modal-header">
+    <h5 class="modal-title center-text-vertical">
+      <i class="material-icons">error</i>
+      <span class="mx-2">An Error Occurred</span>
+    </h5>
+  </div>
+  <div class="modal-body" *ngIf="getRootError(errors[currentError]) as rootError">
+    <p>An error occurred while {{rootError.occurredWhile}}:</p>
+    <pre>{{getRootErrorMessage(rootError)}}</pre>
+  </div>
+  <div class="modal-footer">
+        <span *ngIf="errors.length>1">
+            ({{currentError + 1}} / {{errors.length}})
+            <button class="btn btn-light"
+                    title="Previous Error"
+                    (click)="cycleError(-1)"><i class="fa fa-caret-left"></i></button>
+            <button class="btn btn-light"
+                    title="Next Error"
+                    (click)="cycleError(1)"><i class="fa fa-caret-right"></i></button>
+          </span>
+    <button class="btn btn-secondary" (click)="close()" [autofocus]>Ok</button>
+  </div>
+</app-modal>>
