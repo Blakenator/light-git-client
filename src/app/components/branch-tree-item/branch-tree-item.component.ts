@@ -7,7 +7,7 @@ import {FilterPipe} from '../../common/pipes/filter.pipe';
 @Component({
   selector: 'app-branch-tree-item',
   templateUrl: './branch-tree-item.component.html',
-  styleUrls: ['./branch-tree-item.component.scss']
+  styleUrls: ['./branch-tree-item.component.scss'],
 })
 export class BranchTreeItemComponent implements OnInit {
   @Input() localBranches: BranchModel[];
@@ -15,7 +15,7 @@ export class BranchTreeItemComponent implements OnInit {
   @Input() isLocal: boolean;
   @Input() currentPath = '';
   @Input() filter = '';
-  @Output() onCheckoutClicked = new EventEmitter<string>();
+  @Output() onCheckoutClicked = new EventEmitter<{ branch: string, andPull: boolean }>();
   @Output() onPushClicked = new EventEmitter<string>();
   @Output() onForcePushClicked = new EventEmitter<string>();
   @Output() onDeleteClicked = new EventEmitter<string>();
@@ -29,7 +29,7 @@ export class BranchTreeItemComponent implements OnInit {
   leaves: BranchModel[];
   children;
   activeRenames: { [key: string]: string } = {};
-  actionExpanded: { [key: string]: boolean } = {} ;
+  actionExpanded: { [key: string]: boolean } = {};
 
   constructor(public settingsService: SettingsService) {
   }
@@ -114,5 +114,9 @@ export class BranchTreeItemComponent implements OnInit {
       return 1;
     }
     return this.children.filter(c => FilterPipe.fuzzyFilter(this.filter, c.name || ''));
+  }
+
+  checkoutBranch(name: string, ff: boolean) {
+    this.onCheckoutClicked.emit({branch: name, andPull: ff});
   }
 }

@@ -258,7 +258,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.CHECKOUT, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].checkout(args[2], args[3], args[4]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].checkout(args[2], args[3], '', args[4]), event, args);
     });
 
     ipcMain.on(Channels.UNDOFILECHANGES, (event, args) => {

@@ -341,18 +341,33 @@ export class GitClient {
     return this.simpleOperation(this.getGitPath(), ['cherry-pick', hash], 'Cherry-pick');
   }
 
-  checkout(tag: string, toNewBranch: boolean, branchName: string = ''): Promise<any> {
-    return this.simpleOperation(this.getGitPath(), ['checkout',
+  checkout(tag: string, toNewBranch: boolean, branchName: string = '', andPull: boolean): Promise<any> {
+    let checkoutOp = this.simpleOperation(this.getGitPath(), ['checkout',
       '-q',
       tag,
       (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '')], 'Checkout');
+    if (andPull) {
+      checkoutOp.then(() => this.pull(false));
+    }
+    return checkoutOp;
   }
 
   undoFileChanges(file: string, revision: string, staged: boolean): Promise<any> {
-    return this.simpleOperation(
-      this.getGitPath(),
-      ['checkout', '-q', (revision || 'HEAD'), '--', file],
-      'Undo File Changes');
+    if (staged) {
+      return this.simpleOperation(
+        this.getGitPath(),
+        ['checkout', '-q', (revision || 'HEAD'), '--', file],
+        'Undo File Changes');
+    } else {
+      return this.simpleOperation(
+        this.getGitPath(),
+        ['stash', 'save', '--keep-index', '--', file],
+        'Stash Local File Changes').then(() => this.simpleOperation(
+        this.getGitPath(),
+        ['stash', 'drop'],
+        'Drop Stashed Local File Changes',
+      ));
+    }
   }
 
   hardReset(): Promise<any> {

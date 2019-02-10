@@ -29,6 +29,8 @@ import {CodeWatcherService} from '../../services/code-watcher.service';
 import {ModalService} from '../../common/services/modal.service';
 import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 import {LoadingService} from '../../services/loading.service';
+import {Observable, Subject} from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
 
 @Component({
   selector: 'app-repo-view',
@@ -71,6 +73,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   hasWatcherAlerts = false;
   crlfError: { start: string, end: string };
   crlfErrorToastTimeout: number;
+  activeUndo: string;
+  private $destroy=new Subject<void>();
   private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -86,11 +90,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               public changeDetectorRef: ChangeDetectorRef,
               private gitService: GitService) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
-    this.gitService.onCommandHistoryUpdated.asObservable().subscribe(history => {
+    this.gitService.onCommandHistoryUpdated.asObservable().pipe(takeUntil(this.$destroy)).subscribe(history => {
       this.commandHistory = history;
       this.changeDetectorRef.detectChanges();
     });
-    this.gitService.onCrlfError.subscribe(status => {
+    this.gitService.onCrlfError.pipe(takeUntil(this.$destroy)).subscribe(status => {
       if (this.crlfErrorToastTimeout) {
         clearTimeout(this.crlfErrorToastTimeout);
         this.crlfErrorToastTimeout = undefined;
@@ -115,6 +119,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.$destroy.next();
     clearInterval(this.refreshDebounce);
   }
 
@@ -296,8 +301,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  checkout(branch: string, newBranch: boolean) {
-    this.simpleOperation(this.gitService.checkout(branch, newBranch), 'checkout', 'checking out the branch');
+  checkout(event: { branch: string, andPull: boolean }, newBranch: boolean) {
+    let localBranchExists = this.repo.localBranches.find(local => local.name == event.branch.replace('origin/', ''));
+    this.simpleOperation(
+      this.gitService.checkout(
+        localBranchExists ? event.branch.replace('origin/', '') : event.branch,
+        newBranch && !localBranchExists,
+        event.andPull),
+      'checkout',
+      'checking out the branch');
     this.clearSelectedChanges();
   }
 
@@ -352,6 +364,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       'undoFileChanges',
       'undoing changes for the file');
     this.clearSelectedChanges();
+    this.activeUndo = undefined;
+  }
+
+  confirmUndo(file: string) {
+    this.activeUndo = file;
+    this.showModal('undoFileModal');
   }
 
   isRemoteAlreadyCheckedOut(branch: string) {

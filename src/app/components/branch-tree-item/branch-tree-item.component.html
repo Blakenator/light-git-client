@@ -51,16 +51,36 @@
               <i class="fa fa-check"></i></button>
           </div>
         </div>
-        <div *ngIf="!activeRenames[b.name]" class="branch-button-bar text-right" [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
+        <div *ngIf="!activeRenames[b.name]"
+             class="branch-button-bar text-right"
+             [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
           <button class="btn btn-info btn-sm" (click)="startRename(b.name)" title="Rename local branch">
             <i class="material-icons">edit</i></button>
-          <button class="btn btn-light btn-sm"
-                  (click)="onCheckoutClicked.emit(b.name)"
-                  *ngIf="!b.isCurrentBranch"
-                  [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':'Checkout'"
-                  [disabled]="checkedOutOtherWorktree(b)">
-            <i class="fa fa-shopping-cart"></i>
-          </button>
+          <div class="btn-group btn-group-sm mx-1"
+               ngbDropdown
+               placement="left"
+               (click)="$event.stopPropagation()"
+               *ngIf="!b.isCurrentBranch">
+            <button class="btn btn-primary btn-sm"
+                    (click)="checkoutBranch(b.name,false)"
+                    [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':'Checkout'"
+                    [disabled]="checkedOutOtherWorktree(b)">
+              <i class="fa fa-shopping-cart"></i>
+            </button>
+            <button class="btn btn-primary dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
+            </button>
+            <div ngbDropdownMenu>
+              <button class="btn btn-primary px-1"
+                      (click)="checkoutBranch(b.name,true)"
+                      title="Checkout and Pull">
+                <small>
+                  <i class="fa fa-shopping-cart"></i>
+                  +
+                  <i class="fa fa-arrow-down"></i>
+                </small>
+              </button>
+            </div>
+          </div>
           <button class="btn btn-light btn-sm"
                   (click)="onBranchPremergeClicked.emit(b)"
                   *ngIf="!b.isCurrentBranch"
@@ -102,7 +122,7 @@
               </button>
             </div>
           </div>
-          <button class="btn btn-light btn-sm"
+          <button class="btn btn-success btn-sm"
                   (click)="onMergeClicked.emit(b.name)"
                   *ngIf="!b.isCurrentBranch"
                   title="Merge Branch into Current Branch">
@@ -125,17 +145,26 @@
             </small>
           </div>
           <button class="btn btn-sm btn-secondary flex-grow-0 py-0 m-0 quick-actions-expand"
-                  *ngIf="!isRemoteAlreadyCheckedOut(b.name)"
                   (click)="actionExpanded[b.name]=!actionExpanded[b.name]">
             <span class="fa"
                   [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
           </button>
         </div>
-        <div class="branch-button-bar text-right" [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
-          <button class="btn btn-light btn-sm"
-                  (click)="onCheckoutClicked.emit(b.name)"
+        <div class="branch-button-bar text-right"
+             [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
+          <button class="btn btn-primary btn-sm mx-1"
+                  (click)="checkoutBranch(b.name,false)"
                   *ngIf="!isRemoteAlreadyCheckedOut(b.name)">
             <i class="fa fa-cart-arrow-down"></i>
+          </button>
+          <button class="btn btn-primary px-1 mx-1"
+                  (click)="checkoutBranch(b.name,true)"
+                  title="Checkout and Pull">
+            <small>
+              <i class="fa fa-shopping-cart"></i>
+              +
+              <i class="fa fa-arrow-down"></i>
+            </small>
           </button>
         </div>
       </div>

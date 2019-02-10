@@ -1,7 +1,7 @@
 <button class="btn btn-secondary center-text-vertical mx-2" title="App Settings"
         (click)="copyTempSettings()">
   <i class="material-icons">settings</i>
-  <span class="ml-1">Global</span>
+  <span class="ml-1">Settings</span>
 </button>
 <app-modal modalTitle="Settings"
            modalTitleIcon="fa-cog"
@@ -190,6 +190,61 @@
           </div>
         </div>
       </div>
+    </div>
+    <div *ngIf="currentTab==3">
+      <input class="form-control" [(ngModel)]="filter" placeholder="Filter...">
+      <table class="table table-striped">
+        <thead>
+        <tr>
+          <th>Key</th>
+          <th>Value</th>
+          <th>Location</th>
+          <th width="1%"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let item of configItems | filterObject : 'key' : filter">
+          <td class="editable-item" (click)="startEdit(item,true)">
+            <div *ngIf="!isEditing(item) || !clickedKey" class="d-flex align-items-center justify-content-between">
+              {{item.key}}
+              <i class="material-icons">edit</i>
+            </div>
+            <input class="form-control"
+                   *ngIf="isEditing(item) && clickedKey"
+                   (keyup.enter)="saveConfigItem(item,item)"
+                   (blur)="saveConfigItem(item,item)"
+                   (keydown.tab)="clickedKey=false"
+                   (keydown.escape)="cancelEdit()"
+                   [(ngModel)]="editedItem.key"
+                   [autofocus]>
+          </td>
+          <td class="editable-item" (click)="startEdit(item,false)">
+            <div *ngIf="!isEditing(item)|| clickedKey" class="d-flex align-items-center justify-content-between">
+              {{item.value}}
+              <i class="material-icons">edit</i>
+            </div>
+            <input class="form-control"
+                   *ngIf="isEditing(item) && !clickedKey"
+                   (keyup.enter)="saveConfigItem(item)"
+                   (blur)="saveConfigItem(item)"
+                   (keydown.shift.tab)="clickedKey=true"
+                   (keydown.tab)="nextTabRow(item)"
+                   (keydown.escape)="cancelEdit()"
+                   [(ngModel)]="editedItem.value"
+                   [autofocus]>
+          </td>
+          <td>{{getConfigFileDisplay(item.sourceFile)}}</td>
+          <td>
+            <button class="table-btn btn btn-outline-danger" (click)="deleteConfigItem(item)">
+              <i class="fa fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+        <tr class="editable-item" (click)="newItem()">
+          <td class="text-muted" colspan="4">New Item...</td>
+        </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </app-modal>
