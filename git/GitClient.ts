@@ -52,10 +52,12 @@ export class GitClient {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.handleErrorDefault(
         this.execute(this.getGitPath(), [
-          'diff',
+          'stash',
+          'show',
           (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
+          '-p',
           'stash@{' + stashIndex + '}',
-          'HEAD'], 'Get Diff for Stash')
+        ], 'Get Diff for Stash')
             .then(output => {
               resolve(this.parseDiffString(output.standardOutput, DiffHeaderStagedState.NONE));
             }), reject);

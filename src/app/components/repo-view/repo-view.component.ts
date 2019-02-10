@@ -197,7 +197,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   mergeBranch(branch: string) {
     this.simpleOperation(this.gitService.mergeBranch(branch), 'mergeBranch', 'merging the branch')
         .then(() => {
-          if (!this.changes.description && !this.changes.description.trim()) {
+          if ((this.changes.stagedChanges.length > 0 || this.changes.unstagedChanges.length > 0) &&
+            !this.changes.description &&
+            !this.changes.description.trim()) {
             this.changes.description = `Merged ${branch} into ${this.repo.localBranches.find(
               b => b.isCurrentBranch).name}`;
           }
