@@ -33,6 +33,11 @@
                 (click)="showModal('createBranch'); $event.stopPropagation()"
                 title="Create branch off current HEAD">
           <i class="fa fa-code-branch"></i></button>
+        <button class="btn btn-primary btn-sm mx-1"
+                (click)="pruneLocalBranches(); $event.stopPropagation()"
+                title="Remove local branches without a tracking URL">
+          <i class="fas fa-cut"></i>
+        </button>
       </div>
       <div class="card-body repo-section-container" *ngIf="getExpandState('locals')">
         <app-branch-tree-item [isLocal]="true"
@@ -411,6 +416,20 @@
                      (onConfirm)="undoFileChanges(activeUndo,true)"
                      [modalId]="'undoFileModal'+repoViewUid">
     Are you sure you want to undo both <i>unstaged and staged</i> changes?<br/>
+    <b>This cannot be undone</b>
+  </app-confirm-modal>
+  <app-confirm-modal modalTitle="Confirm Delete Branches"
+                     (onConfirm)="doPrune()"
+                     [modalId]="'pruneConfirm'+repoViewUid">
+    The following branches will be deleted:
+    <div class="list-group my-2">
+      <div *ngFor="let b of branchesToPrune; let i=index" class="list-group-item d-flex align-items-center justify-content-between py-1 pr-1">
+        <span>{{b}}</span>
+        <button class="btn btn-primary btn-sm" (click)="branchesToPrune.splice(i,1)">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+    </div>
     <b>This cannot be undone</b>
   </app-confirm-modal>
 </div>
