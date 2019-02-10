@@ -296,8 +296,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  checkout(branch: string, newBranch: boolean) {
-    this.simpleOperation(this.gitService.checkout(branch, newBranch), 'checkout', 'checking out the branch');
+  checkout(event: { branch: string, andPull: boolean }, newBranch: boolean) {
+    let localBranchExists = this.repo.localBranches.find(local => local.name == event.branch.replace('origin/', ''));
+    this.simpleOperation(
+      this.gitService.checkout(
+        localBranchExists ? event.branch.replace('origin/', '') : event.branch,
+        newBranch && !localBranchExists,
+        event.andPull),
+      'checkout',
+      'checking out the branch');
     this.clearSelectedChanges();
   }
 

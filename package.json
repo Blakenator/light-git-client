@@ -13,7 +13,7 @@
   "main": "main.js",
   "private": false,
   "scripts": {
-    "postinstall": "npx electron-builder install-app-deps && npx electron-rebuild",
+    "postinstall": "npx electron-builder install-app-deps && npx electron-rebuild && npm rebuild",
     "ng": "ng",
     "start": "npm-run-all -p ng:serve electron:serve",
     "browserify": "browserify -x node_modules/electron/**/* --node main.js -o main.bundle.js",
