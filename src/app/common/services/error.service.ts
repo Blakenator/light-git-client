@@ -5,7 +5,7 @@ import {ElectronService} from './electron.service';
 import {Channels} from '../../../../shared/Channels';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ErrorService {
   onErrorReceived = new Subject<ErrorModel>();
