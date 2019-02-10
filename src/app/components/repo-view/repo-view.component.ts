@@ -29,6 +29,8 @@ import {CodeWatcherService} from '../../services/code-watcher.service';
 import {ModalService} from '../../common/services/modal.service';
 import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 import {LoadingService} from '../../services/loading.service';
+import {Observable, Subject} from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
 
 @Component({
   selector: 'app-repo-view',
@@ -72,6 +74,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   crlfError: { start: string, end: string };
   crlfErrorToastTimeout: number;
   activeUndo: string;
+  private $destroy=new Subject<void>();
   private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -87,11 +90,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               public changeDetectorRef: ChangeDetectorRef,
               private gitService: GitService) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
-    this.gitService.onCommandHistoryUpdated.asObservable().subscribe(history => {
+    this.gitService.onCommandHistoryUpdated.asObservable().pipe(takeUntil(this.$destroy)).subscribe(history => {
       this.commandHistory = history;
       this.changeDetectorRef.detectChanges();
     });
-    this.gitService.onCrlfError.subscribe(status => {
+    this.gitService.onCrlfError.pipe(takeUntil(this.$destroy)).subscribe(status => {
       if (this.crlfErrorToastTimeout) {
         clearTimeout(this.crlfErrorToastTimeout);
         this.crlfErrorToastTimeout = undefined;
@@ -116,6 +119,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.$destroy.next();
     clearInterval(this.refreshDebounce);
   }
 
