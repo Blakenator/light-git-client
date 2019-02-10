@@ -34,7 +34,6 @@ import {GlobalErrorHandlerService} from './common/services/global-error-handler.
 import {InfiniteScrollModule} from 'ngx-infinite-scroll';
 import {InputModalComponent} from './common/components/input-modal/input-modal.component';
 import {HighlightModule} from 'ngx-highlightjs';
-import {GitConfigComponent} from './components/git-config/git-config.component';
 import {AutofocusDirective} from './common/directives/autofocus.directive';
 import {CodeWatcherAlertsComponent} from './components/code-watcher-alerts/code-watcher-alerts.component';
 import {AddWorktreeComponent} from './components/add-worktree/add-worktree.component';
@@ -73,7 +72,6 @@ export function HttpLoaderFactory(http: HttpClient) {
     BranchTreeItemComponent,
     FileInputComponent,
     InputModalComponent,
-    GitConfigComponent,
     AutofocusDirective,
     CodeWatcherAlertsComponent,
     AddWorktreeComponent,

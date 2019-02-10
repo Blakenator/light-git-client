@@ -71,6 +71,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   hasWatcherAlerts = false;
   crlfError: { start: string, end: string };
   crlfErrorToastTimeout: number;
+  activeUndo: string;
   private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -359,6 +360,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       'undoFileChanges',
       'undoing changes for the file');
     this.clearSelectedChanges();
+    this.activeUndo = undefined;
+  }
+
+  confirmUndo(file: string) {
+    this.activeUndo = file;
+    this.showModal('undoFileModal');
   }
 
   isRemoteAlreadyCheckedOut(branch: string) {

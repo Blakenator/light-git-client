@@ -252,7 +252,7 @@
         <div class="change-body repo-section-container" *ngIf="getExpandState('staged')">
           <app-change-list [changes]="changes.stagedChanges"
                            (onSelectChanged)="selectionChanged($event,true)"
-                           (onUndoFileClicked)="undoFileChanges($event,true)"
+                           (onUndoFileClicked)="confirmUndo($event)"
                            (onMergeClicked)="merge($event)"
                            (onDeleteClicked)="deleteClicked($event)"
                            [changeFilter]="stagedChangesFilter"></app-change-list>
@@ -407,4 +407,10 @@
                      (onLoadRepoFailed)="onLoadRepoFailed.emit($event)"></app-repo-view>
     </div>
   </app-modal>
+  <app-confirm-modal modalTitle="Confirm Undo Changes"
+                     (onConfirm)="undoFileChanges(activeUndo,true)"
+                     [modalId]="'undoFileModal'+repoViewUid">
+    Are you sure you want to undo both <i>unstaged and staged</i> changes?<br/>
+    <b>This cannot be undone</b>
+  </app-confirm-modal>
 </div>
