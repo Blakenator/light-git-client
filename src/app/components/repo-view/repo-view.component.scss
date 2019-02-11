@@ -2,14 +2,15 @@
   padding: 1em;
 }
 
-.diff-viewer {
+::ng-deep .diff-viewer {
   overflow: hidden;
+  max-height: unset !important;
   @media (min-width: 768px) {
     max-width: 58vw;
   }
 }
 
-.state {
+::ng-deep .state {
   display: inline-block;
 }
 
@@ -24,15 +25,6 @@
   table {
     width: 100%;
   }
-}
-
-.repo-section-container {
-  max-height: 30vh;
-  overflow: auto;
-}
-
-.card-header {
-  cursor: pointer;
 }
 
 .full-width {
@@ -99,35 +91,12 @@
   }
 }
 
+.repo-column {
+  height: calc(100vh - 5rem);
+}
+
 ///////////////////////small///////////////////////
 .card-body {
   padding: .3em;
   margin: 0;
-}
-
-.card-header, .btn {
-  padding: .5em .75em;
-  margin: 0;
-}
-
-.card {
-  margin: 0;
-  font-size: .9em;
-}
-
-.td, .th {
-  padding: .3em;
-}
-
-.card-header .form-control {
-  max-width: 5em;
-  -webkit-transition: max-width .3s;
-  -moz-transition: max-width .3s;
-  -ms-transition: max-width .3s;
-  -o-transition: max-width .3s;
-  transition: max-width .3s;
-
-  &:active, &:focus {
-    max-width: 30em;
-  }
 }
