@@ -1,0 +1,9 @@
+<div class="card">
+  <app-layout-card-header [title]="title"
+                          [expandKey]="expandKey"
+                          [iconClass]="iconClass"
+                          [content]="headerContent"></app-layout-card-header>
+  <div class="repo-section-container {{customBodyClass}}" *ngIf="header.getExpandState()">
+    <ng-content></ng-content>
+  </div>
+</div>

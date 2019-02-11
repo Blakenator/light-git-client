@@ -5,9 +5,11 @@
   margin-bottom: 1em;
   border-bottom: .3em solid transparent;
   transition: background-color .5s, border-bottom-color .5s;
+
   &:hover {
     background-color: rgba(128, 128, 128, .3);
   }
+
   &.active {
     border-bottom: .3em solid rgba(128, 128, 255, .5) !important;
   }
@@ -23,4 +25,27 @@
 
 .td-btn {
   margin: -.25em;
+}
+
+.editable-item {
+  cursor: pointer;
+  transition: background-color .2s;
+
+  &:hover {
+    background-color: rgba(128, 128, 128, .3);
+  }
+
+  &:hover .material-icons {
+    opacity: 1;
+  }
+
+  .material-icons {
+    -webkit-backface-visibility: hidden;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+}
+
+.table-btn {
+  margin: -.5em;
 }

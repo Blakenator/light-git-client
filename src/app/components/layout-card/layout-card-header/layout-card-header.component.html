@@ -1,0 +1,7 @@
+<div class="card-header form-inline clickable" (click)="toggleExpandState($event)">
+  <i class="fa clickable"
+     [ngClass]="{'fa-caret-right':!getExpandState(),'fa-caret-down':getExpandState()}"></i>
+  <i class="clickable {{iconClass}}"></i>
+  <span class="clickable">{{title}}</span>
+  <ng-container [ngTemplateOutlet]="content"></ng-container>
+</div>

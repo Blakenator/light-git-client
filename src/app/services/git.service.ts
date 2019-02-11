@@ -125,8 +125,8 @@ export class GitService {
     return this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]);
   }
 
-  checkout(branchOrHash: string, toNewBranch: boolean): Promise<void> {
-    return this.electronService.rpc(Channels.CHECKOUT, [this.repo.path, branchOrHash, toNewBranch]);
+  checkout(branchOrHash: string, toNewBranch: boolean, andPull: boolean = false): Promise<void> {
+    return this.electronService.rpc(Channels.CHECKOUT, [this.repo.path, branchOrHash, toNewBranch, andPull]);
   }
 
   pull(force: boolean): Promise<void> {
@@ -177,8 +177,8 @@ export class GitService {
     return this.electronService.rpc(Channels.CREATEBRANCH, [this.repo.path, branchName]);
   }
 
-  deleteBranch(branchName: string): Promise<void> {
-    return this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branchName]);
+  deleteBranch(branchNames: string[]): Promise<void> {
+    return this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branchNames]);
   }
 
   mergeFile(file: string, mergetool: string): Promise<void> {

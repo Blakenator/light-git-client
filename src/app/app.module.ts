@@ -34,7 +34,6 @@ import {GlobalErrorHandlerService} from './common/services/global-error-handler.
 import {InfiniteScrollModule} from 'ngx-infinite-scroll';
 import {InputModalComponent} from './common/components/input-modal/input-modal.component';
 import {HighlightModule} from 'ngx-highlightjs';
-import {GitConfigComponent} from './components/git-config/git-config.component';
 import {AutofocusDirective} from './common/directives/autofocus.directive';
 import {CodeWatcherAlertsComponent} from './components/code-watcher-alerts/code-watcher-alerts.component';
 import {AddWorktreeComponent} from './components/add-worktree/add-worktree.component';
@@ -47,6 +46,8 @@ import {ConfirmModalComponent} from './components/confirm-modal/confirm-modal.co
 import {AskPassComponent} from './screens/ask-pass/ask-pass.component';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ScrollingModule} from '@angular/cdk/scrolling';
+import { LayoutCardComponent } from './components/layout-card/layout-card.component';
+import { LayoutCardHeaderComponent } from './components/layout-card/layout-card-header/layout-card-header.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -73,7 +74,6 @@ export function HttpLoaderFactory(http: HttpClient) {
     BranchTreeItemComponent,
     FileInputComponent,
     InputModalComponent,
-    GitConfigComponent,
     AutofocusDirective,
     CodeWatcherAlertsComponent,
     AddWorktreeComponent,
@@ -82,6 +82,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     GitGraphCanvasComponent,
     ConfirmModalComponent,
     AskPassComponent,
+    LayoutCardComponent,
+    LayoutCardHeaderComponent,
   ],
   imports: [
     BrowserModule,
