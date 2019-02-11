@@ -2,7 +2,7 @@
   <title>Light Git - {{repo.name}} - {{getCurrentBranch().name}}</title>
 </head>
 <div *ngIf="repo" (focus)="getFullRefresh()" class="row full-width">
-  <div class="col-sm col-md-3 d-flex flex-column mb-1">
+  <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
     <h1>{{repo.name}}
       <span class="d-inline-block btn-group">
         <button class="btn btn-primary"
@@ -22,66 +22,61 @@
         </button>
       </span>
     </h1>
-    <div class="card">
-      <div class="card-header form-inline" (click)="toggleExpandState('locals')">
-        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('locals'),'fa-caret-down':getExpandState('locals')}"></i>
-        <i class="fa fa-code-branch mr-1"></i> Locals
+    <app-layout-card [headerContent]="localsHeader" title="Locals" iconClass="fa fa-code-branch" expandKey="locals">
+      <ng-template #localsHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
-               [(ngModel)]="localBranchFilter" (click)="$event.stopPropagation()">
+               [(ngModel)]="localBranchFilter">
         <button class="btn btn-primary btn-sm mx-1"
-                (click)="showModal('createBranch'); $event.stopPropagation()"
+                (click)="showModal('createBranch')"
                 title="Create branch off current HEAD">
           <i class="fa fa-code-branch"></i></button>
-      </div>
-      <div class="card-body repo-section-container" *ngIf="getExpandState('locals')">
-        <app-branch-tree-item [isLocal]="true"
-                              [filter]="localBranchFilter"
-                              [branches]="repo.localBranches"
-                              (onCheckoutClicked)="checkout($event,false)"
-                              (onPushClicked)="push($event,false)"
-                              (onForcePushClicked)="push($event,true)"
-                              (onPullClicked)="pull(false)"
-                              (onForcePullClicked)="pull(true)"
-                              (onDeleteClicked)="deleteBranch($event)"
-                              (onMergeClicked)="mergeBranch($event)"
-                              (onFastForwardClicked)="fastForwardBranch($event)"
-                              (onBranchPremergeClicked)="getBranchPremerge($event)"
-                              [worktrees]="repo.worktrees"
-                              (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header form-inline" (click)="toggleExpandState('remotes')">
-        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('remotes'),'fa-caret-down':getExpandState('remotes')}"></i>
-        <i class="fa fa-cloud mr-1"></i> Remotes
+        <button class="btn btn-primary btn-sm mx-1"
+                (click)="pruneLocalBranches()"
+                title="Remove local branches without a tracking URL">
+          <i class="fas fa-cut"></i>
+        </button>
+      </ng-template>
+      <app-branch-tree-item [isLocal]="true"
+                            [filter]="localBranchFilter"
+                            [branches]="repo.localBranches"
+                            (onCheckoutClicked)="checkout($event,false)"
+                            (onPushClicked)="push($event,false)"
+                            (onForcePushClicked)="push($event,true)"
+                            (onPullClicked)="pull(false)"
+                            (onForcePullClicked)="pull(true)"
+                            (onDeleteClicked)="deleteBranch($event)"
+                            (onMergeClicked)="mergeBranch($event)"
+                            (onFastForwardClicked)="fastForwardBranch($event)"
+                            (onBranchPremergeClicked)="getBranchPremerge($event)"
+                            [worktrees]="repo.worktrees"
+                            (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
+    </app-layout-card>
+    <app-layout-card [headerContent]="remoteHeader" title="Remotes" iconClass="fa fa-cloud" expandKey="remotes">
+      <ng-template #remoteHeader>
         <input class="ml-2 form-control"
                placeholder="Filter..."
-               [(ngModel)]="remoteBranchFilter" (click)="$event.stopPropagation()">
-      </div>
-      <div class="card-body repo-section-container" *ngIf="getExpandState('remotes')">
-        <app-branch-tree-item [isLocal]="false"
-                              [filter]="remoteBranchFilter"
-                              [branches]="repo.remoteBranches"
-                              (onCheckoutClicked)="checkout($event,true)"
-                              [localBranches]="repo.localBranches"
-                              [worktrees]="repo.worktrees"></app-branch-tree-item>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header form-inline" (click)="toggleExpandState('worktrees')">
-        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('worktrees'),'fa-caret-down':getExpandState('worktrees')}"></i>
-        <i class="fa fa-copy mr-1"></i> Worktrees
+               [(ngModel)]="remoteBranchFilter">
+      </ng-template>
+      <app-branch-tree-item [isLocal]="false"
+                            [filter]="remoteBranchFilter"
+                            [branches]="repo.remoteBranches"
+                            (onCheckoutClicked)="checkout($event,true)"
+                            [localBranches]="repo.localBranches"
+                            [worktrees]="repo.worktrees"></app-branch-tree-item>
+    </app-layout-card>
+    <app-layout-card [headerContent]="worktreeHeader" iconClass="fa fa-copy" title="Worktrees" expandKey="worktrees">
+      <ng-template #worktreeHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
-               [(ngModel)]="worktreeFilter" (click)="$event.stopPropagation()">
+               [(ngModel)]="worktreeFilter">
         <button class="btn btn-sm btn-primary mx-1"
                 title="Add Worktree"
-                (click)="setAddWorktreeVisible(true);$event.stopPropagation()">
+                (click)="setAddWorktreeVisible(true)">
           <i class="fa fa-plus"></i>
         </button>
-      </div>
-      <div class="card-body repo-section-container" *ngIf="getExpandState('worktrees')">
+      </ng-template>
+      <div class="card-body">
         <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter" class="d-flex">
           <span [title]="w.path"
                 [ngClass]="{'bold':w.isCurrent}"
@@ -111,20 +106,21 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-header form-inline" (click)="toggleExpandState('submodules')">
-        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('submodules'),'fa-caret-down':getExpandState('submodules')}"></i>
-        <i class="fa fa-plug mr-1"></i> Submodules
+    </app-layout-card>
+    <app-layout-card [headerContent]="submodulesHeader"
+                     expandKey="submodules"
+                     title="Submodules"
+                     iconClass="fa fa-plug">
+      <ng-template #submodulesHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
-               [(ngModel)]="submoduleFilter" (click)="$event.stopPropagation()">
+               [(ngModel)]="submoduleFilter">
         <button class="btn btn-sm btn-primary mx-1"
                 title="Add Submodule"
-                (click)="showModal('addSubmodule');$event.stopPropagation()">
+                (click)="showModal('addSubmodule')">
           <i class="fa fa-plus"></i>
         </button>
-        <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown (click)="$event.stopPropagation()">
+        <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown>
           <button class="btn btn-primary"
                   title="Update Submodules"
                   (click)="updateSubmodules(false)">
@@ -140,8 +136,8 @@
             </button>
           </div>
         </div>
-      </div>
-      <div class="card-body repo-section-container" *ngIf="getExpandState('submodules')">
+      </ng-template>
+      <div class="card-body">
         <div *ngFor="let w of repo.submodules | filterObject : 'path' : submoduleFilter" class="d-flex">
           <span [title]="w.path" class="flex-grow-1">
             <span class="badge badge-light badge-pill" *ngFor="let r of w.path.split('/');let i=index">
@@ -163,28 +159,26 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-header form-inline" (click)="toggleExpandState('stashes')">
-        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('stashes'),'fa-caret-down':getExpandState('stashes')}"></i>
-        <i class="fa fa-box mr-1"></i> Stashes
+    </app-layout-card>
+    <app-layout-card [headerContent]="stashHeader" title="Stashes" iconClass="fa fa-box" expandKey="stashes">
+      <ng-template #stashHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
-               [(ngModel)]="stashFilter" (click)="$event.stopPropagation()">
-        <div class="btn-group btn-group-sm mx-1" ngbDropdown (click)="$event.stopPropagation()">
+               [(ngModel)]="stashFilter">
+        <div class="btn-group btn-group-sm mx-1" ngbDropdown>
           <button class="btn btn-secondary"
                   title="Stash All Changes"
-                  (click)="stash(false);$event.stopPropagation()"><i class="fa fa-boxes"></i></button>
+                  (click)="stash(false)"><i class="fa fa-boxes"></i></button>
           <button class="btn btn-secondary dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
           </button>
           <div ngbDropdownMenu>
             <button class="btn btn-sm btn-secondary mx-1"
                     title="Stash Unstaged Changes"
-                    (click)="stash(true);$event.stopPropagation()"><i class="fa fa-box"></i></button>
+                    (click)="stash(true)"><i class="fa fa-box"></i></button>
           </div>
         </div>
-      </div>
-      <div class="card-body repo-section-container" *ngIf="getExpandState('stashes')">
+      </ng-template>
+      <div class="card-body">
         <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter" class="d-flex">
           <div class="stash-message flex-grow-1">
             <span class="badge badge-info">{{s.index}}</span>
@@ -205,16 +199,17 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-header form-inline" (click)="toggleExpandState('command-history')">
-        <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('command-history'),'fa-caret-down':getExpandState('command-history')}"></i>
-        <i class="fa fa-history mr-1"></i> Command History
+    </app-layout-card>
+    <app-layout-card [headerContent]="commandHistoryHeader"
+                     title="Command History"
+                     iconClass="fa fa-history"
+                     expandKey="command-history">
+      <ng-template #commandHistoryHeader>
         <input class="ml-2 form-control"
                placeholder="Filter..."
-               [(ngModel)]="commandHistoryFilter" (click)="$event.stopPropagation()">
-      </div>
-      <div class="card-body repo-section-container"
+               [(ngModel)]="commandHistoryFilter">
+      </ng-template>
+      <div class="card-body mh-100"
            *ngIf="getExpandState('command-history') && commandHistory"
            infinite-scroll
            [scrollWindow]="false"
@@ -229,59 +224,55 @@
           <hr/>
         </div>
       </div>
-    </div>
+    </app-layout-card>
   </div>
-  <div class="col-sm col-md-4 d-flex flex-column mb-1">
+  <div class="col-sm col-md-4 d-flex flex-column mb-1 repo-column">
     <div *ngIf="changes" class="flex-grow-1">
-      <div class="card">
-        <div class="card-header form-inline" (click)="toggleExpandState('staged')">
-          <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('staged'),'fa-caret-down':getExpandState('staged')}"></i>
-          Staged Changes ({{changes.stagedChanges.length}})
+      <app-layout-card [headerContent]="stagedChangesHeader"
+                       expandKey="staged"
+                       title="Staged Changes ({{changes.stagedChanges.length}})">
+        <ng-template #stagedChangesHeader>
           <div class="d-inline-block ml-3">
-            <button class="btn btn-secondary" (click)="unstageAll();$event.stopPropagation()" title="Unstage All">
+            <button class="btn btn-secondary" (click)="unstageAll()" title="Unstage All">
               <i class="fa fa-angle-double-down"></i></button>
             <button class="btn btn-secondary"
-                    (click)="unstageSelected();$event.stopPropagation()"
+                    (click)="unstageSelected()"
                     title="Unstage Selected">
               <i class="fa fa-angle-down"></i></button>
           </div>
           <input class="ml-2 form-control"
                  placeholder="Filter..."
-                 [(ngModel)]="stagedChangesFilter" (click)="$event.stopPropagation()">
-        </div>
-        <div class="change-body repo-section-container" *ngIf="getExpandState('staged')">
-          <app-change-list [changes]="changes.stagedChanges"
-                           (onSelectChanged)="selectionChanged($event,true)"
-                           (onUndoFileClicked)="confirmUndo($event)"
-                           (onMergeClicked)="merge($event)"
-                           (onDeleteClicked)="deleteClicked($event)"
-                           [changeFilter]="stagedChangesFilter"></app-change-list>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header form-inline" (click)="toggleExpandState('unstaged')">
-          <i [ngClass]="{fa:true,'fa-caret-right':!getExpandState('unstaged'),'fa-caret-down':getExpandState('unstaged')}"></i>
-          Unstaged Changes ({{changes.unstagedChanges.length}})
+                 [(ngModel)]="stagedChangesFilter">
+        </ng-template>
+        <app-change-list [changes]="changes.stagedChanges"
+                         (onSelectChanged)="selectionChanged($event,true)"
+                         (onUndoFileClicked)="confirmUndo($event)"
+                         (onMergeClicked)="merge($event)"
+                         (onDeleteClicked)="deleteClicked($event)"
+                         [changeFilter]="stagedChangesFilter"></app-change-list>
+      </app-layout-card>
+      <app-layout-card [headerContent]="unstagedHeader"
+                       expandKey="unstaged"
+                       title="Unstaged Changes ({{changes.unstagedChanges.length}})">
+        <ng-template #unstagedHeader>
           <div class="d-inline-block ml-3">
-            <button class="btn btn-secondary" (click)="stageAll();$event.stopPropagation()" title="Stage All">
+            <button class="btn btn-secondary" (click)="stageAll()" title="Stage All">
               <i class="fa fa-angle-double-up"></i>
             </button>
-            <button class="btn btn-secondary" (click)="stageSelected();$event.stopPropagation()" title="Stage Selected">
+            <button class="btn btn-secondary" (click)="stageSelected()" title="Stage Selected">
               <i class="fa fa-angle-up"></i></button>
           </div>
           <input class="ml-2 form-control"
                  placeholder="Filter..."
-                 [(ngModel)]="unstagedChangesFilter" (click)="$event.stopPropagation()">
-        </div>
-        <div class="change-body repo-section-container" *ngIf="getExpandState('unstaged')">
-          <app-change-list [changes]="changes.unstagedChanges"
-                           (onSelectChanged)="selectionChanged($event,false)"
-                           (onUndoFileClicked)="undoFileChanges($event,false)"
-                           (onMergeClicked)="merge($event)"
-                           (onDeleteClicked)="deleteClicked($event)"
-                           [changeFilter]="unstagedChangesFilter"></app-change-list>
-        </div>
-      </div>
+                 [(ngModel)]="unstagedChangesFilter">
+        </ng-template>
+        <app-change-list [changes]="changes.unstagedChanges"
+                         (onSelectChanged)="selectionChanged($event,false)"
+                         (onUndoFileClicked)="undoFileChanges($event,false)"
+                         (onMergeClicked)="merge($event)"
+                         (onDeleteClicked)="deleteClicked($event)"
+                         [changeFilter]="unstagedChangesFilter"></app-change-list>
+      </app-layout-card>
     </div>
     <div class="card">
       <div class="card-body p-3">
@@ -335,37 +326,36 @@
       </div>
     </div>
   </div>
-  <div *ngIf="changes" class="col-sm-12 col-md-5 diff-viewer">
-    <div class="card">
-      <div class="card-header">
-        <div class="pretty p-switch p-fill mx-2">
+  <div class="col-sm-12 col-md-5 repo-column">
+    <app-layout-card [headerContent]="commitHistoryHeader" expandKey="commit-history" customBodyClass="diff-viewer">
+      <ng-template #commitHistoryHeader>
+        <div class="pretty p-switch p-fill mx-2 d-flex">
           <input type="checkbox" [(ngModel)]="showDiff"/>
           <label>Commit History</label>
           <div class="state ml-2">
             <label>Diff</label>
           </div>
         </div>
+      </ng-template>
+      <div class="card-body" *ngIf="showDiff">
+        <app-diff-viewer [diffHeaders]="diffHeaders"
+                         [diffCommitInfo]="diffCommitInfo"
+                         (onHunkChanged)="getFullRefresh(false)"
+                         (onHunkChangeError)="hunkChangeError($event)"
+                         (onIngoreWhitespaceClicked)="getFileDiff()"
+                         (onExitCommitClicked)="leaveCommitDiff()"
+                         (onNavigateToHash)="viewCommitDiff($event)"
+                         (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
       </div>
-      <div>
-        <div class="card-body" *ngIf="showDiff">
-          <app-diff-viewer [diffHeaders]="diffHeaders"
-                           [diffCommitInfo]="diffCommitInfo"
-                           (onHunkChanged)="getFullRefresh(false)"
-                           (onHunkChangeError)="hunkChangeError($event)"
-                           (onIngoreWhitespaceClicked)="getFileDiff()"
-                           (onExitCommitClicked)="leaveCommitDiff()"
-                           (onNavigateToHash)="viewCommitDiff($event)"
-                           (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
-        </div>
-        <app-commit-history [commitHistory]="commitHistory"
-                            *ngIf="!showDiff"
-                            (onClickCommitDiff)="viewCommitDiff($event.hash)"
-                            (onClickCherryPick)="cherryPickCommit($event)"
-                            (onScrollDown)="getCommitHistory(commitHistory.length)"
-                            (onClickCheckout)="checkout($event.hash,false)"></app-commit-history>
-      </div>
-    </div>
+      <app-commit-history [commitHistory]="commitHistory"
+                          *ngIf="!showDiff"
+                          (onClickCommitDiff)="viewCommitDiff($event.hash)"
+                          (onClickCherryPick)="cherryPickCommit($event)"
+                          (onScrollDown)="getCommitHistory(commitHistory.length)"
+                          (onClickCheckout)="checkout($event.hash,false)"></app-commit-history>
+    </app-layout-card>
   </div>
+
   <app-input-modal modalId="createBranch"
                    [uidSalt]="repoViewUid"
                    modalTitle="Create Branch"
@@ -388,7 +378,8 @@
                     [branches]="repo.remoteBranches"
                     [worktrees]="repo.worktrees"
                     (onAddWorktree)="getFullRefresh()"></app-add-worktree>
-  <app-add-submodule [uidSalt]="repoViewUid" (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
+  <app-add-submodule [uidSalt]="repoViewUid"
+                     (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
   <app-confirm-modal modalTitle="Confirm Discard All"
                      (onConfirm)="hardReset()"
                      [modalId]="'discardAllModal'+repoViewUid">
@@ -411,6 +402,21 @@
                      (onConfirm)="undoFileChanges(activeUndo,true)"
                      [modalId]="'undoFileModal'+repoViewUid">
     Are you sure you want to undo both <i>unstaged and staged</i> changes?<br/>
+    <b>This cannot be undone</b>
+  </app-confirm-modal>
+  <app-confirm-modal modalTitle="Confirm Delete Branches"
+                     (onConfirm)="doPrune()"
+                     [modalId]="'pruneConfirm'+repoViewUid">
+    The following branches will be deleted:
+    <div class="list-group my-2">
+      <div *ngFor="let b of branchesToPrune; let i=index"
+           class="list-group-item d-flex align-items-center justify-content-between py-1 pr-1">
+        <span>{{b}}</span>
+        <button class="btn btn-primary btn-sm" (click)="branchesToPrune.splice(i,1)">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+    </div>
     <b>This cannot be undone</b>
   </app-confirm-modal>
 </div>

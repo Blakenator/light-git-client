@@ -189,8 +189,8 @@ export class GitClient {
     });
   }
 
-  deleteBranch(branch: string) {
-    return this.simpleOperation(this.getGitPath(), ['branch', '-D', '--', branch], 'Delete Branch');
+  deleteBranch(branches: string[]) {
+    return this.simpleOperation(this.getGitPath(), ['branch', '-D', '--', ...branches], 'Delete Branch');
   }
 
   mergeBranch(branch: string) {

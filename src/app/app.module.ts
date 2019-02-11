@@ -46,6 +46,8 @@ import {ConfirmModalComponent} from './components/confirm-modal/confirm-modal.co
 import {AskPassComponent} from './screens/ask-pass/ask-pass.component';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ScrollingModule} from '@angular/cdk/scrolling';
+import { LayoutCardComponent } from './components/layout-card/layout-card.component';
+import { LayoutCardHeaderComponent } from './components/layout-card/layout-card-header/layout-card-header.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -80,6 +82,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     GitGraphCanvasComponent,
     ConfirmModalComponent,
     AskPassComponent,
+    LayoutCardComponent,
+    LayoutCardHeaderComponent,
   ],
   imports: [
     BrowserModule,

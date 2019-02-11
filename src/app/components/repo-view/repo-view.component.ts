@@ -29,7 +29,7 @@ import {CodeWatcherService} from '../../services/code-watcher.service';
 import {ModalService} from '../../common/services/modal.service';
 import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 import {LoadingService} from '../../services/loading.service';
-import {Observable, Subject} from 'rxjs';
+import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 @Component({
@@ -74,7 +74,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   crlfError: { start: string, end: string };
   crlfErrorToastTimeout: number;
   activeUndo: string;
-  private $destroy=new Subject<void>();
+  branchesToPrune: string[];
+  private $destroy = new Subject<void>();
   private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -192,7 +193,20 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   deleteBranch(branch: string) {
-    this.simpleOperation(this.gitService.deleteBranch(branch), 'deleteBranch', 'deleting the branch');
+    this.simpleOperation(this.gitService.deleteBranch([branch]), 'deleteBranch', 'deleting the branch');
+  }
+
+  pruneLocalBranches() {
+    this.branchesToPrune = this.repo.localBranches.filter(branch => !branch.trackingPath && !branch.isCurrentBranch)
+                               .map(b => b.name);
+    this.showModal('pruneConfirm',true);
+  }
+
+  doPrune() {
+    this.simpleOperation(
+      this.gitService.deleteBranch(this.branchesToPrune),
+      'pruneLocalBranches',
+      'pruning local branches');
   }
 
   fastForwardBranch(branch: string) {
