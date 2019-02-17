@@ -9,6 +9,7 @@ export class ConfirmModalComponent implements OnInit {
   @Input() confirmText = 'Confirm';
   @Input() modalTitle: string;
   @Input() modalId: string;
+  @Input() confirmDisabled: string;
   @Output() onConfirm = new EventEmitter();
 
   constructor() {

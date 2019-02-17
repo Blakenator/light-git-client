@@ -361,7 +361,7 @@ export class GitClient {
     } else {
       return this.simpleOperation(
         this.getGitPath(),
-        ['stash', 'save', '--keep-index', '--', file],
+        ['stash', 'push', '--keep-index', '--', file],
         'Stash Local File Changes').then(() => this.simpleOperation(
         this.getGitPath(),
         ['stash', 'drop'],

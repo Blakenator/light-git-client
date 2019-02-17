@@ -156,10 +156,6 @@ export class SettingsComponent implements OnInit {
     this.electronService.rpc(Channels.OPENDEVTOOLS, []);
   }
 
-  addWatcher() {
-    this.tempSettings.codeWatchers.push(new CodeWatcherModel());
-  }
-
   // CONFIG
 
   newItem() {

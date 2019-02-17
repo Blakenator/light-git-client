@@ -8,7 +8,7 @@ export class ErrorModel {
     this.occurredWhile = occurredWhile;
     this.content = ErrorModel.isErrorModel(content) || typeof content == 'string' ?
                    content :
-                   JSON.stringify(content, ((key, value) => '[circular] ' + value.toString()));
+                   JSON.stringify(content);
   }
 
   static isErrorModel(error: any) {

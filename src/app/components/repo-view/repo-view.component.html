@@ -22,7 +22,7 @@
         </button>
       </span>
     </h1>
-    <app-layout-card [headerContent]="localsHeader" title="Locals" iconClass="fa fa-code-branch" expandKey="locals">
+    <app-layout-card [headerContent]="localsHeader" cardTitle="Locals" iconClass="fa fa-code-branch" expandKey="locals">
       <ng-template #localsHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
@@ -52,7 +52,7 @@
                             [worktrees]="repo.worktrees"
                             (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
     </app-layout-card>
-    <app-layout-card [headerContent]="remoteHeader" title="Remotes" iconClass="fa fa-cloud" expandKey="remotes">
+    <app-layout-card [headerContent]="remoteHeader" cardTitle="Remotes" iconClass="fa fa-cloud" expandKey="remotes">
       <ng-template #remoteHeader>
         <input class="ml-2 form-control"
                placeholder="Filter..."
@@ -65,7 +65,7 @@
                             [localBranches]="repo.localBranches"
                             [worktrees]="repo.worktrees"></app-branch-tree-item>
     </app-layout-card>
-    <app-layout-card [headerContent]="worktreeHeader" iconClass="fa fa-copy" title="Worktrees" expandKey="worktrees">
+    <app-layout-card [headerContent]="worktreeHeader" iconClass="fa fa-copy" cardTitle="Worktrees" expandKey="worktrees">
       <ng-template #worktreeHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
@@ -109,7 +109,7 @@
     </app-layout-card>
     <app-layout-card [headerContent]="submodulesHeader"
                      expandKey="submodules"
-                     title="Submodules"
+                     cardTitle="Submodules"
                      iconClass="fa fa-plug">
       <ng-template #submodulesHeader>
         <input class="ml-2 mr-1 form-control"
@@ -160,7 +160,7 @@
         </div>
       </div>
     </app-layout-card>
-    <app-layout-card [headerContent]="stashHeader" title="Stashes" iconClass="fa fa-box" expandKey="stashes">
+    <app-layout-card [headerContent]="stashHeader" cardTitle="Stashes" iconClass="fa fa-box" expandKey="stashes">
       <ng-template #stashHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
@@ -201,7 +201,7 @@
       </div>
     </app-layout-card>
     <app-layout-card [headerContent]="commandHistoryHeader"
-                     title="Command History"
+                     cardTitle="Command History"
                      iconClass="fa fa-history"
                      expandKey="command-history">
       <ng-template #commandHistoryHeader>
@@ -230,7 +230,7 @@
     <div *ngIf="changes" class="flex-grow-1">
       <app-layout-card [headerContent]="stagedChangesHeader"
                        expandKey="staged"
-                       title="Staged Changes ({{changes.stagedChanges.length}})">
+                       cardTitle="Staged Changes ({{changes.stagedChanges.length}})">
         <ng-template #stagedChangesHeader>
           <div class="d-inline-block ml-3">
             <button class="btn btn-secondary" (click)="unstageAll()" title="Unstage All">
@@ -253,7 +253,7 @@
       </app-layout-card>
       <app-layout-card [headerContent]="unstagedHeader"
                        expandKey="unstaged"
-                       title="Unstaged Changes ({{changes.unstagedChanges.length}})">
+                       cardTitle="Unstaged Changes ({{changes.unstagedChanges.length}})">
         <ng-template #unstagedHeader>
           <div class="d-inline-block ml-3">
             <button class="btn btn-secondary" (click)="stageAll()" title="Stage All">
@@ -406,7 +406,8 @@
   </app-confirm-modal>
   <app-confirm-modal modalTitle="Confirm Delete Branches"
                      (onConfirm)="doPrune()"
-                     [modalId]="'pruneConfirm'+repoViewUid">
+                     [modalId]="'pruneConfirm'+repoViewUid"
+                     [confirmDisabled]="!branchesToPrune || branchesToPrune.length==0?'No branches to prune':''">
     The following branches will be deleted:
     <div class="list-group my-2">
       <div *ngFor="let b of branchesToPrune; let i=index"

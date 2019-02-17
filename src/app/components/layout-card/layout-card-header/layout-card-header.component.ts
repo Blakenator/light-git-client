@@ -1,4 +1,4 @@
-import {Component, ElementRef, Input, OnInit, TemplateRef} from '@angular/core';
+import {Component, Input, OnInit, TemplateRef} from '@angular/core';
 import {SettingsService} from '../../../services/settings.service';
 
 @Component({
@@ -7,26 +7,32 @@ import {SettingsService} from '../../../services/settings.service';
   styleUrls: ['./layout-card-header.component.scss'],
 })
 export class LayoutCardHeaderComponent implements OnInit {
-  @Input() title: string;
+  @Input() cardTitle: string;
   @Input() expandKey: string;
   @Input() iconClass: string;
+  @Input() persistExpand: boolean;
   @Input() content: TemplateRef<any>;
+  localExpanded = false;
 
   constructor(private settingsService: SettingsService) {
   }
 
   getExpandState() {
-    return this.settingsService.settings.expandStates[this.expandKey];
+    return this.persistExpand ? this.settingsService.settings.expandStates[this.expandKey] : this.localExpanded;
   }
 
   ngOnInit() {
   }
 
   toggleExpandState($event: Event) {
-    let target = <Element>$event.target;
-    if (target.className.split(' ').indexOf('clickable') > -1) {
-      this.settingsService.settings.expandStates[this.expandKey] = !this.settingsService.settings.expandStates[this.expandKey];
-      this.settingsService.saveSettings();
+    if (this.persistExpand) {
+      let target = <Element>$event.target;
+      if (target.className.split(' ').indexOf('clickable') > -1) {
+        this.settingsService.settings.expandStates[this.expandKey] = !this.settingsService.settings.expandStates[this.expandKey];
+        this.settingsService.saveSettings();
+      }
+    } else {
+      this.localExpanded = !this.localExpanded;
     }
   }
 }

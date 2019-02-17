@@ -1,5 +1,6 @@
-<div class="card">
-  <app-layout-card-header [title]="title"
+<div class="card" [ngClass]="{'my-1':spaced}">
+  <app-layout-card-header [cardTitle]="cardTitle"
+                          [persistExpand]="persistExpand"
                           [expandKey]="expandKey"
                           [iconClass]="iconClass"
                           [content]="headerContent"></app-layout-card-header>

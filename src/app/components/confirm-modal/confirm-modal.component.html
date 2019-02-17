@@ -2,6 +2,7 @@
            (onFinish)="onConfirm.emit()"
            [modalTitle]="modalTitle"
            [modalId]="modalId"
+           [affirmativeButtonDisabled]="confirmDisabled"
            modalTitleIcon="fa-exclamation-triangle"
            negativeButtonText="Cancel">
   <ng-content></ng-content>

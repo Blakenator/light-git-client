@@ -24,7 +24,8 @@
             <span *ngIf="b.trackingPath">
               <small class="text-muted" [title]="b.trackingPath"><i class="fa fa-cloud"></i></small>
               <i *ngIf="settingsService.settings.showTrackingPath">({{b.trackingPath}})</i>
-              <span class="badge badge-info ml-1" *ngIf="b.ahead">{{b.ahead || 0}} <i class="fas fa-arrow-up"></i></span>
+              <span class="badge badge-info ml-1" *ngIf="b.ahead">{{b.ahead || 0}}
+                <i class="fas fa-arrow-up"></i></span>
               <span class="badge badge-info ml-1"
                     *ngIf="b.behind">{{b.behind || 0}} <i class="fas fa-arrow-down"></i></span>
             </span>
@@ -159,7 +160,8 @@
           </button>
           <button class="btn btn-primary px-1 mx-1"
                   (click)="checkoutBranch(b.name,true)"
-                  title="Checkout and Pull">
+                  title="Checkout and Pull"
+                  *ngIf="isRemoteAlreadyCheckedOut(b.name)">
             <small>
               <i class="fa fa-shopping-cart"></i>
               +

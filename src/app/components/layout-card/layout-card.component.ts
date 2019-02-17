@@ -9,12 +9,14 @@ import {LayoutCardHeaderComponent} from './layout-card-header/layout-card-header
 export class LayoutCardComponent implements OnInit {
   @ViewChild(LayoutCardHeaderComponent) header: LayoutCardHeaderComponent;
   @Input() customBodyClass = '';
-  @Input() title: string;
+  @Input() cardTitle: string;
   @Input() expandKey: string;
   @Input() iconClass: string;
+  @Input() persistExpand = true;
+  @Input() spaced = true;
   @Input() headerContent: TemplateRef<any>;
 
-  constructor(private elementRef:ElementRef) {
+  constructor() {
   }
 
   ngOnInit() {
