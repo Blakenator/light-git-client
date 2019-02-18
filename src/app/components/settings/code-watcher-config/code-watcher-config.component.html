@@ -1,0 +1,61 @@
+<p>Watch your code changes for specified patterns, and alert you before you commit</p>
+<div class="form-group">
+  <div class="pretty p-switch p-fill mb-1 d-block">
+    <input type="checkbox" [(ngModel)]="tempSettings.includeUnchangedInWatcherAnalysis"/>
+    <div class="state">
+      <label>Include Unchanged Surrounding Code in Analysis</label>
+    </div>
+  </div>
+</div>
+<app-layout-card *ngFor="let g of getFilenames()"
+                 [headerContent]="watcherHeader"
+                 [persistExpand]="false">
+  <ng-template #watcherHeader>
+    <input type="text" class="form-control" (change)="changeFilename(g,$event.target.value)" [ngModel]="g">
+  </ng-template>
+  <table class="table table-striped mb-0">
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>Regex</th>
+      <th>Flags</th>
+      <th>Filename Filter</th>
+      <th>Enabled</th>
+      <th style="width: 1%"></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let w of getWatchersInGroup(g)">
+      <td><input class="form-control" [(ngModel)]="w.name" placeholder="Watcher Name..."></td>
+      <td><input class="form-control" [(ngModel)]="w.regex" placeholder="Regex..."></td>
+      <td><input class="form-control small-input"
+                 [(ngModel)]="w.regexFlags"
+                 placeholder="Flags..."
+                 [pattern]="'^[gmisuy]*$'"></td>
+      <td><input class="form-control"
+                 [ngModel]="w.activeFilter"
+                 (change)="w.activeFilter=$event.target.value"
+                 placeholder="Filename Regex..."></td>
+      <td>
+        <div class="pretty p-switch p-fill mx-2">
+          <input type="checkbox" [(ngModel)]="w.enabled"/>
+          <div class="state">
+            <label></label>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="d-flex btn-group">
+          <button class="btn btn-light td-btn" (click)="copyWatcher(w)">
+            <i class="fa fa-copy"></i></button>
+          <button class="btn btn-light td-btn" (click)="deleteWatchet(w)">
+            <i class="fa fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+  <div class="card-footer py-1">
+    <button class="btn btn-info" (click)="addWatcher(g)">Add Watcher</button>
+  </div>
+</app-layout-card>

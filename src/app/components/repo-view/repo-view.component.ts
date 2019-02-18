@@ -303,7 +303,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.showDiff = false;
           this.getFullRefresh(false);
         })
-        .catch(err => this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'commit', 'committing', err)));
+        .catch(err => {
+          return this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'commit', 'committing', err));
+        });
     this.clearSelectedChanges();
   }
 

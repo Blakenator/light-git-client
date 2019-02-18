@@ -7,15 +7,17 @@
   margin: 0;
 }
 
-.card-header .form-control {
-  max-width: 5em;
-  -webkit-transition: max-width .3s;
-  -moz-transition: max-width .3s;
-  -ms-transition: max-width .3s;
-  -o-transition: max-width .3s;
-  transition: max-width .3s;
+::ng-deep {
+  .card-header .form-control {
+    max-width: 5em;
+    -webkit-transition: max-width .3s;
+    -moz-transition: max-width .3s;
+    -ms-transition: max-width .3s;
+    -o-transition: max-width .3s;
+    transition: max-width .3s;
 
-  &:active, &:focus {
-    max-width: 30em;
+    &:active, &:focus {
+      max-width: 30em;
+    }
   }
 }

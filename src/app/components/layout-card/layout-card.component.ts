@@ -1,4 +1,4 @@
-import {Component, ElementRef, Input, OnInit, TemplateRef, ViewChild} from '@angular/core';
+import {Component, HostBinding, Input, OnInit, TemplateRef, ViewChild} from '@angular/core';
 import {LayoutCardHeaderComponent} from './layout-card-header/layout-card-header.component';
 
 @Component({
@@ -9,14 +9,28 @@ import {LayoutCardHeaderComponent} from './layout-card-header/layout-card-header
 export class LayoutCardComponent implements OnInit {
   @ViewChild(LayoutCardHeaderComponent) header: LayoutCardHeaderComponent;
   @Input() customBodyClass = '';
-  @Input() title: string;
+  @Input() cardTitle: string;
   @Input() expandKey: string;
   @Input() iconClass: string;
+  @Input() persistExpand = true;
+  @Input() localExpandedDefault = true;
+  @Input() spaced = true;
+  @Input() maxHeightVh: number;
   @Input() headerContent: TemplateRef<any>;
+  @HostBinding('class.flex-grow-1') flexGrowClass = false;
+  @HostBinding('class.d-flex') flexBinding = true;
+  @HostBinding('class.flex-column') flexColumnBinding = true;
 
-  constructor(private elementRef:ElementRef) {
+  constructor() {
   }
 
   ngOnInit() {
+    setTimeout(() => {
+      this.updateFlexBindings(this.header.getExpandState());
+    }, 50);
+  }
+
+  updateFlexBindings(expanded: boolean) {
+    this.flexGrowClass = expanded && !this.maxHeightVh;
   }
 }

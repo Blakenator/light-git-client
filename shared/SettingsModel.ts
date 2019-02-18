@@ -16,6 +16,7 @@ export class SettingsModel {
   public showTrackingPath: boolean;
   public commitMessageAutocomplete: boolean;
   public diffIgnoreWhitespace: boolean;
+  public airplaneMode: boolean;
   public mergetool: string;
   public expandStates: { [key: string]: boolean };
   public commandTimeoutSeconds: number;
@@ -43,7 +44,8 @@ export class SettingsModel {
               codeWatchers: CodeWatcherModel[] = defaultCodeWatchers,
               username: string = '',
               email: string = '',
-              allowPrerelease: boolean = false) {
+              allowPrerelease: boolean = false,
+              airplaneMode: boolean = false) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
     this.tabNames = tabNames;
@@ -62,6 +64,7 @@ export class SettingsModel {
     this.email = email;
     this.statsId = Math.pow(32, 16).toString(32);
     this.allowPrerelease = allowPrerelease;
+    this.airplaneMode = airplaneMode;
   }
 
   static sanitizePath(path) {
@@ -88,6 +91,7 @@ export class SettingsModel {
     res.email = this.email + '';
     res.allowStats = this.allowStats;
     res.allowPrerelease = this.allowPrerelease;
+    res.airplaneMode = this.airplaneMode;
     res.statsId = this.statsId + '';
     return res;
   }

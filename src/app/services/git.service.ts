@@ -12,6 +12,7 @@ import {ErrorService} from '../common/services/error.service';
 import {CommitModel} from '../../../shared/git/Commit.model';
 import {CommandOutputModel} from '../../../shared/common/command.output.model';
 import {CommitSummaryModel} from '../../../shared/git/CommitSummary.model';
+import {SettingsService} from './settings.service';
 
 @Injectable({
   providedIn: 'root',
@@ -25,8 +26,18 @@ export class GitService {
   private _repoLoaded = new Subject<void>();
   public readonly onRepoLoaded = this._repoLoaded.asObservable();
 
-  constructor(private electronService: ElectronService, private errorService: ErrorService) {
+  constructor(private electronService: ElectronService,
+              private errorService: ErrorService,
+              private settingsService: SettingsService) {
     electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
+  }
+
+  handleAirplaneMode<T>(promise: Promise<T>, airplaneDefault?: T) {
+    if (this.isAirplaneMode()) {
+      return Promise.resolve(airplaneDefault);
+    } else {
+      return promise;
+    }
   }
 
   getConfigItems(): Promise<ConfigItemModel[]> {
@@ -59,6 +70,9 @@ export class GitService {
   }
 
   clone(location: string, url: string, callback: (out: string, err: string, done: boolean) => any) {
+    if (this.isAirplaneMode()) {
+      return;
+    }
     this.electronService.rpc(Channels.CLONE, ['./', location, url], false);
     this.electronService.listen(Channels.CLONE, (result: { out: string, err: string, done: boolean }) => {
       callback(result.out, result.err, result.done);
@@ -81,11 +95,12 @@ export class GitService {
   }
 
   updateSubmodules(branch: string, recursive: boolean): Promise<void> {
-    return this.electronService.rpc(Channels.UPDATESUBMODULES, [this.repo.path, branch, recursive]);
+    return this.handleAirplaneMode(this.electronService.rpc(Channels.UPDATESUBMODULES,
+      [this.repo.path, branch, recursive]));
   }
 
   addSubmodule(url: string, path: string): Promise<void> {
-    return this.electronService.rpc(Channels.ADDSUBMODULE, [this.repo.path, url, path]);
+    return this.handleAirplaneMode(this.electronService.rpc(Channels.ADDSUBMODULE, [this.repo.path, url, path]));
   }
 
   getFileDiff(unstaged: string[], staged: string[]): Promise<DiffHeaderModel[]> {
@@ -122,7 +137,7 @@ export class GitService {
   }
 
   fastForwardBranch(branch: string): Promise<void> {
-    return this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]);
+    return this.handleAirplaneMode(this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]));
   }
 
   checkout(branchOrHash: string, toNewBranch: boolean, andPull: boolean = false): Promise<void> {
@@ -130,11 +145,11 @@ export class GitService {
   }
 
   pull(force: boolean): Promise<void> {
-    return this.electronService.rpc(Channels.PULL, [this.repo.path, force]);
+    return this.handleAirplaneMode(this.electronService.rpc(Channels.PULL, [this.repo.path, force]));
   }
 
   push(branch: string, force: boolean): Promise<void> {
-    return this.electronService.rpc(Channels.PUSH, [this.repo.path, branch, force]);
+    return this.handleAirplaneMode(this.electronService.rpc(Channels.PUSH, [this.repo.path, branch, force]));
   }
 
   deleteFiles(files: string[]): Promise<void> {
@@ -194,7 +209,7 @@ export class GitService {
   }
 
   fetch(): Promise<void> {
-    return this.electronService.rpc(Channels.FETCH, [this.repo.path]);
+    return this.handleAirplaneMode(this.electronService.rpc(Channels.FETCH, [this.repo.path]));
   }
 
   undoFileChanges(file: string, revision: string, staged: boolean): Promise<void> {
@@ -223,6 +238,10 @@ export class GitService {
 
   renameBranch(branch: { oldName: string, newName: string }): Promise<void> {
     return this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName]);
+  }
+
+  private isAirplaneMode() {
+    return this.settingsService.settings.airplaneMode;
   }
 
   private detectCrlfWarning<T>(promise: Promise<CommandOutputModel<T>>, onCatch: boolean = false) {
