@@ -65,7 +65,10 @@
                             [localBranches]="repo.localBranches"
                             [worktrees]="repo.worktrees"></app-branch-tree-item>
     </app-layout-card>
-    <app-layout-card [headerContent]="worktreeHeader" iconClass="fa fa-copy" cardTitle="Worktrees" expandKey="worktrees">
+    <app-layout-card [headerContent]="worktreeHeader"
+                     iconClass="fa fa-copy"
+                     cardTitle="Worktrees"
+                     expandKey="worktrees">
       <ng-template #worktreeHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
@@ -203,7 +206,8 @@
     <app-layout-card [headerContent]="commandHistoryHeader"
                      cardTitle="Command History"
                      iconClass="fa fa-history"
-                     expandKey="command-history">
+                     expandKey="command-history"
+                     maxHeightVh="30">
       <ng-template #commandHistoryHeader>
         <input class="ml-2 form-control"
                placeholder="Filter..."
@@ -227,7 +231,7 @@
     </app-layout-card>
   </div>
   <div class="col-sm col-md-4 d-flex flex-column mb-1 repo-column">
-    <div *ngIf="changes" class="flex-grow-1">
+    <div *ngIf="changes" class="flex-grow-1 d-flex flex-column">
       <app-layout-card [headerContent]="stagedChangesHeader"
                        expandKey="staged"
                        cardTitle="Staged Changes ({{changes.stagedChanges.length}})">

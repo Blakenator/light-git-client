@@ -1,10 +1,15 @@
-<div class="card" [ngClass]="{'my-1':spaced}">
+<div class="card d-flex flex-column" [ngClass]="{'my-1':spaced,'flex-grow-1':header.getExpandState()}">
   <app-layout-card-header [cardTitle]="cardTitle"
                           [persistExpand]="persistExpand"
                           [expandKey]="expandKey"
                           [iconClass]="iconClass"
-                          [content]="headerContent"></app-layout-card-header>
-  <div class="repo-section-container {{customBodyClass}}" *ngIf="header.getExpandState()">
+                          [localExpandedDefault]="localExpandedDefault"
+                          [content]="headerContent"
+                          (onToggleExpand)="updateFlexBindings($event)"></app-layout-card-header>
+  <div class="repo-section-container {{customBodyClass}}"
+       *ngIf="header.getExpandState()"
+       [ngClass]="{'flex-grow-1':header.getExpandState()}"
+       [style.maxHeight]="!maxHeightVh?'unset':maxHeightVh+'vh'">
     <ng-content></ng-content>
   </div>
 </div>

@@ -1,4 +1,4 @@
-import {Component, Input, OnInit, TemplateRef} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, TemplateRef} from '@angular/core';
 import {SettingsService} from '../../../services/settings.service';
 
 @Component({
@@ -12,6 +12,8 @@ export class LayoutCardHeaderComponent implements OnInit {
   @Input() iconClass: string;
   @Input() persistExpand: boolean;
   @Input() content: TemplateRef<any>;
+  @Input() localExpandedDefault = true;
+  @Output() onToggleExpand = new EventEmitter<boolean>();
   localExpanded = false;
 
   constructor(private settingsService: SettingsService) {
@@ -22,6 +24,7 @@ export class LayoutCardHeaderComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.localExpanded = this.localExpandedDefault;
   }
 
   toggleExpandState($event: Event) {
@@ -30,9 +33,11 @@ export class LayoutCardHeaderComponent implements OnInit {
       if (target.className.split(' ').indexOf('clickable') > -1) {
         this.settingsService.settings.expandStates[this.expandKey] = !this.settingsService.settings.expandStates[this.expandKey];
         this.settingsService.saveSettings();
+        this.onToggleExpand.emit(this.settingsService.settings.expandStates[this.expandKey]);
       }
     } else {
       this.localExpanded = !this.localExpanded;
+      this.onToggleExpand.emit(this.localExpanded);
     }
   }
 }
