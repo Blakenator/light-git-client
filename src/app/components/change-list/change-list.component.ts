@@ -1,5 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {ChangeType, LightChange} from '../../../../shared/git/Commit.model';
+import {ModalService} from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-change-list',
@@ -8,6 +9,7 @@ import {ChangeType, LightChange} from '../../../../shared/git/Commit.model';
 })
 export class ChangeListComponent implements OnInit {
   @Input() changeFilter = '';
+  @Input() repoViewUid ;
   selectedChanges: { [key: string]: boolean } = {};
   @Output() onSelectChanged = new EventEmitter<{ [key: string]: boolean }>();
   @Output() onUndoFileClicked = new EventEmitter<string>();
@@ -16,7 +18,7 @@ export class ChangeListComponent implements OnInit {
   selectAll = false;
   lastClicked: string;
 
-  constructor() {
+  constructor(private modalService:ModalService) {
   }
 
   _changes: LightChange[];

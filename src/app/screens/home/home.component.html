@@ -1,6 +1,11 @@
 <div class="d-flex flex-column main-panel">
   <nav class="navbar navbar-expand-lg navbar-light bg-light d-flex">
-    <app-git-config></app-git-config>
+    <div class="d-inline-block"
+         *ngIf="settingsService.settings && settingsService.settings.airplaneMode"
+         ngbTooltip="Airplane Mode is Active"
+         placement="bottom-left">
+      <i class="fa fa-plane"></i>
+    </div>
     <app-settings class="nav-item"></app-settings>
     <app-loading-spinner [show]="isLoading" class="nav-item mx-2" [keepSpacing]="true"></app-loading-spinner>
     <div class="tab-container btn-group nav-item flex-grow-1">

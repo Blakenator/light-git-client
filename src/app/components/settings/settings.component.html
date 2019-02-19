@@ -1,7 +1,7 @@
 <button class="btn btn-secondary center-text-vertical mx-2" title="App Settings"
         (click)="copyTempSettings()">
   <i class="material-icons">settings</i>
-  <span class="ml-1">Global</span>
+  <span class="ml-1">Settings</span>
 </button>
 <app-modal modalTitle="Settings"
            modalTitleIcon="fa-cog"
@@ -59,6 +59,12 @@
               <label>Send anonymized statistics to help improve Light-Git</label>
             </div>
           </div>
+          <div class="pretty p-switch p-fill my-3 d-block">
+            <input type="checkbox" [(ngModel)]="tempSettings.airplaneMode"/>
+            <div class="state">
+              <label><i class="fa fa-plane d-inline"></i> Airplane Mode</label>
+            </div>
+          </div>
         </div>
         <div class="col-6">
           <app-file-input [filePath]="tempSettings.gitPath"
@@ -87,49 +93,7 @@
       </div>
     </div>
     <div *ngIf="currentTab==1">
-      <p>Watch your code changes for specified patterns, and alert you before you commit</p>
-      <div class="pretty p-switch p-fill mb-1 d-block">
-        <input type="checkbox" [(ngModel)]="tempSettings.includeUnchangedInWatcherAnalysis"/>
-        <div class="state">
-          <label>Include Unchanged Surrounding Code in Analysis</label>
-        </div>
-      </div>
-      <table class="table table-striped">
-        <thead>
-        <tr>
-          <th>Name</th>
-          <th>Regex</th>
-          <th>Flags</th>
-          <th>Filename Filter</th>
-          <th>Enabled</th>
-          <th style="width: 1%"></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr *ngFor="let w of tempSettings.codeWatchers; let i=index">
-          <td><input class="form-control" [(ngModel)]="w.name" placeholder="Watcher Name..."></td>
-          <td><input class="form-control" [(ngModel)]="w.regex" placeholder="Regex..."></td>
-          <td><input class="form-control small-input"
-                     [(ngModel)]="w.regexFlags"
-                     placeholder="Flags..."
-                     [pattern]="'[gmisuy]*'"></td>
-          <td><input class="form-control" [(ngModel)]="w.activeFilter" placeholder="Filename Regex..."></td>
-          <td>
-            <div class="pretty p-switch p-fill mx-2">
-              <input type="checkbox" [(ngModel)]="w.enabled"/>
-              <div class="state">
-                <label></label>
-              </div>
-            </div>
-          </td>
-          <td>
-            <button class="btn btn-light td-btn" (click)="tempSettings.codeWatchers.splice(i,1)">
-              <i class="fa fa-trash"></i></button>
-          </td>
-        </tr>
-        </tbody>
-      </table>
-      <button class="btn btn-info" (click)="addWatcher()">Add Watcher</button>
+      <app-code-watcher-config [tempSettings]="tempSettings"></app-code-watcher-config>
     </div>
     <div *ngIf="currentTab==2">
       <div class="row">
@@ -190,6 +154,61 @@
           </div>
         </div>
       </div>
+    </div>
+    <div *ngIf="currentTab==3">
+      <input class="form-control" [(ngModel)]="filter" placeholder="Filter...">
+      <table class="table table-striped">
+        <thead>
+        <tr>
+          <th>Key</th>
+          <th>Value</th>
+          <th>Location</th>
+          <th width="1%"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let item of configItems | filterObject : 'key' : filter">
+          <td class="editable-item" (click)="startEdit(item,true)">
+            <div *ngIf="!isEditing(item) || !clickedKey" class="d-flex align-items-center justify-content-between">
+              {{item.key}}
+              <i class="material-icons">edit</i>
+            </div>
+            <input class="form-control"
+                   *ngIf="isEditing(item) && clickedKey"
+                   (keyup.enter)="saveConfigItem(item,item)"
+                   (blur)="saveConfigItem(item,item)"
+                   (keydown.tab)="clickedKey=false"
+                   (keydown.escape)="cancelEdit()"
+                   [(ngModel)]="editedItem.key"
+                   [autofocus]>
+          </td>
+          <td class="editable-item" (click)="startEdit(item,false)">
+            <div *ngIf="!isEditing(item)|| clickedKey" class="d-flex align-items-center justify-content-between">
+              {{item.value}}
+              <i class="material-icons">edit</i>
+            </div>
+            <input class="form-control"
+                   *ngIf="isEditing(item) && !clickedKey"
+                   (keyup.enter)="saveConfigItem(item)"
+                   (blur)="saveConfigItem(item)"
+                   (keydown.shift.tab)="clickedKey=true"
+                   (keydown.tab)="nextTabRow(item)"
+                   (keydown.escape)="cancelEdit()"
+                   [(ngModel)]="editedItem.value"
+                   [autofocus]>
+          </td>
+          <td>{{getConfigFileDisplay(item.sourceFile)}}</td>
+          <td>
+            <button class="table-btn btn btn-outline-danger" (click)="deleteConfigItem(item)">
+              <i class="fa fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+        <tr class="editable-item" (click)="newItem()">
+          <td class="text-muted" colspan="4">New Item...</td>
+        </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </app-modal>

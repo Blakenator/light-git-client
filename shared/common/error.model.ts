@@ -6,18 +6,22 @@ export class ErrorModel {
   constructor(source: string, occurredWhile: string, content: any) {
     this.source = source;
     this.occurredWhile = occurredWhile;
-    this.content = ErrorModel.isErrorModel(content) || typeof content == 'string' ?
-                   content :
-                   JSON.stringify(content, ((key, value) => '[circular] ' + value.toString()));
+    try {
+      this.content = ErrorModel.isErrorModel(content) || typeof content == 'string' ?
+        content :
+        JSON.stringify(content);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   static isErrorModel(error: any) {
     return error &&
-      error.source != undefined &&
-      typeof error.source == 'string' &&
-      error.occurredWhile != undefined &&
-      typeof error.occurredWhile == 'string' &&
-      error.content != undefined;
+           error.source != undefined &&
+           typeof error.source == 'string' &&
+           error.occurredWhile != undefined &&
+           typeof error.occurredWhile == 'string' &&
+           error.content != undefined;
   }
 
   static getRootError(error: ErrorModel) {
@@ -25,8 +29,8 @@ export class ErrorModel {
       return undefined;
     } else {
       return !ErrorModel.isErrorModel(error.content) && typeof error.content == 'string' ?
-             error :
-             ErrorModel.getRootError(<ErrorModel>error.content);
+        error :
+        ErrorModel.getRootError(<ErrorModel>error.content);
     }
   }
 
@@ -45,6 +49,6 @@ export class ErrorModel {
 
   static getRootErrorMessage(error: any) {
     return error && ErrorModel.isErrorModel(error) ? ErrorModel.getRootError(error).content :
-           (error.message ? error.message : JSON.stringify(error));
+      (error.message ? error.message : JSON.stringify(error));
   }
 }

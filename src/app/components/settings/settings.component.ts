@@ -7,6 +7,8 @@ import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
 import {GitService} from '../../services/git.service';
 import {ConfigItemModel} from '../../../../shared/git/config-item.model';
 import {ModalService} from '../../common/services/modal.service';
+import {ErrorModel} from '../../../../shared/common/error.model';
+import {ErrorService} from '../../common/services/error.service';
 
 @Component({
   selector: 'app-settings',
@@ -18,7 +20,7 @@ export class SettingsComponent implements OnInit {
   version: string;
   advanced: boolean;
   currentTab = 0;
-  tabs: string[] = ['General', 'Code Watchers', 'Config Shortcuts'];
+  tabs: string[] = ['General', 'Code Watchers', 'Config Shortcuts', 'Git Config'];
   configItems: ConfigItemModel[];
   @Output() onSaveAction = new EventEmitter<SettingsModel>();
   setGlobalDefaultUserConfig = false;
@@ -28,6 +30,10 @@ export class SettingsComponent implements OnInit {
   mergetoolCommand = '';
   credentialHelper: string;
   cacheHelperSeconds: string;
+  currentEdit: ConfigItemModel;
+  editedItem: ConfigItemModel;
+  clickedKey = true;
+  filter: string;
   private mergetoolConfig: ConfigItemModel;
   private mergetoolCommandConfig: ConfigItemModel;
   private credentialHelperConfig: ConfigItemModel;
@@ -35,6 +41,7 @@ export class SettingsComponent implements OnInit {
   constructor(private electronService: ElectronService,
               private gitService: GitService,
               private modalService: ModalService,
+              private errorService: ErrorService,
               private applicationRef: ApplicationRef,
               public settingsService: SettingsService) {
   }
@@ -106,6 +113,7 @@ export class SettingsComponent implements OnInit {
     this.modalService.setModalVisible('settings', true);
     this.gitService.getConfigItems().then(configItems => {
       this.configItems = configItems;
+      this.handleItemsUpdate(this.configItems);
       let username = this.configItems.find(item => item.key == 'user.name');
       this.mergetoolConfig = this.configItems.find(item => item.key == 'merge.tool');
       if (this.mergetoolConfig) {
@@ -128,7 +136,12 @@ export class SettingsComponent implements OnInit {
       let email = this.configItems.find(x => x.key == 'user.email');
       this.tempSettings.email = email ? email.value + '' : '';
       this.settingsService.settings.email = email ? email.value + '' : '';
-    });
+    })
+        .catch(error => this.errorService.receiveError(
+          new ErrorModel(
+            'Git config component, getConfigItems',
+            'getting config items',
+            error)));
   }
 
   cancelChanges() {
@@ -143,7 +156,86 @@ export class SettingsComponent implements OnInit {
     this.electronService.rpc(Channels.OPENDEVTOOLS, []);
   }
 
-  addWatcher() {
-    this.tempSettings.codeWatchers.push(new CodeWatcherModel());
+  // CONFIG
+
+  newItem() {
+    let index = 0;
+    while (this.configItems.find(x => x.key == 'newKey' + index)) {
+      index++;
+    }
+    const newKey = 'newKey' + index;
+    this.editedItem = new ConfigItemModel(newKey, 'newValue');
+    this.configItems.push(this.editedItem);
+    this.currentEdit = this.editedItem;
+    this.clickedKey = true;
+  }
+
+  startEdit(item: ConfigItemModel, clickedKey: boolean) {
+    this.clickedKey = clickedKey;
+    this.editedItem = Object.assign({}, item);
+    this.currentEdit = this.editedItem;
+  }
+
+  deleteConfigItem(item: ConfigItemModel) {
+    if (item.sourceFile) {
+      this.editedItem = Object.assign({}, item, {value: ''});
+      this.doSaveItem(item);
+    } else {
+      this.configItems.splice(this.configItems.indexOf(item), 1);
+    }
+  }
+
+  saveConfigItem(originalItem: ConfigItemModel, rename?: ConfigItemModel) {
+    if (!this.editedItem ||
+      !(this.editedItem.key || '').trim() ||
+      !this.currentEdit ||
+      ((!this.clickedKey && this.editedItem.value == originalItem.value) || (this.clickedKey && this.editedItem.key == originalItem.key)) ||
+      (!this.currentEdit.sourceFile && !this.currentEdit.value)) {
+      return;
+    }
+    this.currentEdit = undefined;
+    this.doSaveItem(originalItem, rename);
+  }
+
+  isEditing(item: ConfigItemModel) {
+    return this.currentEdit && this.currentEdit.sourceFile == item.sourceFile && this.currentEdit.key == item.key;
+  }
+
+  cancelEdit() {
+    this.currentEdit = undefined;
+  }
+
+  getConfigFileDisplay(sourceFile: string) {
+    return sourceFile.replace(/^.*?:/, '').replace(/['"]/g, '').replace(/\\\\/g, '\\');
+  }
+
+  nextTabRow(item: ConfigItemModel) {
+    if (!item.sourceFile) {
+      setTimeout(() => {
+        this.newItem();
+        this.applicationRef.tick();
+      }, 100);
+    }
+  }
+
+  private doSaveItem(originalItem: ConfigItemModel, rename?: ConfigItemModel) {
+    this.gitService.setConfigItem(this.editedItem, rename)
+        .then(items => this.handleItemsUpdate(items))
+        .catch(error => {
+          if (!this.editedItem.sourceFile) {
+            this.configItems.pop();
+          }
+          this.editedItem = originalItem;
+          this.errorService.receiveError(
+            new ErrorModel(
+              'Git config component, setConfigItem',
+              'setting the config item',
+              error || 'the section or key is invalid'));
+        });
+  }
+
+  private handleItemsUpdate(items) {
+    this.configItems = items;
+    this.applicationRef.tick();
   }
 }

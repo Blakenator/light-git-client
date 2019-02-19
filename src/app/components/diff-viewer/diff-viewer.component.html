@@ -48,21 +48,26 @@
     </div>
   </div>
   <div *ngIf="diffHeaders">
-    <div *ngFor="let header of getFilteredDiffHeaders() | slice : 0 : scrollOffset" class="card">
-      <div class="card-header d-flex">
-        <div class="flex-grow-1">
-          <div class="d-inline-block"
-               *ngFor="let part of header.toFilename.replace('->','/->/').split('/'); let i=index">
-            <span class="badge badge-light">{{part}}</span>
-            <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
+    <app-layout-card *ngFor="let header of getFilteredDiffHeaders() | slice : 0 : scrollOffset"
+                     [headerContent]="diffHeader"
+                     [persistExpand]="false"
+                     [localExpandedDefault]="header.action!='Deleted' && getHeaderLines(header)<200">
+      <ng-template #diffHeader>
+        <div class="d-flex">
+          <div class="flex-grow-1" style="font-size: 1rem">
+            <div class="d-inline-block"
+                 *ngFor="let part of header.toFilename.replace('->','/->/').split('/'); let i=index">
+              <span class="badge badge-light">{{part}}</span>
+              <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
+            </div>
+            <span class="text-muted mx-3" *ngIf="header.stagedState"><i>{{header.stagedState}}</i>
+            </span>
           </div>
-          <span class="text-muted mx-3" *ngIf="header.stagedState"><i>{{header.stagedState}}</i>
-          </span>
+          <div class="flex-grow-0 center-text-vertical tag-container">
+            <span [class]="'tag '+header.action">{{header.action}}</span>
+          </div>
         </div>
-        <div class="flex-grow-0 center-text-vertical tag-container">
-          <span [class]="'tag '+header.action">{{header.action}}</span>
-        </div>
-      </div>
+      </ng-template>
       <div class="diff-header" *ngIf="header.action!='Deleted'">
         <div *ngFor="let hunk of header.hunks">
           <div class="btn btn-block btn-warning mt-3 d-flex justify-content-between"
@@ -106,6 +111,6 @@
           </div>
         </div>
       </div>
-    </div>
+    </app-layout-card>
   </div>
 </div>
