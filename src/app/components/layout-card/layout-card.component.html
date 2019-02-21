@@ -1,4 +1,4 @@
-<div class="card d-flex flex-column" [ngClass]="{'my-1':spaced,'flex-grow-1':header.getExpandState()}">
+<div class="card d-flex flex-column" [ngClass]="{'my-1':spaced,'flex-grow-1 expanded':header.getExpandState()}">
   <app-layout-card-header [cardTitle]="cardTitle"
                           [persistExpand]="persistExpand"
                           [expandKey]="expandKey"

@@ -180,12 +180,12 @@ export class GitService {
     this.electronService.rpc(Channels.CHECKGITBASHVERSIONS, ['./']).then(handleResult).catch(handleResult);
   }
 
-  stage(file: string): Promise<void> {
-    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, file]), true);
+  stage(files: string[]): Promise<void> {
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, files]), true);
   }
 
-  unstage(file: string): Promise<void> {
-    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, file]), true);
+  unstage(files: string[]): Promise<void> {
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, files]), true);
   }
 
   createBranch(branchName: string): Promise<void> {
@@ -275,6 +275,7 @@ export class GitService {
     } else {
       if (!output.errorOutput) {
         resolve(output.content);
+        return;
       }
       let crlfMatch = output.errorOutput.match(crlf);
       if (crlfMatch) {

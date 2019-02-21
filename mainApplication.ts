@@ -414,6 +414,7 @@ export class MainApplication extends GenericApplication {
     ipcMain.on(Channels.DELETEFILES, (event, args) => {
       let promises = [];
       let files: string[] = args[2];
+      files = files.map(f => f.replace(/["']/g, ''));
       for (let f of files) {
         promises.push(new Promise((resolve, reject) => {
           let path1 = path.join(args[1], f);

@@ -163,12 +163,12 @@ export class GitClient {
     });
   }
 
-  stage(file: string) {
-    return this.simpleOperation(this.getGitPath(), ['add', '--', file], 'Stage File');
+  stage(files: string[]) {
+    return this.simpleOperation(this.getGitPath(), ['add', '--', ...files], 'Stage File');
   }
 
-  unstage(file: string) {
-    return this.simpleOperation(this.getGitPath(), ['reset', '--', file], 'Unstage File');
+  unstage(files: string[]) {
+    return this.simpleOperation(this.getGitPath(), ['reset', '--', ...files], 'Unstage File');
   }
 
   setBulkGitSettings(config: { [key: string]: string | number }, useGlobal: boolean) {

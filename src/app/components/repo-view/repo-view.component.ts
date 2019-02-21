@@ -132,7 +132,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   stageAll() {
-    this.simpleOperation(this.gitService.stage('.'), 'stageAllChanges', 'staging all changes');
+    this.simpleOperation(this.gitService.stage(['.']), 'stageAllChanges', 'staging all changes');
     this.selectedUnstagedChanges = {};
   }
 
@@ -140,13 +140,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (Object.values(this.selectedUnstagedChanges).filter(x => x).length == 0) {
       return;
     }
-    let files = Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).join(' ');
+    let files = Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]);
     this.simpleOperation(this.gitService.stage(files), 'stageSelectedChanges', 'staging selected changes');
     this.selectedUnstagedChanges = {};
   }
 
   unstageAll() {
-    this.simpleOperation(this.gitService.unstage('.'), 'unstageAllChanges', 'unstaging all changes');
+    this.simpleOperation(this.gitService.unstage(['.']), 'unstageAllChanges', 'unstaging all changes');
     this.selectedStagedChanges = {};
   }
 
@@ -154,7 +154,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (Object.values(this.selectedStagedChanges).filter(x => x).length == 0) {
       return;
     }
-    let files = Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).join(' ');
+    let files = Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]);
     this.simpleOperation(this.gitService.unstage(files), 'unstageSelectedChanges', 'unstaging selected changes');
     this.selectedStagedChanges = {};
   }
@@ -199,7 +199,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   pruneLocalBranches() {
     this.branchesToPrune = this.repo.localBranches.filter(branch => !branch.trackingPath && !branch.isCurrentBranch)
                                .map(b => b.name);
-    this.showModal('pruneConfirm',true);
+    this.showModal('pruneConfirm', true);
   }
 
   doPrune() {
