@@ -1,0 +1,12 @@
+.alert-drawer {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+  width: 30em;
+  pointer-events: none;
+
+  .alert {
+    pointer-events: all;
+  }
+}

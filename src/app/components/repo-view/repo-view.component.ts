@@ -678,6 +678,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.showModal('submoduleViewer');
   }
 
+  cancelSuggestions() {
+    setTimeout(() => {
+      this.suggestions = [];
+      this.changeDetectorRef.detectChanges();
+    }, 300);
+  }
+
   private simpleOperation(op: Promise<void>,
                           functionName: string,
                           occurredWhile: string,

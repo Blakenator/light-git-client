@@ -49,6 +49,7 @@ import {ScrollingModule} from '@angular/cdk/scrolling';
 import { LayoutCardComponent } from './components/layout-card/layout-card.component';
 import { LayoutCardHeaderComponent } from './components/layout-card/layout-card-header/layout-card-header.component';
 import { CodeWatcherConfigComponent } from './components/settings/code-watcher-config/code-watcher-config.component';
+import { AlertComponent } from './common/components/alert/alert.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -86,6 +87,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     LayoutCardComponent,
     LayoutCardHeaderComponent,
     CodeWatcherConfigComponent,
+    AlertComponent,
   ],
   imports: [
     BrowserModule,

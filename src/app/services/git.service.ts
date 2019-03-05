@@ -13,6 +13,8 @@ import {CommitModel} from '../../../shared/git/Commit.model';
 import {CommandOutputModel} from '../../../shared/common/command.output.model';
 import {CommitSummaryModel} from '../../../shared/git/CommitSummary.model';
 import {SettingsService} from './settings.service';
+import {AlertService} from '../common/services/alert.service';
+import {NotificationModel} from '../../../shared/notification.model';
 
 @Injectable({
   providedIn: 'root',
@@ -28,7 +30,8 @@ export class GitService {
 
   constructor(private electronService: ElectronService,
               private errorService: ErrorService,
-              private settingsService: SettingsService) {
+              private settingsService: SettingsService,
+              private alertService: AlertService) {
     electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
   }
 
@@ -95,7 +98,8 @@ export class GitService {
   }
 
   updateSubmodules(branch: string, recursive: boolean): Promise<void> {
-    return this.handleAirplaneMode(this.electronService.rpc(Channels.UPDATESUBMODULES,
+    return this.handleAirplaneMode(this.electronService.rpc(
+      Channels.UPDATESUBMODULES,
       [this.repo.path, branch, recursive]));
   }
 
@@ -205,7 +209,9 @@ export class GitService {
   }
 
   stashChanges(onlyUnstaged: boolean, stashName: string): Promise<void> {
-    return this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged, stashName]);
+    return this.detectCrlfWarning(
+      this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged, stashName]),
+      true);
   }
 
   fetch(): Promise<void> {
@@ -213,7 +219,9 @@ export class GitService {
   }
 
   undoFileChanges(file: string, revision: string, staged: boolean): Promise<void> {
-    return this.electronService.rpc(Channels.UNDOFILECHANGES, [this.repo.path, file, revision, staged]);
+    return this.detectCrlfWarning(this.electronService.rpc(
+      Channels.UNDOFILECHANGES,
+      [this.repo.path, file, revision, staged]), true);
   }
 
   hardReset(): Promise<void> {
@@ -221,7 +229,9 @@ export class GitService {
   }
 
   commit(description: string, commitAndPush: boolean): Promise<void> {
-    return this.electronService.rpc(Channels.COMMIT, [this.repo.path, description, commitAndPush]);
+    return this.detectRemoteMessage(this.electronService.rpc(
+      Channels.COMMIT,
+      [this.repo.path, description, commitAndPush]), true);
   }
 
   getBranchChanges(): Promise<RepositoryModel> {
@@ -280,6 +290,55 @@ export class GitService {
       let crlfMatch = output.errorOutput.match(crlf);
       if (crlfMatch) {
         this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
+        resolve(output.content);
+      } else {
+        reject(output.errorOutput);
+      }
+    }
+  }
+
+  private detectRemoteMessage<T>(promise: Promise<CommandOutputModel<T>>, onCatch: boolean = false) {
+    return new Promise<T>((resolve, reject) => {
+      if (onCatch) {
+        promise.then(output => output ? resolve(output.content) : resolve()).catch(output => {
+          this._detectRemoteMessageInternal(output, resolve, reject);
+        });
+      } else {
+        promise.then(output => {
+          this._detectRemoteMessageInternal(output, resolve, reject);
+        }).catch(output => output ? reject(output.errorOutput || output) : reject());
+      }
+    });
+  }
+
+  private _detectRemoteMessageInternal(output: string | CommandOutputModel, resolve: Function, reject: Function) {
+    const crlf = /^(remote:\s+.*?\r?\n?)+$/i;
+    if (output == undefined) {
+      resolve();
+      return;
+    }
+    if (typeof output == 'string') {
+      let crlfMatch = output.match(crlf);
+      if (crlfMatch) {
+        let notificationModel = new NotificationModel();
+        notificationModel.message = output.replace(/remote:\s+/g, '');
+        notificationModel.title = 'Message from Remote';
+        this.alertService.showNotification(notificationModel);
+        resolve();
+      } else {
+        reject(output);
+      }
+    } else {
+      if (!output.errorOutput) {
+        resolve(output.content);
+        return;
+      }
+      let crlfMatch = output.errorOutput.match(crlf);
+      if (crlfMatch) {
+        let notificationModel = new NotificationModel();
+        notificationModel.message = output.errorOutput.replace(/remote:\s+/g, '');
+        notificationModel.title = 'Message from Remote';
+        this.alertService.showNotification(notificationModel);
         resolve(output.content);
       } else {
         reject(output.errorOutput);

@@ -293,6 +293,7 @@
                         [(ngModel)]="changes.description"
                         placeholder="Commit message"
                         [disabled]="loadingService.isLoading"
+                        (blur)="cancelSuggestions()"
                         (keyup.control.enter)="codeWatcherService.showWatchers()"
                         (keyup)="setCurrentCursorPosition($event)"
                         (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
