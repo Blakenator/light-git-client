@@ -55,7 +55,9 @@ export class DiffViewerComponent implements OnInit {
   saveSettings() {
     setTimeout(() => {
       this.settingsService.saveSettings();
-      this.onExitCommitClicked.emit();
+      if (this.diffCommitInfo) {
+        this.onExitCommitClicked.emit();
+      }
       this.onIngoreWhitespaceClicked.emit(this.settingsService.settings.diffIgnoreWhitespace);
     }, 100);
   }
@@ -95,11 +97,11 @@ export class DiffViewerComponent implements OnInit {
 
   isEditingHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
     return this.editingHunk &&
-           this.editingHeader &&
-           this.editingHunk.fromStartLine ==
-           hunk.fromStartLine &&
-           this.editingHeader.fromFilename ==
-           header.fromFilename;
+      this.editingHeader &&
+      this.editingHunk.fromStartLine ==
+      hunk.fromStartLine &&
+      this.editingHeader.fromFilename ==
+      header.fromFilename;
   }
 
   undoHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
@@ -136,13 +138,13 @@ export class DiffViewerComponent implements OnInit {
       return this.diffHeaders.filter(header => {
         let needle = this.diffFilter.toLowerCase();
         return FilterPipe.fuzzyFilter(needle, header.fromFilename.toLowerCase()) ||
-               FilterPipe.fuzzyFilter(needle, header.toFilename.toLowerCase());
+          FilterPipe.fuzzyFilter(needle, header.toFilename.toLowerCase());
       });
     }
   }
 
   getHeaderLines(header: DiffHeaderModel) {
-    return header.hunks.map(x => x.lines.length).reduce((a, b) => a + b);
+    return header.hunks.map(x => x.lines.length).reduce((a, b) => a + b, 0);
   }
 
   private getTemporaryHunk(header: DiffHeaderModel, hunk: DiffHunkModel) {

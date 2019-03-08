@@ -80,6 +80,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
   private firstNoRemoteErrorDisplayed = false;
+  private commitMessageDebounce: number;
 
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
@@ -127,7 +128,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   @HostListener('window:focus', ['$event'])
   onFocus(event: any): void {
     if (this.repo) {
-      this.getFullRefresh(!this.showDiff || this.diffCommitInfo != undefined);
+      this.getFullRefresh(false, !this.showDiff || this.diffCommitInfo != undefined);
     }
   }
 
@@ -159,7 +160,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.selectedStagedChanges = {};
   }
 
-  getFullRefresh(keepDiffCommitSelection: boolean = true, manualFetch: boolean = false) {
+  getFullRefresh(clearCommitInfo: boolean, keepDiffCommitSelection: boolean = true, manualFetch: boolean = false) {
     if (!this.repo) {
       return;
     }
@@ -170,7 +171,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.getBranchChanges();
       this.fetch(manualFetch);
       this.getCommitHistory();
-      this.getFileDiff();
+      this.getFileDiff(clearCommitInfo);
       this.loadingService.setLoading(true);
       this.gitService.getFileChanges()
           .then(changes => this.handleFileChanges(changes, keepDiffCommitSelection))
@@ -246,7 +247,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           err)));
   }
 
-  getFileDiff() {
+  getFileDiff(manualRefresh: boolean = false) {
+    if (!manualRefresh && this.diffCommitInfo) {
+      return;
+    } else if (manualRefresh) {
+      this.diffCommitInfo = undefined;
+    }
     let unstaged = Object.keys(this.selectedUnstagedChanges)
                          .filter(x => this.selectedUnstagedChanges[x])
                          .map(x => x.replace(/.*->\s*/, ''));
@@ -301,7 +307,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         .then(() => {
           this.changes.description = '';
           this.showDiff = false;
-          this.getFullRefresh(false);
+          this.getFullRefresh(false, false);
         })
         .catch(err => {
           return this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'commit', 'committing', err));
@@ -319,13 +325,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   checkout(event: { branch: string, andPull: boolean }, newBranch: boolean) {
     let localBranchExists = this.repo.localBranches.find(local => local.name == event.branch.replace('origin/', ''));
-    this.simpleOperation(
-      this.gitService.checkout(
-        localBranchExists ? event.branch.replace('origin/', '') : event.branch,
-        newBranch && !localBranchExists,
-        event.andPull),
-      'checkout',
-      'checking out the branch');
+    this.simpleOperation(this.gitService.checkout(
+      localBranchExists ? event.branch.replace('origin/', '') : event.branch,
+      newBranch && !localBranchExists,
+      event.andPull), 'checkout', 'checking out the branch');
     this.clearSelectedChanges();
   }
 
@@ -334,7 +337,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  push(branch: string, force: boolean) {
+  push(branch: BranchModel, force: boolean) {
     this.simpleOperation(this.gitService.push(branch, force), 'push', 'pushing the branch');
     this.clearSelectedChanges();
   }
@@ -469,7 +472,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     } else {
       this.selectedUnstagedChanges = selectedChanges;
     }
-    this.getFileDiff();
+    this.getFileDiff(true);
     this.diffCommitInfo = undefined;
     setTimeout(() => this.showDiff = true, 300);
   }
@@ -546,6 +549,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   deleteStash(index: number) {
+    this.repo.stashes.splice(index, 1);
+    this.repo.stashes.forEach((stash, i) => stash.index = i);
     this.simpleOperation(this.gitService.deleteStash(index), 'deleteStash', 'deleting the stash');
     this.clearSelectedChanges();
   }
@@ -606,28 +611,33 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   setCurrentCursorPosition($event) {
-    this.currentCommitCursorPosition = $event.target.selectionStart;
+    if (this.commitMessageDebounce) {
+      clearTimeout(this.commitMessageDebounce);
+    }
+    this.commitMessageDebounce = window.setTimeout(() => {
+      this.currentCommitCursorPosition = $event.target.selectionStart;
 
-    if (['Enter', 'ArrowUp', 'ArrowDown', 'Escape', 'Tab'].indexOf($event.key) < 0) {
-      this.getCommitSuggestions();
-    }
-    if (this.suggestions.length == 0) {
-      return;
-    }
-    $event.stopPropagation();
-    if ($event.key == 'Enter' && !$event.ctrlKey) {
-      this.currentCommitCursorPosition--;
-      this.chooseAutocomleteItem(true);
-    } else if ($event.key == 'Tab' && !$event.ctrlKey) {
-      $event.preventDefault();
-      this.chooseAutocomleteItem(true);
-    } else if ($event.key == 'ArrowUp') {
-      this.selectedAutocompleteItem = Math.max(0, this.selectedAutocompleteItem - 1);
-    } else if ($event.key == 'ArrowDown') {
-      this.selectedAutocompleteItem = Math.min(this.suggestions.length, this.selectedAutocompleteItem + 1);
-    } else if ($event.key == 'Escape') {
-      this.suggestions = [];
-    }
+      if (['Enter', 'ArrowUp', 'ArrowDown', 'Escape', 'Tab'].indexOf($event.key) < 0) {
+        this.getCommitSuggestions();
+      }
+      if (this.suggestions.length == 0) {
+        return;
+      }
+      $event.stopPropagation();
+      if ($event.key == 'Enter' && !$event.ctrlKey) {
+        this.currentCommitCursorPosition--;
+        this.chooseAutocomleteItem(true);
+      } else if ($event.key == 'Tab' && !$event.ctrlKey) {
+        $event.preventDefault();
+        this.chooseAutocomleteItem(true);
+      } else if ($event.key == 'ArrowUp') {
+        this.selectedAutocompleteItem = Math.max(0, this.selectedAutocompleteItem - 1);
+      } else if ($event.key == 'ArrowDown') {
+        this.selectedAutocompleteItem = Math.min(this.suggestions.length, this.selectedAutocompleteItem + 1);
+      } else if ($event.key == 'Escape') {
+        this.suggestions = [];
+      }
+    }, 300);
   }
 
   chooseAutocomleteItem(removeEnter: boolean, item?: number) {
@@ -688,11 +698,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   private simpleOperation(op: Promise<void>,
                           functionName: string,
                           occurredWhile: string,
-                          fullRefresh: boolean = true): Promise<void> {
+                          clearCommitInfo: boolean = false, fullRefresh: boolean = true): Promise<void> {
     this.loadingService.setLoading(true);
     return op.then(() => {
       if (fullRefresh) {
-        this.getFullRefresh();
+        this.getFullRefresh(clearCommitInfo);
       }
       return Promise.resolve();
     }).catch(err => this.handleErrorMessage(new ErrorModel(
@@ -740,9 +750,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.repo = repo;
           this.repoCache = this.repo;
           this.getCommandHistory();
-          this.getFullRefresh(false);
+          this.getFullRefresh(false, false);
           this.changeDetectorRef.detectChanges();
-          this.refreshDebounce = setInterval(() => this.getFullRefresh(), 1000 * 60 * 5);
+          this.refreshDebounce = setInterval(() => this.getFullRefresh(false), 1000 * 60 * 5);
         }).catch(err => {
       this.loadingService.setLoading(false);
       this.onLoadRepoFailed.emit(new ErrorModel(this._errorClassLocation + 'loadRepo', 'loading the repo', err));

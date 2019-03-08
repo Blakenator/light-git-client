@@ -15,6 +15,7 @@ import {CommitSummaryModel} from '../../../shared/git/CommitSummary.model';
 import {SettingsService} from './settings.service';
 import {AlertService} from '../common/services/alert.service';
 import {NotificationModel} from '../../../shared/notification.model';
+import {BranchModel} from '../../../shared/git/Branch.model';
 
 @Injectable({
   providedIn: 'root',
@@ -59,7 +60,7 @@ export class GitService {
   }
 
   mergeBranch(branch: string): Promise<void> {
-    return this.electronService.rpc(Channels.MERGEBRANCH, [this.repo.path, branch]);
+    return this.swallowError(this.electronService.rpc(Channels.MERGEBRANCH, [this.repo.path, branch]));
   }
 
   addWorktree(location: string, branch: string, callback: (out: string, err: string, done: boolean) => any) {
@@ -152,7 +153,7 @@ export class GitService {
     return this.handleAirplaneMode(this.electronService.rpc(Channels.PULL, [this.repo.path, force]));
   }
 
-  push(branch: string, force: boolean): Promise<void> {
+  push(branch: BranchModel, force: boolean): Promise<void> {
     return this.handleAirplaneMode(this.electronService.rpc(Channels.PUSH, [this.repo.path, branch, force]));
   }
 
@@ -254,6 +255,12 @@ export class GitService {
     return this.settingsService.settings.airplaneMode;
   }
 
+  private swallowError<T>(promise: Promise<T>) {
+    return new Promise<T>((resolve, reject) => {
+      promise.then(resolve).catch(() => resolve());
+    });
+  }
+
   private detectCrlfWarning<T>(promise: Promise<CommandOutputModel<T>>, onCatch: boolean = false) {
     return new Promise<T>((resolve, reject) => {
       if (onCatch) {
@@ -312,7 +319,7 @@ export class GitService {
   }
 
   private _detectRemoteMessageInternal(output: string | CommandOutputModel, resolve: Function, reject: Function) {
-    const crlf = /^(remote:\s+.*?\r?\n?)+$/i;
+    const crlf = /^(\s*remote:(\s+.*?\r?\n?)?)+$/im;
     if (output == undefined) {
       resolve();
       return;

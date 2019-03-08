@@ -16,14 +16,14 @@ export class BranchTreeItemComponent implements OnInit {
   @Input() currentPath = '';
   @Input() filter = '';
   @Output() onCheckoutClicked = new EventEmitter<{ branch: string, andPull: boolean }>();
-  @Output() onPushClicked = new EventEmitter<string>();
-  @Output() onForcePushClicked = new EventEmitter<string>();
+  @Output() onPushClicked = new EventEmitter<BranchModel>();
+  @Output() onForcePushClicked = new EventEmitter<BranchModel>();
   @Output() onDeleteClicked = new EventEmitter<string>();
   @Output() onFastForwardClicked = new EventEmitter<string>();
   @Output() onBranchPremergeClicked = new EventEmitter<BranchModel>();
   @Output() onMergeClicked = new EventEmitter<string>();
-  @Output() onPullClicked = new EventEmitter<any>();
-  @Output() onForcePullClicked = new EventEmitter<any>();
+  @Output() onPullClicked = new EventEmitter<void>();
+  @Output() onForcePullClicked = new EventEmitter<void>();
   @Output() onBranchRename = new EventEmitter<{ oldName: string, newName: string }>();
   showChildren = true;
   leaves: BranchModel[];
@@ -118,5 +118,11 @@ export class BranchTreeItemComponent implements OnInit {
 
   checkoutBranch(name: string, ff: boolean) {
     this.onCheckoutClicked.emit({branch: name, andPull: ff});
+  }
+
+  checkPull(b: BranchModel) {
+    if(b.isCurrentBranch){
+      this.onPullClicked.emit();
+    }
   }
 }

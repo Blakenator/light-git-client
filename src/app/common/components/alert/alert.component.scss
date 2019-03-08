@@ -8,5 +8,13 @@
 
   .alert {
     pointer-events: all;
+
+    .alert-body {
+      overflow-x: auto;
+    }
+
+    .close {
+      vertical-align: middle;
+    }
   }
 }

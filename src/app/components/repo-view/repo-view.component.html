@@ -1,7 +1,7 @@
 <head *ngIf="repo">
   <title>Light Git - {{repo.name}} - {{getCurrentBranch().name}}</title>
 </head>
-<div *ngIf="repo" (focus)="getFullRefresh()" class="row full-width">
+<div *ngIf="repo" (focus)="getFullRefresh(false)" class="row full-width">
   <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
     <h1>{{repo.name}}
       <span class="d-inline-block btn-group">
@@ -12,7 +12,7 @@
                 (click)="openFolder()"
                 title="Open Folder at Repo Root"><i class="fas fa-folder-open"></i></button>
         <button class="btn btn-primary"
-                (click)="getFullRefresh(false,true)"
+                (click)="getFullRefresh(false,false,true)"
                 title="Refresh All Changes (local and remote)"><i class="fas fa-sync-alt"></i></button>
         <button class="btn btn-warning"
                 (click)="showModal('discardAllModal')"
@@ -292,7 +292,6 @@
               <textarea class="form-control"
                         [(ngModel)]="changes.description"
                         placeholder="Commit message"
-                        [disabled]="loadingService.isLoading"
                         (blur)="cancelSuggestions()"
                         (keyup.control.enter)="codeWatcherService.showWatchers()"
                         (keyup)="setCurrentCursorPosition($event)"
@@ -345,7 +344,7 @@
       <div class="card-body" *ngIf="showDiff">
         <app-diff-viewer [diffHeaders]="diffHeaders"
                          [diffCommitInfo]="diffCommitInfo"
-                         (onHunkChanged)="getFullRefresh(false)"
+                         (onHunkChanged)="getFullRefresh(false,false)"
                          (onHunkChangeError)="hunkChangeError($event)"
                          (onIngoreWhitespaceClicked)="getFileDiff()"
                          (onExitCommitClicked)="leaveCommitDiff()"
@@ -382,7 +381,7 @@
   <app-add-worktree [uidSalt]="repoViewUid"
                     [branches]="repo.remoteBranches"
                     [worktrees]="repo.worktrees"
-                    (onAddWorktree)="getFullRefresh()"></app-add-worktree>
+                    (onAddWorktree)="getFullRefresh(false)"></app-add-worktree>
   <app-add-submodule [uidSalt]="repoViewUid"
                      (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
   <app-confirm-modal modalTitle="Confirm Discard All"

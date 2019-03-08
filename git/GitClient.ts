@@ -54,7 +54,7 @@ export class GitClient {
         this.execute(this.getGitPath(), [
           'diff',
           (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
-          'stash@{' + stashIndex + '}^!',
+          'stash@{' + stashIndex + '}^',
         ], 'Get Diff for Stash')
             .then(output => {
               resolve(this.parseDiffString(output.standardOutput, DiffHeaderStagedState.NONE));
@@ -407,10 +407,14 @@ export class GitClient {
     return this.simpleOperation(this.getGitPath(), ['stash', 'drop', 'stash@{' + index + '}'], 'Delete Stash');
   }
 
-  pushBranch(branch: string, force: boolean): Promise<any> {
+  pushBranch(branch: BranchModel, force: boolean): Promise<any> {
     return this.simpleOperation(
       this.getGitPath(),
-      ['push', '-q', 'origin', (branch ? branch + ':' + branch : ''), (force ? ' --force' : '')],
+      ['push',
+        '-q',
+        'origin',
+        (branch ? branch.name + ':' + (branch.trackingPath.replace(/^origin\//, '') || branch.name) : ''),
+        (force ? ' --force' : '')],
       'Push');
   }
 
@@ -688,10 +692,10 @@ export class GitClient {
     let result: DiffHeaderModel[] = [];
     while (headerMatch) {
       let header = new DiffHeaderModel();
-      if(headerMatch[7]){
+      if (headerMatch[7]) {
         header.fromFilename = headerMatch[7];
         header.toFilename = headerMatch[7];
-      }else {
+      } else {
         header.fromFilename = headerMatch[3];
         header.toFilename = headerMatch[5];
       }
