@@ -54,7 +54,7 @@ export class GitClient {
         this.execute(this.getGitPath(), [
           'diff',
           (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
-          'stash@{' + stashIndex + '}^',
+          'stash@{' + stashIndex + '}^!',
         ], 'Get Diff for Stash')
             .then(output => {
               resolve(this.parseDiffString(output.standardOutput, DiffHeaderStagedState.NONE));
