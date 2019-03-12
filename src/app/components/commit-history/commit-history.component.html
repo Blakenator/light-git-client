@@ -25,7 +25,7 @@
       </td>
       <td class="commit-message-cell">
         <div class="d-flex">
-          <div class="px-2 m-0 cursor-pointer"
+          <div class="pr-2 m-0 cursor-pointer"
                *ngIf="messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)"
                (click)="messageExpanded[c.hash] = !messageExpanded[c.hash]">
             <span class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></span>
