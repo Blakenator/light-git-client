@@ -24,16 +24,24 @@
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
       </td>
       <td class="commit-message-cell">
-        <div class="vertical-content-hidden">
-          <div class="d-inline-block"
-               *ngFor="let tag of c.currentTags">
-            <div [ngClass]="getTagClasses(tag)" class="badge mx-1">
-              <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
-              {{tag.replace('tag: ', '')}}
-            </div>
+        <div class="d-flex">
+          <div class="px-2 m-0 cursor-pointer"
+               *ngIf="messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)"
+               (click)="messageExpanded[c.hash] = !messageExpanded[c.hash]">
+            <span class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></span>
+            <span class="fa fa-caret-right" *ngIf="!messageExpanded[c.hash]"></span>
           </div>
-          <span>{{getSplitCommitMessage(c)[0]}}</span>
-          <p *ngFor="let line of getSplitCommitMessage(c).slice(1)">{{line}}</p>
+          <div class="flex-grow-1 message" #messageExpander [ngClass]="{'message-expanded':messageExpanded[c.hash]}">
+            <div class="d-inline-block"
+                 *ngFor="let tag of c.currentTags">
+              <div [ngClass]="getTagClasses(tag)" class="badge mx-1">
+                <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
+                {{tag.replace('tag: ', '')}}
+              </div>
+            </div>
+            <span>{{getSplitCommitMessage(c)[0]}}</span>
+            <p *ngFor="let line of getSplitCommitMessage(c).slice(1)">{{line}}</p>
+          </div>
         </div>
       </td>
       <td class="hidden-until-hover" [title]="c.authorName">{{c.authorName}}</td>

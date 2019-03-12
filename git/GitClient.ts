@@ -326,7 +326,7 @@ export class GitClient {
               } else {
                 this.execute(
                   this.getGitPath(),
-                  ['push', '-q', '-u', 'origin', 'HEAD'],
+                  ['push', '-q', '-u', 'origin'],
                   'Push Current Branch')
                     .then(resolve)
                     .catch(err => reject(serializeError(err)));

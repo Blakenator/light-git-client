@@ -83,3 +83,13 @@ td .btn {
     font-size: .9em;
   }
 }
+
+.message {
+  max-height: 3em;
+  overflow: hidden;
+  transition: max-height .2s;
+
+  &.message-expanded {
+    max-height: 10em;
+  }
+}

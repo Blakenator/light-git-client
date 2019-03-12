@@ -18,6 +18,7 @@ export class CommitHistoryComponent implements OnInit {
   scrollOffset = 0;
   numPerPage = 50;
   commitFilter: string;
+  messageExpanded: { [key: string]: boolean } = {};
 
   constructor() {
   }
@@ -75,5 +76,10 @@ export class CommitHistoryComponent implements OnInit {
 
   getSplitCommitMessage(commit: CommitSummaryModel) {
     return commit.message.split(/\r?\n/g);
+  }
+
+  checkOverflow(element) {
+    return element.offsetHeight < element.scrollHeight ||
+      element.offsetWidth < element.scrollWidth;
   }
 }

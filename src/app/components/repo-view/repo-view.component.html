@@ -22,7 +22,11 @@
         </button>
       </span>
     </h1>
-    <app-layout-card [headerContent]="localsHeader" cardTitle="Locals" iconClass="fa fa-code-branch" expandKey="locals">
+    <app-layout-card [headerContent]="localsHeader"
+                     cardTitle="Locals"
+                     iconClass="fa fa-code-branch"
+                     expandKey="locals"
+                     customBodyClass="px-2">
       <ng-template #localsHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
@@ -52,7 +56,11 @@
                             [worktrees]="repo.worktrees"
                             (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
     </app-layout-card>
-    <app-layout-card [headerContent]="remoteHeader" cardTitle="Remotes" iconClass="fa fa-cloud" expandKey="remotes">
+    <app-layout-card [headerContent]="remoteHeader"
+                     cardTitle="Remotes"
+                     iconClass="fa fa-cloud"
+                     expandKey="remotes"
+                     customBodyClass="px-2">
       <ng-template #remoteHeader>
         <input class="ml-2 form-control"
                placeholder="Filter..."

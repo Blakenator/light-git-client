@@ -24,7 +24,9 @@
             <span *ngIf="b.trackingPath">
               <small class="text-muted" [title]="b.trackingPath"><i class="fa fa-cloud"></i></small>
               <i *ngIf="settingsService.settings.showTrackingPath">({{b.trackingPath}})</i>
-              <span class="badge badge-info ml-1 cursor-pointer" *ngIf="b.ahead" (click)="onPushClicked.emit(b)">{{b.ahead || 0}}
+              <span class="badge badge-info ml-1 cursor-pointer"
+                    *ngIf="b.ahead"
+                    (click)="onPushClicked.emit(b)">{{b.ahead || 0}}
                 <i class="fas fa-arrow-up"></i>
               </span>
               <span class="badge badge-info ml-1"
@@ -145,7 +147,9 @@
         <div class="d-flex">
           <div class="flex-grow-1">
             <span>{{getLeafName(b.name)}}</span>
-            <small class="text-muted" title="Branch already checked out" *ngIf="isRemoteAlreadyCheckedOut(b.name)">
+            <small [ngClass]="{'text-muted':!isBranchCurrent(b.name),'text-info':isBranchCurrent(b.name)}"
+                   title="Branch already checked out"
+                   *ngIf="isRemoteAlreadyCheckedOut(b.name)">
               <i class="fa fa-shopping-cart"></i>
             </small>
           </div>

@@ -22,12 +22,14 @@ pre code {
 .linenumber-block {
   line-height: 1.6;
   font-size: 87.5%;
-  padding: .5em .5em .5em;
+  padding: .5em .5em 1.1em .5em;
   display: flex;
   flex-direction: column;
+
   > div {
     flex-grow: 1;
   }
+
   .linenumber {
     text-align: right;
     flex-grow: 1;
@@ -56,9 +58,9 @@ pre code {
 }
 
 .hunk {
-  overflow-x: auto;
   margin-top: .5em;
   position: relative;
+
   &:hover .float-btn-container {
     opacity: 1;
   }
@@ -69,6 +71,7 @@ pre code {
     position: absolute;
     top: .5em;
     right: .5em;
+
     .btn {
       width: 3em;
       height: 3em;
@@ -129,7 +132,15 @@ pre code {
   background-color: rgba(240, 240, 240, .9);
 }
 
-.btn-circle{
+.btn-circle {
   height: 3em;
   width: 3em;
+}
+
+.code-line-block {
+  overflow-x: auto; // necessary but non-functional
+
+  pre {
+    overflow-x: visible;
+  }
 }
