@@ -54,6 +54,7 @@ export class GitGraphCanvasComponent implements OnInit {
   }
 
   getSvgWidth() {
-    return this.getSafeHoriz(Math.max(...this.commit.graphBlockTargets.map(x => Math.max(x.target, x.source))) + 1);
+    return this.getSafeHoriz(Math.max(...this.commit.graphBlockTargets.map(
+      x => Math.max(x.target, x.source))) + 1) + 10;
   }
 }

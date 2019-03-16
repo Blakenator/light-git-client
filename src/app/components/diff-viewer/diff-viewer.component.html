@@ -47,7 +47,7 @@
       No differences detected...
     </div>
   </div>
-  <div *ngIf="diffHeaders">
+  <div *ngIf="diffHeaders" class="px-2">
     <app-layout-card *ngFor="let header of getFilteredDiffHeaders() | slice : 0 : scrollOffset"
                      [headerContent]="diffHeader"
                      [persistExpand]="false"
@@ -86,12 +86,11 @@
                 </div>
               </div>
             </div>
-            <div class="code-line-block flex-grow-1">
+            <div class="code-line-block flex-grow-1 flex-shrink-1">
               <pre *ngIf="!isEditingHunk(hunk,header)"><code highlight [code]="getHunkCode(hunk)"></code></pre>
               <textarea oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                         onfocus='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                         class="form-control"
-                        (blur)="saveEditedHunk()"
                         (keyup.escape)="cancelEdit()"
                         [autofocus]
                         wrap="soft"
@@ -99,14 +98,22 @@
                         [(ngModel)]="editedText"></textarea>
             </div>
             <div class="float-btn-container">
-              <button class="btn btn-info btn-sm m-1"
-                      title="Edit hunk"
-                      *ngIf="!isEditingHunk(hunk,header)"
-                      (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
-              <button class="btn btn-warning btn-sm m-1"
-                      title="Undo hunk"
-                      *ngIf="!isEditingHunk(hunk,header)"
-                      (click)="undoHunk(hunk,header)"><i class="fa fa-undo"></i></button>
+              <div *ngIf="!isEditingHunk(hunk,header)">
+                <button class="btn btn-warning btn-sm m-1"
+                        title="Undo hunk"
+                        (click)="undoHunk(hunk,header)"><i class="fa fa-undo"></i></button>
+                <button class="btn btn-info btn-sm m-1"
+                        title="Edit hunk"
+                        (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
+              </div>
+              <div *ngIf="isEditingHunk(hunk,header)">
+                <button class="btn btn-success btn-sm m-1"
+                        title="Save Changes"
+                        (click)="saveEditedHunk()"><i class="fa fa-save"></i></button>
+                <button class="btn btn-primary btn-sm m-1 d-inline-flex justify-content-center"
+                        title="Cancel Edit"
+                        (click)="cancelEdit()"><i class="fa fa-times"></i></button>
+              </div>
             </div>
           </div>
         </div>

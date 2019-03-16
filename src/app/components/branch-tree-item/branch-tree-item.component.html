@@ -24,10 +24,16 @@
             <span *ngIf="b.trackingPath">
               <small class="text-muted" [title]="b.trackingPath"><i class="fa fa-cloud"></i></small>
               <i *ngIf="settingsService.settings.showTrackingPath">({{b.trackingPath}})</i>
-              <span class="badge badge-info ml-1" *ngIf="b.ahead">{{b.ahead || 0}}
-                <i class="fas fa-arrow-up"></i></span>
+              <span class="badge badge-info ml-1 cursor-pointer"
+                    *ngIf="b.ahead"
+                    (click)="onPushClicked.emit(b)">{{b.ahead || 0}}
+                <i class="fas fa-arrow-up"></i>
+              </span>
               <span class="badge badge-info ml-1"
-                    *ngIf="b.behind">{{b.behind || 0}} <i class="fas fa-arrow-down"></i></span>
+                    [ngClass]="{'cursor-pointer':b.isCurrentBranch}"
+                    *ngIf="b.behind"
+                    (click)="checkPull(b)">{{b.behind || 0}} <i class="fas fa-arrow-down"></i>
+              </span>
             </span>
           </div>
           <button class="btn btn-sm btn-secondary flex-grow-0 py-0 m-0 quick-actions-expand"
@@ -112,13 +118,13 @@
             </div>
           </div>
           <div class="btn-group btn-group-sm mx-1" ngbDropdown placement="left" (click)="$event.stopPropagation()">
-            <button class="btn btn-light" (click)="onPushClicked.emit(b.name)" title="Push">
+            <button class="btn btn-light" (click)="onPushClicked.emit(b)" title="Push">
               <i class="fa fa-arrow-up"></i>
             </button>
             <button class="btn btn-light dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
             </button>
             <div ngbDropdownMenu>
-              <button class="btn btn-light" (click)="onForcePushClicked.emit(b.name)" title="Force Push">
+              <button class="btn btn-light" (click)="onForcePushClicked.emit(b)" title="Force Push">
                 <i class="fa fa-shield-alt text-warning"></i>
               </button>
             </div>
@@ -141,7 +147,9 @@
         <div class="d-flex">
           <div class="flex-grow-1">
             <span>{{getLeafName(b.name)}}</span>
-            <small class="text-muted" title="Branch already checked out" *ngIf="isRemoteAlreadyCheckedOut(b.name)">
+            <small [ngClass]="{'text-muted':!isBranchCurrent(b.name),'text-info':isBranchCurrent(b.name)}"
+                   title="Branch already checked out"
+                   *ngIf="isRemoteAlreadyCheckedOut(b.name)">
               <i class="fa fa-shopping-cart"></i>
             </small>
           </div>
@@ -179,6 +187,8 @@
                             (onCheckoutClicked)="onCheckoutClicked.emit($event)"
                             (onPushClicked)="onPushClicked.emit($event)"
                             (onPullClicked)="onPullClicked.emit()"
+                            (onForcePullClicked)="onForcePullClicked.emit()"
+                            (onForcePushClicked)="onForcePushClicked.emit($event)"
                             (onDeleteClicked)="onDeleteClicked.emit($event)"
                             (onBranchPremergeClicked)="onBranchPremergeClicked.emit($event)"
                             (onFastForwardClicked)="onFastForwardClicked.emit($event)"

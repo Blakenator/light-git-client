@@ -4,11 +4,29 @@
          [(ngModel)]="commitFilter">
 </div>
 
-<cdk-virtual-scroll-viewport class="commit-wrapper" itemSize="45" (scrolledIndexChange)="scrolled($event)">
+<div class="commit-wrapper"
+     infinite-scroll
+     [scrollWindow]="false"
+     (scrolled)="scrolled(true)"
+     (scrolledUp)="scrolled(false)">
   <table class="table table-striped">
     <thead>
     <tr>
-      <th *ngIf="!commitFilter"></th>
+      <th *ngIf="!commitFilter" class="py-1 px-2">
+        <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown>
+          <button class="btn btn-primary d-inline-flex align-items-center" ngbDropdownToggle>
+            <i class="fa fa-code-branch"></i>
+          </button>
+          <div ngbDropdownMenu class="dropdown-menu">
+            <button class="dropdown-item d-flex justify-content-between"
+                    *ngFor="let b of branches"
+                    (click)="onChooseBranch.emit(activeBranch && b.name==activeBranch.name?undefined:b)">
+              {{b.name}}
+              <i class="fa fa-check ml-2" *ngIf="activeBranch && b.name==activeBranch.name"></i>
+            </button>
+          </div>
+        </div>
+      </th>
       <th>Message
         <i class="fa fa-filter" *ngIf="commitFilter" ngbTooltip="Filtered Results"></i>
       </th>
@@ -19,21 +37,29 @@
     </tr>
     </thead>
     <tbody>
-    <tr *cdkVirtualFor="let c of getFilteredCommitHistory()" class="commit-row">
+    <tr *ngFor="let c of getFilteredCommitHistory()" class="commit-row">
       <td class="position-relative p-0" *ngIf="!commitFilter">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
       </td>
       <td class="commit-message-cell">
-        <div class="vertical-content-hidden">
-          <div class="d-inline-block"
-               *ngFor="let tag of c.currentTags">
-            <div [ngClass]="getTagClasses(tag)" class="badge mx-1">
-              <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
-              {{tag.replace('tag: ', '')}}
-            </div>
+        <div class="d-flex">
+          <div class="pr-2 m-0 cursor-pointer"
+               *ngIf="messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)"
+               (click)="messageExpanded[c.hash] = !messageExpanded[c.hash]">
+            <span class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></span>
+            <span class="fa fa-caret-right" *ngIf="!messageExpanded[c.hash]"></span>
           </div>
-          <span>{{getSplitCommitMessage(c)[0]}}</span>
-          <p *ngFor="let line of getSplitCommitMessage(c).slice(1)">{{line}}</p>
+          <div class="flex-grow-1 message" #messageExpander [ngClass]="{'message-expanded':messageExpanded[c.hash]}">
+            <div class="d-inline-block"
+                 *ngFor="let tag of c.currentTags">
+              <div [ngClass]="getTagClasses(tag)" class="badge mx-1">
+                <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
+                {{tag.replace('tag: ', '')}}
+              </div>
+            </div>
+            <span>{{getSplitCommitMessage(c)[0]}}</span>
+            <p *ngFor="let line of getSplitCommitMessage(c).slice(1)">{{line}}</p>
+          </div>
         </div>
       </td>
       <td class="hidden-until-hover" [title]="c.authorName">{{c.authorName}}</td>
@@ -62,4 +88,4 @@
     </tr>
     </tbody>
   </table>
-</cdk-virtual-scroll-viewport>
+</div>

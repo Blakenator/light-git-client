@@ -52,11 +52,9 @@ export class GitClient {
     return new Promise<DiffHeaderModel[]>((resolve, reject) => {
       this.handleErrorDefault(
         this.execute(this.getGitPath(), [
-          'stash',
-          'show',
+          'diff',
           (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
-          '-p',
-          'stash@{' + stashIndex + '}',
+          'stash@{' + stashIndex + '}^!',
         ], 'Get Diff for Stash')
             .then(output => {
               resolve(this.parseDiffString(output.standardOutput, DiffHeaderStagedState.NONE));
@@ -328,7 +326,7 @@ export class GitClient {
               } else {
                 this.execute(
                   this.getGitPath(),
-                  ['push', '-q', '-u', 'origin', 'HEAD'],
+                  ['push', '-q', '-u', 'origin'],
                   'Push Current Branch')
                     .then(resolve)
                     .catch(err => reject(serializeError(err)));
@@ -409,10 +407,14 @@ export class GitClient {
     return this.simpleOperation(this.getGitPath(), ['stash', 'drop', 'stash@{' + index + '}'], 'Delete Stash');
   }
 
-  pushBranch(branch: string, force: boolean): Promise<any> {
+  pushBranch(branch: BranchModel, force: boolean): Promise<any> {
     return this.simpleOperation(
       this.getGitPath(),
-      ['push', '-q', 'origin', (branch ? branch + ':' + branch : ''), (force ? ' --force' : '')],
+      ['push',
+        '-q',
+        'origin',
+        (branch ? branch.name + ':' + (branch.trackingPath.replace(/^origin\//, '') || branch.name) : ''),
+        (force ? ' --force' : '')],
       'Push');
   }
 
@@ -434,22 +436,43 @@ export class GitClient {
     return new Promise<{ bash: boolean, git: boolean }>((resolve, reject) => {
       let result = {git: false, bash: false};
       let promises = [];
-      promises.push(this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
-                        .then(output => {
-                          return result.git = output.standardOutput &&
-                            output.standardOutput.indexOf('git version') >=
-                            0;
-                        })
-                        .catch(error => {
-                          return result.git = false;
-                        }));
-      promises.push(this.execute(this.getBashPath(), ['--version'], 'Check Bash Version')
-                        .then(
-                          output => result.bash = output.standardOutput &&
-                            output.standardOutput.indexOf('GNU bash') >=
-                            0)
-                        .catch(() => result.bash = false));
-      this.handleErrorDefault(Promise.all(promises).then(() => resolve(result)), reject);
+      promises.push(new Promise((resolve1) => {
+        try {
+          this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
+              .then(output => {
+                result.git = output.standardOutput &&
+                  output.standardOutput.indexOf('git version') >= 0;
+                resolve1();
+              })
+              .catch(error => {
+                result.git = false;
+                resolve1();
+              });
+        } catch (e) {
+          result.git = false;
+          resolve1();
+        }
+      }));
+
+      promises.push(new Promise((resolve1) => {
+        try {
+          this.execute(this.getBashPath(), ['--version'], 'Check Bash Version')
+              .then(
+                output => {
+                  result.bash = output.standardOutput &&
+                    output.standardOutput.indexOf('GNU bash') >= 0;
+                  resolve1();
+                })
+              .catch(() => {
+                result.bash = false;
+                resolve1();
+              });
+        } catch (e) {
+          result.bash = false;
+          resolve1();
+        }
+      }));
+      Promise.all(promises).then(() => resolve(result));
     });
   }
 
@@ -457,16 +480,22 @@ export class GitClient {
     return this.simpleOperation(this.getGitPath(), ['pull', (force ? ' -f' : '')], 'Pull');
   }
 
-  getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
+  getCommitHistory(count: number, skip: number, activeBranch: string): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
+      let args = ['rev-list',
+        '-n',
+        (count || 50) + '',
+        ' --branches' + (activeBranch ? '=*' + activeBranch : ''),
+      ];
+      if (!activeBranch) {
+        args.push('--remotes');
+      }
+      args = args.concat([
+        '--skip=' + (skip || 0),
+        '--pretty=format:||||%H|%an|%ae|%ad|%D|%P|%B\n',
+      ]);
       this.handleErrorDefault(
-        this.execute(this.getGitPath(), ['rev-list',
-          '-n',
-          (count || 50) + '',
-          ' --branches',
-          '--remotes',
-          '--skip=' + (skip || 0),
-          '--pretty=format:||||%H|%an|%ae|%ad|%D|%P|%B\n'], 'Get Commit History')
+        this.execute(this.getGitPath(), args, 'Get Commit History')
             .then(output => {
               let text = output.standardOutput;
               let result: CommitSummaryModel[] = [];
@@ -683,17 +712,22 @@ export class GitClient {
   }
 
   private parseDiffString(text: string, state: DiffHeaderStagedState): DiffHeaderModel[] {
-    let diffHeader = /^diff --git a\/((\s*\S+)+?) b\/((\s*\S+)+?)((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
-    let hunk = /\s*@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
+    let diffHeader = /^diff (--git a\/((\s*\S+)+?) b\/((\s*\S+)+?)|--cc ((\s*\S+)+?))((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
+    let hunk = /\s*@@@?( -(\d+)(,(\d+))?){1,2} \+(\d+)(,(\d+))? @@@?.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
     let line = /^([+\- ])(.*)$/gm;
     let headerMatch = diffHeader.exec(text);
     let result: DiffHeaderModel[] = [];
     while (headerMatch) {
       let header = new DiffHeaderModel();
-      header.fromFilename = headerMatch[1];
-      header.toFilename = headerMatch[3];
+      if (headerMatch[7]) {
+        header.fromFilename = headerMatch[7];
+        header.toFilename = headerMatch[7];
+      } else {
+        header.fromFilename = headerMatch[3];
+        header.toFilename = headerMatch[5];
+      }
       header.stagedState = state;
-      let extraHeaders = headerMatch[5];
+      let extraHeaders = headerMatch[8];
       if (extraHeaders.indexOf('\nrename') >= 0) {
         header.action = DiffHeaderAction.RENAMED;
       } else if (extraHeaders.indexOf('\ncopy') >= 0) {
@@ -705,16 +739,16 @@ export class GitClient {
       } else {
         header.action = DiffHeaderAction.CHANGED;
       }
-      let hunkMatch = hunk.exec(headerMatch[7]);
+      let hunkMatch = hunk.exec(headerMatch[10]);
       while (hunkMatch) {
         let h = new DiffHunkModel();
-        let startTo = +hunkMatch[1];
-        let startFrom = +hunkMatch[4];
+        let startTo = +hunkMatch[2];
+        let startFrom = +hunkMatch[5];
         h.fromStartLine = startFrom;
         h.toStartLine = startTo;
-        h.fromNumLines = +(hunkMatch[3] || hunkMatch[1]);
-        h.toNumLines = +hunkMatch[6];
-        let lineMatch = line.exec(hunkMatch[7]);
+        h.fromNumLines = +(hunkMatch[4] || hunkMatch[2]);
+        h.toNumLines = +hunkMatch[7];
+        let lineMatch = line.exec(hunkMatch[8]);
 
         while (lineMatch) {
           let l = new DiffLineModel();
@@ -736,10 +770,10 @@ export class GitClient {
           }
 
           h.lines.push(l);
-          lineMatch = line.exec(hunkMatch[7]);
+          lineMatch = line.exec(hunkMatch[8]);
         }
         header.hunks.push(h);
-        hunkMatch = hunk.exec(headerMatch[7]);
+        hunkMatch = hunk.exec(headerMatch[10]);
       }
       result.push(header);
       headerMatch = diffHeader.exec(text);

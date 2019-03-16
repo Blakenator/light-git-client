@@ -254,7 +254,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.GETCOMMITHISTORY, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].getCommitHistory(args[2], args[3]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].getCommitHistory(args[2], args[3], args[4]), event, args);
     });
 
     ipcMain.on(Channels.CHECKOUT, (event, args) => {
