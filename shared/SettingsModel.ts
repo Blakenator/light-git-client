@@ -27,6 +27,7 @@ export class SettingsModel {
   public allowStats: number;
   public statsId: string;
   public allowPrerelease: boolean;
+  public splitFilenameDisplay: boolean;
 
   constructor(darkMode: boolean = false,
               openRepos: string[] = [''],
@@ -45,7 +46,8 @@ export class SettingsModel {
               username: string = '',
               email: string = '',
               allowPrerelease: boolean = false,
-              airplaneMode: boolean = false) {
+              airplaneMode: boolean = false,
+              splitFilenameDisplay: boolean = false) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
     this.tabNames = tabNames;
@@ -65,6 +67,7 @@ export class SettingsModel {
     this.statsId = Math.pow(32, 16).toString(32);
     this.allowPrerelease = allowPrerelease;
     this.airplaneMode = airplaneMode;
+    this.splitFilenameDisplay = splitFilenameDisplay;
   }
 
   static sanitizePath(path) {
@@ -92,6 +95,7 @@ export class SettingsModel {
     res.allowStats = this.allowStats;
     res.allowPrerelease = this.allowPrerelease;
     res.airplaneMode = this.airplaneMode;
+    res.splitFilenameDisplay = this.splitFilenameDisplay;
     res.statsId = this.statsId + '';
     return res;
   }

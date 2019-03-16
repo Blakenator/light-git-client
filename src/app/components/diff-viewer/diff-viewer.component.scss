@@ -2,7 +2,6 @@
 
 .card-body {
   border-bottom: .1em solid rgba(128, 128, 128, .3);
-  //margin-bottom: .5em;
   padding: 1em;
 }
 
@@ -11,7 +10,7 @@
 }
 
 .diff-container {
-  height: calc(100vh - 10.5rem);
+  height: calc(100vh - 11.5em);
   overflow-y: auto;
 }
 

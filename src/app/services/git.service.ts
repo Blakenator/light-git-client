@@ -116,8 +116,8 @@ export class GitService {
     return this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.repo.path, branchHash]);
   }
 
-  getCommitHistory(skip: number): Promise<CommitSummaryModel[]> {
-    return this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip]);
+  getCommitHistory(skip: number, activeBranch?: string): Promise<CommitSummaryModel[]> {
+    return this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip, activeBranch]);
   }
 
   loadRepo(repoPath: string): Promise<RepositoryModel> {
@@ -154,7 +154,9 @@ export class GitService {
   }
 
   push(branch: BranchModel, force: boolean): Promise<void> {
-    return this.detectRemoteMessage(this.handleAirplaneMode(this.electronService.rpc(Channels.PUSH, [this.repo.path, branch, force])),true);
+    return this.detectRemoteMessage(this.handleAirplaneMode(this.electronService.rpc(
+      Channels.PUSH,
+      [this.repo.path, branch, force])), true);
   }
 
   deleteFiles(files: string[]): Promise<void> {
@@ -325,7 +327,7 @@ export class GitService {
       return;
     }
     if (typeof output == 'string') {
-      let crlfMatch = output.replace(/\r?\n\s*(\r?\n|$)/g,'').match(crlf);
+      let crlfMatch = output.replace(/\r?\n\s*(\r?\n|$)/g, '').match(crlf);
       if (crlfMatch) {
         let notificationModel = new NotificationModel();
         notificationModel.message = output.replace(/remote:\s+/g, '');
@@ -340,7 +342,7 @@ export class GitService {
         resolve(output.content);
         return;
       }
-      let crlfMatch = output.errorOutput.replace(/\r?\n\s*(\r?\n|$)/g,'').match(crlf);
+      let crlfMatch = output.errorOutput.replace(/\r?\n\s*(\r?\n|$)/g, '').match(crlf);
       if (crlfMatch) {
         let notificationModel = new NotificationModel();
         notificationModel.message = output.errorOutput.replace(/remote:\s+/g, '');
