@@ -74,9 +74,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   crlfError: { start: string, end: string };
   crlfErrorToastTimeout: number;
   activeUndo: string;
-  activeCommitHistoryBranch: BranchModel;
   branchesToPrune: string[];
-  readonly branchReplaceChars = {match: /[\s]/g, with: '-'};
   private $destroy = new Subject<void>();
   private refreshDebounce;
   private currentCommitCursorPosition: number;
@@ -285,9 +283,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     this.loadingService.setLoading(true);
-    this.gitService.getCommitHistory(
-      skip,
-      this.activeCommitHistoryBranch ? this.activeCommitHistoryBranch.name : undefined)
+    this.gitService.getCommitHistory(skip)
         .then(commits => {
           if (!skip || skip == 0) {
             this.commitHistory = commits;
@@ -697,16 +693,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.suggestions = [];
       this.changeDetectorRef.detectChanges();
     }, 300);
-  }
-
-  setFilenameSplit(val: boolean) {
-    this.settingsService.settings.splitFilenameDisplay = val;
-    this.settingsService.saveSettings();
-  }
-
-  handleActiveBranchUpdate(branch: BranchModel) {
-    this.activeCommitHistoryBranch = branch;
-    this.getCommitHistory();
   }
 
   private simpleOperation(op: Promise<void>,

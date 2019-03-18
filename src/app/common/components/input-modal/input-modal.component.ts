@@ -10,7 +10,6 @@ export class InputModalComponent implements OnInit {
   @Input() modalTitle = '';
   @Input() modalId;
   @Input() message = '';
-  @Input() replaceChars: { match: RegExp, with: string };
   @Input() uidSalt = '';
   @Input() inputPlaceholder = '';
   @Input() validPattern = '';
@@ -39,9 +38,6 @@ export class InputModalComponent implements OnInit {
   }
 
   checkValid() {
-    if (this.replaceChars) {
-      this.value = this.value.replace(this.replaceChars.match, this.replaceChars.with);
-    }
     if (!this.value.match(this.validPattern)) {
       this.errorMessage = this.invalidMessage;
       return false;

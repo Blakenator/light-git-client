@@ -4,29 +4,11 @@
          [(ngModel)]="commitFilter">
 </div>
 
-<div class="commit-wrapper"
-     infinite-scroll
-     [scrollWindow]="false"
-     (scrolled)="scrolled(true)"
-     (scrolledUp)="scrolled(false)">
+<cdk-virtual-scroll-viewport class="commit-wrapper" itemSize="45" (scrolledIndexChange)="scrolled($event)">
   <table class="table table-striped">
     <thead>
     <tr>
-      <th *ngIf="!commitFilter" class="py-1 px-2">
-        <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown>
-          <button class="btn btn-primary d-inline-flex align-items-center" ngbDropdownToggle>
-            <i class="fa fa-code-branch"></i>
-          </button>
-          <div ngbDropdownMenu class="dropdown-menu">
-            <button class="dropdown-item d-flex justify-content-between"
-                    *ngFor="let b of branches"
-                    (click)="onChooseBranch.emit(activeBranch && b.name==activeBranch.name?undefined:b)">
-              {{b.name}}
-              <i class="fa fa-check ml-2" *ngIf="activeBranch && b.name==activeBranch.name"></i>
-            </button>
-          </div>
-        </div>
-      </th>
+      <th *ngIf="!commitFilter"></th>
       <th>Message
         <i class="fa fa-filter" *ngIf="commitFilter" ngbTooltip="Filtered Results"></i>
       </th>
@@ -37,7 +19,7 @@
     </tr>
     </thead>
     <tbody>
-    <tr *ngFor="let c of getFilteredCommitHistory()" class="commit-row">
+    <tr *cdkVirtualFor="let c of getFilteredCommitHistory()" class="commit-row">
       <td class="position-relative p-0" *ngIf="!commitFilter">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
       </td>
@@ -88,4 +70,4 @@
     </tr>
     </tbody>
   </table>
-</div>
+</cdk-virtual-scroll-viewport>

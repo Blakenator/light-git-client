@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {ChangeType, LightChange} from '../../../../shared/git/Commit.model';
-import {SettingsService} from '../../services/settings.service';
+import {ModalService} from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-change-list',
@@ -9,7 +9,7 @@ import {SettingsService} from '../../services/settings.service';
 })
 export class ChangeListComponent implements OnInit {
   @Input() changeFilter = '';
-  @Input() repoViewUid;
+  @Input() repoViewUid ;
   selectedChanges: { [key: string]: boolean } = {};
   @Output() onSelectChanged = new EventEmitter<{ [key: string]: boolean }>();
   @Output() onUndoFileClicked = new EventEmitter<string>();
@@ -18,7 +18,7 @@ export class ChangeListComponent implements OnInit {
   selectAll = false;
   lastClicked: string;
 
-  constructor(public settingsService: SettingsService) {
+  constructor(private modalService:ModalService) {
   }
 
   _changes: LightChange[];
@@ -107,14 +107,6 @@ export class ChangeListComponent implements OnInit {
     this.lastClicked = file;
     this.selectAll = this._changes.every(x => this.selectedChanges[x.file]);
     this.onSelectChanged.emit(this.selectedChanges);
-  }
-
-  getSplitFilepath(file: any) {
-    let res = file.replace('->', '/->/');
-    if (this.settingsService.settings.splitFilenameDisplay) {
-      res = res.substring(0, res.lastIndexOf('/'));
-    }
-    return res.split('/');
   }
 
   private updateSelection() {

@@ -244,7 +244,7 @@
                        expandKey="staged"
                        cardTitle="Staged Changes ({{changes.stagedChanges.length}})">
         <ng-template #stagedChangesHeader>
-          <div class="d-inline-block mx-2">
+          <div class="d-inline-block ml-3">
             <button class="btn btn-secondary" (click)="unstageAll()" title="Unstage All">
               <i class="fa fa-angle-double-down"></i></button>
             <button class="btn btn-secondary"
@@ -252,17 +252,9 @@
                     title="Unstage Selected">
               <i class="fa fa-angle-down"></i></button>
           </div>
-          <input class="mx-1 form-control"
+          <input class="ml-2 form-control"
                  placeholder="Filter..."
                  [(ngModel)]="stagedChangesFilter">
-          <div class="btn-group btn-group-sm mx-1">
-            <button class="btn btn{{ settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
-                    (click)="setFilenameSplit(true)">Split
-            </button>
-            <button class="btn btn{{ !settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
-                    (click)="setFilenameSplit(false)">Joined
-            </button>
-          </div>
         </ng-template>
         <app-change-list [changes]="changes.stagedChanges"
                          (onSelectChanged)="selectionChanged($event,true)"
@@ -275,24 +267,16 @@
                        expandKey="unstaged"
                        cardTitle="Unstaged Changes ({{changes.unstagedChanges.length}})">
         <ng-template #unstagedHeader>
-          <div class="d-inline-block mx-2">
+          <div class="d-inline-block ml-3">
             <button class="btn btn-secondary" (click)="stageAll()" title="Stage All">
               <i class="fa fa-angle-double-up"></i>
             </button>
             <button class="btn btn-secondary" (click)="stageSelected()" title="Stage Selected">
               <i class="fa fa-angle-up"></i></button>
           </div>
-          <input class="mx-1 form-control"
+          <input class="ml-2 form-control"
                  placeholder="Filter..."
                  [(ngModel)]="unstagedChangesFilter">
-          <div class="btn-group btn-group-sm mx-1">
-            <button class="btn btn{{ settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
-                    (click)="setFilenameSplit(true)">Split
-            </button>
-            <button class="btn btn{{ !settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
-                    (click)="setFilenameSplit(false)">Joined
-            </button>
-          </div>
         </ng-template>
         <app-change-list [changes]="changes.unstagedChanges"
                          (onSelectChanged)="selectionChanged($event,false)"
@@ -357,13 +341,12 @@
   <div class="col-sm-12 col-md-5 repo-column">
     <app-layout-card [headerContent]="commitHistoryHeader" expandKey="commit-history" customBodyClass="diff-viewer">
       <ng-template #commitHistoryHeader>
-        <div class="btn-group btn-group-sm mx-2">
-          <button class="btn btn{{ !showDiff?'-primary':'-secondary' }}"
-                  (click)="showDiff=false">Commit History
-          </button>
-          <button class="btn btn{{ showDiff?'-primary':'-secondary' }}"
-                  (click)="showDiff=true">Diff
-          </button>
+        <div class="pretty p-switch p-fill mx-2 d-flex">
+          <input type="checkbox" [(ngModel)]="showDiff"/>
+          <label>Commit History</label>
+          <div class="state ml-2">
+            <label>Diff</label>
+          </div>
         </div>
       </ng-template>
       <div class="card-body" *ngIf="showDiff">
@@ -381,9 +364,6 @@
                           (onClickCommitDiff)="viewCommitDiff($event.hash)"
                           (onClickCherryPick)="cherryPickCommit($event)"
                           (onScrollDown)="getCommitHistory(commitHistory.length)"
-                          [branches]="repo.localBranches"
-                          [activeBranch]="activeCommitHistoryBranch"
-                          (onChooseBranch)="handleActiveBranchUpdate($event)"
                           (onClickCheckout)="checkout($event.hash,false)"></app-commit-history>
     </app-layout-card>
   </div>
@@ -395,7 +375,6 @@
                    validPattern="[a-zA-Z0-9/-]*[a-zA-Z0-9-]"
                    invalidMessage="Please enter a valid branch name"
                    inputPlaceholder="Branch name..."
-                   [replaceChars]="branchReplaceChars"
                    (onClickOk)="createBranch($event)"></app-input-modal>
   <app-input-modal modalId="createStash"
                    [uidSalt]="repoViewUid"

@@ -436,43 +436,22 @@ export class GitClient {
     return new Promise<{ bash: boolean, git: boolean }>((resolve, reject) => {
       let result = {git: false, bash: false};
       let promises = [];
-      promises.push(new Promise((resolve1) => {
-        try {
-          this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
-              .then(output => {
-                result.git = output.standardOutput &&
-                  output.standardOutput.indexOf('git version') >= 0;
-                resolve1();
-              })
-              .catch(error => {
-                result.git = false;
-                resolve1();
-              });
-        } catch (e) {
-          result.git = false;
-          resolve1();
-        }
-      }));
-
-      promises.push(new Promise((resolve1) => {
-        try {
-          this.execute(this.getBashPath(), ['--version'], 'Check Bash Version')
-              .then(
-                output => {
-                  result.bash = output.standardOutput &&
-                    output.standardOutput.indexOf('GNU bash') >= 0;
-                  resolve1();
-                })
-              .catch(() => {
-                result.bash = false;
-                resolve1();
-              });
-        } catch (e) {
-          result.bash = false;
-          resolve1();
-        }
-      }));
-      Promise.all(promises).then(() => resolve(result));
+      promises.push(this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
+                        .then(output => {
+                          return result.git = output.standardOutput &&
+                            output.standardOutput.indexOf('git version') >=
+                            0;
+                        })
+                        .catch(error => {
+                          return result.git = false;
+                        }));
+      promises.push(this.execute(this.getBashPath(), ['--version'], 'Check Bash Version')
+                        .then(
+                          output => result.bash = output.standardOutput &&
+                            output.standardOutput.indexOf('GNU bash') >=
+                            0)
+                        .catch(() => result.bash = false));
+      this.handleErrorDefault(Promise.all(promises).then(() => resolve(result)), reject);
     });
   }
 
@@ -480,22 +459,16 @@ export class GitClient {
     return this.simpleOperation(this.getGitPath(), ['pull', (force ? ' -f' : '')], 'Pull');
   }
 
-  getCommitHistory(count: number, skip: number, activeBranch: string): Promise<CommitSummaryModel[]> {
+  getCommitHistory(count: number, skip: number): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
-      let args = ['rev-list',
-        '-n',
-        (count || 50) + '',
-        ' --branches' + (activeBranch ? '=*' + activeBranch : ''),
-      ];
-      if (!activeBranch) {
-        args.push('--remotes');
-      }
-      args = args.concat([
-        '--skip=' + (skip || 0),
-        '--pretty=format:||||%H|%an|%ae|%ad|%D|%P|%B\n',
-      ]);
       this.handleErrorDefault(
-        this.execute(this.getGitPath(), args, 'Get Commit History')
+        this.execute(this.getGitPath(), ['rev-list',
+          '-n',
+          (count || 50) + '',
+          ' --branches',
+          '--remotes',
+          '--skip=' + (skip || 0),
+          '--pretty=format:||||%H|%an|%ae|%ad|%D|%P|%B\n'], 'Get Commit History')
             .then(output => {
               let text = output.standardOutput;
               let result: CommitSummaryModel[] = [];
