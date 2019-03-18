@@ -1,6 +1,7 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
+import {BranchModel} from '../../../../shared/git/Branch.model';
 
 @Component({
   selector: 'app-commit-history',
@@ -9,12 +10,13 @@ import {FilterPipe} from '../../common/pipes/filter.pipe';
 })
 export class CommitHistoryComponent implements OnInit {
   @Input() commitHistory: CommitSummaryModel[];
+  @Input() branches: BranchModel[];
+  @Input() activeBranch: BranchModel;
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
   @Output() onScrollDown = new EventEmitter<any>();
   @Output() onClickCherryPick = new EventEmitter<CommitSummaryModel>();
   @Output() onClickCheckout = new EventEmitter<CommitSummaryModel>();
-  lastIndex: number;
-  lastChunkIndex = 0;
+  @Output() onChooseBranch = new EventEmitter<BranchModel>();
   scrollOffset = 0;
   numPerPage = 50;
   commitFilter: string;
@@ -30,16 +32,19 @@ export class CommitHistoryComponent implements OnInit {
     this.onClickCommitDiff.emit(commit);
   }
 
-  scrolled(currentIndex: number) {
-    if (currentIndex > this.lastIndex && Math.floor(currentIndex / this.numPerPage * 4) > this.lastChunkIndex) {
+  scrolled(down: boolean) {
+    if (down) {
       this.scrollOffset += this.numPerPage / 4;
-      this.scrollOffset = Math.round(Math.max(
-        0,
-        Math.min(this.scrollOffset, this.commitHistory.length - this.numPerPage)));
-      this.onScrollDown.emit();
-      this.lastChunkIndex = Math.floor(currentIndex / this.numPerPage * 4);
     }
-    this.lastIndex = currentIndex;
+    if (!down) {
+      this.scrollOffset -= this.numPerPage / 4;
+    }
+    this.scrollOffset = Math.round(Math.max(
+      0,
+      Math.min(this.scrollOffset, this.commitHistory.length - this.numPerPage)));
+    if (this.scrollOffset >= this.commitHistory.length - this.numPerPage) {
+      this.onScrollDown.emit();
+    }
   }
 
   getFilteredCommitHistory() {
