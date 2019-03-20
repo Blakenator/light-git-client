@@ -28,16 +28,18 @@ export class LayoutCardHeaderComponent implements OnInit {
   }
 
   toggleExpandState($event: Event) {
+    let target = <Element>$event.target;
     if (this.persistExpand) {
-      let target = <Element>$event.target;
       if (target.className.split(' ').indexOf('clickable') > -1) {
         this.settingsService.settings.expandStates[this.expandKey] = !this.settingsService.settings.expandStates[this.expandKey];
         this.settingsService.saveSettings();
         this.onToggleExpand.emit(this.settingsService.settings.expandStates[this.expandKey]);
       }
     } else {
-      this.localExpanded = !this.localExpanded;
-      this.onToggleExpand.emit(this.localExpanded);
+      if (target.className.split(' ').indexOf('clickable') > -1) {
+        this.localExpanded = !this.localExpanded;
+        this.onToggleExpand.emit(this.localExpanded);
+      }
     }
   }
 }

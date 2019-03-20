@@ -312,7 +312,7 @@ export class GitClient {
     });
   }
 
-  commit(message: string, push: boolean): Promise<any> {
+  commit(message: string, push: boolean, branch: BranchModel): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       let commitFilePath = path.join(app.getPath('userData'), 'commit.msg');
       fs.writeFileSync(commitFilePath, message, {encoding: 'utf8'});
@@ -324,10 +324,7 @@ export class GitClient {
               if (!push) {
                 resolve();
               } else {
-                this.execute(
-                  this.getGitPath(),
-                  ['push', '-q', '-u', 'origin'],
-                  'Push Current Branch')
+                this.pushBranch(branch, false)
                     .then(resolve)
                     .catch(err => reject(serializeError(err)));
               }
@@ -357,14 +354,19 @@ export class GitClient {
         ['checkout', '-q', (revision || 'HEAD'), '--', file],
         'Undo File Changes');
     } else {
-      return this.simpleOperation(
-        this.getGitPath(),
-        ['stash', 'push', '--keep-index', '--', file],
-        'Stash Local File Changes').then(() => this.simpleOperation(
+      let dropStash = () => this.simpleOperation(
         this.getGitPath(),
         ['stash', 'drop'],
         'Drop Stashed Local File Changes',
-      ));
+      );
+      return this.simpleOperation(
+        this.getGitPath(),
+        ['stash', 'push', '--keep-index', '--', file],
+        'Stash Local File Changes').then(dropStash).catch(error => {
+        if (error.toString().indexOf('fatal: unrecognized input') >= 0) {
+          return dropStash;
+        }
+      });
     }
   }
 
@@ -413,7 +415,8 @@ export class GitClient {
       ['push',
         '-q',
         'origin',
-        (branch ? branch.name + ':' + (branch.trackingPath.replace(/^origin\//, '') || branch.name) : ''),
+        (!branch.trackingPath ? '-u' : ''),
+        (branch ? branch.name + ':' + (branch.trackingPath || branch.name).replace(/^origin\//, '') : ''),
         (force ? ' --force' : '')],
       'Push');
   }

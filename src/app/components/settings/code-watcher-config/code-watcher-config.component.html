@@ -11,7 +11,7 @@
                  [headerContent]="watcherHeader"
                  [persistExpand]="false">
   <ng-template #watcherHeader>
-    <input type="text" class="form-control" (change)="changeFilename(g,$event.target.value)" [ngModel]="g">
+    <input type="text" class="form-control expanded" (change)="changeFilename(g,$event.target.value)" [ngModel]="g">
   </ng-template>
   <table class="table table-striped mb-0">
     <thead>

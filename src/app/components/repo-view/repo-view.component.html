@@ -232,7 +232,7 @@
             ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
           <pre class="p-2 bg-light command-output">Output Characters 0-1000:
-            {{(c.errorOutput || c.output).substring(0, 3000)}}</pre>
+{{(c.errorOutput || c.output).substring(0, 3000)}}</pre>
           <hr/>
         </div>
       </div>

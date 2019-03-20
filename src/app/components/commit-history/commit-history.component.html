@@ -14,16 +14,25 @@
     <tr>
       <th *ngIf="!commitFilter" class="py-1 px-2">
         <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown>
-          <button class="btn btn-primary d-inline-flex align-items-center" ngbDropdownToggle>
+          <button class="btn btn-primary d-inline-flex align-items-center"
+                  ngbDropdownToggle
+                  title="Filter to specific branch">
             <i class="fa fa-code-branch"></i>
           </button>
           <div ngbDropdownMenu class="dropdown-menu">
-            <button class="dropdown-item d-flex justify-content-between"
-                    *ngFor="let b of branches"
-                    (click)="onChooseBranch.emit(activeBranch && b.name==activeBranch.name?undefined:b)">
-              {{b.name}}
-              <i class="fa fa-check ml-2" *ngIf="activeBranch && b.name==activeBranch.name"></i>
-            </button>
+            <div (click)="$event.stopPropagation()" class="px-2 py-1">
+              <input class="form-control "
+                     [(ngModel)]="branchFilter"
+                     placeholder="Filter...">
+            </div>
+            <div class="branch-filter-content">
+              <button class="dropdown-item d-flex justify-content-between"
+                      *ngFor="let b of branches | filterObject: getBranchName : branchFilter"
+                      (click)="onChooseBranch.emit(activeBranch && b.name==activeBranch.name?undefined:b)">
+                {{b.name}}
+                <i class="fa fa-check ml-2" *ngIf="activeBranch && b.name==activeBranch.name"></i>
+              </button>
+            </div>
           </div>
         </div>
       </th>
@@ -41,17 +50,16 @@
       <td class="position-relative p-0" *ngIf="!commitFilter">
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
       </td>
-      <td class="commit-message-cell">
+      <td class="commit-message-cell p-0">
         <div class="d-flex">
-          <div class="pr-2 m-0 cursor-pointer"
+          <div class="pr-2 m-0 cursor-pointer d-flex align-items-center"
                *ngIf="messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)"
                (click)="messageExpanded[c.hash] = !messageExpanded[c.hash]">
-            <span class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></span>
-            <span class="fa fa-caret-right" *ngIf="!messageExpanded[c.hash]"></span>
+            <i class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></i>
+            <i class="fa fa-caret-right" *ngIf="!messageExpanded[c.hash]"></i>
           </div>
           <div class="flex-grow-1 message" #messageExpander [ngClass]="{'message-expanded':messageExpanded[c.hash]}">
-            <div class="d-inline-block"
-                 *ngFor="let tag of c.currentTags">
+            <div class="d-inline-block" *ngFor="let tag of c.currentTags">
               <div [ngClass]="getTagClasses(tag)" class="badge mx-1">
                 <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
                 {{tag.replace('tag: ', '')}}

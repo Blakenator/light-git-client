@@ -20,6 +20,7 @@ export class CommitHistoryComponent implements OnInit {
   scrollOffset = 0;
   numPerPage = 50;
   commitFilter: string;
+  branchFilter: string;
   messageExpanded: { [key: string]: boolean } = {};
 
   constructor() {
@@ -86,5 +87,9 @@ export class CommitHistoryComponent implements OnInit {
   checkOverflow(element) {
     return element.offsetHeight < element.scrollHeight ||
       element.offsetWidth < element.scrollWidth;
+  }
+
+  getBranchName(branch: BranchModel) {
+    return branch.name;
   }
 }
