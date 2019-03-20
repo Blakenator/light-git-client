@@ -3,7 +3,6 @@ import {ElectronService} from '../../common/services/electron.service';
 import {SettingsService} from '../../services/settings.service';
 import {SettingsModel} from '../../../../shared/SettingsModel';
 import {Channels} from '../../../../shared/Channels';
-import {CodeWatcherModel} from '../../../../shared/code-watcher.model';
 import {GitService} from '../../services/git.service';
 import {ConfigItemModel} from '../../../../shared/git/config-item.model';
 import {ModalService} from '../../common/services/modal.service';
@@ -120,7 +119,7 @@ export class SettingsComponent implements OnInit {
         this.mergetoolName = this.mergetoolConfig.value;
         this.mergetoolCommandConfig = this.configItems.find(
           item => item.key == 'mergetool.' + this.mergetoolName + '.cmd');
-        this.mergetoolCommand = this.mergetoolCommandConfig.value;
+        this.mergetoolCommand = this.mergetoolCommandConfig ? this.mergetoolCommandConfig.value : '';
       }
       this.credentialHelperConfig = this.configItems.find(item => item.key == 'credential.helper');
       if (this.credentialHelperConfig) {

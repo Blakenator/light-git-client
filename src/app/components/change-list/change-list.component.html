@@ -15,6 +15,10 @@
       File
       <i class="fa fa-filter" *ngIf="changeFilter" ngbTooltip="Filtered Results"></i>
     </th>
+    <th *ngIf="settingsService.settings.splitFilenameDisplay">
+      Path
+      <i class="fa fa-filter" *ngIf="changeFilter" ngbTooltip="Filtered Results"></i>
+    </th>
     <th width="1%"></th>
   </tr>
   </thead>
@@ -28,12 +32,15 @@
     <td>
       <i class="fas fa-{{getChangeType(c)}}" [title]="getChangeTypeDescription(c)"></i>
     </td>
+    <td *ngIf="settingsService.settings.splitFilenameDisplay" class="text-nowrap">
+      <small>{{c.file.substring(c.file.lastIndexOf('/') + 1).replace('"', '')}}</small>
+    </td>
     <td>
       <div class="change-filename" [title]="c.file">
-        <div class="d-inline-block" *ngFor="let part of c.file.replace('->','/->/').split('/'); let i=index">
+        <div class="d-inline-block" *ngFor="let part of getSplitFilepath(c.file); let i=index">
           <span class="badge badge-light" *ngIf="part!='->'">{{part}}</span>
           <small *ngIf="part=='->'"><i class="fa fa-arrow-right"></i></small>
-          <span *ngIf="i<c.file.replace('->','/->/').split('/').length-1&&part!='->'&&c.file.replace('->','/->/').split('/')[i+1]!='->'">/</span>
+          <span *ngIf="i<c.file.replace('->','/->/').split('/').length-1 && part!='->' && c.file.replace('->','/->/').split('/')[i+1]!='->'">/</span>
         </div>
       </div>
     </td>

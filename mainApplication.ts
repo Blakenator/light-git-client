@@ -246,7 +246,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.COMMIT, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].commit(args[2], args[3]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].commit(args[2], args[3],args[4]), event, args);
     });
 
     ipcMain.on(Channels.CHERRYPICKCOMMIT, (event, args) => {
@@ -254,7 +254,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.GETCOMMITHISTORY, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].getCommitHistory(args[2], args[3]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].getCommitHistory(args[2], args[3], args[4]), event, args);
     });
 
     ipcMain.on(Channels.CHECKOUT, (event, args) => {
@@ -414,6 +414,7 @@ export class MainApplication extends GenericApplication {
     ipcMain.on(Channels.DELETEFILES, (event, args) => {
       let promises = [];
       let files: string[] = args[2];
+      files = files.map(f => f.replace(/["']/g, ''));
       for (let f of files) {
         promises.push(new Promise((resolve, reject) => {
           let path1 = path.join(args[1], f);

@@ -1,7 +1,7 @@
 <head *ngIf="repo">
   <title>Light Git - {{repo.name}} - {{getCurrentBranch().name}}</title>
 </head>
-<div *ngIf="repo" (focus)="getFullRefresh()" class="row full-width">
+<div *ngIf="repo" (focus)="getFullRefresh(false)" class="row full-width">
   <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
     <h1>{{repo.name}}
       <span class="d-inline-block btn-group">
@@ -12,7 +12,7 @@
                 (click)="openFolder()"
                 title="Open Folder at Repo Root"><i class="fas fa-folder-open"></i></button>
         <button class="btn btn-primary"
-                (click)="getFullRefresh(false,true)"
+                (click)="getFullRefresh(false,false,true)"
                 title="Refresh All Changes (local and remote)"><i class="fas fa-sync-alt"></i></button>
         <button class="btn btn-warning"
                 (click)="showModal('discardAllModal')"
@@ -22,7 +22,11 @@
         </button>
       </span>
     </h1>
-    <app-layout-card [headerContent]="localsHeader" cardTitle="Locals" iconClass="fa fa-code-branch" expandKey="locals">
+    <app-layout-card [headerContent]="localsHeader"
+                     cardTitle="Locals"
+                     iconClass="fa fa-code-branch"
+                     expandKey="locals"
+                     customBodyClass="px-2">
       <ng-template #localsHeader>
         <input class="ml-2 mr-1 form-control"
                placeholder="Filter..."
@@ -52,7 +56,11 @@
                             [worktrees]="repo.worktrees"
                             (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
     </app-layout-card>
-    <app-layout-card [headerContent]="remoteHeader" cardTitle="Remotes" iconClass="fa fa-cloud" expandKey="remotes">
+    <app-layout-card [headerContent]="remoteHeader"
+                     cardTitle="Remotes"
+                     iconClass="fa fa-cloud"
+                     expandKey="remotes"
+                     customBodyClass="px-2">
       <ng-template #remoteHeader>
         <input class="ml-2 form-control"
                placeholder="Filter..."
@@ -224,7 +232,7 @@
             ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
           <pre class="p-2 bg-light command-output">Output Characters 0-1000:
-            {{(c.errorOutput || c.output).substring(0, 3000)}}</pre>
+{{(c.errorOutput || c.output).substring(0, 3000)}}</pre>
           <hr/>
         </div>
       </div>
@@ -236,7 +244,7 @@
                        expandKey="staged"
                        cardTitle="Staged Changes ({{changes.stagedChanges.length}})">
         <ng-template #stagedChangesHeader>
-          <div class="d-inline-block ml-3">
+          <div class="d-inline-block mx-2">
             <button class="btn btn-secondary" (click)="unstageAll()" title="Unstage All">
               <i class="fa fa-angle-double-down"></i></button>
             <button class="btn btn-secondary"
@@ -244,9 +252,17 @@
                     title="Unstage Selected">
               <i class="fa fa-angle-down"></i></button>
           </div>
-          <input class="ml-2 form-control"
+          <input class="mx-1 form-control"
                  placeholder="Filter..."
                  [(ngModel)]="stagedChangesFilter">
+          <div class="btn-group btn-group-sm mx-1">
+            <button class="btn btn{{ settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
+                    (click)="setFilenameSplit(true)">Split
+            </button>
+            <button class="btn btn{{ !settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
+                    (click)="setFilenameSplit(false)">Joined
+            </button>
+          </div>
         </ng-template>
         <app-change-list [changes]="changes.stagedChanges"
                          (onSelectChanged)="selectionChanged($event,true)"
@@ -259,16 +275,24 @@
                        expandKey="unstaged"
                        cardTitle="Unstaged Changes ({{changes.unstagedChanges.length}})">
         <ng-template #unstagedHeader>
-          <div class="d-inline-block ml-3">
+          <div class="d-inline-block mx-2">
             <button class="btn btn-secondary" (click)="stageAll()" title="Stage All">
               <i class="fa fa-angle-double-up"></i>
             </button>
             <button class="btn btn-secondary" (click)="stageSelected()" title="Stage Selected">
               <i class="fa fa-angle-up"></i></button>
           </div>
-          <input class="ml-2 form-control"
+          <input class="mx-1 form-control"
                  placeholder="Filter..."
                  [(ngModel)]="unstagedChangesFilter">
+          <div class="btn-group btn-group-sm mx-1">
+            <button class="btn btn{{ settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
+                    (click)="setFilenameSplit(true)">Split
+            </button>
+            <button class="btn btn{{ !settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
+                    (click)="setFilenameSplit(false)">Joined
+            </button>
+          </div>
         </ng-template>
         <app-change-list [changes]="changes.unstagedChanges"
                          (onSelectChanged)="selectionChanged($event,false)"
@@ -278,7 +302,7 @@
                          [changeFilter]="unstagedChangesFilter"></app-change-list>
       </app-layout-card>
     </div>
-    <div class="card">
+    <div class="card flex-shrink-0">
       <div class="card-body p-3">
         <div class="pretty p-switch p-fill mx-2">
           <input type="checkbox" [(ngModel)]="commitAndPush" (change)="changeDetectorRef.detectChanges()"/>
@@ -292,7 +316,7 @@
               <textarea class="form-control"
                         [(ngModel)]="changes.description"
                         placeholder="Commit message"
-                        [disabled]="loadingService.isLoading"
+                        (blur)="cancelSuggestions()"
                         (keyup.control.enter)="codeWatcherService.showWatchers()"
                         (keyup)="setCurrentCursorPosition($event)"
                         (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
@@ -333,18 +357,19 @@
   <div class="col-sm-12 col-md-5 repo-column">
     <app-layout-card [headerContent]="commitHistoryHeader" expandKey="commit-history" customBodyClass="diff-viewer">
       <ng-template #commitHistoryHeader>
-        <div class="pretty p-switch p-fill mx-2 d-flex">
-          <input type="checkbox" [(ngModel)]="showDiff"/>
-          <label>Commit History</label>
-          <div class="state ml-2">
-            <label>Diff</label>
-          </div>
+        <div class="btn-group btn-group-sm mx-2">
+          <button class="btn btn{{ !showDiff?'-primary':'-secondary' }}"
+                  (click)="showDiff=false">Commit History
+          </button>
+          <button class="btn btn{{ showDiff?'-primary':'-secondary' }}"
+                  (click)="showDiff=true">Diff
+          </button>
         </div>
       </ng-template>
       <div class="card-body" *ngIf="showDiff">
         <app-diff-viewer [diffHeaders]="diffHeaders"
                          [diffCommitInfo]="diffCommitInfo"
-                         (onHunkChanged)="getFullRefresh(false)"
+                         (onHunkChanged)="getFullRefresh(false,false)"
                          (onHunkChangeError)="hunkChangeError($event)"
                          (onIngoreWhitespaceClicked)="getFileDiff()"
                          (onExitCommitClicked)="leaveCommitDiff()"
@@ -356,6 +381,9 @@
                           (onClickCommitDiff)="viewCommitDiff($event.hash)"
                           (onClickCherryPick)="cherryPickCommit($event)"
                           (onScrollDown)="getCommitHistory(commitHistory.length)"
+                          [branches]="repo.localBranches"
+                          [activeBranch]="activeCommitHistoryBranch"
+                          (onChooseBranch)="handleActiveBranchUpdate($event)"
                           (onClickCheckout)="checkout($event.hash,false)"></app-commit-history>
     </app-layout-card>
   </div>
@@ -367,6 +395,7 @@
                    validPattern="[a-zA-Z0-9/-]*[a-zA-Z0-9-]"
                    invalidMessage="Please enter a valid branch name"
                    inputPlaceholder="Branch name..."
+                   [replaceChars]="branchReplaceChars"
                    (onClickOk)="createBranch($event)"></app-input-modal>
   <app-input-modal modalId="createStash"
                    [uidSalt]="repoViewUid"
@@ -381,7 +410,7 @@
   <app-add-worktree [uidSalt]="repoViewUid"
                     [branches]="repo.remoteBranches"
                     [worktrees]="repo.worktrees"
-                    (onAddWorktree)="getFullRefresh()"></app-add-worktree>
+                    (onAddWorktree)="getFullRefresh(false)"></app-add-worktree>
   <app-add-submodule [uidSalt]="repoViewUid"
                      (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
   <app-confirm-modal modalTitle="Confirm Discard All"

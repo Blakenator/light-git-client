@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.7.8",
+  "version": "0.8.0",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -22,7 +22,7 @@
     "build:prod": "npm run build -- -c production",
     "ng:serve": "npx del-cli dist/**/* && ng build --watch",
     "electron:tsc": "npx tsc --p tsconfig-electron.json || echo",
-    "electron:serve": "nodemon --ignore dist --watch ./ -e ts,html,scss --exec \"npm run electron:tsc && electron --inspect .\"",
+    "electron:serve": "nodemon --ignore dist --watch ./ -e ts,html,scss --exec \"npm run electron:tsc && electron --inspect --remote-debugging-port=9223 .\"",
     "electron:local": "npm run build:prod && electron .",
     "electron:linux": "npm run build:prod && npx electron-builder build --linux",
     "electron:windows": "npm run build:prod && npx electron-builder build --windows",

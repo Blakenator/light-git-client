@@ -13,6 +13,9 @@ import {CommitModel} from '../../../shared/git/Commit.model';
 import {CommandOutputModel} from '../../../shared/common/command.output.model';
 import {CommitSummaryModel} from '../../../shared/git/CommitSummary.model';
 import {SettingsService} from './settings.service';
+import {AlertService} from '../common/services/alert.service';
+import {NotificationModel} from '../../../shared/notification.model';
+import {BranchModel} from '../../../shared/git/Branch.model';
 
 @Injectable({
   providedIn: 'root',
@@ -28,7 +31,8 @@ export class GitService {
 
   constructor(private electronService: ElectronService,
               private errorService: ErrorService,
-              private settingsService: SettingsService) {
+              private settingsService: SettingsService,
+              private alertService: AlertService) {
     electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
   }
 
@@ -56,7 +60,7 @@ export class GitService {
   }
 
   mergeBranch(branch: string): Promise<void> {
-    return this.electronService.rpc(Channels.MERGEBRANCH, [this.repo.path, branch]);
+    return this.swallowError(this.electronService.rpc(Channels.MERGEBRANCH, [this.repo.path, branch]));
   }
 
   addWorktree(location: string, branch: string, callback: (out: string, err: string, done: boolean) => any) {
@@ -95,7 +99,8 @@ export class GitService {
   }
 
   updateSubmodules(branch: string, recursive: boolean): Promise<void> {
-    return this.handleAirplaneMode(this.electronService.rpc(Channels.UPDATESUBMODULES,
+    return this.handleAirplaneMode(this.electronService.rpc(
+      Channels.UPDATESUBMODULES,
       [this.repo.path, branch, recursive]));
   }
 
@@ -111,13 +116,15 @@ export class GitService {
     return this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.repo.path, branchHash]);
   }
 
-  getCommitHistory(skip: number): Promise<CommitSummaryModel[]> {
-    return this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip]);
+  getCommitHistory(skip: number, activeBranch?: string): Promise<CommitSummaryModel[]> {
+    return this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip, activeBranch]);
   }
 
   loadRepo(repoPath: string): Promise<RepositoryModel> {
+    this.repo = new RepositoryModel();
+    this.repo.path = repoPath;
     return this.electronService.rpc(Channels.LOADREPO, [repoPath]).then(repo => {
-      this.repo = new RepositoryModel().copy(repo);
+      this.repo.copy(repo);
       this.isRepoLoaded = true;
       this._repoLoaded.next();
       return Promise.resolve(this.repo);
@@ -148,8 +155,10 @@ export class GitService {
     return this.handleAirplaneMode(this.electronService.rpc(Channels.PULL, [this.repo.path, force]));
   }
 
-  push(branch: string, force: boolean): Promise<void> {
-    return this.handleAirplaneMode(this.electronService.rpc(Channels.PUSH, [this.repo.path, branch, force]));
+  push(branch: BranchModel, force: boolean): Promise<void> {
+    return this.detectRemoteMessage(this.handleAirplaneMode(this.electronService.rpc(
+      Channels.PUSH,
+      [this.repo.path, branch, force])), true);
   }
 
   deleteFiles(files: string[]): Promise<void> {
@@ -180,12 +189,12 @@ export class GitService {
     this.electronService.rpc(Channels.CHECKGITBASHVERSIONS, ['./']).then(handleResult).catch(handleResult);
   }
 
-  stage(file: string): Promise<void> {
-    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, file]), true);
+  stage(files: string[]): Promise<void> {
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, files]), true);
   }
 
-  unstage(file: string): Promise<void> {
-    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, file]), true);
+  unstage(files: string[]): Promise<void> {
+    return this.detectCrlfWarning(this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, files]), true);
   }
 
   createBranch(branchName: string): Promise<void> {
@@ -205,7 +214,9 @@ export class GitService {
   }
 
   stashChanges(onlyUnstaged: boolean, stashName: string): Promise<void> {
-    return this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged, stashName]);
+    return this.detectCrlfWarning(
+      this.electronService.rpc(Channels.STASH, [this.repo.path, onlyUnstaged, stashName]),
+      true);
   }
 
   fetch(): Promise<void> {
@@ -213,7 +224,9 @@ export class GitService {
   }
 
   undoFileChanges(file: string, revision: string, staged: boolean): Promise<void> {
-    return this.electronService.rpc(Channels.UNDOFILECHANGES, [this.repo.path, file, revision, staged]);
+    return this.detectCrlfWarning(this.electronService.rpc(
+      Channels.UNDOFILECHANGES,
+      [this.repo.path, file, revision, staged]), true);
   }
 
   hardReset(): Promise<void> {
@@ -221,7 +234,9 @@ export class GitService {
   }
 
   commit(description: string, commitAndPush: boolean): Promise<void> {
-    return this.electronService.rpc(Channels.COMMIT, [this.repo.path, description, commitAndPush]);
+    return this.detectRemoteMessage(this.electronService.rpc(
+      Channels.COMMIT,
+      [this.repo.path, description, commitAndPush, this.repo.localBranches.find(b => b.isCurrentBranch)]), true);
   }
 
   getBranchChanges(): Promise<RepositoryModel> {
@@ -242,6 +257,12 @@ export class GitService {
 
   private isAirplaneMode() {
     return this.settingsService.settings.airplaneMode;
+  }
+
+  private swallowError<T>(promise: Promise<T>) {
+    return new Promise<T>((resolve, reject) => {
+      promise.then(resolve).catch(() => resolve());
+    });
   }
 
   private detectCrlfWarning<T>(promise: Promise<CommandOutputModel<T>>, onCatch: boolean = false) {
@@ -275,10 +296,60 @@ export class GitService {
     } else {
       if (!output.errorOutput) {
         resolve(output.content);
+        return;
       }
       let crlfMatch = output.errorOutput.match(crlf);
       if (crlfMatch) {
         this._onCrlfError.next({start: crlfMatch[2], end: crlfMatch[4]});
+        resolve(output.content);
+      } else {
+        reject(output.errorOutput);
+      }
+    }
+  }
+
+  private detectRemoteMessage<T>(promise: Promise<CommandOutputModel<T>>, onCatch: boolean = false) {
+    return new Promise<T>((resolve, reject) => {
+      if (onCatch) {
+        promise.then(output => output ? resolve(output.content) : resolve()).catch(output => {
+          this._detectRemoteMessageInternal(output, resolve, reject);
+        });
+      } else {
+        promise.then(output => {
+          this._detectRemoteMessageInternal(output, resolve, reject);
+        }).catch(output => output ? reject(output.errorOutput || output) : reject());
+      }
+    });
+  }
+
+  private _detectRemoteMessageInternal(output: string | CommandOutputModel, resolve: Function, reject: Function) {
+    const crlf = /^(\s*remote:(\s+.*?\r?\n?)?)+$/im;
+    if (output == undefined) {
+      resolve();
+      return;
+    }
+    if (typeof output == 'string') {
+      let crlfMatch = output.replace(/\r?\n\s*(\r?\n|$)/g, '').match(crlf);
+      if (crlfMatch) {
+        let notificationModel = new NotificationModel();
+        notificationModel.message = output.replace(/remote:\s+/g, '');
+        notificationModel.title = 'Message from Remote';
+        this.alertService.showNotification(notificationModel);
+        resolve();
+      } else {
+        reject(output);
+      }
+    } else {
+      if (!output.errorOutput) {
+        resolve(output.content);
+        return;
+      }
+      let crlfMatch = output.errorOutput.replace(/\r?\n\s*(\r?\n|$)/g, '').match(crlf);
+      if (crlfMatch) {
+        let notificationModel = new NotificationModel();
+        notificationModel.message = output.errorOutput.replace(/remote:\s+/g, '');
+        notificationModel.title = 'Message from Remote';
+        this.alertService.showNotification(notificationModel);
         resolve(output.content);
       } else {
         reject(output.errorOutput);

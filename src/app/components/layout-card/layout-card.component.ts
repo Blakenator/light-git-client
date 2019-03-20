@@ -18,6 +18,7 @@ export class LayoutCardComponent implements OnInit {
   @Input() maxHeightVh: number;
   @Input() headerContent: TemplateRef<any>;
   @HostBinding('class.flex-grow-1') flexGrowClass = false;
+  @HostBinding('class.min-height') flexMinHeightClass = true;
   @HostBinding('class.d-flex') flexBinding = true;
   @HostBinding('class.flex-column') flexColumnBinding = true;
 
@@ -32,5 +33,6 @@ export class LayoutCardComponent implements OnInit {
 
   updateFlexBindings(expanded: boolean) {
     this.flexGrowClass = expanded && !this.maxHeightVh;
+    this.flexMinHeightClass = !expanded || !!this.maxHeightVh;
   }
 }

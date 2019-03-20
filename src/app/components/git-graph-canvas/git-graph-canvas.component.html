@@ -1,4 +1,4 @@
-<svg class="position-absolute" height="100%" [attr.width]="getSvgWidth()">
+<svg class="position-absolute" height="100%" [attr.width]="getSvgWidth()-10">
   <g *ngFor="let block of commit.graphBlockTargets">
     <path *ngIf="block.target>=0"
           [attr.d]="getCurvedPathDef(block)"

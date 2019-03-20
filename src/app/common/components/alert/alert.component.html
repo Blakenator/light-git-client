@@ -1,0 +1,11 @@
+<div class="position-fixed alert-drawer">
+  <div class="alert alert-info m-3 d-flex pr-0" *ngFor="let n of notifications;let i=index">
+    <div class="flex-grow-1 alert-body">
+      <h5 class="alert-heading">{{n.title}}</h5>
+      <pre class="m-0">{{n.message}}</pre>
+    </div>
+    <button class="close px-2" (click)="dismissAlert(i)">
+      <small><span class="fa fa-times"></span></small>
+    </button>
+  </div>
+</div>
