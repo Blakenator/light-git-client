@@ -50,6 +50,7 @@ import {LayoutCardComponent} from './components/layout-card/layout-card.componen
 import {LayoutCardHeaderComponent} from './components/layout-card/layout-card-header/layout-card-header.component';
 import {CodeWatcherConfigComponent} from './components/settings/code-watcher-config/code-watcher-config.component';
 import {AlertComponent} from './common/components/alert/alert.component';
+import {DragDropModule} from '@angular/cdk/drag-drop';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -106,6 +107,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     }),
     NoopAnimationsModule,
     ScrollingModule,
+    DragDropModule,
   ],
   providers: [ElectronService, SettingsService,
     {

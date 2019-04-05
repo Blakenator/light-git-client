@@ -2,6 +2,7 @@ import {Component, OnInit} from '@angular/core';
 import {ErrorService} from '../../services/error.service';
 import {ErrorModel} from '../../../../../shared/common/error.model';
 import {ModalService} from '../../services/modal.service';
+import {ClipboardService} from '../../../services/clipboard.service';
 
 @Component({
   selector: 'app-error-message',
@@ -13,7 +14,9 @@ export class ErrorMessageComponent implements OnInit {
   currentError = 0;
   getRootError = ErrorModel.getRootError;
 
-  constructor(private errorService: ErrorService, private modalService: ModalService) {
+  constructor(private errorService: ErrorService,
+              private modalService: ModalService,
+              public clipboardService: ClipboardService) {
     errorService.onErrorReceived.asObservable().subscribe(error => this.handleError(error));
   }
 
@@ -30,7 +33,9 @@ export class ErrorMessageComponent implements OnInit {
   }
 
   cycleError(next: number) {
-    this.currentError = (this.currentError + next < 0 ? this.currentError + next + this.errors.length : this.currentError + next) % this.errors.length;
+    this.currentError = (this.currentError + next < 0 ?
+                         this.currentError + next + this.errors.length :
+                         this.currentError + next) % this.errors.length;
   }
 
   private handleError(error: ErrorModel) {

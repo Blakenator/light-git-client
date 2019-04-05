@@ -30,9 +30,9 @@
                 <i class="fas fa-arrow-up"></i>
               </span>
               <span class="badge badge-info ml-1"
-                    [ngClass]="{'cursor-pointer':b.isCurrentBranch}"
+                    [ngClass]="{'cursor-pointer':b.isCurrentBranch||(b.behind && !b.ahead),'disabled':!b.isCurrentBranch && (!b.behind || b.ahead)}"
                     *ngIf="b.behind"
-                    (click)="checkPull(b)">{{b.behind || 0}} <i class="fas fa-arrow-down"></i>
+                    (click)="checkFastForward(b)">{{b.behind || 0}} <i class="fas fa-arrow-down"></i>
               </span>
             </span>
           </div>
@@ -49,12 +49,12 @@
                  (keyup.enter)="renameBranch(b.name)"
                  [(ngModel)]="activeRenames[b.name]">
           <div class="input-group-append">
-            <button class="btn btn-sm btn-light mx-1"
+            <button class="btn btn-sm btn-light"
                     title="Cancel rename"
                     (click)="cancelRename(b.name)">
               <i class="fa fa-times-circle"></i>
             </button>
-            <button class="btn btn-sm btn-success mx-1" title="Rename local branch" (click)="renameBranch(b.name)">
+            <button class="btn btn-sm btn-success" title="Rename local branch" (click)="renameBranch(b.name)">
               <i class="fa fa-check"></i></button>
           </div>
         </div>
@@ -79,7 +79,8 @@
             <div ngbDropdownMenu>
               <button class="btn btn-primary px-1"
                       (click)="checkoutBranch(b.name,true)"
-                      title="Checkout and Pull">
+                      title="Checkout and Pull"
+                      [disabled]="checkedOutOtherWorktree(b)">
                 <small>
                   <i class="fa fa-shopping-cart"></i>
                   +
@@ -95,8 +96,8 @@
             <i class="fa fa-history"></i>
           </button>
           <button class="btn btn-light btn-sm"
-                  (click)="onFastForwardClicked.emit(b.name)"
                   *ngIf="!b.isCurrentBranch"
+                  (click)="onFastForwardClicked.emit(b.name)"
                   [disabled]="b.ahead || !b.behind"
                   title="Fast Forward Branch">
             <i class="fa fa-fast-forward"></i>

@@ -109,6 +109,7 @@ export class GitService {
   }
 
   getFileDiff(unstaged: string[], staged: string[]): Promise<DiffHeaderModel[]> {
+    console.log('file diff');
     return this.detectCrlfWarning(this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]));
   }
 
@@ -121,8 +122,10 @@ export class GitService {
   }
 
   loadRepo(repoPath: string): Promise<RepositoryModel> {
+    this.repo = new RepositoryModel();
+    this.repo.path = repoPath;
     return this.electronService.rpc(Channels.LOADREPO, [repoPath]).then(repo => {
-      this.repo = new RepositoryModel().copy(repo);
+      this.repo.copy(repo);
       this.isRepoLoaded = true;
       this._repoLoaded.next();
       return Promise.resolve(this.repo);
@@ -234,7 +237,7 @@ export class GitService {
   commit(description: string, commitAndPush: boolean): Promise<void> {
     return this.detectRemoteMessage(this.electronService.rpc(
       Channels.COMMIT,
-      [this.repo.path, description, commitAndPush]), true);
+      [this.repo.path, description, commitAndPush, this.repo.localBranches.find(b => b.isCurrentBranch)]), true);
   }
 
   getBranchChanges(): Promise<RepositoryModel> {

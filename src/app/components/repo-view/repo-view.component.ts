@@ -19,7 +19,7 @@ import {BranchModel} from '../../../../shared/git/Branch.model';
 import {GlobalErrorHandlerService} from '../../common/services/global-error-handler.service';
 import {StashModel} from '../../../../shared/git/stash.model';
 import {WorktreeModel} from '../../../../shared/git/worktree.model';
-import {DiffHeaderModel} from '../../../../shared/git/diff.header.model';
+import {DiffHeaderModel, DiffHeaderStagedState} from '../../../../shared/git/diff.header.model';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
 import {CommandHistoryModel} from '../../../../shared/git/command-history.model';
 import {GitService} from '../../services/git.service';
@@ -140,10 +140,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   stageSelected() {
-    if (Object.values(this.selectedUnstagedChanges).filter(x => x).length == 0) {
+    if (Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).length == 0) {
       return;
     }
-    let files = Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]);
+    let files = Object.keys(this.selectedUnstagedChanges)
+                      .filter(x => this.selectedUnstagedChanges[x])
+                      .map(f => f.replace(/.*?->\s*/, ''));
     this.simpleOperation(this.gitService.stage(files), 'stageSelectedChanges', 'staging selected changes');
     this.selectedUnstagedChanges = {};
   }
@@ -154,10 +156,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   unstageSelected() {
-    if (Object.values(this.selectedStagedChanges).filter(x => x).length == 0) {
+    if (Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).length == 0) {
       return;
     }
-    let files = Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]);
+    let files = Object.keys(this.selectedStagedChanges)
+                      .filter(x => this.selectedStagedChanges[x])
+                      .map(f => f.replace(/.*?->\s*/, ''));
     this.simpleOperation(this.gitService.unstage(files), 'unstageSelectedChanges', 'unstaging selected changes');
     this.selectedStagedChanges = {};
   }
@@ -268,7 +272,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.loadingService.setLoading(true);
     this.gitService.getFileDiff(unstaged, staged)
         .then(diff => {
-          this.diffHeaders = diff;
+          this.diffHeaders = diff.sort((a, b) => {
+            if (a.stagedState != b.stagedState) {
+              return a.stagedState == DiffHeaderStagedState.UNSTAGED ? 1 : -1;
+            }
+            return a.toFilename.localeCompare(b.toFilename);
+          });
           this.hasWatcherAlerts = this.codeWatcherService.getWatcherAlerts(this.diffHeaders).length > 0;
           this.changeDetectorRef.detectChanges();
           this.loadingService.setLoading(false);
@@ -707,6 +716,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   handleActiveBranchUpdate(branch: BranchModel) {
     this.activeCommitHistoryBranch = branch;
     this.getCommitHistory();
+  }
+
+  startCommit() {
+    if (this.changes.stagedChanges.length > 0) {
+      this.codeWatcherService.showWatchers();
+    }
   }
 
   private simpleOperation(op: Promise<void>,

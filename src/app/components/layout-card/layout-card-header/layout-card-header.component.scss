@@ -16,7 +16,7 @@
     -o-transition: max-width .3s;
     transition: max-width .3s;
 
-    &:active, &:focus {
+    &:active, &:focus, &.expanded {
       max-width: 30em;
     }
   }

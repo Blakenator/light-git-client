@@ -10,15 +10,20 @@
     <pre>{{getRootErrorMessage(rootError)}}</pre>
   </div>
   <div class="modal-footer">
-        <span *ngIf="errors.length>1">
-            ({{currentError + 1}} / {{errors.length}})
-            <button class="btn btn-light"
-                    title="Previous Error"
-                    (click)="cycleError(-1)"><i class="fa fa-caret-left"></i></button>
-            <button class="btn btn-light"
-                    title="Next Error"
-                    (click)="cycleError(1)"><i class="fa fa-caret-right"></i></button>
-          </span>
+    <button class="btn btn-light"
+            title="Copy"
+            (click)="clipboardService.copy(getRootErrorMessage(errors[currentError]))">
+      <i class="fa fa-copy"></i>
+    </button>
+    <div class="d-inline-block" *ngIf="errors.length>1">
+      ({{currentError + 1}} / {{errors.length}})
+      <button class="btn btn-light"
+              title="Previous Error"
+              (click)="cycleError(-1)"><i class="fa fa-caret-left"></i></button>
+      <button class="btn btn-light"
+              title="Next Error"
+              (click)="cycleError(1)"><i class="fa fa-caret-right"></i></button>
+    </div>
     <button class="btn btn-secondary" (click)="close()" [autofocus]>Ok</button>
   </div>
 </app-modal>>
