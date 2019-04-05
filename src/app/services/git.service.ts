@@ -109,6 +109,7 @@ export class GitService {
   }
 
   getFileDiff(unstaged: string[], staged: string[]): Promise<DiffHeaderModel[]> {
+    console.log('file diff');
     return this.detectCrlfWarning(this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]));
   }
 

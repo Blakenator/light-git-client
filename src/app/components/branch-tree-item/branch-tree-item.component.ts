@@ -120,13 +120,15 @@ export class BranchTreeItemComponent implements OnInit {
     this.onCheckoutClicked.emit({branch: name, andPull: ff});
   }
 
-  checkPull(b: BranchModel) {
-    if(b.isCurrentBranch){
+  checkFastForward(b: BranchModel) {
+    if (b.isCurrentBranch) {
       this.onPullClicked.emit();
+    } else if (b.behind && !b.ahead) {
+      this.onFastForwardClicked.emit(b.name);
     }
   }
 
-  isBranchCurrent(name:string) {
+  isBranchCurrent(name: string) {
     return !!this.localBranches.find(local => local.name == name.replace('origin/', '') && local.isCurrentBranch);
   }
 }

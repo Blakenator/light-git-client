@@ -232,7 +232,7 @@
             ms @ {{c.executedAt | date : 'mediumTime'}})</span>
           <pre>$ {{c.command}}</pre>
           <pre class="p-2 bg-light command-output">Output Characters 0-1000:
-{{(c.errorOutput || c.output).substring(0, 3000)}}</pre>
+            {{(c.errorOutput || c.output).substring(0, 3000)}}</pre>
           <hr/>
         </div>
       </div>
@@ -317,13 +317,14 @@
                         [(ngModel)]="changes.description"
                         placeholder="Commit message"
                         (blur)="cancelSuggestions()"
-                        (keyup.control.enter)="codeWatcherService.showWatchers()"
+                        (keyup.control.enter)="startCommit()"
                         (keyup)="setCurrentCursorPosition($event)"
                         (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
-              <div class="input-group-append">
+              <div class="input-group-append"
+                   [ngbTooltip]="changes.stagedChanges.length==0 ? 'No staged changes' : ''">
                 <button class="btn btn-success"
-                        (click)="codeWatcherService.showWatchers()"
-                        [disabled]="loadingService.isLoading">Commit
+                        (click)="startCommit()"
+                        [disabled]="loadingService.isLoading || changes.stagedChanges.length==0">Commit
                 </button>
               </div>
               <div class="input-group-append" *ngIf="hasWatcherAlerts">
