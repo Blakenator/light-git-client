@@ -269,6 +269,7 @@
                          (onUndoFileClicked)="confirmUndo($event)"
                          (onMergeClicked)="merge($event)"
                          (onDeleteClicked)="deleteClicked($event)"
+                         [submodules]="repo.submodules"
                          [changeFilter]="stagedChangesFilter"></app-change-list>
       </app-layout-card>
       <app-layout-card [headerContent]="unstagedHeader"
@@ -299,6 +300,7 @@
                          (onUndoFileClicked)="undoFileChanges($event,false)"
                          (onMergeClicked)="merge($event)"
                          (onDeleteClicked)="deleteClicked($event)"
+                         [submodules]="repo.submodules"
                          [changeFilter]="unstagedChangesFilter"></app-change-list>
       </app-layout-card>
     </div>

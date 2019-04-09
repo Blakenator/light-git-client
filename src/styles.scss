@@ -309,3 +309,21 @@ $status-deleted: rgba(222, 35, 14, 0.6);
 .cursor-pointer {
   cursor: pointer;
 }
+
+.table.table-striped {
+  td, th {
+    border: none;
+  }
+
+  tr:nth-child(even), th {
+    background-color: rgba(128, 128, 128, .1);
+  }
+
+  tr {
+    transition: background-color .3s;
+  }
+
+  tr:hover {
+    background-color: rgba(128, 128, 128, .2);
+  }
+}
