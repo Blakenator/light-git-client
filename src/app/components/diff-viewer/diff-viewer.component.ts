@@ -147,6 +147,10 @@ export class DiffViewerComponent implements OnInit {
     return header.hunks.map(x => x.lines.length).reduce((a, b) => a + b, 0);
   }
 
+  getLocalExpandedDefault(header: DiffHeaderModel) {
+    return header.action != 'Deleted' && this.getHeaderLines(header) < 200 && header.hunks.length > 0;
+  }
+
   private getTemporaryHunk(header: DiffHeaderModel, hunk: DiffHunkModel) {
     let temp = Object.assign(new DiffHeaderModel(), header);
     temp.hunks = [hunk];
