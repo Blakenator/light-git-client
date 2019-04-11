@@ -19,7 +19,7 @@ import {BranchModel} from '../../../../shared/git/Branch.model';
 import {GlobalErrorHandlerService} from '../../common/services/global-error-handler.service';
 import {StashModel} from '../../../../shared/git/stash.model';
 import {WorktreeModel} from '../../../../shared/git/worktree.model';
-import {DiffHeaderModel} from '../../../../shared/git/diff.header.model';
+import {DiffHeaderModel, DiffHeaderStagedState} from '../../../../shared/git/diff.header.model';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
 import {CommandHistoryModel} from '../../../../shared/git/command-history.model';
 import {GitService} from '../../services/git.service';
@@ -43,7 +43,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   selectedUnstagedChanges: { [key: string]: boolean } = {};
   selectedStagedChanges: { [key: string]: boolean } = {};
   diffHeaders: DiffHeaderModel[] = [];
-  commitAndPush = false;
   commitHistory: CommitSummaryModel[] = [];
   showDiff = false;
   @Input() repoPath = 'C:/Users/blake/Documents/projects/test-repo';
@@ -140,10 +139,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   stageSelected() {
-    if (Object.values(this.selectedUnstagedChanges).filter(x => x).length == 0) {
+    if (Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).length == 0) {
       return;
     }
-    let files = Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]);
+    let files = Object.keys(this.selectedUnstagedChanges)
+                      .filter(x => this.selectedUnstagedChanges[x])
+                      .map(f => f.replace(/.*?->\s*/, ''));
     this.simpleOperation(this.gitService.stage(files), 'stageSelectedChanges', 'staging selected changes');
     this.selectedUnstagedChanges = {};
   }
@@ -154,10 +155,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   unstageSelected() {
-    if (Object.values(this.selectedStagedChanges).filter(x => x).length == 0) {
+    if (Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).length == 0) {
       return;
     }
-    let files = Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]);
+    let files = Object.keys(this.selectedStagedChanges)
+                      .filter(x => this.selectedStagedChanges[x])
+                      .map(f => f.replace(/.*?->\s*/, ''));
     this.simpleOperation(this.gitService.unstage(files), 'unstageSelectedChanges', 'unstaging selected changes');
     this.selectedStagedChanges = {};
   }
@@ -268,7 +271,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.loadingService.setLoading(true);
     this.gitService.getFileDiff(unstaged, staged)
         .then(diff => {
-          this.diffHeaders = diff;
+          this.diffHeaders = diff.sort((a, b) => {
+            if (a.stagedState != b.stagedState) {
+              return a.stagedState == DiffHeaderStagedState.UNSTAGED ? 1 : -1;
+            }
+            return a.toFilename.localeCompare(b.toFilename);
+          });
           this.hasWatcherAlerts = this.codeWatcherService.getWatcherAlerts(this.diffHeaders).length > 0;
           this.changeDetectorRef.detectChanges();
           this.loadingService.setLoading(false);
@@ -307,7 +315,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     this.loadingService.setLoading(true);
-    this.gitService.commit(this.changes.description, this.commitAndPush)
+    this.gitService.commit(this.changes.description, this.settingsService.settings.commitAndPush)
         .then(() => {
           this.changes.description = '';
           this.showDiff = false;
@@ -596,10 +604,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     let optionsSet: { [key: string]: number } = {};
     this.changes.stagedChanges.forEach(x =>
       this.getFilenameChunks(x.file)
-          .forEach(y => optionsSet[y.trim()] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
+          .forEach(filenameChunk => {
+            let suggestion = filenameChunk.trim().replace(/\.[^\.]*$/, '');
+            return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
+          }));
     this.changes.unstagedChanges.forEach(x =>
       this.getFilenameChunks(x.file)
-          .forEach(y => optionsSet[y.trim()] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
+          .forEach(filenameChunk => {
+            let suggestion = filenameChunk.trim().replace(/\.[^\.]*$/, '');
+            return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
+          }));
 
     const currentBranchName = this.getCurrentBranch().name;
     this.getFilenameChunks(currentBranchName)
@@ -709,10 +723,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.getCommitHistory();
   }
 
+  startCommit() {
+    if (this.changes.stagedChanges.length > 0) {
+      this.codeWatcherService.showWatchers();
+    }
+  }
+
   private simpleOperation(op: Promise<void>,
                           functionName: string,
                           occurredWhile: string,
-                          clearCommitInfo: boolean = false, fullRefresh: boolean = true): Promise<void> {
+                          clearCommitInfo: boolean = false,
+                          fullRefresh: boolean = true): Promise<void> {
     this.loadingService.setLoading(true);
     return op.then(() => {
       if (fullRefresh) {

@@ -342,7 +342,12 @@ export class GitClient {
       tag,
       (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '')], 'Checkout');
     if (andPull) {
-      checkoutOp.then(() => this.pull(false));
+      checkoutOp.then(() => {
+        return new Promise<void>((resolve, reject) => {
+          setTimeout(() =>
+            this.pull(false).then(() => setTimeout(() => resolve(), 500)).catch(reject), 1000);
+        });
+      });
     }
     return checkoutOp;
   }
@@ -364,7 +369,7 @@ export class GitClient {
         ['stash', 'push', '--keep-index', '--', file],
         'Stash Local File Changes').then(dropStash).catch(error => {
         if (error.toString().indexOf('fatal: unrecognized input') >= 0) {
-          return dropStash;
+          return dropStash();
         }
       });
     }
@@ -714,7 +719,7 @@ export class GitClient {
     }));
   }
 
-  private parseDiffString(text: string, state: DiffHeaderStagedState): DiffHeaderModel[] {
+  public parseDiffString(text: string, state: DiffHeaderStagedState): DiffHeaderModel[] {
     let diffHeader = /^diff (--git a\/((\s*\S+)+?) b\/((\s*\S+)+?)|--cc ((\s*\S+)+?))((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
     let hunk = /\s*@@@?( -(\d+)(,(\d+))?){1,2} \+(\d+)(,(\d+))? @@@?.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
     let line = /^([+\- ])(.*)$/gm;
@@ -869,6 +874,8 @@ export class GitClient {
                                 .concat(commandHistoryModel);
       this.commandHistoryListener.next(this.commandHistory);
     });
+    progress.on('error', () => subject.next(new CommandEvent(undefined, undefined, true, -1)));
+
     return subject.asObservable();
   }
 

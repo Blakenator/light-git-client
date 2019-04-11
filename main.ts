@@ -1,4 +1,4 @@
-import {app} from 'electron';
+import {app, dialog} from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import {GitClient} from './git/GitClient';
@@ -11,10 +11,16 @@ const errorOutput = fs.createWriteStream(path.join(app.getPath('userData'), 'std
 const logger = new console.Console(output, errorOutput);
 GitClient.logger = logger;
 
-process.on('uncaughtException', function (error) {
+process.on('uncaughtException', (error) => {
   logger.error(JSON.stringify(error));
   console.error(error);
-  throw error;
+
+  dialog.showMessageBox({
+    type: 'error',
+    message: `An error occurred. Please see the log for more details. Message: ${error.message}`,
+  }, () => {
+    process.exit(-1);
+  });
 });
 
 function getAskPassInstance(host: string) {

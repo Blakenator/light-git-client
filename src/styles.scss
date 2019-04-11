@@ -294,7 +294,9 @@ app-modal .embedded-repo-view {
 }
 
 .disabled, .btn:disabled, input:disabled {
-  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  $light: rgba(255, 255, 255, 0.07);
+  $dark: rgba(0, 0, 0, 0.07);
+  background-image: linear-gradient(45deg, $light 25%, $dark 25%, $dark 50%, $light 50%, $light 75%, $dark 75%, $dark);
   background-size: 1rem 1rem;
 }
 
@@ -304,6 +306,24 @@ $status-renamed: rgba(203, 24, 222, 0.6);
 $status-added: rgba(63, 222, 36, 0.6);
 $status-deleted: rgba(222, 35, 14, 0.6);
 
-.cursor-pointer{
+.cursor-pointer {
   cursor: pointer;
+}
+
+.table.table-striped {
+  td, th {
+    border: none;
+  }
+
+  tr:nth-child(even), th {
+    background-color: rgba(128, 128, 128, .1);
+  }
+
+  tr {
+    transition: background-color .3s;
+  }
+
+  tr:hover {
+    background-color: rgba(128, 128, 128, .2);
+  }
 }

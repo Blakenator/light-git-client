@@ -20,7 +20,7 @@ import {AppComponent} from './app.component';
 import {HomeComponent} from './screens/home/home.component';
 import {SettingsComponent} from './components/settings/settings.component';
 import {SettingsService} from './services/settings.service';
-import {LoadingSpinnerComponent} from './components/loading-spinner/loading-spinner.component';
+import {LoadingSpinnerComponent} from './common/components/loading-spinner/loading-spinner.component';
 import {RepoViewComponent} from './components/repo-view/repo-view.component';
 import {ChangeListComponent} from './components/change-list/change-list.component';
 import {DiffViewerComponent} from './components/diff-viewer/diff-viewer.component';
@@ -42,7 +42,7 @@ import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
 import {AddSubmoduleComponent} from './components/add-submodule/add-submodule.component';
 import {GitGraphCanvasComponent} from './components/git-graph-canvas/git-graph-canvas.component';
 import {ModalComponent} from './common/components/modal/modal.component';
-import {ConfirmModalComponent} from './components/confirm-modal/confirm-modal.component';
+import {ConfirmModalComponent} from './common/components/confirm-modal/confirm-modal.component';
 import {AskPassComponent} from './screens/ask-pass/ask-pass.component';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ScrollingModule} from '@angular/cdk/scrolling';
@@ -50,6 +50,7 @@ import {LayoutCardComponent} from './components/layout-card/layout-card.componen
 import {LayoutCardHeaderComponent} from './components/layout-card/layout-card-header/layout-card-header.component';
 import {CodeWatcherConfigComponent} from './components/settings/code-watcher-config/code-watcher-config.component';
 import {AlertComponent} from './common/components/alert/alert.component';
+import {DragDropModule} from '@angular/cdk/drag-drop';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -106,6 +107,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     }),
     NoopAnimationsModule,
     ScrollingModule,
+    DragDropModule,
   ],
   providers: [ElectronService, SettingsService,
     {

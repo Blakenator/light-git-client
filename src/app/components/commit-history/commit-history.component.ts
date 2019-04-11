@@ -84,12 +84,18 @@ export class CommitHistoryComponent implements OnInit {
     return commit.message.split(/\r?\n/g);
   }
 
-  checkOverflow(element) {
+  checkOverflow(element: any) {
     return element.offsetHeight < element.scrollHeight ||
       element.offsetWidth < element.scrollWidth;
   }
 
   getBranchName(branch: BranchModel) {
     return branch.name;
+  }
+
+  expandMessage(hash: string, messageExpander: any) {
+    if (this.messageExpanded[hash] != undefined || this.checkOverflow(messageExpander)) {
+      this.messageExpanded[hash] = !this.messageExpanded[hash];
+    }
   }
 }

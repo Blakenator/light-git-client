@@ -16,14 +16,14 @@
     </path>
     <g *ngFor="let spacer of spacers">
       <text [attr.x]="(getSafeHoriz(spacer.source)-6)+'px'"
-            [attr.y]="32"
+            [attr.y]="29"
             [attr.fill]="getCommitBranchColor(spacer.branchIndex)"
             class="commit-marker"
             *ngIf="spacer.isCommit && !spacer.isMerge"
             font-size=".85em">&#xf111;
       </text>
       <text [attr.x]="(getSafeHoriz(spacer.source)-6)+'px'"
-            [attr.y]="32"
+            [attr.y]="29"
             class="commit-marker"
             [attr.fill]="settingsService.settings.darkMode?'white':'black'"
             *ngIf="spacer.isCommit && spacer.isMerge">&#xf077;
