@@ -43,7 +43,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   selectedUnstagedChanges: { [key: string]: boolean } = {};
   selectedStagedChanges: { [key: string]: boolean } = {};
   diffHeaders: DiffHeaderModel[] = [];
-  commitAndPush = false;
   commitHistory: CommitSummaryModel[] = [];
   showDiff = false;
   @Input() repoPath = 'C:/Users/blake/Documents/projects/test-repo';
@@ -316,7 +315,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     this.loadingService.setLoading(true);
-    this.gitService.commit(this.changes.description, this.commitAndPush)
+    this.gitService.commit(this.changes.description, this.settingsService.settings.commitAndPush)
         .then(() => {
           this.changes.description = '';
           this.showDiff = false;
@@ -605,10 +604,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     let optionsSet: { [key: string]: number } = {};
     this.changes.stagedChanges.forEach(x =>
       this.getFilenameChunks(x.file)
-          .forEach(y => optionsSet[y.trim()] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
+          .forEach(filenameChunk => {
+            let suggestion = filenameChunk.trim().replace(/\.[^\.]*$/, '');
+            return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
+          }));
     this.changes.unstagedChanges.forEach(x =>
       this.getFilenameChunks(x.file)
-          .forEach(y => optionsSet[y.trim()] = this.levenshtein(y.toLowerCase(), lastWord.toLowerCase())));
+          .forEach(filenameChunk => {
+            let suggestion = filenameChunk.trim().replace(/\.[^\.]*$/, '');
+            return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
+          }));
 
     const currentBranchName = this.getCurrentBranch().name;
     this.getFilenameChunks(currentBranchName)
