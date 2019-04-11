@@ -732,7 +732,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   private simpleOperation(op: Promise<void>,
                           functionName: string,
                           occurredWhile: string,
-                          clearCommitInfo: boolean = false, fullRefresh: boolean = true): Promise<void> {
+                          clearCommitInfo: boolean = false,
+                          fullRefresh: boolean = true): Promise<void> {
     this.loadingService.setLoading(true);
     return op.then(() => {
       if (fullRefresh) {

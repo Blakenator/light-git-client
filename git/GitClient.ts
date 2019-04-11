@@ -342,7 +342,12 @@ export class GitClient {
       tag,
       (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '')], 'Checkout');
     if (andPull) {
-      checkoutOp.then(() => this.pull(false));
+      checkoutOp.then(() => {
+        return new Promise<void>((resolve, reject) => {
+          setTimeout(() =>
+            this.pull(false).then(() => setTimeout(() => resolve(), 500)).catch(reject), 1000);
+        });
+      });
     }
     return checkoutOp;
   }
@@ -364,7 +369,7 @@ export class GitClient {
         ['stash', 'push', '--keep-index', '--', file],
         'Stash Local File Changes').then(dropStash).catch(error => {
         if (error.toString().indexOf('fatal: unrecognized input') >= 0) {
-          return dropStash;
+          return dropStash();
         }
       });
     }
