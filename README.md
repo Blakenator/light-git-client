@@ -47,8 +47,8 @@ This is a WIP project to address the following failings of other git clients:
 * Clone &check; (10/1/18)
 * Branching visualization &check; (12/19/18)
 * Tag editor (tags currently visible in commit history)
-* Ability to move tabs
-* More force- options
+* Ability to move tabs &check; (4/10/19)
+* More force- options &check; (Nov 2018)
 
 ## Screenshots
 ![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/dark1.png "Dark Main Screen")

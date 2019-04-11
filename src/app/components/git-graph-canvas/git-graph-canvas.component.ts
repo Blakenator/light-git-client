@@ -21,7 +21,7 @@ export class GitGraphCanvasComponent implements OnInit {
   getCurvedPathDef(block: { target: number; source: number; isCommit: boolean; branchIndex: number; isMerge: boolean }) {
     let source = this.getSafeHoriz(block.source);
     let target = this.getSafeHoriz(block.target);
-    return `M${source} 25 C ${source} 12.5, ${target} 12.5, ${target} 0`;
+    return `M${source} 25 C ${source} 12.5, ${target} 9, ${target} 0`;
   }
 
   getSpacerList(c: CommitSummaryModel) {

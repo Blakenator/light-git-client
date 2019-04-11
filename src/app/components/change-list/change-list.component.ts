@@ -1,6 +1,7 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {ChangeType, LightChange} from '../../../../shared/git/Commit.model';
 import {SettingsService} from '../../services/settings.service';
+import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 
 @Component({
   selector: 'app-change-list',
@@ -9,7 +10,7 @@ import {SettingsService} from '../../services/settings.service';
 })
 export class ChangeListComponent implements OnInit {
   @Input() changeFilter = '';
-  @Input() repoViewUid;
+  @Input() submodules: SubmoduleModel[];
   selectedChanges: { [key: string]: boolean } = {};
   @Output() onSelectChanged = new EventEmitter<{ [key: string]: boolean }>();
   @Output() onUndoFileClicked = new EventEmitter<string>();
@@ -29,6 +30,9 @@ export class ChangeListComponent implements OnInit {
   }
 
   getChangeType(c: LightChange) {
+    if (this.isSubmodule(c.file)) {
+      return 'plug';
+    }
     switch (c.change) {
       case ChangeType.Untracked:
         return 'question-circle';
@@ -115,6 +119,10 @@ export class ChangeListComponent implements OnInit {
       res = res.substring(0, res.lastIndexOf('/'));
     }
     return res.split('/');
+  }
+
+  isSubmodule(currentPath: string) {
+    return this.submodules.some(s => s.path == currentPath);
   }
 
   private updateSelection() {

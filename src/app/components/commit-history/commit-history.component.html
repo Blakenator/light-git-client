@@ -51,14 +51,15 @@
         <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
       </td>
       <td class="commit-message-cell p-0">
-        <div class="d-flex">
+        <div class="d-flex" (click)="expandMessage(c.hash,messageExpander)">
           <div class="pr-2 m-0 cursor-pointer d-flex align-items-center"
-               *ngIf="messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)"
-               (click)="messageExpanded[c.hash] = !messageExpanded[c.hash]">
+               *ngIf="messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)">
             <i class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></i>
             <i class="fa fa-caret-right" *ngIf="!messageExpanded[c.hash]"></i>
           </div>
-          <div class="flex-grow-1 message" #messageExpander [ngClass]="{'message-expanded':messageExpanded[c.hash]}">
+          <div class="flex-grow-1 message"
+               #messageExpander
+               [ngClass]="{'message-expanded':messageExpanded[c.hash],'cursor-pointer':messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)}">
             <div class="d-inline-block" *ngFor="let tag of c.currentTags">
               <div [ngClass]="getTagClasses(tag)" class="badge mx-1">
                 <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>

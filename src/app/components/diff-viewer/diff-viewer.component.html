@@ -51,7 +51,7 @@
     <app-layout-card *ngFor="let header of getFilteredDiffHeaders() | slice : 0 : scrollOffset"
                      [headerContent]="diffHeader"
                      [persistExpand]="false"
-                     [localExpandedDefault]="header.action!='Deleted' && getHeaderLines(header)<200">
+                     [localExpandedDefault]="getLocalExpandedDefault(header)">
       <ng-template #diffHeader>
         <div class="d-flex">
           <div class="flex-grow-1" style="font-size: 1rem">
