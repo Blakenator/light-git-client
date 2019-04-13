@@ -51,3 +51,4 @@ sh.exe.stackdump
 git/**/*.js
 /*.js
 **/*.js.map
+.nyc_output/

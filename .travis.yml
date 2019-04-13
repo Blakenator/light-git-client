@@ -1,23 +1,14 @@
 language: node_js
-node_js: "10"
-
-matrix:
-  include:
-    - os: osx
-      osx_image: xcode9.4
-      env:
-        - ELECTRON_CACHE=$HOME/.cache/electron
-        - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
-
-    - os: linux
-      services: docker
-      language: generic
 
 cache:
   directories:
     - node_modules
     - $HOME/.cache/electron
     - $HOME/.cache/electron-builder
+
+env:
+  - ELECTRON_CACHE=$HOME/.cache/electron
+  - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
 
 before_install:
   - |
@@ -26,41 +17,83 @@ before_install:
       export PATH="/tmp/git-lfs:$PATH"
     fi
 
+jobs:
+  include:
+    - stage: Run Tests
+      os: osx
+      osx_image: xcode9.4
+      node_js: "8"
+      script:
+        - git lfs pull
+        - npm run test-node
+    - stage: Release
+      os: osx
+      osx_image: xcode9.4
+      node_js: "8"
+      if: (branch = testing/build) OR (branch = master)
+      script:
+        - git lfs pull
+        - npm run release:mac
+    - stage: Build
+      os: osx
+      osx_image: xcode9.4
+      node_js: "8"
+      if: (branch = staging) OR (branch = super-test)
+      script:
+        - git lfs pull
+        - npm run electron:mac
+
+    - stage: Run Tests
+      os: linux
+      node_js: "10"
+      services: docker
+      language: generic
+      script:
+        - git lfs pull
+        - npm run test-node
+    - stage: Release
+      os: linux
+      node_js: "10"
+      services: docker
+      language: generic
+      if: (branch = testing/build) OR (branch = master)
+      script:
+        - git lfs pull
+        - |
+          docker run --rm \
+            -e CSC_LINK=$CSC_LINK \
+            -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
+            -e GH_TOKEN=$GH_TOKEN \
+            -v ${PWD}:/project \
+            -v ~/.cache/electron:/root/.cache/electron \
+            -v ~/.cache/electron-builder:/root/.cache/electron-builder \
+            electronuserland/builder:10 \
+            /bin/bash -c "npm i && npm run release:linux"
+    - stage: Build
+      os: linux
+      node_js: "10"
+      services: docker
+      language: generic
+      if: (branch = staging) OR (branch = super-test)
+      env:
+        - ELECTRON_CACHE=$HOME/.cache/electron
+        - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
+      script:
+        - git lfs pull
+        - |
+          docker run --rm \
+            -e CSC_LINK=$CSC_LINK \
+            -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
+            -e GH_TOKEN=$GH_TOKEN \
+            -v ${PWD}:/project \
+            -v ~/.cache/electron:/root/.cache/electron \
+            -v ~/.cache/electron-builder:/root/.cache/electron-builder \
+            electronuserland/builder:wine \
+            /bin/bash -c "npm i && npm run electron:linux"
+
 before_script:
   - git lfs pull
 
-script:
-  - echo $TRAVIS_BRANCH
-  - |
-    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      if [ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "testing/build" ]; then
-        docker run --rm \
-          -e CSC_LINK=$CSC_LINK \
-          -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
-          -e GH_TOKEN=$GH_TOKEN \
-          -v ${PWD}:/project \
-          -v ~/.cache/electron:/root/.cache/electron \
-          -v ~/.cache/electron-builder:/root/.cache/electron-builder \
-          electronuserland/builder:10 \
-          /bin/bash -c "npm i && npm run release:linux"
-      else
-        docker run --rm \
-          -e CSC_LINK=$CSC_LINK \
-          -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
-          -e GH_TOKEN=$GH_TOKEN \
-          -v ${PWD}:/project \
-          -v ~/.cache/electron:/root/.cache/electron \
-          -v ~/.cache/electron-builder:/root/.cache/electron-builder \
-          electronuserland/builder:wine \
-          /bin/bash -c "npm i && npm run electron:linux"
-      fi
-    else
-      if [ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "testing/build" ]; then
-        npm run release:mac
-      else
-        npm run electron:mac
-      fi
-    fi
 before_cache:
   - rm -rf $HOME/.cache/electron-builder/wine
 
@@ -69,3 +102,4 @@ branches:
     - staging
     - master
     - testing/build
+    - super-test
