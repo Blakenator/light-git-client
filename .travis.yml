@@ -24,7 +24,8 @@ jobs:
       node_js: "8"
       script:
         - git lfs pull
-        - npm run test-node
+        - npm i
+        - npm run test-node || travis_terminate 1
     - stage: Release
       os: osx
       osx_image: xcode9.4
@@ -49,7 +50,8 @@ jobs:
       language: generic
       script:
         - git lfs pull
-        - npm run test-node
+        - npm i
+        - npm run test-node || travis_terminate 1
     - stage: Release
       os: linux
       node_js: "10"
