@@ -5,7 +5,6 @@ branches:
     - master
     - staging
     - testing/build
-    - super-test
 
 platform:
   - x64

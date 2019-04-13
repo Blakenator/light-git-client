@@ -772,8 +772,8 @@ export class GitClient {
         let startTo = +hunkMatch[5];
         h.fromStartLine = startFrom;
         h.toStartLine = startTo;
-        h.fromNumLines = +(hunkMatch[4] || 0);
-        h.toNumLines = +hunkMatch[7] || 0;
+        h.fromNumLines = +(hunkMatch[4] == undefined ? 1 : hunkMatch[4]);
+        h.toNumLines = +(hunkMatch[7] == undefined ? 1 : hunkMatch[7]);
         let lineMatch = line.exec(hunkMatch[8]);
 
         while (lineMatch) {

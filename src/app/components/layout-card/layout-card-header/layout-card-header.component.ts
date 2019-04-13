@@ -13,6 +13,7 @@ export class LayoutCardHeaderComponent implements OnInit {
   @Input() persistExpand: boolean;
   @Input() content: TemplateRef<any>;
   @Input() localExpandedDefault = true;
+  @Input() customHeaderClass = '';
   @Output() onToggleExpand = new EventEmitter<boolean>();
   localExpanded = false;
 

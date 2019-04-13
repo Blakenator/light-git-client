@@ -37,7 +37,7 @@ jobs:
       os: osx
       osx_image: xcode10.2
       node_js: "8"
-      if: (branch = staging) OR (branch = super-test)
+      if: branch = staging
       script:
         - git lfs pull
         - npm run electron:mac
@@ -73,7 +73,7 @@ jobs:
       node_js: "10"
       services: docker
       language: generic
-      if: (branch = staging) OR (branch = super-test)
+      if: branch = staging
       env:
         - ELECTRON_CACHE=$HOME/.cache/electron
         - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
@@ -101,4 +101,3 @@ branches:
     - staging
     - master
     - testing/build
-    - super-test

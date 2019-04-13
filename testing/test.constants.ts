@@ -53,7 +53,7 @@ index acd72c79..ae6d7a30 100644
       ],
     },
     {
-      name: 'one hunk one header one line',
+      name: 'one hunk one header one line added at end',
       content: `diff --git a/.gitignore b/.gitignore
 index d40ef15..f95d6af 100644
 --- a/.gitignore
@@ -73,6 +73,38 @@ index d40ef15..f95d6af 100644
           {fromStart: 51, fromCount: 3, toStart: 51, toCount: 4},
         ],
       ],
+    },
+    {
+      name: 'new file one line',
+      content: `diff --git a/asd.txt b/asd.txt
+new file mode 100644
+index 0000000..d72af31
+--- /dev/null
++++ b/asd.txt
+@@ -0,0 +1 @@
++asd
+`,
+      headerCount: 1,
+      hunkCount: 1,
+      toFilename: 'asd.txt',
+      fromFilename: 'asd.txt',
+      hunkData: [
+        [
+          {fromStart: 0, fromCount: 0, toStart: 1, toCount: 1},
+        ],
+      ],
+    },
+    {
+      name: 'rename no changes',
+      content: `diff --git a/log.txt b/log6.txt
+similarity index 100%
+rename from log.txt
+rename to log6.txt`,
+      headerCount: 1,
+      hunkCount: 0,
+      toFilename: 'log6.txt',
+      fromFilename: 'log.txt',
+      hunkData: [],
     },
   ];
 }
