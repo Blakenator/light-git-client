@@ -41,7 +41,8 @@ export class GitClient {
           'diff',
           (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
           commitHash + '~',
-          commitHash], 'Get Diff for Commit')
+          commitHash,
+        ], 'Get Diff for Commit')
             .then(output => {
               resolve(this.parseDiffString(output.standardOutput, DiffHeaderStagedState.NONE));
             }), reject);
@@ -68,7 +69,8 @@ export class GitClient {
         this.execute(this.getGitPath(), [
           'diff',
           (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
-          branchHash + '...'], 'Get Premerge Diff')
+          branchHash + '...',
+        ], 'Get Premerge Diff')
             .then(output => {
               resolve(this.parseDiffString(output.standardOutput, DiffHeaderStagedState.NONE));
             }), reject);
@@ -98,8 +100,10 @@ export class GitClient {
 
   setConfigItem(item: ConfigItemModel): Promise<ConfigItemModel[]> {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
-      let commandArgs = ['config',
-        (item.value ? '--replace-all' : '')];
+      let commandArgs = [
+        'config',
+        (item.value ? '--replace-all' : ''),
+      ];
       if (item.sourceFile.trim()) {
         commandArgs.push('--file');
         commandArgs.push(item.sourceFile.replace(/^.*?:/, ''));
@@ -177,11 +181,13 @@ export class GitClient {
           if (value === -1) {
             value = process.argv[0] + ' -a';
           }
-          return this.execute(this.getGitPath(), ['config',
+          return this.execute(this.getGitPath(), [
+            'config',
             (config[key] ? '--replace-all' : '--unset'),
             useGlobal ? '--global' : '',
             key,
-            '' + value], 'Set git settings');
+            '' + value,
+          ], 'Set git settings');
         }))
                .then(resolve), reject);
     });
@@ -281,10 +287,12 @@ export class GitClient {
       let result = new CommandOutputModel<DiffHeaderModel[]>([]);
       if (unstaged && unstaged.length > 0) {
         let command: string = this.getGitPath();
-        promises.push(this.execute(command, ['diff',
+        promises.push(this.execute(command, [
+            'diff',
             (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
             '--',
-            ...unstaged], 'Get Unstaged Changes Diff',
+            ...unstaged,
+          ], 'Get Unstaged Changes Diff',
           true)
                           .then(output => {
                             result.merge(output);
@@ -293,11 +301,13 @@ export class GitClient {
       }
       if (staged && staged.length > 0) {
         let command: string = this.getGitPath();
-        promises.push(this.execute(command, ['diff',
+        promises.push(this.execute(command, [
+            'diff',
             (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
             '--staged',
             '--',
-            ...staged], 'Get Staged Changes Diff',
+            ...staged,
+          ], 'Get Staged Changes Diff',
           true)
                           .then(output => {
                             result.merge(output);
@@ -318,7 +328,8 @@ export class GitClient {
       fs.writeFileSync(commitFilePath, message, {encoding: 'utf8'});
       this.handleErrorDefault(
         this.execute(this.getGitPath(), [
-          'commit', '--file', commitFilePath], 'Commit')
+          'commit', '--file', commitFilePath,
+        ], 'Commit')
             .then(() => {
               fs.unlinkSync(commitFilePath);
               if (!push) {
@@ -337,10 +348,12 @@ export class GitClient {
   }
 
   checkout(tag: string, toNewBranch: boolean, branchName: string = '', andPull: boolean): Promise<any> {
-    let checkoutOp = this.simpleOperation(this.getGitPath(), ['checkout',
+    let checkoutOp = this.simpleOperation(this.getGitPath(), [
+      'checkout',
       '-q',
       tag,
-      (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '')], 'Checkout');
+      (toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : ''),
+    ], 'Checkout');
     if (andPull) {
       checkoutOp.then(() => {
         return new Promise<void>((resolve, reject) => {
@@ -417,23 +430,27 @@ export class GitClient {
   pushBranch(branch: BranchModel, force: boolean): Promise<any> {
     return this.simpleOperation(
       this.getGitPath(),
-      ['push',
+      [
+        'push',
         '-q',
         'origin',
         (!branch.trackingPath ? '-u' : ''),
         (branch ? branch.name + ':' + (branch.trackingPath || branch.name).replace(/^origin\//, '') : ''),
-        (force ? ' --force' : '')],
+        (force ? ' --force' : ''),
+      ],
       'Push');
   }
 
   updateSubmodules(branch: string, recursive: boolean): Promise<any> {
-    return this.simpleOperation(this.getGitPath(), ['submodule',
+    return this.simpleOperation(this.getGitPath(), [
+      'submodule',
       'update',
       '-q',
       '--init',
       (recursive ? ' --recursive' : ''),
       '--',
-      (branch || '.')], 'Update Submodule');
+      (branch || '.'),
+    ], 'Update Submodule');
   }
 
   addSubmodule(url: string, path: string): Promise<any> {
@@ -490,7 +507,8 @@ export class GitClient {
 
   getCommitHistory(count: number, skip: number, activeBranch: string): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
-      let args = ['rev-list',
+      let args = [
+        'rev-list',
         '-n',
         (count || 50) + '',
         ' --branches' + (activeBranch ? '=*' + activeBranch : ''),
@@ -750,12 +768,12 @@ export class GitClient {
       let hunkMatch = hunk.exec(headerMatch[10]);
       while (hunkMatch) {
         let h = new DiffHunkModel();
-        let startTo = +hunkMatch[2];
-        let startFrom = +hunkMatch[5];
+        let startFrom = +hunkMatch[2];
+        let startTo = +hunkMatch[5];
         h.fromStartLine = startFrom;
         h.toStartLine = startTo;
-        h.fromNumLines = +(hunkMatch[4] || hunkMatch[2]);
-        h.toNumLines = +hunkMatch[7];
+        h.fromNumLines = +(hunkMatch[4] == undefined ? 1 : hunkMatch[4]);
+        h.toNumLines = +(hunkMatch[7] == undefined ? 1 : hunkMatch[7]);
         let lineMatch = line.exec(hunkMatch[8]);
 
         while (lineMatch) {

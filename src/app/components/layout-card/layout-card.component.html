@@ -5,6 +5,7 @@
                           [iconClass]="iconClass"
                           [localExpandedDefault]="localExpandedDefault"
                           [content]="headerContent"
+                          [customHeaderClass]="customHeaderClass"
                           (onToggleExpand)="updateFlexBindings($event)"></app-layout-card-header>
   <div class="repo-section-container {{customBodyClass}}"
        *ngIf="header.getExpandState()"

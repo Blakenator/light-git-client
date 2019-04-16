@@ -1,0 +1,30 @@
+.tutorial-overlay {
+  position: absolute;
+  width: 200vw;
+  height: 200vh;
+  transition: left .3s, top .3s;
+  margin: 0 auto;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+}
+
+.tutorial-overlay:after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 100%;
+  box-shadow: 0 0 0 2000px rgba(125, 170, 227, 0.7);
+  animation: pulsate 1s ease infinite alternate;
+}
+@keyframes pulsate {
+  from{
+    width: 5em;
+    height: 5em;
+  }
+  to{
+    width: 10em;
+    height: 10em;
+  }
+}
