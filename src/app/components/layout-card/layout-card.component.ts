@@ -9,6 +9,7 @@ import {LayoutCardHeaderComponent} from './layout-card-header/layout-card-header
 export class LayoutCardComponent implements OnInit {
   @ViewChild(LayoutCardHeaderComponent) header: LayoutCardHeaderComponent;
   @Input() customBodyClass = '';
+  @Input() customHeaderClass = '';
   @Input() cardTitle: string;
   @Input() expandKey: string;
   @Input() iconClass: string;

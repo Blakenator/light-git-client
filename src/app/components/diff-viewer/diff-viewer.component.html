@@ -51,21 +51,19 @@
     <app-layout-card *ngFor="let header of getFilteredDiffHeaders() | slice : 0 : scrollOffset"
                      [headerContent]="diffHeader"
                      [persistExpand]="false"
+                     customHeaderClass="justify-content-between"
                      [localExpandedDefault]="getLocalExpandedDefault(header)">
       <ng-template #diffHeader>
-        <div class="d-flex">
-          <div class="flex-grow-1" style="font-size: 1rem">
-            <div class="d-inline-block"
-                 *ngFor="let part of header.toFilename.replace('->','/->/').split('/'); let i=index">
-              <span class="badge badge-light">{{part}}</span>
-              <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
-            </div>
-            <span class="text-muted mx-3" *ngIf="header.stagedState"><i>{{header.stagedState}}</i>
-            </span>
+        <div class="flex-grow-1 normal-font-size">
+          <div class="d-inline-block"
+               *ngFor="let part of header.toFilename.replace('->','/->/').split('/'); let i=index">
+            <span class="badge badge-light">{{part}}</span>
+            <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
           </div>
-          <div class="flex-grow-0 center-text-vertical tag-container">
-            <span [class]="'tag '+header.action">{{header.action}}</span>
-          </div>
+        </div>
+        <div class="flex-grow-0 center-text-vertical tag-container">
+          <span class="text-muted mx-3 normal-font-size" *ngIf="header.stagedState"><i>{{header.stagedState}}</i></span>
+          <span [class]="'tag '+header.action">{{header.action}}</span>
         </div>
       </ng-template>
       <div class="diff-header" *ngIf="header.action!='Deleted'">

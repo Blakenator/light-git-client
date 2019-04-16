@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -22,7 +22,7 @@
     "build:prod": "npm run build -- -c production",
     "ng:serve": "npx del-cli dist/**/* && ng build --watch",
     "electron:tsc": "npx tsc --p tsconfig-electron.json || echo",
-    "electron:serve": "nodemon --ignore dist --watch ./ -e ts,html,scss --exec \"npm run electron:tsc && electron --inspect --remote-debugging-port=9223 .\"",
+    "electron:serve": "nodemon --ignore dist --ignore testing --watch ./ -e ts,html,scss --exec \"npm run electron:tsc && electron --inspect --remote-debugging-port=9223 .\"",
     "electron:local": "npm run build:prod && electron .",
     "electron:linux": "npm run build:prod && npx electron-builder build --linux",
     "electron:windows": "npm run build:prod && npx electron-builder build --windows",
@@ -31,7 +31,9 @@
     "release:windows": "npm run build:prod && npx electron-builder build --windows -p always",
     "release:mac": "npm run build:prod && npx electron-builder build --mac -p always",
     "test": "npx ng test",
-    "test-watch": "npx ng test --watch"
+    "test-watch": "npx ng test --watch",
+    "test-node-watch": "nodemon --watch testing --watch git --watch shared -e ts --exec \"npm run electron:tsc && npm run test-node\"",
+    "test-node": "npm run electron:tsc && nyc -r lcov -e .ts -x \"*.spec.ts\" jasmine-ts"
   },
   "dependencies": {
     "@angular/animations": ">=7.0.0",
@@ -87,8 +89,10 @@
     "electron-prebuilt": "^1.4.13",
     "electron-rebuild": "^1.8.4",
     "electron-reload": "^1.4.0",
+    "jasmine": "^3.4.0",
     "jasmine-core": "^2.99.1",
     "jasmine-spec-reporter": "~4.2.1",
+    "jasmine-ts": "^0.3.0",
     "karma": "^4.0.1",
     "karma-chrome-launcher": "~2.2.0",
     "karma-coverage-istanbul-reporter": "~2.0.1",
@@ -96,9 +100,10 @@
     "karma-jasmine-html-reporter": "^0.2.2",
     "npm-run-all": "4.1.5",
     "npx": "10.2.0",
+    "nyc": "^13.3.0",
     "ts-node": "7.0.1",
     "tslint": "5.11.0",
-    "typescript": "3.2.4",
+    "typescript": "^3.2.4",
     "wait-on": "3.2.0",
     "webdriver-manager": "12.1.0",
     "zone.js": "0.8.29"
