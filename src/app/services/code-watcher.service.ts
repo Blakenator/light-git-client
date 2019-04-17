@@ -16,7 +16,7 @@ export class CodeWatcherService {
   }
 
   getWatcherAlerts(diff: DiffHeaderModel[]) {
-    let watchers = this.settingsService.settings.codeWatchers.filter(x => x.enabled);
+    let watchers = this.settingsService.settings.loadedCodeWatchers.filter(w => w.enabled);
     if (watchers.length == 0) {
       return [];
     }

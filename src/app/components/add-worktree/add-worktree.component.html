@@ -39,8 +39,7 @@
   <app-file-input [allowMultiple]="false"
                   [isFolder]="true"
                   label="Worktree Location"
-                  [filePath]="path"
-                  (onPathChanged)="path=$event"
+                  [(filePath)]="path"
                   [disabled]="isLoading"></app-file-input>
   <small class="error-message" *ngIf="pathError">{{pathError}}</small>
   <div class="card">

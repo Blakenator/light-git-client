@@ -1,12 +1,12 @@
 import {CodeWatcherModel} from './code-watcher.model';
 
-const defaultCodeWatchers: CodeWatcherModel[] = [
-  new CodeWatcherModel('Duplicate Lines', '(^|\\n)(.*)(\\r?\\n\\2(\\r?\\n|$))+', 'g'),
-  new CodeWatcherModel('Console Output', 'console\\.(log|error|info)', 'g', '\\.(ts|js|jsx)'),
-  new CodeWatcherModel('Poor Lambda Names', '\\(?(\\b(x|y|z)\\s*,?\\s*)+\\s*\\)?\\s*=>', 'g', '\\.(ts|js|jsx|cs|java)'),
-];
-
 export class SettingsModel {
+  static defaultCodeWatchers: CodeWatcherModel[] = [
+    new CodeWatcherModel('Duplicate Lines', '(^|\\n)(.*)(\\r?\\n\\2(\\r?\\n|$))+', 'g'),
+    new CodeWatcherModel('Console Output', 'console\\.(log|error|info)', 'g', '\\.(ts|js|jsx)'),
+    new CodeWatcherModel('Poor Lambda Names', '\\(?(\\b(x|y|z)\\s*,?\\s*)+\\s*\\)?\\s*=>', 'g', '\\.(ts|js|jsx|cs|java)'),
+  ];
+
   public darkMode: boolean;
   public openRepos: string[];
   public tabNames: string[];
@@ -21,6 +21,8 @@ export class SettingsModel {
   public expandStates: { [key: string]: boolean };
   public commandTimeoutSeconds: number;
   public codeWatchers: CodeWatcherModel[];
+  public loadedCodeWatchers: CodeWatcherModel[];
+  public codeWatcherPaths: string[];
   public includeUnchangedInWatcherAnalysis: boolean;
   public username: string;
   public email: string;
@@ -43,13 +45,14 @@ export class SettingsModel {
               commitMessageAutcomplete: boolean = false,
               diffIgnoreWhitespace: boolean = false,
               includeUnchangedInWatcherAnalysis: boolean = true,
-              codeWatchers: CodeWatcherModel[] = defaultCodeWatchers,
               username: string = '',
               email: string = '',
               allowPrerelease: boolean = false,
               airplaneMode: boolean = false,
               splitFilenameDisplay: boolean = false,
-              commitAndPush: boolean = false) {
+              commitAndPush: boolean = false,
+              loadedCodeWatchers: CodeWatcherModel[] = [],
+              codeWatcherPaths: string[] = []) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
     this.tabNames = tabNames;
@@ -62,7 +65,6 @@ export class SettingsModel {
     this.commitMessageAutocomplete = commitMessageAutcomplete;
     this.diffIgnoreWhitespace = diffIgnoreWhitespace;
     this.mergetool = mergetool;
-    this.codeWatchers = codeWatchers;
     this.includeUnchangedInWatcherAnalysis = includeUnchangedInWatcherAnalysis;
     this.username = username;
     this.email = email;
@@ -71,6 +73,8 @@ export class SettingsModel {
     this.airplaneMode = airplaneMode;
     this.splitFilenameDisplay = splitFilenameDisplay;
     this.commitAndPush = commitAndPush;
+    this.loadedCodeWatchers = loadedCodeWatchers;
+    this.codeWatcherPaths = codeWatcherPaths;
   }
 
   static sanitizePath(path) {
@@ -79,10 +83,11 @@ export class SettingsModel {
 
   public clone(): SettingsModel {
     let res = new SettingsModel();
-    res.codeWatchers = this.codeWatchers.map(x => Object.assign(new CodeWatcherModel(), x));
+    res.loadedCodeWatchers = this.loadedCodeWatchers.map(w => Object.assign(new CodeWatcherModel(), w));
+    res.codeWatcherPaths = this.codeWatcherPaths.map(p => p + '');
     res.darkMode = this.darkMode;
-    res.openRepos = this.openRepos.map(x => x);
-    res.tabNames = this.tabNames.map(x => x);
+    res.openRepos = this.openRepos.map(r => r);
+    res.tabNames = this.tabNames.map(n => n);
     res.activeTab = this.activeTab;
     res.gitPath = this.gitPath;
     res.bashPath = this.bashPath;
