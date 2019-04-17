@@ -55,13 +55,21 @@ export class CodeWatcherConfigComponent implements OnInit {
   }
 
   deleteWatcherFile(toRemove: string) {
-    this.confirmDeletePath = toRemove;
-    this.modalService.setModalVisible('confirmDeleteWatcherFile', true);
+    if (this.getWatcherCountInFile(toRemove) > 0) {
+      this.confirmDeletePath = toRemove;
+      this.modalService.setModalVisible('confirmDeleteWatcherFile', true);
+    } else {
+      this.doDeleteWatcherFile(toRemove);
+    }
   }
 
   doDeleteWatcherFile(toRemove: string) {
     this.tempSettings.codeWatcherPaths.splice(this.tempSettings.codeWatcherPaths.indexOf(toRemove), 1);
     this.tempSettings.loadedCodeWatchers = this.tempSettings.loadedCodeWatchers.filter(w => w.path != toRemove);
     this.confirmDeletePath = undefined;
+  }
+
+  getWatcherCountInFile(path: string) {
+    return this.tempSettings.loadedCodeWatchers.filter(w => w.path == path).length;
   }
 }
