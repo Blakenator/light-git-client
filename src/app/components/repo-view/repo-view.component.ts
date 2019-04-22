@@ -31,6 +31,7 @@ import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 import {LoadingService} from '../../services/loading.service';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
+import {TabService} from '../../services/tab.service';
 
 @Component({
   selector: 'app-repo-view',
@@ -45,8 +46,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   diffHeaders: DiffHeaderModel[] = [];
   commitHistory: CommitSummaryModel[] = [];
   showDiff = false;
-  @Input() repoPath = 'C:/Users/blake/Documents/projects/test-repo';
-  @Input() repoCache: RepositoryModel;
+  @Input() repoPath: string;
+  @Input() isNested = false;
   localBranchFilter = '';
   remoteBranchFilter = '';
   globalErrorHandlerService: GlobalErrorHandlerService;
@@ -91,6 +92,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               public modalService: ModalService,
               errorHandler: ErrorHandler,
               public changeDetectorRef: ChangeDetectorRef,
+              private repoCacheService: TabService,
               private gitService: GitService) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
     this.gitService.onCommandHistoryUpdated.asObservable().pipe(takeUntil(this.$destroy)).subscribe(history => {
@@ -777,13 +779,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   private loadRepo(path: string = '') {
-    this.repoPath = path || this.repoPath;
-    this.repo = this.repoCache;
+    this.repoPath = path || (this.isNested ?
+                             this.repoPath :
+                             this.repoCacheService.activeRepoCache.path || this.repoPath);
+    this.repo = this.repoCacheService.activeRepoCache;
     this.loadingService.setLoading(true);
     this.gitService.loadRepo(this.repoPath)
         .then(repo => {
           this.repo = repo;
-          this.repoCache = this.repo;
+          if (!this.isNested) {
+            Object.assign(this.repoCacheService.activeRepoCache, this.repo);
+          }
           this.getCommandHistory();
           this.getFullRefresh(false, false);
           this.changeDetectorRef.detectChanges();
@@ -805,7 +811,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
-    Object.assign(this.repoCache, this.repo || {});
+    Object.assign(this.repoCacheService.activeRepoCache, this.repo || {});
     this.changeDetectorRef.detectChanges();
     this.loadingService.setLoading(false);
   }

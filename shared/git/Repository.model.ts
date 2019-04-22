@@ -4,8 +4,8 @@ import {StashModel} from './stash.model';
 import {SubmoduleModel} from './submodule.model';
 
 export class RepositoryModel {
-  public name: string;
-  public path: string;
+  public name = '';
+  public path = '';
   public remotes: string[] = [];
 
   public remoteBranches: BranchModel[] = [];

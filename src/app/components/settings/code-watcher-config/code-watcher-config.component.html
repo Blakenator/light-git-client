@@ -69,7 +69,7 @@
         <div class="d-flex btn-group">
           <div ngbDropdown class="btn-group btn-group-sm" container="body" placement="bottom-right">
             <button class="btn btn-primary d-inline-flex align-items-center"
-                    ngbDropdownToggle>{{ w.path.substring(w.path.lastIndexOf('/') + 1) }}</button>
+                    ngbDropdownToggle>{{ getDropdownLabelText(w) }}</button>
             <div ngbDropdownMenu class="dropdown-menu">
               <button ngbDropdownItem class="dropdown-item"
                       *ngFor="let p of tempSettings.codeWatcherPaths"

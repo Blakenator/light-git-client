@@ -2,6 +2,7 @@ import {Component, Input, OnInit} from '@angular/core';
 import {SettingsModel} from '../../../../../shared/SettingsModel';
 import {CodeWatcherModel} from '../../../../../shared/code-watcher.model';
 import {ModalService} from '../../../common/services/modal.service';
+import {TabService} from '../../../services/tab.service';
 
 @Component({
   selector: 'app-code-watcher-config',
@@ -71,5 +72,9 @@ export class CodeWatcherConfigComponent implements OnInit {
 
   getWatcherCountInFile(path: string) {
     return this.tempSettings.loadedCodeWatchers.filter(w => w.path == path).length;
+  }
+
+  getDropdownLabelText(w: CodeWatcherModel) {
+    return TabService.basename(w.path);
   }
 }

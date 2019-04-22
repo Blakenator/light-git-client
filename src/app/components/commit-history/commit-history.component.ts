@@ -98,4 +98,23 @@ export class CommitHistoryComponent implements OnInit {
       this.messageExpanded[hash] = !this.messageExpanded[hash];
     }
   }
+
+  isCurrentBranchActive() {
+    return this.branches &&
+      this.activeBranch &&
+      this.getCurrentBranch().name == this.activeBranch.name;
+  }
+
+  getCurrentBranch() {
+    return this.branches.find(b => b.isCurrentBranch);
+  }
+
+  toggleSoloCurrentBranch() {
+    this.setActiveBranch(this.getCurrentBranch());
+  }
+
+  setActiveBranch(b: any) {
+    this.activeBranch = !this.activeBranch || b.name != this.activeBranch.name ? b : undefined;
+    this.onChooseBranch.emit(this.activeBranch);
+  }
 }

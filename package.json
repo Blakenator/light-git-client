@@ -13,7 +13,7 @@
   "main": "main.js",
   "private": false,
   "scripts": {
-    "postinstall": "npx electron-builder install-app-deps && npx electron-rebuild && npm rebuild",
+    "postinstall": "npx electron-builder install-app-deps && npx electron-rebuild",
     "ng": "ng",
     "start": "npm-run-all -p ng:serve electron:serve",
     "browserify": "browserify -x node_modules/electron/**/* --node main.js -o main.bundle.js",
@@ -57,6 +57,7 @@
     "pretty-checkbox": "^3.0.3",
     "rxjs": "^6.4.0",
     "serialize-error": "^3.0.0",
+    "spellchecker": "^3.5.2",
     "strip-ansi": "^5.0.0",
     "universal-analytics": "^0.4.20"
   },

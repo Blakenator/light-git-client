@@ -432,6 +432,7 @@
              (onFinish)="activeSubmodule=null">
     <div *ngIf="activeSubmodule">
       <app-repo-view [repoPath]="repo.path+'/'+ activeSubmodule.path"
+                     [isNested]="true"
                      (onOpenRepoNewTab)="onOpenRepoNewTab.emit($event)"
                      (onLoadRepoFailed)="onLoadRepoFailed.emit($event)"></app-repo-view>
     </div>

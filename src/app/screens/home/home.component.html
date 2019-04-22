@@ -12,9 +12,9 @@
          cdkDropListOrientation="horizontal"
          cdkDropList
          (cdkDropListDropped)="moveTab($event)">
-      <button *ngFor="let tabName of tabNames; let t = index"
+      <button *ngFor="let tab of tabData; let t = index"
               (click)="changeTab(t)"
-              [ngbTooltip]="repoPaths[t]"
+              [ngbTooltip]="tab.cache.path"
               placement="bottom"
               container="body"
               cdkDrag
@@ -22,7 +22,7 @@
               cdkDragLockAxis="x"
               [ngClass]="{'tab-btn btn center-text-vertical':true,'btn-primary':t==activeTab,'btn-light':t!=activeTab}">
         <div class="pr-1 center-text-vertical">
-          <span *ngIf="editingTab!=t">{{tabNames[t]}}</span>
+          <span *ngIf="editingTab!=t">{{tab.name}}</span>
           <div class="input-group" *ngIf="editingTab==t">
             <input class="form-control"
                    [autofocus]
@@ -54,14 +54,13 @@
     </div>
   </nav>
   <div class="main-body flex-grow-1">
-    <div>
+    <div *ngIf="activeTab>=0">
       <app-new-tab-page (onReady)="loadRepo($event)"
-                        *ngIf="!repoPaths[activeTab]"></app-new-tab-page>
-      <app-repo-view *ngIf="repoPaths[activeTab]"
-                     [repoPath]="repoPaths[activeTab]"
+                        *ngIf="!getActiveTabData().cache.path"></app-new-tab-page>
+      <app-repo-view *ngIf="getActiveTabData().cache.path"
+                     [repoPath]="getActiveTabData().cache.path"
                      (onLoadRepoFailed)="repoLoadFailed($event)"
-                     (onOpenRepoNewTab)="addTab($event)"
-                     [repoCache]="repoCache[repoPaths[activeTab]]"></app-repo-view>
+                     (onOpenRepoNewTab)="addTab($event)"></app-repo-view>
     </div>
   </div>
 </div>
