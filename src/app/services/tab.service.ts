@@ -23,14 +23,18 @@ export class TabService {
   }
 
   get activeRepoCache(): RepositoryModel {
-    if (!this._repoCache[this.activeTab]) {
-      this._repoCache[this.activeTab] = new RepositoryModel();
+    if (!this._repoCache[this.getActiveTabData().cache.path]) {
+      this._repoCache[this.getActiveTabData().cache.path] = new RepositoryModel();
     }
-    return this._repoCache[this.activeTab];
+    return this._repoCache[this.getActiveTabData().cache.path];
   }
 
   static basename(folderPath: string) {
     return folderPath.substring(folderPath.replace(/\\/g, '/').lastIndexOf('/') + 1);
+  }
+
+  getActiveTabData() {
+    return this.tabData[this.activeTab];
   }
 
   public initializeCache() {

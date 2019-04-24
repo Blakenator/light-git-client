@@ -46,7 +46,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   diffHeaders: DiffHeaderModel[] = [];
   commitHistory: CommitSummaryModel[] = [];
   showDiff = false;
-  @Input() repoPath: string;
   @Input() isNested = false;
   localBranchFilter = '';
   remoteBranchFilter = '';
@@ -78,6 +77,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   branchesToPrune: string[];
   readonly branchReplaceChars = {match: /[\s]/g, with: '-'};
   private $destroy = new Subject<void>();
+  private destroyed = false;
   private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -91,8 +91,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               public codeWatcherService: CodeWatcherService,
               public modalService: ModalService,
               errorHandler: ErrorHandler,
-              public changeDetectorRef: ChangeDetectorRef,
-              private repoCacheService: TabService,
+              private _changeDetectorRef: ChangeDetectorRef,
+              private tabService: TabService,
               private gitService: GitService) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
     this.gitService.onCommandHistoryUpdated.asObservable().pipe(takeUntil(this.$destroy)).subscribe(history => {
@@ -115,6 +115,27 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repoViewUid = Math.round(Math.random() * 10000000);
   }
 
+  get changeDetectorRef(): ChangeDetectorRef {
+    if (!this.destroyed) {
+      return this._changeDetectorRef;
+    } else {
+      return Object.assign({}, this._changeDetectorRef, {
+        detectChanges: () => {
+        },
+      });
+    }
+  }
+
+  private _repoPath: string;
+
+  @Input()
+  set repoPath(value: string) {
+    if (this._repoPath != value) {
+      this._repoPath = value;
+      this.loadRepo(this._repoPath);
+    }
+  }
+
   getStashFilterText(stash: StashModel) {
     return stash.branchName + stash.message + stash.branchName;
   }
@@ -124,6 +145,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     this.$destroy.next();
     clearInterval(this.refreshDebounce);
   }
@@ -779,16 +801,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   private loadRepo(path: string = '') {
-    this.repoPath = path || (this.isNested ?
-                             this.repoPath :
-                             this.repoCacheService.activeRepoCache.path || this.repoPath);
-    this.repo = this.repoCacheService.activeRepoCache;
+    this._repoPath = path || (this.isNested ?
+                              this._repoPath :
+                              this.tabService.activeRepoCache.path || this._repoPath);
+    this.repo = this.tabService.activeRepoCache;
     this.loadingService.setLoading(true);
-    this.gitService.loadRepo(this.repoPath)
+    this.gitService.loadRepo(this._repoPath)
         .then(repo => {
           this.repo = repo;
           if (!this.isNested) {
-            Object.assign(this.repoCacheService.activeRepoCache, this.repo);
+            Object.assign(this.tabService.activeRepoCache, this.repo);
           }
           this.getCommandHistory();
           this.getFullRefresh(false, false);
@@ -811,7 +833,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
-    Object.assign(this.repoCacheService.activeRepoCache, this.repo || {});
+    Object.assign(this.tabService.activeRepoCache, this.repo || {});
     this.changeDetectorRef.detectChanges();
     this.loadingService.setLoading(false);
   }

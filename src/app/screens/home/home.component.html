@@ -12,7 +12,7 @@
          cdkDropListOrientation="horizontal"
          cdkDropList
          (cdkDropListDropped)="moveTab($event)">
-      <button *ngFor="let tab of tabData; let t = index"
+      <button *ngFor="let tab of tabService.tabData; let t = index"
               (click)="changeTab(t)"
               [ngbTooltip]="tab.cache.path"
               placement="bottom"

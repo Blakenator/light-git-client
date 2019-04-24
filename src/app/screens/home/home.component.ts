@@ -8,7 +8,6 @@ import {ErrorService} from '../../common/services/error.service';
 import {LoadingService} from '../../services/loading.service';
 import {CdkDragDrop} from '@angular/cdk/drag-drop';
 import {TabService} from '../../services/tab.service';
-import {RepositoryModel} from '../../../../shared/git/Repository.model';
 
 @Component({
   selector: 'app-home',
@@ -26,16 +25,8 @@ export class HomeComponent implements OnInit {
               private loadingService: LoadingService,
               private http: HttpClient,
               private cd: ChangeDetectorRef,
-              private tabService: TabService,
+              public tabService: TabService,
               private gitService: GitService) {
-  }
-
-  get tabData(): { name: string; cache: RepositoryModel }[] {
-    return this.tabService.tabData;
-  }
-
-  set tabData(value: { name: string; cache: RepositoryModel }[]) {
-    this.tabService.tabData = value;
   }
 
   get activeTab(): number {
@@ -53,7 +44,7 @@ export class HomeComponent implements OnInit {
     });
     this.settingsService.loadSettings(callback => {
       this.activeTab = this.settingsService.settings.activeTab;
-      this.tabData = this.settingsService.settings.tabNames.map((x, index) =>
+      this.tabService.tabData = this.settingsService.settings.tabNames.map((x, index) =>
         this.tabService.getNewTab(
           this.settingsService.settings.openRepos[index],
           x || TabService.basename(this.settingsService.settings.openRepos[index])));
@@ -71,8 +62,8 @@ export class HomeComponent implements OnInit {
   }
 
   addTab(path: string = '') {
-    this.activeTab = this.tabData.length;
-    this.tabData.push(this.tabService.getNewTab(path));
+    this.activeTab = this.tabService.tabData.length;
+    this.tabService.tabData.push(this.tabService.getNewTab(path));
     if (path) {
       setTimeout(() => {
         this.loadRepo(path);
@@ -86,22 +77,22 @@ export class HomeComponent implements OnInit {
     if (this.activeTab == t) {
       this.changeTab(--this.activeTab);
     }
-    this.tabData.splice(t, 1);
-    if (this.tabData.length == 0) {
+    this.tabService.tabData.splice(t, 1);
+    if (this.tabService.tabData.length == 0) {
       this.addTab();
     }
     this.saveOpenRepos();
   }
 
   loadRepo(path: string) {
-    this.tabData[this.activeTab] = this.tabService.getNewTab(path, TabService.basename(path));
+    this.tabService.tabData[this.activeTab] = this.tabService.getNewTab(path, TabService.basename(path));
     this.saveOpenRepos();
   }
 
   saveOpenRepos() {
     this.settingsService.settings.activeTab = this.activeTab;
-    this.settingsService.settings.tabNames = this.tabData.map(t => t.name);
-    this.settingsService.settings.openRepos = this.tabData.map(t => t.cache.path);
+    this.settingsService.settings.tabNames = this.tabService.tabData.map(t => t.name);
+    this.settingsService.settings.openRepos = this.tabService.tabData.map(t => t.cache.path);
     this.editingTab = -1;
     this.editedTabName = '';
     this.gitService.repo = this.tabService.activeRepoCache;
@@ -110,13 +101,13 @@ export class HomeComponent implements OnInit {
 
   editClick($event, t: number) {
     this.editingTab = t;
-    this.editedTabName = this.tabData[t].name;
+    this.editedTabName = this.tabService.tabData[t].name;
     $event.stopPropagation();
   }
 
   repoLoadFailed($event: ErrorModel) {
     this.errorService.receiveError($event);
-    this.tabData[this.activeTab] = this.tabService.getNewTab('');
+    this.tabService.tabData[this.activeTab] = this.tabService.getNewTab('');
     this.cd.detectChanges();
   }
 
@@ -127,17 +118,23 @@ export class HomeComponent implements OnInit {
   }
 
   saveEditedName(t: number) {
-    this.tabData[t].name = this.editedTabName;
+    this.tabService.tabData[t].name = this.editedTabName;
     this.saveOpenRepos();
   }
 
   moveTab(event: CdkDragDrop<number[]>) {
-    this.tabData.splice(event.currentIndex, 0, this.tabData.splice(event.previousIndex, 1)[0]);
-    this.changeTab(event.currentIndex);
+    this.tabService.tabData.splice(event.currentIndex, 0, this.tabService.tabData.splice(event.previousIndex, 1)[0]);
+    if (this.activeTab == event.previousIndex) {
+      this.activeTab = event.currentIndex;
+    } else if (this.activeTab > event.currentIndex && this.activeTab < event.previousIndex) {
+      this.activeTab++;
+    } else if (this.activeTab < event.currentIndex && this.activeTab > event.previousIndex) {
+      this.activeTab--;
+    }
     this.saveOpenRepos();
   }
 
   getActiveTabData() {
-    return this.tabData[this.activeTab];
+    return this.tabService.tabData[this.activeTab];
   }
 }

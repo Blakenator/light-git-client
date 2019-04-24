@@ -373,20 +373,21 @@ export class GitClient {
         'Undo File Changes');
     } else {
       return new Promise<any>((resolve, reject) => {
-        let dropStash = () => this.simpleOperation(
+        let dropStash = () => setTimeout(() => this.simpleOperation(
           this.getGitPath(),
           ['stash', 'drop', 'stash@{0}'],
           'Drop Stashed Local File Changes',
-        ).then(resolve).catch(reject);
+        ).then(resolve).catch(reject), 1000);
         let args = ['stash', 'push', '--keep-index', '--', file];
         this.simpleOperation(
           this.getGitPath(),
           args,
-          'Stash Local File Changes').then(dropStash).catch(error => {
+          'Stash Local File Changes').then(() => {
+          dropStash();
+        }).catch(error => {
           if (error.toString().indexOf('fatal: unrecognized input') >= 0) {
             return dropStash();
           } else {
-            GitClient.logger.log(error.toString() + ' | ' + JSON.stringify(args));
             reject(error);
           }
         });

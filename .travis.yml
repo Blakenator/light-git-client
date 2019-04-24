@@ -47,8 +47,9 @@ jobs:
       os: linux
       node_js: "10"
       services: docker
-      language: generic
       script:
+        - nvm install 10
+        - nvm use 10
         - git lfs pull
         - npm i
         - npm run test-node || travis_terminate 1
@@ -56,9 +57,10 @@ jobs:
       os: linux
       node_js: "10"
       services: docker
-      language: generic
       if: (branch = testing/build) OR (branch = master)
       script:
+        - nvm install 10
+        - nvm use 10
         - git lfs pull
         - |
           docker run --rm \
@@ -74,12 +76,13 @@ jobs:
       os: linux
       node_js: "10"
       services: docker
-      language: generic
       if: branch = staging
       env:
         - ELECTRON_CACHE=$HOME/.cache/electron
         - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
       script:
+        - nvm install 10
+        - nvm use 10
         - git lfs pull
         - |
           docker run --rm \
