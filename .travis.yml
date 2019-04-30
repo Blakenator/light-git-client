@@ -2,7 +2,6 @@ language: node_js
 
 cache:
   directories:
-    - node_modules
     - $HOME/.cache/electron
     - $HOME/.cache/electron-builder
 
@@ -97,9 +96,6 @@ jobs:
 
 before_script:
   - git lfs pull
-
-before_cache:
-  - rm -rf $HOME/.cache/electron-builder/wine
 
 branches:
   only:
