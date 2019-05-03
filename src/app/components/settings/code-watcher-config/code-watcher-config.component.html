@@ -7,11 +7,32 @@
     </div>
   </div>
 </div>
+<div class="form-group">
+  Code Watcher files
+  <div>
+    <div class="list-group">
+      <div class="d-flex justify-content-between align-items-center list-group-item px-2 py-1"
+           *ngFor="let p of tempSettings.codeWatcherPaths; let i=index">
+        <app-file-input [(filePath)]="tempSettings.codeWatcherPaths[i]" class="watcher-file-input"></app-file-input>
+        <span class="badge badge-warning badge-pill">{{getWatcherCountInFile(p)}} <i class="fa fa-glasses"></i></span>
+        <button class="btn btn-primary btn-sm ml-3" (click)="deleteWatcherFile(p)">
+          <i class="fa fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <button class="btn btn-primary" (click)="tempSettings.codeWatcherPaths.push('')">Add</button>
+</div>
+<h5>Code Watchers</h5>
 <app-layout-card *ngFor="let g of getFilenames()"
                  [headerContent]="watcherHeader"
                  [persistExpand]="false">
   <ng-template #watcherHeader>
-    <input type="text" class="form-control expanded" (change)="changeFilename(g,$event.target.value)" [ngModel]="g">
+    <input type="text"
+           placeholder="All Files"
+           class="form-control expanded"
+           (change)="changeFilename(g,$event.target.value)"
+           [ngModel]="g">
   </ng-template>
   <table class="table table-striped mb-0">
     <thead>
@@ -46,9 +67,18 @@
       </td>
       <td>
         <div class="d-flex btn-group">
+          <div ngbDropdown class="btn-group btn-group-sm" container="body" placement="bottom-right">
+            <button class="btn btn-primary d-inline-flex align-items-center"
+                    ngbDropdownToggle>{{ getDropdownLabelText(w) }}</button>
+            <div ngbDropdownMenu class="dropdown-menu">
+              <button ngbDropdownItem class="dropdown-item"
+                      *ngFor="let p of tempSettings.codeWatcherPaths"
+                      (click)="w.path=p">{{ p }}</button>
+            </div>
+          </div>
           <button class="btn btn-light td-btn" (click)="copyWatcher(w)">
             <i class="fa fa-copy"></i></button>
-          <button class="btn btn-light td-btn" (click)="deleteWatchet(w)">
+          <button class="btn btn-light td-btn" (click)="deleteWatcher(w)">
             <i class="fa fa-trash"></i></button>
         </div>
       </td>
@@ -59,3 +89,8 @@
     <button class="btn btn-info" (click)="addWatcher(g)">Add Watcher</button>
   </div>
 </app-layout-card>
+<app-confirm-modal modalTitle="Confirm Remove Watcher File"
+                   (onConfirm)="doDeleteWatcherFile(confirmDeletePath)"
+                   modalId="confirmDeleteWatcherFile">
+  All watchers in the file will be removed from your list of watchers. Are you sure you want to continue?
+</app-confirm-modal>

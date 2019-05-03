@@ -4,6 +4,7 @@ export class CodeWatcherModel {
   public regexFlags: string;
   public activeFilter: string;
   public enabled: boolean;
+  public path: string;
 
   constructor(name: string = '', regex: string = '', regexFlags: string = 'g', activeFilter: string = '', enabled: boolean = false) {
     this.name = name;

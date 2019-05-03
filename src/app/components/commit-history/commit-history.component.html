@@ -15,9 +15,14 @@
       <th *ngIf="!commitFilter" class="py-1 px-2">
         <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown>
           <button class="btn btn-primary d-inline-flex align-items-center"
+                  [ngClass]="{active:isCurrentBranchActive()}"
+                  title="Filter to current branch"
+                  (click)="toggleSoloCurrentBranch()">
+            <i class="fa fa-eye"></i>
+          </button>
+          <button class="btn btn-primary d-inline-flex align-items-center"
                   ngbDropdownToggle
                   title="Filter to specific branch">
-            <i class="fa fa-code-branch"></i>
           </button>
           <div ngbDropdownMenu class="dropdown-menu">
             <div (click)="$event.stopPropagation()" class="px-2 py-1">
@@ -26,9 +31,10 @@
                      placeholder="Filter...">
             </div>
             <div class="branch-filter-content">
+              <h6 class="dropdown-header d-flex align-items-center"><i class="fa fa-code-branch"></i> Branches</h6>
               <button class="dropdown-item d-flex justify-content-between"
                       *ngFor="let b of branches | filterObject: getBranchName : branchFilter"
-                      (click)="onChooseBranch.emit(activeBranch && b.name==activeBranch.name?undefined:b)">
+                      (click)="setActiveBranch(b)">
                 {{b.name}}
                 <i class="fa fa-check ml-2" *ngIf="activeBranch && b.name==activeBranch.name"></i>
               </button>

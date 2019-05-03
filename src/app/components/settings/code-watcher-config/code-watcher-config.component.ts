@@ -1,16 +1,19 @@
 import {Component, Input, OnInit} from '@angular/core';
 import {SettingsModel} from '../../../../../shared/SettingsModel';
 import {CodeWatcherModel} from '../../../../../shared/code-watcher.model';
+import {ModalService} from '../../../common/services/modal.service';
+import {TabService} from '../../../services/tab.service';
 
 @Component({
   selector: 'app-code-watcher-config',
   templateUrl: './code-watcher-config.component.html',
-  styleUrls: ['./code-watcher-config.component.scss']
+  styleUrls: ['./code-watcher-config.component.scss'],
 })
 export class CodeWatcherConfigComponent implements OnInit {
   @Input() tempSettings: SettingsModel;
+  confirmDeletePath: string;
 
-  constructor() {
+  constructor(private modalService: ModalService) {
   }
 
   ngOnInit() {
@@ -19,12 +22,12 @@ export class CodeWatcherConfigComponent implements OnInit {
   addWatcher(filename: string) {
     const model = new CodeWatcherModel();
     model.activeFilter = filename;
-    this.tempSettings.codeWatchers.push(model);
+    this.tempSettings.loadedCodeWatchers.push(model);
   }
 
   getFilenames() {
     let files: { [key: string]: boolean } = {};
-    this.tempSettings.codeWatchers.forEach(w => files[w.activeFilter] = true);
+    this.tempSettings.loadedCodeWatchers.forEach(w => files[w.activeFilter] = true);
     let result = Object.keys(files) || [];
     if (result.indexOf('') < 0) {
       result = [''].concat(result);
@@ -34,20 +37,44 @@ export class CodeWatcherConfigComponent implements OnInit {
   }
 
   getWatchersInGroup(filename: string) {
-    return this.tempSettings.codeWatchers.filter(w => w.activeFilter == filename);
+    return this.tempSettings.loadedCodeWatchers.filter(w => w.activeFilter == filename);
   }
 
   copyWatcher(w: CodeWatcherModel) {
-    let index = this.tempSettings.codeWatchers.indexOf(w);
-    this.tempSettings.codeWatchers = this.tempSettings.codeWatchers.slice(0, index + 1)
-                                         .concat(this.tempSettings.codeWatchers.slice(index));
+    let index = this.tempSettings.loadedCodeWatchers.indexOf(w);
+    this.tempSettings.loadedCodeWatchers = this.tempSettings.loadedCodeWatchers.slice(0, index)
+                                               .concat([Object.assign(new CodeWatcherModel(), w)])
+                                               .concat(this.tempSettings.loadedCodeWatchers.slice(index));
   }
 
   changeFilename(orig: string, to: string) {
-    this.tempSettings.codeWatchers.filter(w => w.activeFilter == orig).forEach(w => w.activeFilter = to);
+    this.tempSettings.loadedCodeWatchers.filter(w => w.activeFilter == orig).forEach(w => w.activeFilter = to);
   }
 
-  deleteWatchet(w: CodeWatcherModel) {
-    this.tempSettings.codeWatchers.splice(this.tempSettings.codeWatchers.indexOf(w), 1);
+  deleteWatcher(w: CodeWatcherModel) {
+    this.tempSettings.loadedCodeWatchers.splice(this.tempSettings.loadedCodeWatchers.indexOf(w), 1);
+  }
+
+  deleteWatcherFile(toRemove: string) {
+    if (this.getWatcherCountInFile(toRemove) > 0) {
+      this.confirmDeletePath = toRemove;
+      this.modalService.setModalVisible('confirmDeleteWatcherFile', true);
+    } else {
+      this.doDeleteWatcherFile(toRemove);
+    }
+  }
+
+  doDeleteWatcherFile(toRemove: string) {
+    this.tempSettings.codeWatcherPaths.splice(this.tempSettings.codeWatcherPaths.indexOf(toRemove), 1);
+    this.tempSettings.loadedCodeWatchers = this.tempSettings.loadedCodeWatchers.filter(w => w.path != toRemove);
+    this.confirmDeletePath = undefined;
+  }
+
+  getWatcherCountInFile(path: string) {
+    return this.tempSettings.loadedCodeWatchers.filter(w => w.path == path).length;
+  }
+
+  getDropdownLabelText(w: CodeWatcherModel) {
+    return TabService.basename(w.path);
   }
 }

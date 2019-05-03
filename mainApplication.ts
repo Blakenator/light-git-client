@@ -9,6 +9,7 @@ import {autoUpdater} from 'electron-updater';
 import {Channels} from './shared/Channels';
 import {GenericApplication} from './genericApplication';
 import * as ua from 'universal-analytics';
+import {CodeWatcherModel} from './shared/code-watcher.model';
 
 const opn = require('opn');
 
@@ -35,7 +36,21 @@ export class MainApplication extends GenericApplication {
   saveSettings(settingsModel: SettingsModel) {
     Object.assign(settingsModel, settingsModel);
     GitClient.settings = settingsModel;
-    fs.writeFileSync(this.getSettingsPath(), JSON.stringify(settingsModel), {encoding: 'utf8'});
+
+    let settingsToSave: { [path: string]: CodeWatcherModel[] } = {};
+    settingsModel.loadedCodeWatchers.forEach(w => {
+      if (!settingsToSave[w.path]) {
+        settingsToSave[w.path] = [];
+      }
+      settingsToSave[w.path].push(w);
+    });
+    Object.keys(settingsToSave).forEach(p => {
+      this.saveWatchers(p, settingsToSave[p]);
+    });
+
+    delete settingsModel.loadedCodeWatchers;
+    delete settingsModel.codeWatchers;
+    fs.writeFileSync(this.getSettingsPath(), JSON.stringify(settingsModel, null, '   '), {encoding: 'utf8'});
   }
 
   loadSettings(callback: Function) {
@@ -44,21 +59,83 @@ export class MainApplication extends GenericApplication {
         if (err) {
           throw err;
         }
-        const res = Object.assign(new SettingsModel(), JSON.parse(data));
+        const res: SettingsModel = Object.assign(new SettingsModel(), JSON.parse(data));
+        if (res.codeWatcherPaths.length == 0) {
+          res.codeWatcherPaths = [this.getDefaultWatcherPath()];
+        }
         Object.assign(this.settings, res);
-        GitClient.settings = res;
+        GitClient.settings = this.settings;
         if (this.settings.allowStats == 1) {
           this.analytics = ua('UA-83786273-2', this.settings.statsId);
         }
         this.sendEvent(MainApplication.STATS_GENERAL, 'tabs-open', this.settings.tabNames.length);
         this.sendEvent(MainApplication.STATS_GENERAL, 'version', this.version);
-        callback(res);
+
+        let done: { [path: string]: CodeWatcherModel[] } = {};
+        if (this.settings.codeWatcherPaths.length > 0) {
+          this.settings.codeWatcherPaths.forEach(p => {
+            done[p] = undefined;
+            this.loadWatchers(p, (watcherPath, watchers) => {
+              done[watcherPath] = watchers;
+              if (Object.values(done).every(w => !!w)) {
+                this.settings.loadedCodeWatchers = Object.values(done).reduce((acc: CodeWatcherModel[],
+                                                                               b: CodeWatcherModel[]) => acc.concat(b));
+                if (!!this.settings.codeWatchers) {
+                  this.settings.codeWatchers.forEach(w => w.path = this.getDefaultWatcherPath());
+                  this.settings.loadedCodeWatchers = this.settings.loadedCodeWatchers.concat(this.settings.codeWatchers);
+                  delete this.settings.codeWatchers;
+                }
+                callback(this.settings);
+              }
+            });
+          });
+        } else {
+          this.settings.codeWatcherPaths = [this.getDefaultWatcherPath()];
+          this.settings.loadedCodeWatchers = SettingsModel.defaultCodeWatchers;
+          this.settings.loadedCodeWatchers.forEach(w => w.path = this.getDefaultWatcherPath());
+          if (!!this.settings.codeWatchers) {
+            this.settings.codeWatchers.forEach(w => w.path = this.getDefaultWatcherPath());
+            this.settings.loadedCodeWatchers = this.settings.loadedCodeWatchers.concat(this.settings.codeWatchers);
+            delete this.settings.codeWatchers;
+          }
+          callback(this.settings);
+        }
       });
     } else {
       Object.assign(this.settings, new SettingsModel());
+      this.settings.codeWatcherPaths = [this.getDefaultWatcherPath()];
       this.saveSettings(this.settings);
       GitClient.settings = this.settings;
       callback(this.settings);
+    }
+  }
+
+  saveWatchers(path: string, watchers: CodeWatcherModel[]) {
+    watchers = watchers.map(w => {
+      let newW = Object.assign({}, w);
+      delete newW.path;
+      return newW;
+    });
+    fs.writeFileSync(path, JSON.stringify(watchers, null, '   '), {encoding: 'utf8'});
+  }
+
+  loadWatchers(path: string, callback: (path: string, watchers: CodeWatcherModel[]) => void) {
+    if (fs.existsSync(path)) {
+      fs.readFile(path, 'utf8', (err, data) => {
+        if (err) {
+          callback(path, []);
+          return;
+        }
+        try {
+          let res: CodeWatcherModel[] = JSON.parse(data);
+          res.forEach(w => w.path = path);
+          callback(path, res);
+        } catch (e) {
+          callback(path, []);
+        }
+      });
+    } else {
+      callback(path, []);
     }
   }
 
@@ -75,6 +152,10 @@ export class MainApplication extends GenericApplication {
 
   getSettingsPath() {
     return path.join(app.getPath('userData'), 'settings.json');
+  }
+
+  getDefaultWatcherPath() {
+    return path.join(app.getPath('userData'), 'watchers.json');
   }
 
   stopWatchingSettings() {
@@ -246,7 +327,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.COMMIT, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].commit(args[2], args[3],args[4]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].commit(args[2], args[3], args[4]), event, args);
     });
 
     ipcMain.on(Channels.CHERRYPICKCOMMIT, (event, args) => {

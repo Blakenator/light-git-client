@@ -31,6 +31,7 @@ import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 import {LoadingService} from '../../services/loading.service';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
+import {TabService} from '../../services/tab.service';
 
 @Component({
   selector: 'app-repo-view',
@@ -45,8 +46,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   diffHeaders: DiffHeaderModel[] = [];
   commitHistory: CommitSummaryModel[] = [];
   showDiff = false;
-  @Input() repoPath = 'C:/Users/blake/Documents/projects/test-repo';
-  @Input() repoCache: RepositoryModel;
+  @Input() isNested = false;
   localBranchFilter = '';
   remoteBranchFilter = '';
   globalErrorHandlerService: GlobalErrorHandlerService;
@@ -77,6 +77,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   branchesToPrune: string[];
   readonly branchReplaceChars = {match: /[\s]/g, with: '-'};
   private $destroy = new Subject<void>();
+  private destroyed = false;
   private refreshDebounce;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
@@ -90,7 +91,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               public codeWatcherService: CodeWatcherService,
               public modalService: ModalService,
               errorHandler: ErrorHandler,
-              public changeDetectorRef: ChangeDetectorRef,
+              private _changeDetectorRef: ChangeDetectorRef,
+              private tabService: TabService,
               private gitService: GitService) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
     this.gitService.onCommandHistoryUpdated.asObservable().pipe(takeUntil(this.$destroy)).subscribe(history => {
@@ -113,6 +115,27 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repoViewUid = Math.round(Math.random() * 10000000);
   }
 
+  get changeDetectorRef(): ChangeDetectorRef {
+    if (!this.destroyed) {
+      return this._changeDetectorRef;
+    } else {
+      return Object.assign({}, this._changeDetectorRef, {
+        detectChanges: () => {
+        },
+      });
+    }
+  }
+
+  private _repoPath: string;
+
+  @Input()
+  set repoPath(value: string) {
+    if (this._repoPath != value) {
+      this._repoPath = value;
+      this.loadRepo(this._repoPath);
+    }
+  }
+
   getStashFilterText(stash: StashModel) {
     return stash.branchName + stash.message + stash.branchName;
   }
@@ -122,6 +145,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     this.$destroy.next();
     clearInterval(this.refreshDebounce);
   }
@@ -777,13 +801,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   private loadRepo(path: string = '') {
-    this.repoPath = path || this.repoPath;
-    this.repo = this.repoCache;
+    this._repoPath = path || (this.isNested ?
+                              this._repoPath :
+                              this.tabService.activeRepoCache.path || this._repoPath);
+    this.repo = this.tabService.activeRepoCache;
     this.loadingService.setLoading(true);
-    this.gitService.loadRepo(this.repoPath)
+    this.gitService.loadRepo(this._repoPath)
         .then(repo => {
           this.repo = repo;
-          this.repoCache = this.repo;
+          if (!this.isNested) {
+            Object.assign(this.tabService.activeRepoCache, this.repo);
+          }
           this.getCommandHistory();
           this.getFullRefresh(false, false);
           this.changeDetectorRef.detectChanges();
@@ -805,7 +833,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
-    Object.assign(this.repoCache, this.repo || {});
+    Object.assign(this.tabService.activeRepoCache, this.repo || {});
     this.changeDetectorRef.detectChanges();
     this.loadingService.setLoading(false);
   }

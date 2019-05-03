@@ -14,8 +14,7 @@
         <app-file-input [allowMultiple]="false"
                         [isFolder]="true"
                         label="Destination Path"
-                        [filePath]="path"
-                        (onPathChanged)="path=$event"
+                        [(filePath)]="path"
                         [disabled]="isLoading"></app-file-input>
 
         <div class="card">

@@ -2,19 +2,11 @@ language: node_js
 
 cache:
   directories:
-    - node_modules
     - $HOME/.cache/electron
     - $HOME/.cache/electron-builder
 
 env:
   - ELECTRON_CACHE=$HOME/.cache/electron ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
-
-before_install:
-  - |
-    if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      mkdir -p /tmp/git-lfs && curl -L https://github.com/github/git-lfs/releases/download/v2.3.1/git-lfs-$([ "$TRAVIS_OS_NAME" == "linux" ] && echo "linux" || echo "darwin")-amd64-2.3.1.tar.gz | tar -xz -C /tmp/git-lfs --strip-components 1
-      export PATH="/tmp/git-lfs:$PATH"
-    fi
 
 jobs:
   include:
@@ -23,7 +15,7 @@ jobs:
       osx_image: xcode10.2
       node_js: "8"
       script:
-        - git lfs pull
+        - npm i &> /dev/null
         - npm run test-node || travis_terminate 1
     - stage: Release
       os: osx
@@ -31,7 +23,6 @@ jobs:
       node_js: "8"
       if: (branch = testing/build) OR (branch = master)
       script:
-        - git lfs pull
         - npm run release:mac
     - stage: Build
       os: osx
@@ -45,56 +36,24 @@ jobs:
     - stage: Run Tests
       os: linux
       node_js: "10"
-      services: docker
-      language: generic
       script:
+        - nvm install 10
+        - nvm use 10
         - git lfs pull
+        - npm i &> /dev/null
         - npm run test-node || travis_terminate 1
     - stage: Release
       os: linux
       node_js: "10"
-      services: docker
-      language: generic
       if: (branch = testing/build) OR (branch = master)
       script:
-        - git lfs pull
-        - |
-          docker run --rm \
-            -e CSC_LINK=$CSC_LINK \
-            -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
-            -e GH_TOKEN=$GH_TOKEN \
-            -v ${PWD}:/project \
-            -v ~/.cache/electron:/root/.cache/electron \
-            -v ~/.cache/electron-builder:/root/.cache/electron-builder \
-            electronuserland/builder:10 \
-            /bin/bash -c "npm i && npm run release:linux"
+        - npm run release:linux
     - stage: Build
       os: linux
       node_js: "10"
-      services: docker
-      language: generic
       if: branch = staging
-      env:
-        - ELECTRON_CACHE=$HOME/.cache/electron
-        - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
       script:
-        - git lfs pull
-        - |
-          docker run --rm \
-            -e CSC_LINK=$CSC_LINK \
-            -e CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD \
-            -e GH_TOKEN=$GH_TOKEN \
-            -v ${PWD}:/project \
-            -v ~/.cache/electron:/root/.cache/electron \
-            -v ~/.cache/electron-builder:/root/.cache/electron-builder \
-            electronuserland/builder:wine \
-            /bin/bash -c "npm i && npm run electron:linux"
-
-before_script:
-  - git lfs pull
-
-before_cache:
-  - rm -rf $HOME/.cache/electron-builder/wine
+        - npm run electron:linux
 
 branches:
   only:

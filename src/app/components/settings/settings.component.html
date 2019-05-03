@@ -67,11 +67,9 @@
           </div>
         </div>
         <div class="col-6">
-          <app-file-input [filePath]="tempSettings.gitPath"
-                          (onPathChanged)="tempSettings.gitPath=$event"
+          <app-file-input [(filePath)]="tempSettings.gitPath"
                           [label]="'Git Path (required if not in PATH)'"></app-file-input>
-          <app-file-input [filePath]="tempSettings.bashPath"
-                          (onPathChanged)="tempSettings.bashPath=$event"
+          <app-file-input [(filePath)]="tempSettings.bashPath"
                           [label]="'Bash Path (required if not in PATH)'"></app-file-input>
         </div>
       </div>

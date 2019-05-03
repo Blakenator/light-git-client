@@ -14,7 +14,7 @@ export class FileInputComponent implements OnInit {
   @Input() removeQuotes = true;
   @Input() filePath = '';
   @Output() onEnterKeyPressed = new EventEmitter<string>();
-  @Output() onPathChanged = new EventEmitter<string>();
+  @Output() filePathChange = new EventEmitter<string>();
 
   constructor() {
   }
@@ -24,9 +24,9 @@ export class FileInputComponent implements OnInit {
 
   changeFilePath($event?) {
     if ($event && $event.target.files.length > 0) {
-      this.filePath = Object.values(<{ [key: number]: { path: string } }>$event.target.files).map(x => x.path).join(",");
+      this.filePath = Object.values(<{ [key: number]: { path: string } }>$event.target.files).map(f => f.path).join(",");
     }
-    this.onPathChanged.emit(this.getFormattedFile());
+    this.filePathChange.emit(this.getFormattedFile());
   }
 
   enterKeyPressed() {

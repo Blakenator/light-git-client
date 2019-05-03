@@ -10,7 +10,12 @@
   <div class="repo-section-container {{customBodyClass}}"
        *ngIf="header.getExpandState()"
        [ngClass]="{'flex-grow-1':header.getExpandState()}"
-       [style.maxHeight]="!maxHeightVh?'unset':maxHeightVh+'vh'">
+       [style.maxHeight]="!maxHeightVh?'unset':maxHeightVh+'vh'"
+       infinite-scroll
+       (scrolled)="scrolled.emit($event)"
+       (scrolledUp)="scrolledUp.emit($event)"
+       [scrollWindow]="false"
+  [infiniteScrollDisabled]="infiniteScrollDisabled">
     <ng-content></ng-content>
   </div>
 </div>
