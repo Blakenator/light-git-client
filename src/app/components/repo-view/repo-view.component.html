@@ -215,18 +215,15 @@
                      cardTitle="Command History"
                      iconClass="fa fa-history"
                      expandKey="command-history"
-                     maxHeightVh="30">
+                     (scrolled)="maxCommandsVisible=maxCommandsVisible + commandsPerPage"
+                     (scrolledUp)="maxCommandsVisible=commandsPerPage"
+                     [infiniteScrollDisabled]="false">
       <ng-template #commandHistoryHeader>
         <input class="ml-2 form-control"
                placeholder="Filter..."
                [(ngModel)]="commandHistoryFilter">
       </ng-template>
-      <div class="card-body mh-100"
-           *ngIf="getExpandState('command-history') && commandHistory"
-           infinite-scroll
-           [scrollWindow]="false"
-           (scrolled)="maxCommandsVisible=maxCommandsVisible + commandsPerPage"
-           (scrolledUp)="maxCommandsVisible=commandsPerPage">
+      <div class="card-body" *ngIf="commandHistory">
         <div *ngFor="let c of commandHistory.slice().reverse() | filterObject : getCommandHistoryFilterableText : commandHistoryFilter | slice : 0 : maxCommandsVisible">
           <span class="command-title"><i class="fa {{c.isError?'fa-exclamation-triangle':'fa-check-circle'}}"></i> <i>{{c.name}}</i> ({{c.durationMs}}
             ms @ {{c.executedAt | date : 'mediumTime'}})</span>
@@ -389,7 +386,7 @@
                           [branches]="repo.localBranches"
                           [activeBranch]="activeCommitHistoryBranch"
                           (onChooseBranch)="handleActiveBranchUpdate($event)"
-                          (onClickCheckout)="checkout($event.hash,false)"></app-commit-history>
+                          (onClickCheckout)="checkout({branch:$event.hash,andPull:false},false)"></app-commit-history>
     </app-layout-card>
   </div>
 

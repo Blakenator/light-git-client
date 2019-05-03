@@ -23,7 +23,7 @@ jobs:
       node_js: "8"
       script:
         - git lfs pull
-        - npm i
+        - npm i &> /dev/null
         - npm run test-node || travis_terminate 1
     - stage: Release
       os: osx
@@ -50,7 +50,7 @@ jobs:
         - nvm install 10
         - nvm use 10
         - git lfs pull
-        - npm i
+        - npm i &> /dev/null
         - npm run test-node || travis_terminate 1
     - stage: Release
       os: linux

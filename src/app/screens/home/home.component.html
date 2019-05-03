@@ -27,7 +27,7 @@
             <input class="form-control"
                    [autofocus]
                    [(ngModel)]="editedTabName"
-                   (keypress.space)="$event.stopPropagation()"
+                   (keyup.space)="$event.stopPropagation();$event.preventDefault()"
                    (keyup.enter)="saveEditedName(t)"
                    (keyup.control.enter)="saveEditedName(t)"
                    (click)="editClick($event,t)"/>

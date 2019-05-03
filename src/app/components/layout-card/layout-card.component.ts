@@ -1,4 +1,4 @@
-import {Component, HostBinding, Input, OnInit, TemplateRef, ViewChild} from '@angular/core';
+import {Component, EventEmitter, HostBinding, Input, OnInit, Output, TemplateRef, ViewChild} from '@angular/core';
 import {LayoutCardHeaderComponent} from './layout-card-header/layout-card-header.component';
 
 @Component({
@@ -18,6 +18,9 @@ export class LayoutCardComponent implements OnInit {
   @Input() spaced = true;
   @Input() maxHeightVh: number;
   @Input() headerContent: TemplateRef<any>;
+  @Input() infiniteScrollDisabled = true;
+  @Output() scrolled = new EventEmitter();
+  @Output() scrolledUp = new EventEmitter();
   @HostBinding('class.flex-grow-1') flexGrowClass = false;
   @HostBinding('class.min-height') flexMinHeightClass = true;
   @HostBinding('class.d-flex') flexBinding = true;
