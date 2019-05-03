@@ -2,12 +2,12 @@ import {ChangeDetectorRef, Component, OnInit} from '@angular/core';
 import {ElectronService} from '../../common/services/electron.service';
 import {HttpClient} from '@angular/common/http';
 import {SettingsService} from '../../services/settings.service';
-import {RepositoryModel} from '../../../../shared/git/Repository.model';
 import {GitService} from '../../services/git.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
 import {ErrorService} from '../../common/services/error.service';
 import {LoadingService} from '../../services/loading.service';
 import {CdkDragDrop} from '@angular/cdk/drag-drop';
+import {TabService} from '../../services/tab.service';
 
 @Component({
   selector: 'app-home',
@@ -16,12 +16,8 @@ import {CdkDragDrop} from '@angular/cdk/drag-drop';
 })
 export class HomeComponent implements OnInit {
   isLoading = false;
-  activeTab = 0;
-  repoPaths: string[] = [''];
-  tabNames: string[] = [''];
   editingTab = -1;
   editedTabName = '';
-  repoCache: { [key: string]: RepositoryModel } = {};
 
   constructor(private electronService: ElectronService,
               public settingsService: SettingsService,
@@ -29,7 +25,16 @@ export class HomeComponent implements OnInit {
               private loadingService: LoadingService,
               private http: HttpClient,
               private cd: ChangeDetectorRef,
+              public tabService: TabService,
               private gitService: GitService) {
+  }
+
+  get activeTab(): number {
+    return this.tabService.activeTab;
+  }
+
+  set activeTab(value: number) {
+    this.tabService.activeTab = value;
   }
 
   ngOnInit() {
@@ -38,15 +43,13 @@ export class HomeComponent implements OnInit {
       this.cd.detectChanges();
     });
     this.settingsService.loadSettings(callback => {
-      this.repoPaths = this.settingsService.settings.openRepos;
       this.activeTab = this.settingsService.settings.activeTab;
-      this.tabNames = this.settingsService.settings.tabNames.map((x, index) =>
-        x || this.basename(this.settingsService.settings.openRepos[index]));
-      this.repoPaths.forEach((p) => {
-        this.repoCache[p] = new RepositoryModel();
-        this.repoCache[p].path = this.repoPaths[p];
-      });
-      this.gitService.repo = this.repoCache[this.activeTab];
+      this.tabService.tabData = this.settingsService.settings.tabNames.map((x, index) =>
+        this.tabService.getNewTab(
+          this.settingsService.settings.openRepos[index],
+          x || TabService.basename(this.settingsService.settings.openRepos[index])));
+      this.tabService.initializeCache();
+      this.gitService.repo = this.tabService.activeRepoCache;
       this.gitService.checkGitBashVersions();
     });
   }
@@ -59,9 +62,8 @@ export class HomeComponent implements OnInit {
   }
 
   addTab(path: string = '') {
-    this.activeTab = this.tabNames.length;
-    this.repoPaths.push('');
-    this.tabNames.push('Tab ' + this.activeTab);
+    this.activeTab = this.tabService.tabData.length;
+    this.tabService.tabData.push(this.tabService.getNewTab(path));
     if (path) {
       setTimeout(() => {
         this.loadRepo(path);
@@ -75,40 +77,37 @@ export class HomeComponent implements OnInit {
     if (this.activeTab == t) {
       this.changeTab(--this.activeTab);
     }
-    this.repoPaths.splice(t, 1);
-    this.tabNames.splice(t, 1);
-    if (this.tabNames.length == 0) {
+    this.tabService.tabData.splice(t, 1);
+    if (this.tabService.tabData.length == 0) {
       this.addTab();
     }
     this.saveOpenRepos();
   }
 
-  loadRepo($event: string) {
-    this.repoPaths[this.activeTab] = $event;
-    this.tabNames[this.activeTab] = this.basename($event);
+  loadRepo(path: string) {
+    this.tabService.tabData[this.activeTab] = this.tabService.getNewTab(path, TabService.basename(path));
     this.saveOpenRepos();
   }
 
   saveOpenRepos() {
     this.settingsService.settings.activeTab = this.activeTab;
-    this.settingsService.settings.tabNames = this.tabNames;
-    this.settingsService.settings.openRepos = this.repoPaths;
+    this.settingsService.settings.tabNames = this.tabService.tabData.map(t => t.name);
+    this.settingsService.settings.openRepos = this.tabService.tabData.map(t => t.cache.path);
     this.editingTab = -1;
     this.editedTabName = '';
-    this.gitService.repo = this.repoCache[this.activeTab];
+    this.gitService.repo = this.tabService.activeRepoCache;
     this.settingsService.saveSettings();
   }
 
   editClick($event, t: number) {
     this.editingTab = t;
-    this.editedTabName = this.tabNames[t];
+    this.editedTabName = this.tabService.tabData[t].name;
     $event.stopPropagation();
   }
 
   repoLoadFailed($event: ErrorModel) {
     this.errorService.receiveError($event);
-    this.repoPaths[this.activeTab] = '';
-    this.tabNames[this.activeTab] = 'Tab ' + this.activeTab;
+    this.tabService.tabData[this.activeTab] = this.tabService.getNewTab('');
     this.cd.detectChanges();
   }
 
@@ -119,18 +118,23 @@ export class HomeComponent implements OnInit {
   }
 
   saveEditedName(t: number) {
-    this.tabNames[t] = this.editedTabName;
+    this.tabService.tabData[t].name = this.editedTabName;
     this.saveOpenRepos();
   }
 
   moveTab(event: CdkDragDrop<number[]>) {
-    this.tabNames.splice(event.currentIndex, 0, this.tabNames.splice(event.previousIndex, 1)[0]);
-    this.repoPaths.splice(event.currentIndex, 0, this.repoPaths.splice(event.previousIndex, 1)[0]);
-    this.changeTab(event.currentIndex);
+    this.tabService.tabData.splice(event.currentIndex, 0, this.tabService.tabData.splice(event.previousIndex, 1)[0]);
+    if (this.activeTab == event.previousIndex) {
+      this.activeTab = event.currentIndex;
+    } else if (this.activeTab > event.currentIndex && this.activeTab < event.previousIndex) {
+      this.activeTab++;
+    } else if (this.activeTab < event.currentIndex && this.activeTab > event.previousIndex) {
+      this.activeTab--;
+    }
     this.saveOpenRepos();
   }
 
-  private basename(folderPath: string) {
-    return folderPath.substring(folderPath.replace(/\\/g, '/').lastIndexOf('/') + 1);
+  getActiveTabData() {
+    return this.tabService.tabData[this.activeTab];
   }
 }

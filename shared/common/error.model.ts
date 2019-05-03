@@ -7,6 +7,11 @@ export class ErrorModel {
     this.source = source;
     this.occurredWhile = occurredWhile;
     try {
+      JSON.stringify(content);
+    } catch (e) {
+      content = content.toString();
+    }
+    try {
       this.content = ErrorModel.isErrorModel(content) || typeof content == 'string' ?
                      content :
                      typeof content.errorOutput == 'string' ? content.errorOutput : JSON.stringify(content);
