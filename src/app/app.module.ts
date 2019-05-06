@@ -51,8 +51,10 @@ import {LayoutCardHeaderComponent} from './components/layout-card/layout-card-he
 import {CodeWatcherConfigComponent} from './components/settings/code-watcher-config/code-watcher-config.component';
 import {AlertComponent} from './common/components/alert/alert.component';
 import {DragDropModule} from '@angular/cdk/drag-drop';
-import { TutorialComponent } from './components/tutorial/tutorial.component';
-import { PrettyCheckboxComponent } from './common/components/pretty-checkbox/pretty-checkbox.component';
+import {TutorialComponent} from './components/tutorial/tutorial.component';
+import {PrettyCheckboxComponent} from './common/components/pretty-checkbox/pretty-checkbox.component';
+import {MergeBranchComponent} from './components/merge-branch/merge-branch.component';
+import {BranchChooserComponent} from './components/branch-chooser/branch-chooser.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -93,6 +95,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     AlertComponent,
     TutorialComponent,
     PrettyCheckboxComponent,
+    MergeBranchComponent,
+    BranchChooserComponent,
   ],
   imports: [
     BrowserModule,
@@ -113,11 +117,13 @@ export function HttpLoaderFactory(http: HttpClient) {
     ScrollingModule,
     DragDropModule,
   ],
-  providers: [ElectronService, SettingsService,
+  providers: [
+    ElectronService, SettingsService,
     {
       provide: ErrorHandler,
       useClass: GlobalErrorHandlerService,
-    }],
+    },
+  ],
   bootstrap: [AppComponent],
 })
 export class AppModule {

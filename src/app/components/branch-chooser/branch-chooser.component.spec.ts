@@ -1,20 +1,20 @@
 import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {AskPassComponent} from './ask-pass.component';
+import {BranchChooserComponent} from './branch-chooser.component';
 
-describe('AskPassComponent', () => {
-  let component: AskPassComponent;
-  let fixture: ComponentFixture<AskPassComponent>;
+describe('BranchChooserComponent', () => {
+  let component: BranchChooserComponent;
+  let fixture: ComponentFixture<BranchChooserComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [AskPassComponent],
+      declarations: [BranchChooserComponent],
     })
            .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(AskPassComponent);
+    fixture = TestBed.createComponent(BranchChooserComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

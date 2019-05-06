@@ -39,7 +39,9 @@ export class AddWorktreeComponent implements OnInit {
 
   add() {
     if (!this.path || !this.path.trim() || !this.selectedBranch) {
-      this.pathError = !this.path || !this.path.trim() ? 'Please enter a path. If the current directory is desired, enter \'./\'' : '';
+      this.pathError = !this.path || !this.path.trim() ?
+                       'Please enter a path. If the current directory is desired, enter \'./\'' :
+                       '';
       this.branchError = !this.selectedBranch ? 'Please select a branch' : '';
       return;
     } else {

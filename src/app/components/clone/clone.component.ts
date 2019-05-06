@@ -6,7 +6,7 @@ import {ModalService} from '../../common/services/modal.service';
 @Component({
   selector: 'app-clone',
   templateUrl: './clone.component.html',
-  styleUrls: ['./clone.component.scss']
+  styleUrls: ['./clone.component.scss'],
 })
 export class CloneComponent implements OnInit {
   showWindow: Observable<boolean>;
@@ -16,7 +16,9 @@ export class CloneComponent implements OnInit {
   output: { err: string, out: string, done: boolean }[] = [];
   isLoading = false;
 
-  constructor(private gitService: GitService, private applicationRef: ApplicationRef, public modalService: ModalService) {
+  constructor(private gitService: GitService,
+              private applicationRef: ApplicationRef,
+              public modalService: ModalService) {
     this.showWindow = modalService.registerModal('clone').asObservable();
   }
 

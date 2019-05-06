@@ -1,4 +1,8 @@
-<div class="modal fade d-block text-body" [ngClass]="{show:show}" *ngIf="render" (click)="setVisible(false)">
+<div class="modal fade d-block text-body"
+     [ngClass]="{show:show}"
+     *ngIf="render"
+     (click)="setVisible(false)"
+     (keyup.escape)="cancelOrAccept()">
   <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
     <div class="modal-content {{modalClass}}" *ngIf="!customModal">
       <div class="modal-header">

@@ -1,7 +1,7 @@
 import {Pipe, PipeTransform} from '@angular/core';
 
 @Pipe({
-  name: 'filter'
+  name: 'filter',
 })
 export class FilterPipe implements PipeTransform {
   /**
@@ -36,7 +36,7 @@ export class FilterPipe implements PipeTransform {
 }
 
 @Pipe({
-  name: 'filterObject'
+  name: 'filterObject',
 })
 export class FilterObjectPipe implements PipeTransform {
   transform(items: any[], getValue: Function | string, searchText: string): any[] {

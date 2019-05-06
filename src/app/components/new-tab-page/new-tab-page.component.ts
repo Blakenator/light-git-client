@@ -4,13 +4,13 @@ import {ModalService} from '../../common/services/modal.service';
 @Component({
   selector: 'app-new-tab-page',
   templateUrl: './new-tab-page.component.html',
-  styleUrls: ['./new-tab-page.component.scss']
+  styleUrls: ['./new-tab-page.component.scss'],
 })
 export class NewTabPageComponent implements OnInit {
   repoPath = '';
   @Output() onReady = new EventEmitter<string>();
 
-  constructor(public modalService:ModalService) {
+  constructor(public modalService: ModalService) {
   }
 
   ngOnInit() {

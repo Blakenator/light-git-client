@@ -1,20 +1,20 @@
 import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {AskPassComponent} from './ask-pass.component';
+import {MergeBranchComponent} from './merge-branch.component';
 
-describe('AskPassComponent', () => {
-  let component: AskPassComponent;
-  let fixture: ComponentFixture<AskPassComponent>;
+describe('MergeBranchComponent', () => {
+  let component: MergeBranchComponent;
+  let fixture: ComponentFixture<MergeBranchComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [AskPassComponent],
+      declarations: [MergeBranchComponent],
     })
            .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(AskPassComponent);
+    fixture = TestBed.createComponent(MergeBranchComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -40,6 +40,11 @@
                 title="Remove local branches without a tracking URL">
           <i class="fas fa-cut"></i>
         </button>
+        <button class="btn btn-success btn-sm mx-1"
+                (click)="startMerge()"
+                title="Merge two branches">
+          <i class="fa fa-code-branch merge-branch-icon"></i>
+        </button>
       </ng-template>
       <app-branch-tree-item [isLocal]="true"
                             [filter]="localBranchFilter"
@@ -50,7 +55,7 @@
                             (onPullClicked)="pull(false)"
                             (onForcePullClicked)="pull(true)"
                             (onDeleteClicked)="markDeleteBranch($event)"
-                            (onMergeClicked)="mergeBranch($event)"
+                            (onMergeClicked)="startMerge($event)"
                             (onFastForwardClicked)="fastForwardBranch($event)"
                             (onBranchPremergeClicked)="getBranchPremerge($event)"
                             [worktrees]="repo.worktrees"
@@ -459,4 +464,9 @@
     Are you sure you want to delete <i>{{activeDeleteBranch && activeDeleteBranch.name }}</i>?<br/>
     <b *ngIf="activeDeleteBranch && activeDeleteBranch.isRemote">This will affect everyone and cannot be undone</b>
   </app-confirm-modal>
+  <app-merge-branch [uidSalt]="repoViewUid"
+                    [activeMergeInfo]="activeMergeInfo"
+                    (onCancel)="cancelMerge()"
+                    (onFinish)="mergeBranch()"
+                    [locals]="repo.localBranches"></app-merge-branch>
 </div>

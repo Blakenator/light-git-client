@@ -131,7 +131,7 @@
             </div>
           </div>
           <button class="btn btn-success btn-sm"
-                  (click)="onMergeClicked.emit(b.name)"
+                  (click)="onMergeClicked.emit(b)"
                   *ngIf="!b.isCurrentBranch"
                   title="Merge Branch into Current Branch">
             <i class="fa fa-code-branch merge-branch-icon"></i>

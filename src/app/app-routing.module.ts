@@ -6,17 +6,17 @@ import {AskPassComponent} from './screens/ask-pass/ask-pass.component';
 const routes: Routes = [
   {
     path: '',
-    component: HomeComponent
+    component: HomeComponent,
   },
   {
     path: 'password',
-    component: AskPassComponent
-  }
+    component: AskPassComponent,
+  },
 ];
 
 @NgModule({
   imports: [RouterModule.forRoot(routes, {useHash: true})],
-  exports: [RouterModule]
+  exports: [RouterModule],
 })
 export class AppRoutingModule {
 }

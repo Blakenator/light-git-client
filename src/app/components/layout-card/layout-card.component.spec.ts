@@ -1,6 +1,6 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import { LayoutCardComponent } from './layout-card.component';
+import {LayoutCardComponent} from './layout-card.component';
 
 describe('LayoutCardComponent', () => {
   let component: LayoutCardComponent;
@@ -8,9 +8,9 @@ describe('LayoutCardComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ LayoutCardComponent ]
+      declarations: [LayoutCardComponent],
     })
-    .compileComponents();
+           .compileComponents();
   }));
 
   beforeEach(() => {
