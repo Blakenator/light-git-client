@@ -26,7 +26,7 @@ export class SettingsModel {
   public includeUnchangedInWatcherAnalysis: boolean;
   public username: string;
   public email: string;
-  public allowStats: number;
+  public allowStats: boolean;
   public statsId: string;
   public allowPrerelease: boolean;
   public splitFilenameDisplay: boolean;
@@ -49,6 +49,7 @@ export class SettingsModel {
               email: string = '',
               allowPrerelease: boolean = false,
               airplaneMode: boolean = false,
+              allowStats: boolean = false,
               splitFilenameDisplay: boolean = false,
               commitAndPush: boolean = false,
               loadedCodeWatchers: CodeWatcherModel[] = [],
@@ -68,6 +69,7 @@ export class SettingsModel {
     this.includeUnchangedInWatcherAnalysis = includeUnchangedInWatcherAnalysis;
     this.username = username;
     this.email = email;
+    this.allowStats = allowStats;
     this.statsId = Math.pow(32, 16).toString(32);
     this.allowPrerelease = allowPrerelease;
     this.airplaneMode = airplaneMode;
@@ -100,7 +102,7 @@ export class SettingsModel {
     res.includeUnchangedInWatcherAnalysis = this.includeUnchangedInWatcherAnalysis;
     res.username = this.username + '';
     res.email = this.email + '';
-    res.allowStats = this.allowStats;
+    res.allowStats = !!this.allowStats;
     res.allowPrerelease = this.allowPrerelease;
     res.airplaneMode = this.airplaneMode;
     res.commitAndPush = this.commitAndPush;

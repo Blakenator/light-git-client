@@ -1,0 +1,8 @@
+<div class="pretty p-switch p-fill mx-2">
+  <input type="checkbox" [(ngModel)]="value" (ngModelChange)="valueChange.emit($event)"/>
+  <div class="state">
+    <label>
+      <ng-content></ng-content>
+    </label>
+  </div>
+</div>

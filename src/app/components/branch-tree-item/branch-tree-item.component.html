@@ -137,7 +137,7 @@
             <i class="fa fa-code-branch merge-branch-icon"></i>
           </button>
           <button class="btn btn-danger btn-sm"
-                  (click)="onDeleteClicked.emit(b.name)"
+                  (click)="onDeleteClicked.emit(b)"
                   title="Delete"
                   *ngIf="!b.isCurrentBranch">
             <i class="fa fa-trash"></i>
@@ -176,6 +176,11 @@
               +
               <i class="fa fa-arrow-down"></i>
             </small>
+          </button>
+          <button class="btn btn-danger btn-sm"
+                  (click)="onDeleteClicked.emit(b)"
+                  title="Delete">
+            <i class="fa fa-trash"></i>
           </button>
         </div>
       </div>

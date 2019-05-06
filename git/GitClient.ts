@@ -188,13 +188,31 @@ export class GitClient {
             key,
             '' + value,
           ], 'Set git settings');
-        }))
-               .then(resolve), reject);
+        })).then(resolve), reject);
     });
   }
 
-  deleteBranch(branches: string[]) {
-    return this.simpleOperation(this.getGitPath(), ['branch', '-D', '--', ...branches], 'Delete Branch');
+  deleteBranch(branches: BranchModel[]) {
+    let locals = branches.filter(b => !b.isRemote);
+    let remotes = branches.filter(b => b.isRemote);
+    let promises: Promise<void>[] = [];
+    if (locals.length > 0) {
+      promises.push(this.simpleOperation(
+        this.getGitPath(),
+        ['branch', '-D', '--'].concat(locals.map(b => b.name)),
+        'Delete Branches'));
+    }
+    if (remotes.length > 0) {
+      promises.push(this.simpleOperation(
+        this.getGitPath(),
+        ['push', 'origin', '--delete', '--'].concat(remotes.map(b => b.name.replace(/^origin\//, ''))),
+        'Delete Remote Branches').catch((error: string) => {
+        if (!error.match(/To\s+.*\r?\n\s+-\s+\[deleted]/i)) {
+          throw error;
+        }
+      }));
+    }
+    return Promise.all(promises);
   }
 
   mergeBranch(branch: string) {
@@ -202,7 +220,7 @@ export class GitClient {
   }
 
   changeHunk(filename: string, hunk: DiffHunkModel, changedText: string) {
-    return new Promise<any>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       try {
         fs.readFile(filename, (err, data) => {
           try {
@@ -322,8 +340,8 @@ export class GitClient {
     });
   }
 
-  commit(message: string, push: boolean, branch: BranchModel): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
+  commit(message: string, push: boolean, branch: BranchModel) {
+    return new Promise<void>((resolve, reject) => {
       let commitFilePath = path.join(app.getPath('userData'), 'commit.msg');
       fs.writeFileSync(commitFilePath, message, {encoding: 'utf8'});
       this.handleErrorDefault(
@@ -343,11 +361,11 @@ export class GitClient {
     });
   }
 
-  cherryPickCommit(hash: string): Promise<any> {
+  cherryPickCommit(hash: string) {
     return this.simpleOperation(this.getGitPath(), ['cherry-pick', hash], 'Cherry-pick');
   }
 
-  checkout(tag: string, toNewBranch: boolean, branchName: string = '', andPull: boolean): Promise<any> {
+  checkout(tag: string, toNewBranch: boolean, branchName: string = '', andPull: boolean) {
     let checkoutOp = this.simpleOperation(this.getGitPath(), [
       'checkout',
       '-q',
@@ -365,14 +383,14 @@ export class GitClient {
     return checkoutOp;
   }
 
-  undoFileChanges(file: string, revision: string, staged: boolean): Promise<any> {
+  undoFileChanges(file: string, revision: string, staged: boolean) {
     if (staged) {
       return this.simpleOperation(
         this.getGitPath(),
         ['checkout', '-q', (revision || 'HEAD'), '--', file],
         'Undo File Changes');
     } else {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<void>((resolve, reject) => {
         let args = ['stash', 'push', '--keep-index', '--', file];
         this.simpleOperation(
           this.getGitPath(),
@@ -380,7 +398,8 @@ export class GitClient {
           'Stash Local File Changes').then(() => {
           this.deleteStash(0).then(resolve).catch(reject);
         }).catch(error => {
-          if (error.toString().indexOf('fatal: unrecognized input') >= 0) {
+          if (error.toString().indexOf('fatal: unrecognized input') >= 0 ||
+            error.toString().match(/(^|\r?\n)warning:\s+((CR)?LF)\s+will\s+be\s+replaced/i)) {
             this.deleteStash(0).then(resolve).catch(reject);
           } else {
             reject(error);
@@ -390,18 +409,18 @@ export class GitClient {
     }
   }
 
-  hardReset(): Promise<any> {
+  hardReset() {
     return this.simpleOperation(this.getGitPath(), ['reset', '--hard'], 'Hard Reset/Undo All');
   }
 
-  merge(file: string, tool: string): Promise<any> {
+  merge(file: string, tool: string) {
     return this.simpleOperation(
       this.getGitPath(),
       ['mergetool', '--tool=' + (tool || 'meld'), file],
       'Resolve Merge Conflict');
   }
 
-  stash(unstagedOnly: boolean, stashName: string): Promise<any> {
+  stash(unstagedOnly: boolean, stashName: string) {
     let commandArgs = ['stash', 'push'];
     if (unstagedOnly) {
       commandArgs.push('-k');
@@ -414,22 +433,22 @@ export class GitClient {
     return this.simpleOperation(this.getGitPath(), commandArgs, 'Stash Changes');
   }
 
-  applyStash(index: number): Promise<any> {
+  applyStash(index: number) {
     return this.simpleOperation(this.getGitPath(), ['stash', 'apply', '--index', '' + index], 'Apply Stashed Changes');
   }
 
-  fastForward(branch: string): Promise<any> {
+  fastForward(branch: string) {
     return this.simpleOperation(
       this.getGitPath(),
       ['fetch', '-q', 'origin', branch + ':' + branch],
       'Fast-Forward Branch');
   }
 
-  deleteStash(index: number): Promise<any> {
+  deleteStash(index: number) {
     return this.simpleOperation(this.getGitPath(), ['stash', 'drop', 'stash@{' + index + '}'], 'Delete Stash');
   }
 
-  pushBranch(branch: BranchModel, force: boolean): Promise<any> {
+  pushBranch(branch: BranchModel, force: boolean) {
     return this.simpleOperation(
       this.getGitPath(),
       [
@@ -443,7 +462,7 @@ export class GitClient {
       'Push');
   }
 
-  updateSubmodules(branch: string, recursive: boolean): Promise<any> {
+  updateSubmodules(branch: string, recursive: boolean) {
     return this.simpleOperation(this.getGitPath(), [
       'submodule',
       'update',
@@ -455,7 +474,7 @@ export class GitClient {
     ], 'Update Submodule');
   }
 
-  addSubmodule(url: string, path: string): Promise<any> {
+  addSubmodule(url: string, path: string) {
     return this.simpleOperation(this.getGitPath(), ['submodule', 'add', '-q', url, (path || '')], 'Update Submodule');
   }
 
@@ -503,7 +522,7 @@ export class GitClient {
     });
   }
 
-  pull(force: boolean): Promise<any> {
+  pull(force: boolean) {
     return this.simpleOperation(this.getGitPath(), ['pull', (force ? ' -f' : '')], 'Pull');
   }
 
@@ -653,6 +672,7 @@ export class GitClient {
                 branchModel.currentHash = match[3];
                 branchModel.lastCommitText = match[13];
                 branchModel.trackingPath = match[5];
+                branchModel.isRemote = false;
                 if (match[8] === 'ahead') {
                   branchModel.ahead = +match[9];
                   if (match[11] === 'behind') {
@@ -723,6 +743,7 @@ export class GitClient {
                             branchModel.name = match[2];
                             branchModel.currentHash = match[3];
                             branchModel.lastCommitText = match[13];
+                            branchModel.isRemote = true;
 
                             result.remoteBranches.push(branchModel);
                             match = branchList.exec(text);
@@ -901,7 +922,7 @@ export class GitClient {
 
   private simpleOperation(command: string,
                           args: string[],
-                          name: string): Promise<any> {
+                          name: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.execute(command, args, name)
           .then(() => resolve())
