@@ -74,8 +74,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   crlfErrorToastTimeout: number;
   activeUndo: string;
   activeCommitHistoryBranch: BranchModel;
-  branchesToPrune: string[];
+  branchesToPrune: BranchModel[];
   readonly branchReplaceChars = {match: /[\s]/g, with: '-'};
+  activeDeleteBranch: BranchModel;
   private $destroy = new Subject<void>();
   private destroyed = false;
   private refreshDebounce;
@@ -222,13 +223,20 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           err)));
   }
 
-  deleteBranch(branch: string) {
-    this.simpleOperation(this.gitService.deleteBranch([branch]), 'deleteBranch', 'deleting the branch');
+  markDeleteBranch(branch: BranchModel) {
+    this.activeDeleteBranch = branch;
+    this.showModal('confirmDeleteBranch');
+  }
+
+  deleteBranch() {
+    this.simpleOperation(
+      this.gitService.deleteBranch([this.activeDeleteBranch]),
+      'confirmDeleteBranch',
+      'deleting the branch').then(() => this.activeDeleteBranch = undefined);
   }
 
   pruneLocalBranches() {
-    this.branchesToPrune = this.repo.localBranches.filter(branch => !branch.trackingPath && !branch.isCurrentBranch)
-                               .map(b => b.name);
+    this.branchesToPrune = this.repo.localBranches.filter(branch => !branch.trackingPath && !branch.isCurrentBranch);
     this.showModal('pruneConfirm', true);
   }
 

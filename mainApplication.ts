@@ -65,7 +65,7 @@ export class MainApplication extends GenericApplication {
         }
         Object.assign(this.settings, res);
         GitClient.settings = this.settings;
-        if (this.settings.allowStats == 1) {
+        if (this.settings.allowStats) {
           this.analytics = ua('UA-83786273-2', this.settings.statsId);
         }
         this.sendEvent(MainApplication.STATS_GENERAL, 'tabs-open', this.settings.tabNames.length);

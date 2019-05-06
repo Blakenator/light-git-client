@@ -52,6 +52,7 @@ import {CodeWatcherConfigComponent} from './components/settings/code-watcher-con
 import {AlertComponent} from './common/components/alert/alert.component';
 import {DragDropModule} from '@angular/cdk/drag-drop';
 import { TutorialComponent } from './components/tutorial/tutorial.component';
+import { PrettyCheckboxComponent } from './common/components/pretty-checkbox/pretty-checkbox.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -91,6 +92,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     CodeWatcherConfigComponent,
     AlertComponent,
     TutorialComponent,
+    PrettyCheckboxComponent,
   ],
   imports: [
     BrowserModule,
