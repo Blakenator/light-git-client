@@ -20,9 +20,11 @@ export class MergeBranchComponent implements OnInit {
   }
 
   getDisabledReason() {
-    if (!this.activeMergeInfo || !this.activeMergeInfo.into || !this.activeMergeInfo.target) {
+    if (!this.activeMergeInfo) {
+      return '';
+    } else if (!this.activeMergeInfo.into || !this.activeMergeInfo.target) {
       return 'Both To & From branches must be selected to proceed';
-    } else if (!this.activeMergeInfo || !this.activeMergeInfo.into.name== !this.activeMergeInfo.target.name) {
+    } else if (this.activeMergeInfo.into.name == this.activeMergeInfo.target.name) {
       return 'To & From branches must be different';
     } else {
       return '';
