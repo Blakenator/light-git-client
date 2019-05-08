@@ -533,10 +533,8 @@ export class GitClient {
         '-n',
         (count || 50) + '',
         ' --branches' + (activeBranch ? '=*' + activeBranch : ''),
+        ' --remotes' + (activeBranch ? '=*' + activeBranch : ''),
       ];
-      if (!activeBranch) {
-        args.push('--remotes');
-      }
       args = args.concat([
         '--skip=' + (skip || 0),
         '--pretty=format:||||%H|%an|%ae|%ad|%D|%P|%B\n',

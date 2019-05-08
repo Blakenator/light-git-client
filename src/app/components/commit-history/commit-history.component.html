@@ -21,7 +21,7 @@
                   [ngClass]="{active:isCurrentBranchActive()}"
                   title="Filter to current branch"
                   (click)="toggleSoloCurrentBranch()">
-            <i class="fa fa-eye"></i>
+            <i class="fa" [ngClass]="{'fa-low-vision':isCurrentBranchActive(),'fa-eye':!isCurrentBranchActive()}"></i>
           </button>
           <button class="btn btn-primary d-inline-flex align-items-center"
                   ngbDropdownToggle
