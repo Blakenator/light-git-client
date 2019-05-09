@@ -21,14 +21,18 @@
     <div *ngIf="currentTab==0">
       <div>
         Light Git <span class="badge badge-pill badge-info mx-1">v{{version}}</span>
-
-        <app-pretty-checkbox [(value)]="tempSettings.allowPrerelease">
-          Bleeding Edge Builds
-        </app-pretty-checkbox>
-        <button class="btn btn-sm btn-primary mx-1" (click)="checkForUpdates()">
+        <button class="btn btn-sm btn-primary ml-4" *ngIf="!isUpdateDownloaded" (click)="checkForUpdates()">
           Check for Updates
           <i class="fa fa-sync"></i>
         </button>
+        <div class="d-inline-block ml-4" *ngIf="isUpdateDownloaded">
+          New update available!
+          <button class="btn btn-sm btn-warning ml-2 d-inline-flex align-items-center">
+            <i class="fa fa-arrow-circle-up"></i>
+            Update to
+            <span class="badge badge-pill badge-info mx-1">v{{downloadedUpdateVersion}}</span>
+          </button>
+        </div>
       </div>
       <div class="row">
         <div class="col-6">
@@ -55,6 +59,9 @@
           <div class="my-3">
             <app-pretty-checkbox [(value)]="tempSettings.airplaneMode">
               <i class="fa fa-plane d-inline"></i> Airplane Mode
+            </app-pretty-checkbox>
+            <app-pretty-checkbox [(value)]="tempSettings.allowPrerelease">
+              Bleeding Edge Builds
             </app-pretty-checkbox>
           </div>
         </div>

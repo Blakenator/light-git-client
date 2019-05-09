@@ -16,6 +16,7 @@ const opn = require('opn');
 export class MainApplication extends GenericApplication {
   private static readonly STATS_GENERAL = 'general';
   private updateDownloaded = false;
+  private updateDownloadedVersion: string;
   private settings: SettingsModel = new SettingsModel();
   private userInitiatedUpdate = false;
   private isWatchingSettingsDir: fs.FSWatcher;
@@ -224,6 +225,7 @@ export class MainApplication extends GenericApplication {
           icon: this.iconFile,
         });
         this.userInitiatedUpdate = false;
+        this.updateDownloadedVersion = info.version;
       }
     });
     autoUpdater.on('error', error => {
@@ -294,6 +296,14 @@ export class MainApplication extends GenericApplication {
 
     ipcMain.on(Channels.GETVERSION, (event, args) => {
       this.defaultReply(event, args, this.version);
+    });
+
+    ipcMain.on(Channels.ISUPDATEDOWNLOADED, (event, args) => {
+      this.defaultReply(event, args, {downloaded: this.updateDownloaded, version: this.updateDownloadedVersion});
+    });
+
+    ipcMain.on(Channels.RESTARTANDINSTALLUPDATE, (event, args) => {
+      autoUpdater.quitAndInstall();
     });
 
     ipcMain.on(Channels.SAVESETTINGS, (event, args) => {

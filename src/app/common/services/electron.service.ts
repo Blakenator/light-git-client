@@ -17,9 +17,9 @@ export class ElectronService {
     return window && window.process && window.process.type;
   };
 
-  rpc(functionName: string, functionParams: any[], cleanup: boolean = true): Promise<any> {
+  rpc(functionName: string, functionParams: any[] = [], cleanup: boolean = true): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this.ipcRenderer.send(functionName, [functionName, ...functionParams]);
+      this.ipcRenderer.send(functionName, [functionName].concat(functionParams));
       this.ipcRenderer.on(functionName + 'reply', (event, args: ElectronResponse) => {
         if (args.success) {
           resolve(args.content);
