@@ -72,6 +72,7 @@ export class ChangeListComponent implements OnInit {
   }
 
   toggleSelectAll() {
+    this.selectAll = !this.selectAll;
     for (let change of this._changes) {
       this.selectedChanges[change.file] = this.selectAll;
     }

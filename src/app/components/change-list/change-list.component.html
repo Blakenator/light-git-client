@@ -1,21 +1,17 @@
 <table class="table table-striped">
   <thead>
   <tr>
-    <th>
-      <div class="pretty p-icon p-curve">
-        <input type="checkbox" [(ngModel)]="selectAll" (change)="toggleSelectAll()"/>
-        <div class="state">
-          <i class="icon material-icons">check</i>
-          <label></label>
-        </div>
-      </div>
+    <th class="pl-1 pr-0">
+      <i (click)="toggleSelectAll()"
+         class="far"
+         [ngClass]="{'fa-check-square':selectAll,'fa-square':!selectAll}"></i>
     </th>
     <th width="1%"></th>
-    <th>
+    <th class="pl-1">
       File
       <i class="fa fa-filter" *ngIf="changeFilter" ngbTooltip="Filtered Results"></i>
     </th>
-    <th *ngIf="settingsService.settings.splitFilenameDisplay">
+    <th class="pl-1" *ngIf="settingsService.settings.splitFilenameDisplay">
       Path
       <i class="fa fa-filter" *ngIf="changeFilter" ngbTooltip="Filtered Results"></i>
     </th>

@@ -36,32 +36,34 @@
       </div>
       <div class="row">
         <div class="col-6">
-          <div class="my-3">
+          <div class="my-2">
             <app-pretty-checkbox [(value)]="tempSettings.darkMode" (valueChange)="setThemeTemp()">
               {{tempSettings.darkMode ? 'Dark' : 'Light'}} Mode
             </app-pretty-checkbox>
           </div>
-          <div class="my-3">
+          <div class="my-2">
             <app-pretty-checkbox [(value)]="tempSettings.showTrackingPath">
               Show branch tracking path
             </app-pretty-checkbox>
           </div>
-          <div class="my-3">
+          <div class="my-2">
             <app-pretty-checkbox [(value)]="tempSettings.commitMessageAutocomplete">
               Show autocomplete when typing commit message
             </app-pretty-checkbox>
           </div>
-          <div class="my-3">
+          <div class="my-2">
             <app-pretty-checkbox [(value)]="tempSettings.allowStats">
               Send anonymized statistics to help improve Light-Git
             </app-pretty-checkbox>
           </div>
-          <div class="my-3">
-            <app-pretty-checkbox [(value)]="tempSettings.airplaneMode">
-              <i class="fa fa-plane d-inline"></i> Airplane Mode
-            </app-pretty-checkbox>
+          <div class="my-2">
             <app-pretty-checkbox [(value)]="tempSettings.allowPrerelease">
               Bleeding Edge Builds
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.airplaneMode">
+              <i class="fa fa-plane d-inline"></i> Airplane Mode
             </app-pretty-checkbox>
           </div>
         </div>

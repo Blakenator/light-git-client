@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.8.3-beta",
+  "version": "0.8.3",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -54,7 +54,6 @@
     "node-notifier": "^5.2.1",
     "nodemon": "^1.17.5",
     "opn": "^5.3.0",
-    "pretty-checkbox": "^3.0.3",
     "rxjs": "^6.4.0",
     "serialize-error": "^3.0.0",
     "spellchecker": "^3.5.2",
