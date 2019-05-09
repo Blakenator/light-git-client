@@ -21,49 +21,50 @@
     <div *ngIf="currentTab==0">
       <div>
         Light Git <span class="badge badge-pill badge-info mx-1">v{{version}}</span>
-
-        <div class="pretty p-switch p-fill my-3 mx-1">
-          <input type="checkbox" [(ngModel)]="tempSettings.allowPrerelease"/>
-          <div class="state">
-            <label>Bleeding Edge Builds</label>
-          </div>
-        </div>
-        <button class="btn btn-sm btn-primary mx-1" (click)="checkForUpdates()">
+        <button class="btn btn-sm btn-primary ml-4" *ngIf="!isUpdateDownloaded" (click)="checkForUpdates()">
           Check for Updates
           <i class="fa fa-sync"></i>
         </button>
+        <div class="d-inline-block ml-4" *ngIf="isUpdateDownloaded">
+          New update available!
+          <button class="btn btn-sm btn-warning ml-2 d-inline-flex align-items-center">
+            <i class="fa fa-arrow-circle-up"></i>
+            Update to
+            <span class="badge badge-pill badge-info mx-1">v{{downloadedUpdateVersion}}</span>
+          </button>
+        </div>
       </div>
       <div class="row">
         <div class="col-6">
-          <div class="pretty p-switch p-fill my-3 d-block">
-            <input type="checkbox" [(ngModel)]="tempSettings.darkMode" (change)="setThemeTemp()"/>
-            <div class="state">
-              <label>{{tempSettings.darkMode ? 'Dark' : 'Light'}} Mode</label>
-            </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.darkMode" (valueChange)="setThemeTemp()">
+              {{tempSettings.darkMode ? 'Dark' : 'Light'}} Mode
+            </app-pretty-checkbox>
           </div>
-          <div class="pretty p-switch p-fill my-3 d-block">
-            <input type="checkbox" [(ngModel)]="tempSettings.showTrackingPath"/>
-            <div class="state">
-              <label>Show branch tracking path</label>
-            </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.showTrackingPath">
+              Show branch tracking path
+            </app-pretty-checkbox>
           </div>
-          <div class="pretty p-switch p-fill my-3 d-block">
-            <input type="checkbox" [(ngModel)]="tempSettings.commitMessageAutocomplete"/>
-            <div class="state">
-              <label>Show autocomplete when typing commit message</label>
-            </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.commitMessageAutocomplete">
+              Show autocomplete when typing commit message
+            </app-pretty-checkbox>
           </div>
-          <div class="pretty p-switch p-fill my-3 d-block">
-            <input type="checkbox" [(ngModel)]="tempSettings.allowStats"/>
-            <div class="state">
-              <label>Send anonymized statistics to help improve Light-Git</label>
-            </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.allowStats">
+              Send anonymized statistics to help improve Light-Git
+            </app-pretty-checkbox>
           </div>
-          <div class="pretty p-switch p-fill my-3 d-block">
-            <input type="checkbox" [(ngModel)]="tempSettings.airplaneMode"/>
-            <div class="state">
-              <label><i class="fa fa-plane d-inline"></i> Airplane Mode</label>
-            </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.allowPrerelease">
+              Bleeding Edge Builds
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.airplaneMode">
+              <i class="fa fa-plane d-inline"></i> Airplane Mode
+            </app-pretty-checkbox>
           </div>
         </div>
         <div class="col-6">
@@ -73,12 +74,7 @@
                           [label]="'Bash Path (required if not in PATH)'"></app-file-input>
         </div>
       </div>
-      <div class="pretty p-switch p-fill mx-2">
-        <input type="checkbox" [(ngModel)]="advanced"/>
-        <div class="state">
-          <label>Advanced</label>
-        </div>
-      </div>
+      <app-pretty-checkbox [(value)]="advanced">Advanced</app-pretty-checkbox>
       <div *ngIf="advanced">
         <label>Command timeout</label>
         <div class="input-group">
@@ -104,12 +100,9 @@
             <label>Display Email</label>
             <input class="form-control" [(ngModel)]="tempSettings.email">
           </div>
-          <div class="pretty p-switch p-fill mx-2">
-            <input type="checkbox" [(ngModel)]="setGlobalDefaultUserConfig"/>
-            <div class="state">
-              <label>Set as Global Defaults</label>
-            </div>
-          </div>
+          <app-pretty-checkbox [(value)]="setGlobalDefaultUserConfig">
+            Set as Global Defaults
+          </app-pretty-checkbox>
           <hr/>
           <div class="form-group">
             <div>Credential Helper</div>
@@ -144,12 +137,9 @@
             <small>Supports <code>$BASE $LOCAL $MERGED $REMOTE</code></small>
             <input class="form-control" [(ngModel)]="mergetoolCommand">
           </div>
-          <div class="pretty p-switch p-fill mx-2">
-            <input type="checkbox" [(ngModel)]="setGlobalDefaultMergetoolConfig"/>
-            <div class="state">
-              <label>Set as Global Default</label>
-            </div>
-          </div>
+          <app-pretty-checkbox [(value)]="setGlobalDefaultMergetoolConfig">
+            Set as Global Default
+          </app-pretty-checkbox>
         </div>
       </div>
     </div>
@@ -215,7 +205,7 @@
            affirmativeButtonText="Yes"
            negativeButtonText="No"
            modalTitleIcon="fa-chart-line"
-           (onCancel)="settingsService.settings.allowStats=-1;settingsService.saveSettings()"
-           (onFinish)="settingsService.settings.allowStats=1;settingsService.saveSettings()">
+           (onCancel)="settingsService.settings.allowStats=false;settingsService.saveSettings()"
+           (onFinish)="settingsService.settings.allowStats=true;settingsService.saveSettings()">
   <div>Can we automatically collect anonymized usage data and errors to help improve Light-Git?</div>
 </app-modal>

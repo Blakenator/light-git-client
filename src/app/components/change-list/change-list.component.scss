@@ -6,6 +6,7 @@
   &:hover {
     background-color: rgba(128, 128, 128, .2);
   }
+
   &:active {
     background-color: rgba(100, 100, 190, .2);
   }
@@ -34,15 +35,19 @@
 th:first-child {
   max-width: 1em;
 }
+
 .fa-pen-square {
   color: $status-changed;
 }
+
 .fa-registered {
   color: $status-renamed;
 }
+
 .fa-plus {
   color: $status-added;
 }
+
 .fa-minus {
   color: $status-deleted;
 }

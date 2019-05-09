@@ -1,4 +1,4 @@
-import {ApplicationRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
+import {ApplicationRef, Component, EventEmitter, HostListener, Input, OnInit, Output} from '@angular/core';
 import {ModalService} from '../../services/modal.service';
 
 @Component({
@@ -59,5 +59,17 @@ export class ModalComponent implements OnInit {
   cancel() {
     this.setVisible(false);
     this.onCancel.emit();
+  }
+
+  @HostListener('document:keydown.escape')
+  cancelOrAccept() {
+    if (!this.show) {
+      return;
+    }
+    if (this.hasNegative) {
+      this.cancel();
+    } else if (!this.affirmativeButtonDisabled && this.hasAffirmative) {
+      this.accept();
+    }
   }
 }

@@ -1,6 +1,6 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import { AskPassComponent } from './ask-pass.component';
+import {AskPassComponent} from './ask-pass.component';
 
 describe('AskPassComponent', () => {
   let component: AskPassComponent;
@@ -8,9 +8,9 @@ describe('AskPassComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ AskPassComponent ]
+      declarations: [AskPassComponent],
     })
-    .compileComponents();
+           .compileComponents();
   }));
 
   beforeEach(() => {

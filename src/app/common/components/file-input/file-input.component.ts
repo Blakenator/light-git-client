@@ -3,7 +3,7 @@ import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 @Component({
   selector: 'app-file-input',
   templateUrl: './file-input.component.html',
-  styleUrls: ['./file-input.component.scss']
+  styleUrls: ['./file-input.component.scss'],
 })
 export class FileInputComponent implements OnInit {
   @Input() isFolder = false;
@@ -24,7 +24,9 @@ export class FileInputComponent implements OnInit {
 
   changeFilePath($event?) {
     if ($event && $event.target.files.length > 0) {
-      this.filePath = Object.values(<{ [key: number]: { path: string } }>$event.target.files).map(f => f.path).join(",");
+      this.filePath = Object.values(<{ [key: number]: { path: string } }>$event.target.files)
+                            .map(f => f.path)
+                            .join(',');
     }
     this.filePathChange.emit(this.getFormattedFile());
   }
