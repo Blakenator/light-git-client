@@ -52,4 +52,6 @@ export namespace Channels {
   export const FETCH = "fetch";
   export const GETCOMMANDHISTORY = "getCommandHistory";
   export const COMMANDHISTORYCHANGED = "commandHistoryChanged";
+  export const ISUPDATEDOWNLOADED = "isUpdateDownloaded";
+  export const RESTARTANDINSTALLUPDATE = "restartAndInstallUpdate";
 }

@@ -1,6 +1,6 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import { GitGraphCanvasComponent } from './git-graph-canvas.component';
+import {GitGraphCanvasComponent} from './git-graph-canvas.component';
 
 describe('GitGraphCanvasComponent', () => {
   let component: GitGraphCanvasComponent;
@@ -8,9 +8,9 @@ describe('GitGraphCanvasComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ GitGraphCanvasComponent ]
+      declarations: [GitGraphCanvasComponent],
     })
-    .compileComponents();
+           .compileComponents();
   }));
 
   beforeEach(() => {

@@ -1,0 +1,33 @@
+@import "../../../../styles";
+
+$line-height: 1.25rem;
+$bg: rgb(170, 170, 170);
+
+.check-indicator {
+  width: $line-height*2;
+  height: $line-height;
+  border-radius: $line-height/2;
+  background-color: transparent;
+  border: .2rem solid $bg;
+  padding: 0;
+  transition: background-color .3s ease-out;
+  box-shadow: $material-shadow;
+
+  &.show {
+    background-color: $bg;
+
+    .check-handle {
+      left: calc(100% + .2rem - #{$line-height});
+    }
+  }
+
+  .check-handle {
+    height: $line-height;
+    width: $line-height;
+    border-radius: $line-height/2;
+    top: -.2rem;
+    left: -.2rem;
+    transition: left .3s ease-out, background-color .3s ease-out;
+    box-shadow: $material-shadow;
+  }
+}

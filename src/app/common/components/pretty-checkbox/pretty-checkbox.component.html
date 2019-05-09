@@ -1,0 +1,10 @@
+<div class="mx-2" (click)="value=!value; valueChange.emit(value)">
+  <label class="check-state d-inline-flex align-items-center">
+    <div class="d-inline-block position-relative check-indicator mr-2" [ngClass]="{show:value}">
+      <div class="d-inline-block position-absolute check-handle bg-primary"></div>
+    </div>
+    <div>
+      <ng-content></ng-content>
+    </div>
+  </label>
+</div>

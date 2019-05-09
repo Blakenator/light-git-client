@@ -13,32 +13,24 @@
     <thead>
     <tr>
       <th *ngIf="!commitFilter" class="py-1 px-2">
-        <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown>
+        <div class="btn-group btn-group-sm flex-shrink-0"
+             ngbDropdown
+             autoClose="outside"
+             #branchChooserDropdown="ngbDropdown">
           <button class="btn btn-primary d-inline-flex align-items-center"
                   [ngClass]="{active:isCurrentBranchActive()}"
                   title="Filter to current branch"
                   (click)="toggleSoloCurrentBranch()">
-            <i class="fa fa-eye"></i>
+            <i class="fa" [ngClass]="{'fa-low-vision':isCurrentBranchActive(),'fa-eye':!isCurrentBranchActive()}"></i>
           </button>
           <button class="btn btn-primary d-inline-flex align-items-center"
                   ngbDropdownToggle
                   title="Filter to specific branch">
           </button>
-          <div ngbDropdownMenu class="dropdown-menu">
-            <div (click)="$event.stopPropagation()" class="px-2 py-1">
-              <input class="form-control "
-                     [(ngModel)]="branchFilter"
-                     placeholder="Filter...">
-            </div>
-            <div class="branch-filter-content">
-              <h6 class="dropdown-header d-flex align-items-center"><i class="fa fa-code-branch"></i> Branches</h6>
-              <button class="dropdown-item d-flex justify-content-between"
-                      *ngFor="let b of branches | filterObject: getBranchName : branchFilter"
-                      (click)="setActiveBranch(b)">
-                {{b.name}}
-                <i class="fa fa-check ml-2" *ngIf="activeBranch && b.name==activeBranch.name"></i>
-              </button>
-            </div>
+          <div ngbDropdownMenu>
+            <app-branch-chooser [branches]="branches"
+                                [selectedBranch]="activeBranch"
+                                (selectedBranchChange)="setActiveBranch($event); branchChooserDropdown.close()"></app-branch-chooser>
           </div>
         </div>
       </th>

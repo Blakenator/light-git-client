@@ -18,10 +18,10 @@ export class BranchTreeItemComponent implements OnInit {
   @Output() onCheckoutClicked = new EventEmitter<{ branch: string, andPull: boolean }>();
   @Output() onPushClicked = new EventEmitter<BranchModel>();
   @Output() onForcePushClicked = new EventEmitter<BranchModel>();
-  @Output() onDeleteClicked = new EventEmitter<string>();
+  @Output() onDeleteClicked = new EventEmitter<BranchModel>();
   @Output() onFastForwardClicked = new EventEmitter<string>();
   @Output() onBranchPremergeClicked = new EventEmitter<BranchModel>();
-  @Output() onMergeClicked = new EventEmitter<string>();
+  @Output() onMergeClicked = new EventEmitter<BranchModel>();
   @Output() onPullClicked = new EventEmitter<void>();
   @Output() onForcePullClicked = new EventEmitter<void>();
   @Output() onBranchRename = new EventEmitter<{ oldName: string, newName: string }>();

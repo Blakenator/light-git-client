@@ -33,6 +33,8 @@ export class SettingsComponent implements OnInit {
   editedItem: ConfigItemModel;
   clickedKey = true;
   filter: string;
+  isUpdateDownloaded = false;
+  downloadedUpdateVersion: string;
   private mergetoolConfig: ConfigItemModel;
   private mergetoolCommandConfig: ConfigItemModel;
   private credentialHelperConfig: ConfigItemModel;
@@ -57,7 +59,7 @@ export class SettingsComponent implements OnInit {
     };
     this.settingsService.loadSettings(() => callback(true));
     this.settingsService.listenSettings(() => callback());
-    this.electronService.rpc(Channels.GETVERSION, []).then(version => this.version = version);
+    this.electronService.rpc(Channels.GETVERSION).then(version => this.version = version);
   }
 
   saveDisabledReason() {
@@ -108,6 +110,11 @@ export class SettingsComponent implements OnInit {
   }
 
   copyTempSettings() {
+    this.electronService.rpc(Channels.ISUPDATEDOWNLOADED).then((info: { downloaded: boolean, version: string }) => {
+      this.isUpdateDownloaded = info.downloaded;
+      this.downloadedUpdateVersion = info.version;
+    });
+
     this.tempSettings = this.settingsService.settings.clone();
     this.modalService.setModalVisible('settings', true);
     this.gitService.getConfigItems().then(configItems => {
@@ -215,6 +222,10 @@ export class SettingsComponent implements OnInit {
         this.applicationRef.tick();
       }, 100);
     }
+  }
+
+  restartAndInstall(){
+    this.electronService.rpc(Channels.RESTARTANDINSTALLUPDATE);
   }
 
   private doSaveItem(originalItem: ConfigItemModel, rename?: ConfigItemModel) {

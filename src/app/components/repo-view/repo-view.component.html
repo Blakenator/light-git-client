@@ -40,6 +40,11 @@
                 title="Remove local branches without a tracking URL">
           <i class="fas fa-cut"></i>
         </button>
+        <button class="btn btn-success btn-sm mx-1"
+                (click)="startMerge()"
+                title="Merge two branches">
+          <i class="fa fa-code-branch merge-branch-icon"></i>
+        </button>
       </ng-template>
       <app-branch-tree-item [isLocal]="true"
                             [filter]="localBranchFilter"
@@ -49,8 +54,8 @@
                             (onForcePushClicked)="push($event,true)"
                             (onPullClicked)="pull(false)"
                             (onForcePullClicked)="pull(true)"
-                            (onDeleteClicked)="deleteBranch($event)"
-                            (onMergeClicked)="mergeBranch($event)"
+                            (onDeleteClicked)="markDeleteBranch($event)"
+                            (onMergeClicked)="startMerge($event)"
                             (onFastForwardClicked)="fastForwardBranch($event)"
                             (onBranchPremergeClicked)="getBranchPremerge($event)"
                             [worktrees]="repo.worktrees"
@@ -70,6 +75,7 @@
                             [filter]="remoteBranchFilter"
                             [branches]="repo.remoteBranches"
                             (onCheckoutClicked)="checkout($event,true)"
+                            (onDeleteClicked)="markDeleteBranch($event)"
                             [localBranches]="repo.localBranches"
                             [worktrees]="repo.worktrees"></app-branch-tree-item>
     </app-layout-card>
@@ -303,14 +309,10 @@
     </div>
     <div class="card flex-shrink-0">
       <div class="card-body p-3">
-        <div class="pretty p-switch p-fill mx-2">
-          <input type="checkbox"
-                 [(ngModel)]="settingsService.settings.commitAndPush"
-                 (change)="changeDetectorRef.detectChanges(); settingsService.saveSettings()"/>
-          <div class="state">
-            <label>{{settingsService.settings.commitAndPush ? 'Commit and Push' : 'Commit'}}</label>
-          </div>
-        </div>
+        <app-pretty-checkbox [(value)]="settingsService.settings.commitAndPush"
+                             (valueChange)="changeDetectorRef.detectChanges(); settingsService.saveSettings()">
+          {{settingsService.settings.commitAndPush ? 'Commit and Push' : 'Commit'}}
+        </app-pretty-checkbox>
         <div class="d-flex flex-row">
           <div class="dropup flex-grow-1 mt-1 position-relative">
             <div class="input-group">
@@ -456,4 +458,15 @@
     </div>
     <b>This cannot be undone</b>
   </app-confirm-modal>
+  <app-confirm-modal [modalTitle]="'Confirm Delete '+(activeDeleteBranch && activeDeleteBranch.isRemote?'Remote':'Local')+' Branch'"
+                     (onConfirm)="deleteBranch()"
+                     [modalId]="'confirmDeleteBranch'+repoViewUid">
+    Are you sure you want to delete <i>{{activeDeleteBranch && activeDeleteBranch.name }}</i>?<br/>
+    <b *ngIf="activeDeleteBranch && activeDeleteBranch.isRemote">This will affect everyone and cannot be undone</b>
+  </app-confirm-modal>
+  <app-merge-branch [uidSalt]="repoViewUid"
+                    [activeMergeInfo]="activeMergeInfo"
+                    (onCancel)="cancelMerge()"
+                    (onFinish)="mergeBranch()"
+                    [locals]="repo.localBranches"></app-merge-branch>
 </div>

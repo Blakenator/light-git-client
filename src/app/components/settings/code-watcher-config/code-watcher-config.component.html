@@ -1,10 +1,9 @@
 <p>Watch your code changes for specified patterns, and alert you before you commit</p>
 <div class="form-group">
-  <div class="pretty p-switch p-fill mb-1 d-block">
-    <input type="checkbox" [(ngModel)]="tempSettings.includeUnchangedInWatcherAnalysis"/>
-    <div class="state">
-      <label>Include Unchanged Surrounding Code in Analysis</label>
-    </div>
+  <div class="mb-1">
+    <app-pretty-checkbox [(value)]="tempSettings.includeUnchangedInWatcherAnalysis">
+      Include Unchanged Surrounding Code in Analysis
+    </app-pretty-checkbox>
   </div>
 </div>
 <div class="form-group">
@@ -58,12 +57,7 @@
                  (change)="w.activeFilter=$event.target.value"
                  placeholder="Filename Regex..."></td>
       <td>
-        <div class="pretty p-switch p-fill mx-2">
-          <input type="checkbox" [(ngModel)]="w.enabled"/>
-          <div class="state">
-            <label></label>
-          </div>
-        </div>
+        <app-pretty-checkbox [(value)]="w.enabled"></app-pretty-checkbox>
       </td>
       <td>
         <div class="d-flex btn-group">

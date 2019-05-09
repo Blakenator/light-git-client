@@ -18,12 +18,13 @@
   box-shadow: 0 0 0 2000px rgba(125, 170, 227, 0.7);
   animation: pulsate 1s ease infinite alternate;
 }
+
 @keyframes pulsate {
-  from{
+  from {
     width: 5em;
     height: 5em;
   }
-  to{
+  to {
     width: 10em;
     height: 10em;
   }

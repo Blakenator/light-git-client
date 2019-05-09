@@ -1,0 +1,14 @@
+<div class="px-2 py-1">
+  <input class="form-control "
+         [(ngModel)]="branchFilter"
+         placeholder="Filter...">
+</div>
+<div class="branch-filter-content">
+  <h6 class="dropdown-header d-flex align-items-center"><i class="fa fa-code-branch"></i> Branches</h6>
+  <button class="dropdown-item d-flex justify-content-between"
+          *ngFor="let b of branches | filterObject: getBranchName : branchFilter"
+          (click)="selectedBranchChange.emit(b)">
+    {{b.name}}
+    <i class="fa fa-check ml-2" *ngIf="selectedBranch && b.name==selectedBranch.name"></i>
+  </button>
+</div>

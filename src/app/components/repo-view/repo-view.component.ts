@@ -74,8 +74,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   crlfErrorToastTimeout: number;
   activeUndo: string;
   activeCommitHistoryBranch: BranchModel;
-  branchesToPrune: string[];
+  branchesToPrune: BranchModel[];
   readonly branchReplaceChars = {match: /[\s]/g, with: '-'};
+  activeDeleteBranch: BranchModel;
+  activeMergeInfo: { into: BranchModel, target: BranchModel, currentBranch: BranchModel };
   private $destroy = new Subject<void>();
   private destroyed = false;
   private refreshDebounce;
@@ -222,13 +224,20 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           err)));
   }
 
-  deleteBranch(branch: string) {
-    this.simpleOperation(this.gitService.deleteBranch([branch]), 'deleteBranch', 'deleting the branch');
+  markDeleteBranch(branch: BranchModel) {
+    this.activeDeleteBranch = branch;
+    this.showModal('confirmDeleteBranch');
+  }
+
+  deleteBranch() {
+    this.simpleOperation(
+      this.gitService.deleteBranch([this.activeDeleteBranch]),
+      'confirmDeleteBranch',
+      'deleting the branch').then(() => this.activeDeleteBranch = undefined);
   }
 
   pruneLocalBranches() {
-    this.branchesToPrune = this.repo.localBranches.filter(branch => !branch.trackingPath && !branch.isCurrentBranch)
-                               .map(b => b.name);
+    this.branchesToPrune = this.repo.localBranches.filter(branch => !branch.trackingPath && !branch.isCurrentBranch);
     this.showModal('pruneConfirm', true);
   }
 
@@ -243,16 +252,41 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(this.gitService.fastForwardBranch(branch), 'fastForwardBranch', 'fast forwarding the branch');
   }
 
-  mergeBranch(branch: string) {
-    this.simpleOperation(this.gitService.mergeBranch(branch), 'mergeBranch', 'merging the branch')
-        .then(() => {
-          if ((this.changes.stagedChanges.length > 0 || this.changes.unstagedChanges.length > 0) &&
-            !this.changes.description &&
-            !this.changes.description.trim()) {
-            this.changes.description = `Merged ${branch} into ${this.repo.localBranches.find(
-              b => b.isCurrentBranch).name}`;
-          }
-        });
+  mergeBranch() {
+    const doMerge = () => {
+      this.simpleOperation(
+        this.gitService.mergeBranch(this.activeMergeInfo.target.name),
+        'mergeBranch',
+        'merging the branch',
+        false,
+        true,
+        true)
+          .then(() => {
+            if ((this.changes.stagedChanges.length > 0 || this.changes.unstagedChanges.length > 0) &&
+              !this.changes.description &&
+              !this.changes.description.trim()) {
+              this.changes.description = `Merged ${this.activeMergeInfo.target.name} into ${this.repo.localBranches.find(
+                b => b.isCurrentBranch).name}`;
+            }
+          }).catch(() => {
+      });
+    };
+
+    if (this.getCurrentBranch().name == this.activeMergeInfo.into.name) {
+      doMerge();
+    } else {
+      this.simpleOperation(
+        this.gitService.checkout(this.activeMergeInfo.into.name, false),
+        'mergeBranch',
+        'checking out the base branch',
+        false,
+        true,
+        true)
+          .then(() => {
+            doMerge();
+          }).catch(() => {
+      });
+    }
   }
 
   renameBranch(branch: { oldName: string, newName: string }) {
@@ -753,21 +787,41 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     }
   }
 
+  cancelMerge() {
+    this.activeMergeInfo = undefined;
+  }
+
+  startMerge(target?: BranchModel) {
+    let currentBranch = this.repo.localBranches.find(b => b.isCurrentBranch);
+    this.activeMergeInfo = {
+      into: currentBranch,
+      currentBranch,
+      target,
+    };
+    this.showModal('mergeBranchModal');
+  }
+
   private simpleOperation(op: Promise<void>,
                           functionName: string,
                           occurredWhile: string,
                           clearCommitInfo: boolean = false,
-                          fullRefresh: boolean = true): Promise<void> {
+                          fullRefresh: boolean = true,
+                          rethrowException: boolean = false): Promise<void> {
     this.loadingService.setLoading(true);
     return op.then(() => {
       if (fullRefresh) {
         this.getFullRefresh(clearCommitInfo);
       }
       return Promise.resolve();
-    }).catch(err => this.handleErrorMessage(new ErrorModel(
-      this._errorClassLocation + functionName,
-      occurredWhile,
-      err)));
+    }).catch(err => {
+      this.handleErrorMessage(new ErrorModel(
+        this._errorClassLocation + functionName,
+        occurredWhile,
+        err));
+      if (rethrowException) {
+        throw err;
+      }
+    });
   }
 
   private levenshtein(a: string, b: string): number {

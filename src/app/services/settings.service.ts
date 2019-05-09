@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {ElectronService} from '../common/services/electron.service';
 import {SettingsModel} from '../../../shared/SettingsModel';
-import {Channels} from "../../../shared/Channels";
+import {Channels} from '../../../shared/Channels';
 
 @Injectable()
 export class SettingsService {

@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -39,7 +39,7 @@
     "@angular/animations": ">=7.0.0",
     "@angular/cdk": "~7.3.1",
     "@angular/material": "^7.3.1",
-    "@ng-bootstrap/ng-bootstrap": "^4.1.1",
+    "@ng-bootstrap/ng-bootstrap": "^4.1.2",
     "@types/node-notifier": "0.0.28",
     "browserify": "^16.2.3",
     "codelyzer": "^4.4.2",
@@ -54,7 +54,6 @@
     "node-notifier": "^5.2.1",
     "nodemon": "^1.17.5",
     "opn": "^5.3.0",
-    "pretty-checkbox": "^3.0.3",
     "rxjs": "^6.4.0",
     "serialize-error": "^3.0.0",
     "spellchecker": "^3.5.2",

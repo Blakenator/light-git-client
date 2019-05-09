@@ -1,4 +1,6 @@
-<div class="card-header form-inline clickable d-flex align-items-center {{ customHeaderClass }}" [ngClass]="{'rounded-bottom':!getExpandState()}" (click)="toggleExpandState($event)">
+<div class="card-header clickable d-flex align-items-center flex-wrap {{ customHeaderClass }}"
+     [ngClass]="{'rounded-bottom':!getExpandState()}"
+     (click)="toggleExpandState($event)">
   <i class="fa clickable"
      [ngClass]="{'fa-caret-right':!getExpandState(),'fa-caret-down':getExpandState()}"></i>
   <i class="clickable {{iconClass}}"></i>

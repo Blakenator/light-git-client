@@ -202,8 +202,8 @@ export class GitService {
     return this.electronService.rpc(Channels.CREATEBRANCH, [this.repo.path, branchName]);
   }
 
-  deleteBranch(branchNames: string[]): Promise<void> {
-    return this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branchNames]);
+  deleteBranch(branches: BranchModel[]): Promise<void> {
+    return this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branches]);
   }
 
   mergeFile(file: string, mergetool: string): Promise<void> {

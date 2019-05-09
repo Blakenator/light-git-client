@@ -1,0 +1,49 @@
+<app-modal [modalId]="'mergeBranchModal'+uidSalt"
+           modalTitle="Merge branches"
+           (onCancel)="onCancel.emit()"
+           (onFinish)="onFinish.emit()"
+           [affirmativeButtonDisabled]="getDisabledReason()"
+           modalClass="dialog-expand"
+           affirmativeButtonText="Merge">
+  <div *ngIf="activeMergeInfo" class="d-flex align-items-center justify-content-center">
+    <div ngbDropdown class="d-inline-block" autoClose="outside" #branchChooser1Dropdown="ngbDropdown" container="body">
+      <button class="btn btn-secondary d-inline-flex align-items-center" *ngIf="activeMergeInfo.into" ngbDropdownToggle>
+        {{activeMergeInfo.into.name}}
+      </button>
+      <button class="btn btn-primary d-inline-flex align-items-center" *ngIf="!activeMergeInfo.into" ngbDropdownToggle>
+        Choose
+      </button>
+      <div ngbDropdownMenu>
+        <app-branch-chooser [branches]="locals"
+                            [(selectedBranch)]="activeMergeInfo.into"
+                            (selectedBranchChange)="branchChooser1Dropdown.close()"></app-branch-chooser>
+      </div>
+    </div>
+    <i class="fa fa-arrow-left mx-3"></i>
+    <div ngbDropdown class="d-inline-block" autoClose="outside" #branchChooser2Dropdown="ngbDropdown" container="body">
+      <button class="btn btn-info d-inline-flex align-items-center" *ngIf="activeMergeInfo.target" ngbDropdownToggle>
+        {{activeMergeInfo.target.name}}
+      </button>
+      <button class="btn btn-primary d-inline-flex align-items-center"
+              *ngIf="!activeMergeInfo.target"
+              ngbDropdownToggle>
+        Choose
+      </button>
+      <div ngbDropdownMenu>
+        <app-branch-chooser [branches]="locals"
+                            [(selectedBranch)]="activeMergeInfo.target"
+                            (selectedBranchChange)="branchChooser2Dropdown.close()"></app-branch-chooser>
+      </div>
+    </div>
+  </div>
+  <div class="alert alert-warning d-flex align-items-center mt-3 mb-0"
+       *ngIf="activeMergeInfo && activeMergeInfo.into && activeMergeInfo.into.name != activeMergeInfo.currentBranch.name">
+    <i class="fa fa-exclamation-triangle mr-3"></i>
+    <div class="flex-grow-1">
+      <span class="badge badge-secondary">{{activeMergeInfo.into.name}}</span>
+      is not currently checked-out. This operation will check out
+      <span class="badge badge-secondary">{{activeMergeInfo.into.name}}</span>
+      and then start the merge. Ensure there are no uncommitted changes before proceeding!
+    </div>
+  </div>
+</app-modal>

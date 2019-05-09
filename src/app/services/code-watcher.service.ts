@@ -42,7 +42,9 @@ export class CodeWatcherService {
 
   getHunkCode(hunk, includeLineNumbers: boolean = false) {
     return hunk.lines.filter(
-      line => this.settingsService.settings.includeUnchangedInWatcherAnalysis ? line.state != LineState.REMOVED : line.state == LineState.ADDED)
+      line => this.settingsService.settings.includeUnchangedInWatcherAnalysis ?
+              line.state != LineState.REMOVED :
+              line.state == LineState.ADDED)
                .map((l, i) => (includeLineNumbers ? hunk.toStartLine + i + '\t' : '') + l.text)
                .join('\n');
   }
