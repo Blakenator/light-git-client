@@ -450,7 +450,7 @@
     <div class="list-group my-2">
       <div *ngFor="let b of branchesToPrune; let i=index"
            class="list-group-item d-flex align-items-center justify-content-between py-1 pr-1">
-        <span>{{b}}</span>
+        <span>{{b.name}}</span>
         <button class="btn btn-primary btn-sm" (click)="branchesToPrune.splice(i,1)">
           <i class="fa fa-times"></i>
         </button>

@@ -17,7 +17,7 @@
     transition: max-width .3s;
 
     &:active, &:focus, &.expanded {
-      max-width: 30em;
+      max-width: 12em;
     }
   }
 }
