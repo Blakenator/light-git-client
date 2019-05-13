@@ -45,25 +45,28 @@
     </div>
   </div>
   <div *ngIf="diffHeaders" class="px-2">
-    <app-layout-card *ngFor="let header of getFilteredDiffHeaders() | slice : 0 : scrollOffset"
+    <app-layout-card *ngFor="let header of getFilteredDiffHeaders()"
                      [headerContent]="diffHeader"
                      [persistExpand]="false"
                      customHeaderClass="justify-content-between"
                      [localExpandedDefault]="getLocalExpandedDefault(header)">
       <ng-template #diffHeader>
-        <div class="flex-grow-1 normal-font-size">
-          <div class="d-inline-block"
+        <div class="flex-grow-1 normal-font-size filename clickable">
+          <div class="d-inline-block clickable"
                *ngFor="let part of header.toFilename.replace('->','/->/').split('/'); let i=index">
-            <span class="badge badge-light">{{part}}</span>
+            <span class="badge badge-light clickable">{{part}}</span>
             <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
           </div>
+          <button class="copy-filename mx-1 p-1 btn btn-light" title="Copy" (click)="clipboardService.copy(header.toFilename)">
+            <i class="fa fa-copy"> </i>
+          </button>
         </div>
         <div class="flex-grow-0 center-text-vertical tag-container">
           <span class="text-muted mx-3 normal-font-size" *ngIf="header.stagedState"><i>{{header.stagedState}}</i></span>
           <span [class]="'tag '+header.action">{{header.action}}</span>
         </div>
       </ng-template>
-      <div class="diff-header" *ngIf="header.action!='Deleted'">
+      <div class="diff-header">
         <div *ngFor="let hunk of header.hunks">
           <div class="btn btn-block btn-warning mt-3 d-flex justify-content-between"
                *ngIf="!isEditingHunk(hunk,header) && hasConflictingWatcher(hunk,header)"

@@ -7,6 +7,7 @@ import {ErrorService} from '../../common/services/error.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
 import {DiffHunkModel} from '../../../../shared/git/diff.hunk.model';
 import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
+import {ModalService} from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-code-watcher-alerts',
@@ -15,7 +16,6 @@ import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watch
 })
 export class CodeWatcherAlertsComponent implements OnInit {
   @Output() onCommitClicked = new EventEmitter<any>();
-  showWindow = false;
   filter = '';
   watcherAlerts: { file: string, hunks: { hunk: DiffHunkModel, watchers: CodeWatcherModel[] }[] }[] = [];
   showWatchersRequest: ShowWatchersRequest;
@@ -24,6 +24,7 @@ export class CodeWatcherAlertsComponent implements OnInit {
               private settingsService: SettingsService,
               private codeWatcherService: CodeWatcherService,
               private errorService: ErrorService,
+              private modalService: ModalService,
               private applicationRef: ApplicationRef) {
     codeWatcherService.onShowWatchers.asObservable().subscribe(request => this.checkFileWatchers(request));
   }
@@ -56,12 +57,12 @@ export class CodeWatcherAlertsComponent implements OnInit {
   }
 
   cancel() {
-    this.showWindow = false;
+    this.modalService.setModalVisible('codeWatcherModal',false);
   }
 
   commitAnyway() {
     this.onCommitClicked.emit();
-    this.showWindow = false;
+    this.modalService.setModalVisible('codeWatcherModal',false);
   }
 
   getLinesFromMatch(hunk: DiffHunkModel, watcher: CodeWatcherModel) {
@@ -86,7 +87,7 @@ export class CodeWatcherAlertsComponent implements OnInit {
       }
     } else {
       this.watcherAlerts = alerts;
-      this.showWindow = true;
+      this.modalService.setModalVisible('codeWatcherModal',true);
     }
     this.applicationRef.tick();
   }

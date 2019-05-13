@@ -30,14 +30,12 @@ export class LayoutCardHeaderComponent implements OnInit {
 
   toggleExpandState($event: Event) {
     let target = <Element>$event.target;
-    if (this.persistExpand) {
-      if (target.className.split(' ').indexOf('clickable') > -1) {
+    if (target.className.split(' ').indexOf('clickable') > -1) {
+      if (this.persistExpand) {
         this.settingsService.settings.expandStates[this.expandKey] = !this.settingsService.settings.expandStates[this.expandKey];
         this.settingsService.saveSettings();
         this.onToggleExpand.emit(this.settingsService.settings.expandStates[this.expandKey]);
-      }
-    } else {
-      if (target.className.split(' ').indexOf('clickable') > -1) {
+      } else {
         this.localExpanded = !this.localExpanded;
         this.onToggleExpand.emit(this.localExpanded);
       }

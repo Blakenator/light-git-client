@@ -9,7 +9,6 @@ import {ModalService} from '../../common/services/modal.service';
   styleUrls: ['./clone.component.scss'],
 })
 export class CloneComponent implements OnInit {
-  showWindow: Observable<boolean>;
   url = '';
   path = '';
   @Output() onCloneComplete = new EventEmitter<string>();
@@ -19,7 +18,6 @@ export class CloneComponent implements OnInit {
   constructor(private gitService: GitService,
               private applicationRef: ApplicationRef,
               public modalService: ModalService) {
-    this.showWindow = modalService.registerModal('clone').asObservable();
   }
 
   ngOnInit() {
@@ -34,7 +32,7 @@ export class CloneComponent implements OnInit {
     this.gitService.clone(this.path, this.url, (out, err, done) => {
       this.output.push({out, err, done});
       if (done && this.output.filter(x => x.done && !!x.err).length == 0) {
-        this.modalService.setModalVisible('clone', false);
+        this.modalService.setModalVisible('cloneRepositoryModal', false);
         this.onCloneComplete.emit(this.path);
       }
       if (done) {
@@ -45,7 +43,7 @@ export class CloneComponent implements OnInit {
   }
 
   cancel() {
-    this.modalService.setModalVisible('clone', false);
+    this.modalService.setModalVisible('cloneRepositoryModal', false);
     this.url = '';
     this.path = '';
   }

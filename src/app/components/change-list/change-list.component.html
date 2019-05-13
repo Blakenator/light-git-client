@@ -41,25 +41,51 @@
       </div>
     </td>
     <td class="center-text-vertical">
-      <div class="btn-group">
-        <button *ngIf="getChangeType(c)!='question-circle'&&getChangeType(c)!='plus'"
-                class="btn btn-outline-warning btn-sm"
+      <div class="btn-group btn-group-sm" (click)="$event.preventDefault();$event.stopPropagation()">
+        <button *ngIf="!isDeleted(c)&&!isMergeConflict(c.change)"
+                class="btn btn-warning btn-sm"
                 title="Undo changes to this file"
                 (click)="undoFileClicked(c.file)">
           <i class="fa fa-undo"></i>
         </button>
-        <button class="btn btn-outline-success btn-sm"
-                title="Open configured merge tool"
-                (click)="mergeClicked(c.file)"
-                *ngIf="isMergeConflict(c.change)">
-          <i class="material-icons">merge_type</i>
-        </button>
-        <button class="btn btn-outline-danger btn-sm"
-                title="Delete file"
-                (click)="deleteClicked(c.file)"
-                *ngIf="getChangeType(c)=='plus'||getChangeType(c)=='question-circle'">
-          <i class="material-icons">delete</i>
-        </button>
+        <div class="btn-group btn-group-sm" *ngIf="isMergeConflict(c.change)">
+          <button class="btn btn-success btn-sm"
+                  title="Open configured merge tool"
+                  (click)="mergeClicked(c.file)">
+            <i class="material-icons">merge_type</i>
+          </button>
+          <div class="btn-group btn-group-sm" ngbDropdown placement="bottom-right" autoClose="outside" container="body">
+            <button class="btn btn-success dropdown-toggle-split" ngbDropdownToggle></button>
+            <div ngbDropdownMenu>
+              <button class="btn btn-light mx-1"
+                      (click)="onResolveClicked.emit({file:c.file,theirs:false})"
+                      title="Resolve using Mine">
+                <i class="fa fa-user"></i>
+              </button>
+              <button class="btn btn-light mx-1"
+                      (click)="onResolveClicked.emit({file:c.file,theirs:true})"
+                      title="Resolve using Theirs">
+                <i class="fa fa-users"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="btn-group btn-group-sm" *ngIf="isDeleted(c)">
+          <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
+        </div>
+        <ng-template #deleteButton>
+          <button class="btn btn-danger btn-sm"
+                  title="Delete file"
+                  (click)="deleteClicked(c.file)">
+            <i class="material-icons">delete</i>
+          </button>
+        </ng-template>
+        <div class="btn-group btn-group-sm" ngbDropdown *ngIf="!isDeleted(c)" placement="bottom-right" container="body">
+          <button class="btn btn-light action-expand" ngbDropdownToggle><i class="fa fa-ellipsis-h"></i></button>
+          <div ngbDropdownMenu class="px-1">
+            <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
+          </div>
+        </div>
       </div>
     </td>
   </tr>

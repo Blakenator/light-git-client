@@ -10,6 +10,7 @@ import {DiffHunkModel} from '../../../../shared/git/diff.hunk.model';
 import {DiffLineModel, LineState} from '../../../../shared/git/diff.line.model';
 import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
+import {ClipboardService} from '../../services/clipboard.service';
 
 @Component({
   selector: 'app-diff-viewer',
@@ -34,7 +35,8 @@ export class DiffViewerComponent implements OnInit {
   constructor(public settingsService: SettingsService,
               private errorService: ErrorService,
               private codeWatcherService: CodeWatcherService,
-              private gitService: GitService) {
+              private gitService: GitService,
+              public clipboardService:ClipboardService) {
   }
 
   ngOnInit() {
@@ -131,15 +133,15 @@ export class DiffViewerComponent implements OnInit {
       Math.min(this.scrollOffset, this.diffHeaders.length - this.numPerPage)));
   }
 
-  getFilteredDiffHeaders() {
+  getFilteredDiffHeaders(): DiffHeaderModel[] {
     if (!this.diffFilter) {
-      return this.diffHeaders;
+      return this.diffHeaders.slice(0,this.scrollOffset);
     } else {
       return this.diffHeaders.filter(header => {
         let needle = this.diffFilter.toLowerCase();
         return FilterPipe.fuzzyFilter(needle, header.fromFilename.toLowerCase()) ||
           FilterPipe.fuzzyFilter(needle, header.toFilename.toLowerCase());
-      });
+      }).slice(0,this.scrollOffset);
     }
   }
 

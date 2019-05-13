@@ -801,6 +801,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.showModal('mergeBranchModal');
   }
 
+  resolveConflictsUsing(file: string, theirs: boolean) {
+    this.simpleOperation(
+      this.gitService.resolveConflictsUsing(file, theirs),
+      'resolveConflictsUsing',
+      'resolving conflicts');
+  }
+
   private simpleOperation(op: Promise<void>,
                           functionName: string,
                           occurredWhile: string,
