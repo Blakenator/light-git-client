@@ -13,7 +13,7 @@
     <h1>Clone a Repository</h1>
     <div>Download a repository from a remote server</div>
     <hr/>
-    <button class="btn btn-success" (click)="modalService.setModalVisible('clone',true)">Clone</button>
+    <button class="btn btn-success" (click)="modalService.setModalVisible('cloneRepositoryModal',true)">Clone</button>
   </div>
 </div>
 <app-clone (onCloneComplete)="repoPath=$event; readyClicked()"></app-clone>

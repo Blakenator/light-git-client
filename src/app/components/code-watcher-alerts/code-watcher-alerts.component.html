@@ -1,50 +1,42 @@
-<div class="dialog-container" *ngIf="showWindow">
-  <div class="dialog-window card">
-    <div class="modal-content dialog-wide">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="fa fa-exclamation-triangle mx-2"></i> Code Watcher Warnings</h5>
-      </div>
-      <div class="modal-body">
-        <p>The following hunks have watcher alerts:</p>
-        <input class="form-control"
-               [(ngModel)]="filter"
-               placeholder="Filename filter..."
-               *ngIf="!showWatchersRequest.forHeader">
-        <div *ngFor="let f of watcherAlerts | filterObject : 'file' : filter" class="card">
-          <div class="card-header">{{f.file}}</div>
-          <div>
-            <table class="table">
-              <thead>
-              <tr>
-                <th width="1%">Code</th>
-                <th>Watcher</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr *ngFor="let h of f.hunks">
-                <td width="1%">
-                  <pre class="code-block"><code highlight [code]="getHunkCode(h.hunk)"></code></pre>
-                </td>
-                <td style="vertical-align: top">
-                  <div *ngFor="let w of h.watchers">
-                    <p *ngFor="let line of getLinesFromMatch(h.hunk,w)">
-                      {{w.name}} (line {{line}})
-                    </p>
-                  </div>
-                </td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer" *ngIf="showWatchersRequest.isCommit">
-        <button class="btn btn-warning" (click)="commitAnyway()">Commit Anyway</button>
-        <button class="btn btn-secondary" (click)="cancel()">Cancel Commit</button>
-      </div>
-      <div class="modal-footer" *ngIf="!showWatchersRequest.isCommit">
-        <button class="btn btn-secondary" (click)="cancel()">Close</button>
-      </div>
+<app-modal modalTitle="Code Watcher Warnings"
+           modalTitleIcon="exclamation-triangle"
+           affirmativeButtonText="Commit Anyway"
+           affirmativeButtonClass="warning"
+           modalClass="dialog-wide"
+           modalId="codeWatcherModal"
+           [hasAffirmative]="showWatchersRequest?.isCommit"
+           [negativeButtonText]="showWatchersRequest?.isCommit?'Cancel Commit':'Close'"
+           (onFinish)="commitAnyway()">
+  <p>The following hunks have watcher alerts:</p>
+  <input class="form-control"
+         [(ngModel)]="filter"
+         placeholder="Filename filter..."
+         *ngIf="!showWatchersRequest?.forHeader">
+  <div *ngFor="let f of watcherAlerts | filterObject : 'file' : filter" class="card">
+    <div class="card-header">{{f.file}}</div>
+    <div>
+      <table class="table">
+        <thead>
+        <tr>
+          <th width="1%">Code</th>
+          <th>Watcher</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let h of f.hunks">
+          <td width="1%">
+            <pre class="code-block"><code highlight [code]="getHunkCode(h.hunk)"></code></pre>
+          </td>
+          <td style="vertical-align: top">
+            <div *ngFor="let w of h.watchers">
+              <p *ngFor="let line of getLinesFromMatch(h.hunk,w)">
+                {{w.name}} (line {{line}})
+              </p>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
     </div>
   </div>
-</div>
+</app-modal>

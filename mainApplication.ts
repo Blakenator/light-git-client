@@ -356,6 +356,10 @@ export class MainApplication extends GenericApplication {
       this.handleGitPromise(this.gitClients[args[1]].undoFileChanges(args[2], args[3], args[4]), event, args);
     });
 
+    ipcMain.on(Channels.RESOLVECONFLICTUSING, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].resolveConflictUsing(args[2], args[3]), event, args);
+    });
+
     ipcMain.on(Channels.OPENDEVTOOLS, (event, args) => {
       this.window.webContents.openDevTools();
       this.defaultReply(event, args);
@@ -426,7 +430,11 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.GETCONFIGITEMS, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].getConfigItems(), event, args);
+      if (this.gitClients[args[1]]) {
+        this.handleGitPromise(this.gitClients[args[1]].getConfigItems(), event, args);
+      } else {
+        this.defaultReply(event, args, []);
+      }
     });
 
     ipcMain.on(Channels.SETCONFIGITEM, (event, args) => {

@@ -15,6 +15,7 @@ export class ChangeListComponent implements OnInit {
   @Output() onSelectChanged = new EventEmitter<{ [key: string]: boolean }>();
   @Output() onUndoFileClicked = new EventEmitter<string>();
   @Output() onMergeClicked = new EventEmitter<string>();
+  @Output() onResolveClicked = new EventEmitter<{ file: string, theirs: boolean }>();
   @Output() onDeleteClicked = new EventEmitter<string[]>();
   selectAll = false;
   lastClicked: string;
@@ -124,6 +125,10 @@ export class ChangeListComponent implements OnInit {
 
   isSubmodule(currentPath: string) {
     return this.submodules.some(s => s.path == currentPath);
+  }
+
+  isDeleted(change: LightChange) {
+    return this.getChangeType(change) == 'plus' || this.getChangeType(change) == 'question-circle';
   }
 
   private updateSelection() {

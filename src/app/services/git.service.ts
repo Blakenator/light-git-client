@@ -230,6 +230,12 @@ export class GitService {
       [this.repo.path, file, revision, staged]), true);
   }
 
+  resolveConflictsUsing(file: string, theirs: boolean): Promise<void> {
+    return this.detectCrlfWarning(this.electronService.rpc(
+      Channels.RESOLVECONFLICTUSING,
+      [this.repo.path, file, theirs]), true);
+  }
+
   hardReset(): Promise<void> {
     return this.electronService.rpc(Channels.HARDRESET, [this.repo.path]);
   }

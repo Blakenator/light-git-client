@@ -54,4 +54,5 @@ export namespace Channels {
   export const COMMANDHISTORYCHANGED = "commandHistoryChanged";
   export const ISUPDATEDOWNLOADED = "isUpdateDownloaded";
   export const RESTARTANDINSTALLUPDATE = "restartAndInstallUpdate";
+  export const RESOLVECONFLICTUSING = "resolveConflictUsing";
 }
