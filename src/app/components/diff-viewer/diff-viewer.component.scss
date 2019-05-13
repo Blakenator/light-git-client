@@ -147,3 +147,15 @@ pre code {
 .normal-font-size {
   font-size: 1rem;
 }
+
+.filename {
+  .copy-filename {
+    font-size: .7em;
+    transition: opacity .3s;
+    opacity: 0;
+  }
+
+  &:hover .copy-filename {
+    opacity: .8;
+  }
+}

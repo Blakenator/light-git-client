@@ -383,6 +383,24 @@ export class GitClient {
     return checkoutOp;
   }
 
+  resolveConflictUsing(file: string, theirs: boolean) {
+    return new Promise<void>((resolve, reject) => {
+      this.simpleOperation(
+        this.getGitPath(),
+        ['checkout', '-q', '--' + (theirs ? 'theirs' : 'ours'), '--', file],
+        'Resolve File Conflicts')
+          .then(() => {
+            this.stage([file]).then(resolve).catch(reject);
+          }).catch(error => {
+        if (error.toString().match(/(^|\r?\n)warning:\s+((CR)?LF)\s+will\s+be\s+replaced/i)) {
+          this.stage([file]).then(resolve).catch(reject);
+        } else {
+          reject(error);
+        }
+      });
+    });
+  }
+
   undoFileChanges(file: string, revision: string, staged: boolean) {
     if (staged) {
       return this.simpleOperation(

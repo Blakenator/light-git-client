@@ -271,6 +271,7 @@
                          (onSelectChanged)="selectionChanged($event,true)"
                          (onUndoFileClicked)="confirmUndo($event)"
                          (onMergeClicked)="merge($event)"
+                         (onResolveClicked)="resolveConflictsUsing($event.file,$event.theirs)"
                          (onDeleteClicked)="deleteClicked($event)"
                          [submodules]="repo.submodules"
                          [changeFilter]="stagedChangesFilter"></app-change-list>
@@ -302,6 +303,7 @@
                          (onSelectChanged)="selectionChanged($event,false)"
                          (onUndoFileClicked)="undoFileChanges($event,false)"
                          (onMergeClicked)="merge($event)"
+                         (onResolveClicked)="resolveConflictsUsing($event.file,$event.theirs)"
                          (onDeleteClicked)="deleteClicked($event)"
                          [submodules]="repo.submodules"
                          [changeFilter]="unstagedChangesFilter"></app-change-list>
@@ -450,7 +452,7 @@
     <div class="list-group my-2">
       <div *ngFor="let b of branchesToPrune; let i=index"
            class="list-group-item d-flex align-items-center justify-content-between py-1 pr-1">
-        <span>{{b}}</span>
+        <span>{{b.name}}</span>
         <button class="btn btn-primary btn-sm" (click)="branchesToPrune.splice(i,1)">
           <i class="fa fa-times"></i>
         </button>
