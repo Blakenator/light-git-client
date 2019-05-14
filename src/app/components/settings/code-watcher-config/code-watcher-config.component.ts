@@ -22,6 +22,9 @@ export class CodeWatcherConfigComponent implements OnInit {
   addWatcher(filename: string) {
     const model = new CodeWatcherModel();
     model.activeFilter = filename;
+    if (this.tempSettings.loadedCodeWatchers.length) {
+      model.path = this.tempSettings.loadedCodeWatchers[0].path;
+    }
     this.tempSettings.loadedCodeWatchers.push(model);
   }
 

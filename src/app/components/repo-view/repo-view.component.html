@@ -313,7 +313,7 @@
       <div class="card-body p-3">
         <app-pretty-checkbox [(value)]="settingsService.settings.commitAndPush"
                              (valueChange)="changeDetectorRef.detectChanges(); settingsService.saveSettings()">
-          {{settingsService.settings.commitAndPush ? 'Commit and Push' : 'Commit'}}
+          Commit and Push
         </app-pretty-checkbox>
         <div class="d-flex flex-row">
           <div class="dropup flex-grow-1 mt-1 position-relative">
