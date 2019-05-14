@@ -56,9 +56,9 @@
   <div class="main-body flex-grow-1">
     <div *ngIf="activeTab>=0">
       <app-new-tab-page (onReady)="loadRepo($event)"
-                        *ngIf="!getActiveTabData().cache.path"></app-new-tab-page>
-      <app-repo-view *ngIf="getActiveTabData().cache.path"
-                     [repoPath]="getActiveTabData().cache.path"
+                        *ngIf="!getActiveTabData()?.cache.path"></app-new-tab-page>
+      <app-repo-view *ngIf="getActiveTabData()?.cache.path"
+                     [repoPath]="getActiveTabData()?.cache.path"
                      (onLoadRepoFailed)="repoLoadFailed($event)"
                      (onOpenRepoNewTab)="addTab($event)"></app-repo-view>
     </div>
