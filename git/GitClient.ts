@@ -401,15 +401,15 @@ export class GitClient {
     });
   }
 
-  undoFileChanges(file: string, revision: string, staged: boolean) {
+  undoFileChanges(files: string[], revision: string, staged: boolean) {
     if (staged) {
       return this.simpleOperation(
         this.getGitPath(),
-        ['checkout', '-q', (revision || 'HEAD'), '--', file],
+        ['checkout', '-q', (revision || 'HEAD'), '--', ...files],
         'Undo File Changes');
     } else {
       return new Promise<void>((resolve, reject) => {
-        let args = ['stash', 'push', '--keep-index', '--', file];
+        let args = ['stash', 'push', '--keep-index', '--', ...files];
         this.simpleOperation(
           this.getGitPath(),
           args,
@@ -417,7 +417,7 @@ export class GitClient {
           this.deleteStash(0).then(resolve).catch(reject);
         }).catch(error => {
           if (error.toString().indexOf('fatal: unrecognized input') >= 0 ||
-            error.toString().match(/(^|\r?\n)warning:\s+((CR)?LF)\s+will\s+be\s+replaced/i)) {
+              error.toString().match(/(^|\r?\n)warning:\s+((CR)?LF)\s+will\s+be\s+replaced/i)) {
             this.deleteStash(0).then(resolve).catch(reject);
           } else {
             reject(error);
@@ -428,7 +428,11 @@ export class GitClient {
   }
 
   hardReset() {
-    return this.simpleOperation(this.getGitPath(), ['reset', '--hard'], 'Hard Reset/Undo All');
+    return this.simpleOperation(this.getGitPath(), ['reset', '--hard'], 'Hard Reset/Undo All')
+               .then(() => this.simpleOperation(this.getGitPath(),
+                 ['submodule', 'foreach', '--recursive', this.getGitPath() + ' reset --hard'],
+                 'Reset All Submodule File Changes'))
+               .then(() => this.updateSubmodules(true));
   }
 
   merge(file: string, tool: string) {
@@ -480,7 +484,7 @@ export class GitClient {
       'Push');
   }
 
-  updateSubmodules(branch: string, recursive: boolean) {
+  updateSubmodules(recursive?: boolean, branch?: string) {
     return this.simpleOperation(this.getGitPath(), [
       'submodule',
       'update',
@@ -505,7 +509,7 @@ export class GitClient {
           this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
               .then(output => {
                 result.git = output.standardOutput &&
-                  output.standardOutput.indexOf('git version') >= 0;
+                             output.standardOutput.indexOf('git version') >= 0;
                 resolve1();
               })
               .catch(error => {
@@ -524,7 +528,7 @@ export class GitClient {
               .then(
                 output => {
                   result.bash = output.standardOutput &&
-                    output.standardOutput.indexOf('GNU bash') >= 0;
+                                output.standardOutput.indexOf('GNU bash') >= 0;
                   resolve1();
                 })
               .catch(() => {
@@ -857,13 +861,13 @@ export class GitClient {
   private execute(command: string, args: string[], name: string,
                   ignoreError: boolean = false): Promise<CommandOutputModel<void>> {
     let timeoutErrorMessage = 'command timed out (>' +
-      GitClient.settings.commandTimeoutSeconds +
-      's): ' +
-      command +
-      ' ' +
-      args.join(' ') +
-      '\n\nEither adjust the timeout in the Settings menu or ' +
-      '\nfind the root cause of the timeout';
+                              GitClient.settings.commandTimeoutSeconds +
+                              's): ' +
+                              command +
+                              ' ' +
+                              args.join(' ') +
+                              '\n\nEither adjust the timeout in the Settings menu or ' +
+                              '\nfind the root cause of the timeout';
 
     return new Promise<CommandOutputModel<void>>((resolve, reject) => {
       let currentOut = '', currentErr = '';
@@ -881,7 +885,7 @@ export class GitClient {
           race = setTimeout(() => reject(timeoutErrorMessage), GitClient.settings.commandTimeoutSeconds * 1000);
         } else {
           if (currentErr.split(/\r?\n/).every(x => x.trim().length == 0 || x.trim().startsWith('warning:')) ||
-            ignoreError) {
+              ignoreError) {
             resolve(CommandOutputModel.command(currentOut, currentErr, event.exit));
           } else {
             reject(CommandOutputModel.command(currentOut, currentErr, event.exit));

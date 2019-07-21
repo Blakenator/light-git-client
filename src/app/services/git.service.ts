@@ -224,7 +224,7 @@ export class GitService {
     return this.handleAirplaneMode(this.electronService.rpc(Channels.FETCH, [this.repo.path]));
   }
 
-  undoFileChanges(file: string, revision: string, staged: boolean): Promise<void> {
+  undoFileChanges(file: string[], revision: string, staged: boolean): Promise<void> {
     return this.detectCrlfWarning(this.electronService.rpc(
       Channels.UNDOFILECHANGES,
       [this.repo.path, file, revision, staged]), true);

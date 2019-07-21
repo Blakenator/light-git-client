@@ -8,6 +8,7 @@ import {ErrorService} from '../../common/services/error.service';
 import {LoadingService} from '../../services/loading.service';
 import {CdkDragDrop} from '@angular/cdk/drag-drop';
 import {TabService} from '../../services/tab.service';
+import {NgbTooltipConfig} from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
   selector: 'app-home',
@@ -26,7 +27,9 @@ export class HomeComponent implements OnInit {
               private http: HttpClient,
               private cd: ChangeDetectorRef,
               public tabService: TabService,
-              private gitService: GitService) {
+              private gitService: GitService,
+              config: NgbTooltipConfig) {
+    config.container = 'body';
   }
 
   get activeTab(): number {
@@ -62,7 +65,7 @@ export class HomeComponent implements OnInit {
   }
 
   addTab(path: string = '') {
-    this.activeTab = this.tabService.tabData.length;
+    this.activeTab = this.tabService.tabCount();
     this.tabService.tabData.push(this.tabService.getNewTab(path));
     if (path) {
       setTimeout(() => {
@@ -78,15 +81,17 @@ export class HomeComponent implements OnInit {
       this.changeTab(--this.activeTab);
     }
     this.tabService.tabData.splice(t, 1);
-    if (this.tabService.tabData.length == 0) {
+    if (this.tabService.tabCount() == 0) {
       this.addTab();
     }
     this.saveOpenRepos();
   }
 
   loadRepo(path: string) {
-    this.tabService.tabData[this.activeTab] = this.tabService.getNewTab(path, TabService.basename(path));
-    this.saveOpenRepos();
+    if (this.tabService.getActiveTabData().cache.path === path) {
+      this.tabService.updateTabData(this.tabService.getNewTab(path, TabService.basename(path)).cache);
+      this.saveOpenRepos();
+    }
   }
 
   saveOpenRepos() {
@@ -107,7 +112,7 @@ export class HomeComponent implements OnInit {
 
   repoLoadFailed($event: ErrorModel) {
     this.errorService.receiveError($event);
-    this.tabService.tabData[this.activeTab] = this.tabService.getNewTab('');
+    this.tabService.updateTabData(this.tabService.getNewTab('').cache);
     this.cd.detectChanges();
   }
 
@@ -118,7 +123,7 @@ export class HomeComponent implements OnInit {
   }
 
   saveEditedName(t: number) {
-    this.tabService.tabData[t].name = this.editedTabName;
+    this.tabService.updateTabName(this.editedTabName, t);
     this.saveOpenRepos();
   }
 
@@ -135,6 +140,6 @@ export class HomeComponent implements OnInit {
   }
 
   getActiveTabData() {
-    return this.tabService.tabData[this.activeTab];
+    return this.tabService.getActiveTabData();
   }
 }

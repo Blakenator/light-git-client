@@ -19,13 +19,13 @@
              #branchChooserDropdown="ngbDropdown">
           <button class="btn btn-primary d-inline-flex align-items-center"
                   [ngClass]="{active:isCurrentBranchActive()}"
-                  title="Filter to current branch"
+                  [openDelay]="500" ngbTooltip="Filter to current branch"
                   (click)="toggleSoloCurrentBranch()">
             <i class="fa" [ngClass]="{'fa-low-vision':isCurrentBranchActive(),'fa-eye':!isCurrentBranchActive()}"></i>
           </button>
           <button class="btn btn-primary d-inline-flex align-items-center"
                   ngbDropdownToggle
-                  title="Filter to specific branch">
+                  [openDelay]="500" ngbTooltip="Filter to specific branch">
           </button>
           <div ngbDropdownMenu>
             <app-branch-chooser [branches]="branches"
@@ -69,24 +69,24 @@
           </div>
         </div>
       </td>
-      <td class="hidden-until-hover" [title]="c.authorName">{{c.authorName}}</td>
+      <td class="hidden-until-hover" [openDelay]="500" [ngbTooltip]="c.authorName">{{c.authorName}}</td>
       <td class="hidden-until-hover d-none d-sm-table-cell"
-          [title]="c.authorEmail"
+          [openDelay]="500" [ngbTooltip]="c.authorEmail"
           *ngIf="commitFilter">{{c.authorEmail}}</td>
-      <td class="hidden-until-hover" [title]="c.authorDate | date : 'full'">
+      <td class="hidden-until-hover" [openDelay]="500" [ngbTooltip]="c.authorDate | date : 'full'">
         {{c.authorDate | date : 'short'}}
       </td>
-      <td [title]="c.hash">
+      <td [openDelay]="500" [ngbTooltip]="c.hash">
         <div class="position-relative">
           {{c.hash.substr(0, 8)}}
           <div class="btn-group-sm btn-group expand-container position-absolute">
-            <button class="btn btn-warning" title="View Commit Diff" (click)="getCommitDiff(c)">
+            <button class="btn btn-warning" [openDelay]="500" ngbTooltip="View Commit Diff" (click)="getCommitDiff(c)">
               <i class="fa fa-eye"></i>
             </button>
-            <button class="btn btn-info" title="Cherry-pick commit" (click)="cherryPickCommit(c)">
+            <button class="btn btn-info" [openDelay]="500" ngbTooltip="Cherry-pick commit" (click)="cherryPickCommit(c)">
               <i class="fa fa-band-aid"></i>
             </button>
-            <button class="btn btn-secondary" title="Checkout commit" (click)="checkout(c)">
+            <button class="btn btn-secondary" [openDelay]="500" ngbTooltip="Checkout commit" (click)="checkout(c)">
               <i class="fa fa-shopping-cart"></i>
             </button>
           </div>

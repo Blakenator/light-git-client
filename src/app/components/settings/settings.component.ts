@@ -71,29 +71,29 @@ export class SettingsComponent implements OnInit {
   saveSettings() {
     if (this.gitService.repo) {
       if (this.tempSettings.username != this.settingsService.settings.username ||
-        this.tempSettings.email != this.settingsService.settings.email) {
+          this.tempSettings.email != this.settingsService.settings.email) {
         this.gitService.setBulkGitSettings({
           'user.name': this.tempSettings.username || '',
           'user.email': this.tempSettings.email || '',
         }, this.setGlobalDefaultUserConfig);
       }
       if (this.mergetoolName.trim() &&
-        (!this.mergetoolConfig ||
-          this.mergetoolName != this.mergetoolConfig.value ||
-          this.mergetoolCommandConfig.value != this.mergetoolCommand) &&
-        this.mergetoolName) {
+          (!this.mergetoolConfig ||
+           this.mergetoolName != this.mergetoolConfig.value ||
+           this.mergetoolCommandConfig.value != this.mergetoolCommand) &&
+          this.mergetoolName) {
         this.gitService.setBulkGitSettings({
           'merge.tool': this.mergetoolName,
           ['mergetool.' + this.mergetoolName + '.cmd']: this.mergetoolCommand,
         }, this.setGlobalDefaultMergetoolConfig);
       }
       if (this.credentialHelper &&
-        (!this.credentialHelperConfig ||
-          this.credentialHelper != this.credentialHelperConfig.value ||
-          (this.credentialHelper == 'cache' && this.cacheHelperSeconds))) {
+          (!this.credentialHelperConfig ||
+           this.credentialHelper != this.credentialHelperConfig.value ||
+           (this.credentialHelper == 'cache' && this.cacheHelperSeconds))) {
         this.gitService.setBulkGitSettings({
           'credential.helper': this.credentialHelper +
-            (this.credentialHelper == 'cache' ? ' --timeout ' + this.cacheHelperSeconds : ''),
+                               (this.credentialHelper == 'cache' ? ' --timeout ' + this.cacheHelperSeconds : ''),
         }, true);
       }
     }
@@ -117,37 +117,39 @@ export class SettingsComponent implements OnInit {
 
     this.tempSettings = this.settingsService.settings.clone();
     this.modalService.setModalVisible('settings', true);
-    this.gitService.getConfigItems().then(configItems => {
-      this.configItems = configItems;
-      this.handleItemsUpdate(this.configItems);
-      let username = this.configItems.find(item => item.key == 'user.name');
-      this.mergetoolConfig = this.configItems.find(item => item.key == 'merge.tool');
-      if (this.mergetoolConfig) {
-        this.mergetoolName = this.mergetoolConfig.value;
-        this.mergetoolCommandConfig = this.configItems.find(
-          item => item.key == 'mergetool.' + this.mergetoolName + '.cmd');
-        this.mergetoolCommand = this.mergetoolCommandConfig ? this.mergetoolCommandConfig.value : '';
-      }
-      this.credentialHelperConfig = this.configItems.find(item => item.key == 'credential.helper');
-      if (this.credentialHelperConfig) {
-        this.credentialHelper = this.credentialHelperConfig.value.split(' ')[0];
-        this.cacheHelperSeconds = this.credentialHelper ==
-                                  'cache' ? this.credentialHelperConfig.value.split(' ')[2] : 15 * 60 + '';
-      } else {
-        this.credentialHelper = 'cache';
-        this.cacheHelperSeconds = 15 * 60 + '';
-      }
-      this.tempSettings.username = username ? username.value + '' : '';
-      this.settingsService.settings.username = username ? username.value + '' : '';
-      let email = this.configItems.find(x => x.key == 'user.email');
-      this.tempSettings.email = email ? email.value + '' : '';
-      this.settingsService.settings.email = email ? email.value + '' : '';
-    })
-        .catch(error => this.errorService.receiveError(
-          new ErrorModel(
-            'Git config component, getConfigItems',
-            'getting config items',
-            error)));
+    if (this.gitService.repo) {
+      this.gitService.getConfigItems().then(configItems => {
+        this.configItems = configItems;
+        this.handleItemsUpdate(this.configItems);
+        let username = this.configItems.find(item => item.key == 'user.name');
+        this.mergetoolConfig = this.configItems.find(item => item.key == 'merge.tool');
+        if (this.mergetoolConfig) {
+          this.mergetoolName = this.mergetoolConfig.value;
+          this.mergetoolCommandConfig = this.configItems.find(
+            item => item.key == 'mergetool.' + this.mergetoolName + '.cmd');
+          this.mergetoolCommand = this.mergetoolCommandConfig ? this.mergetoolCommandConfig.value : '';
+        }
+        this.credentialHelperConfig = this.configItems.find(item => item.key == 'credential.helper');
+        if (this.credentialHelperConfig) {
+          this.credentialHelper = this.credentialHelperConfig.value.split(' ')[0];
+          this.cacheHelperSeconds = this.credentialHelper ==
+                                    'cache' ? this.credentialHelperConfig.value.split(' ')[2] : 15 * 60 + '';
+        } else {
+          this.credentialHelper = 'cache';
+          this.cacheHelperSeconds = 15 * 60 + '';
+        }
+        this.tempSettings.username = username ? username.value + '' : '';
+        this.settingsService.settings.username = username ? username.value + '' : '';
+        let email = this.configItems.find(x => x.key == 'user.email');
+        this.tempSettings.email = email ? email.value + '' : '';
+        this.settingsService.settings.email = email ? email.value + '' : '';
+      })
+          .catch(error => this.errorService.receiveError(
+            new ErrorModel(
+              'Git config component, getConfigItems',
+              'getting config items',
+              error)));
+    }
   }
 
   cancelChanges() {
@@ -193,10 +195,11 @@ export class SettingsComponent implements OnInit {
 
   saveConfigItem(originalItem: ConfigItemModel, rename?: ConfigItemModel) {
     if (!this.editedItem ||
-      !(this.editedItem.key || '').trim() ||
-      !this.currentEdit ||
-      ((!this.clickedKey && this.editedItem.value == originalItem.value) || (this.clickedKey && this.editedItem.key == originalItem.key)) ||
-      (!this.currentEdit.sourceFile && !this.currentEdit.value)) {
+        !(this.editedItem.key || '').trim() ||
+        !this.currentEdit ||
+        ((!this.clickedKey && this.editedItem.value == originalItem.value) ||
+        (this.clickedKey && this.editedItem.key == originalItem.key)) ||
+        (!this.currentEdit.sourceFile && !this.currentEdit.value)) {
       return;
     }
     this.currentEdit = undefined;
@@ -224,7 +227,7 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  restartAndInstall(){
+  restartAndInstall() {
     this.electronService.rpc(Channels.RESTARTANDINSTALLUPDATE);
   }
 

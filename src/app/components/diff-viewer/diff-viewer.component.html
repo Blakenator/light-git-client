@@ -57,7 +57,7 @@
             <span class="badge badge-light clickable">{{part}}</span>
             <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
           </div>
-          <button class="copy-filename mx-1 p-1 btn btn-light" title="Copy" (click)="clipboardService.copy(header.toFilename)">
+          <button class="copy-filename mx-1 p-1 btn btn-light" [openDelay]="500" ngbTooltip="Copy" (click)="clipboardService.copy(header.toFilename)">
             <i class="fa fa-copy"> </i>
           </button>
         </div>
@@ -98,18 +98,18 @@
             <div class="float-btn-container">
               <div *ngIf="!isEditingHunk(hunk,header)">
                 <button class="btn btn-warning btn-sm m-1"
-                        title="Undo hunk"
+                        [openDelay]="500" ngbTooltip="Undo hunk"
                         (click)="undoHunk(hunk,header)"><i class="fa fa-undo"></i></button>
                 <button class="btn btn-info btn-sm m-1"
-                        title="Edit hunk"
+                        [openDelay]="500" ngbTooltip="Edit hunk"
                         (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
               </div>
               <div *ngIf="isEditingHunk(hunk,header)">
                 <button class="btn btn-success btn-sm m-1"
-                        title="Save Changes"
+                        [openDelay]="500" ngbTooltip="Save Changes"
                         (click)="saveEditedHunk()"><i class="fa fa-save"></i></button>
                 <button class="btn btn-primary btn-sm m-1 d-inline-flex justify-content-center"
-                        title="Cancel Edit"
+                        [openDelay]="500" ngbTooltip="Cancel Edit"
                         (click)="cancelEdit()"><i class="fa fa-times"></i></button>
               </div>
             </div>
