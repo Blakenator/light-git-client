@@ -18,7 +18,6 @@ import {ClipboardService} from '../../services/clipboard.service';
   styleUrls: ['./diff-viewer.component.scss'],
 })
 export class DiffViewerComponent implements OnInit {
-  @Input() diffHeaders: DiffHeaderModel[];
   @Input() diffCommitInfo: CommitSummaryModel;
   editingHunk: DiffHunkModel;
   editingHeader: DiffHeaderModel;
@@ -31,12 +30,41 @@ export class DiffViewerComponent implements OnInit {
   scrollOffset = 10;
   numPerPage = 3;
   diffFilter: string;
+  maxFileDiffSize = 500;
+  reducedHeaders: { header: DiffHeaderModel, reducedHunks: DiffHunkModel[], tooLong: boolean }[];
 
   constructor(public settingsService: SettingsService,
               private errorService: ErrorService,
               private codeWatcherService: CodeWatcherService,
               private gitService: GitService,
-              public clipboardService:ClipboardService) {
+              public clipboardService: ClipboardService) {
+  }
+
+  private _diffHeaders: DiffHeaderModel[];
+
+  get diffHeaders() {
+    return this._diffHeaders;
+  }
+
+  @Input()
+  set diffHeaders(value: DiffHeaderModel[]) {
+    this._diffHeaders = value;
+    this.reducedHeaders = value.map(h => {
+      let tooLong = this.getHeaderLines(h) > this.maxFileDiffSize;
+      let reduced = [];
+      if (tooLong) {
+        let lineCount = 0;
+        for (let hunk of h.hunks) {
+          if (lineCount + hunk.lines.length > this.maxFileDiffSize) {
+            break;
+          } else {
+            lineCount += hunk.lines.length;
+            reduced.push(hunk);
+          }
+        }
+      }
+      return {header: h, reducedHunks: tooLong ? reduced : h.hunks, tooLong};
+    });
   }
 
   ngOnInit() {
@@ -99,11 +127,11 @@ export class DiffViewerComponent implements OnInit {
 
   isEditingHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
     return this.editingHunk &&
-      this.editingHeader &&
-      this.editingHunk.fromStartLine ==
-      hunk.fromStartLine &&
-      this.editingHeader.fromFilename ==
-      header.fromFilename;
+           this.editingHeader &&
+           this.editingHunk.fromStartLine ==
+           hunk.fromStartLine &&
+           this.editingHeader.fromFilename ==
+           header.fromFilename;
   }
 
   undoHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
@@ -133,15 +161,15 @@ export class DiffViewerComponent implements OnInit {
       Math.min(this.scrollOffset, this.diffHeaders.length - this.numPerPage)));
   }
 
-  getFilteredDiffHeaders(): DiffHeaderModel[] {
+  getFilteredDiffHeaders() {
     if (!this.diffFilter) {
-      return this.diffHeaders.slice(0,this.scrollOffset);
+      return this.reducedHeaders.slice(0, this.scrollOffset);
     } else {
-      return this.diffHeaders.filter(header => {
+      return this.reducedHeaders.filter(header => {
         let needle = this.diffFilter.toLowerCase();
-        return FilterPipe.fuzzyFilter(needle, header.fromFilename.toLowerCase()) ||
-          FilterPipe.fuzzyFilter(needle, header.toFilename.toLowerCase());
-      }).slice(0,this.scrollOffset);
+        return FilterPipe.fuzzyFilter(needle, header.header.fromFilename.toLowerCase()) ||
+               FilterPipe.fuzzyFilter(needle, header.header.toFilename.toLowerCase());
+      }).slice(0, this.scrollOffset);
     }
   }
 
@@ -150,7 +178,7 @@ export class DiffViewerComponent implements OnInit {
   }
 
   getLocalExpandedDefault(header: DiffHeaderModel) {
-    return header.action != 'Deleted' && this.getHeaderLines(header) < 200 && header.hunks.length > 0;
+    return header.action != 'Deleted' && this.getHeaderLines(header) < this.maxFileDiffSize && header.hunks.length > 0;
   }
 
   private getTemporaryHunk(header: DiffHeaderModel, hunk: DiffHunkModel) {

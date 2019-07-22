@@ -66,7 +66,7 @@ export class HomeComponent implements OnInit {
 
   addTab(path: string = '') {
     this.activeTab = this.tabService.tabCount();
-    this.tabService.tabData.push(this.tabService.getNewTab(path));
+    this.tabService.tabData.push(this.tabService.getNewTab(path, TabService.basename(path)));
     if (path) {
       setTimeout(() => {
         this.loadRepo(path);

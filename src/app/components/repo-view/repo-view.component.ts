@@ -457,11 +457,24 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   undoFileChanges(files: string[], staged: boolean, revision: string = '') {
     this.simpleOperation(
-      this.gitService.undoFileChanges(files, revision, staged),
+      this.gitService.undoFileChanges(
+        files.filter(f => !this.repo.submodules.some(s => s.path === f)),
+        revision,
+        staged),
       'undoFileChanges',
       'undoing changes for the files');
+    this.undoSubmoduleChanges(  files.map(f => this.repo.submodules.find(s => s.path === f))
+                                   .filter(f => !!f));
     this.clearSelectedChanges();
     this.activeUndo = undefined;
+  }
+
+  undoSubmoduleChanges(submodules: SubmoduleModel[]) {
+    this.simpleOperation(
+      this.gitService.undoSubmoduleChanges(submodules),
+      'undoSubmoduleChanges',
+      'undoing changes for the submodules');
+    this.clearSelectedChanges();
   }
 
   confirmUndo(file: string) {

@@ -297,6 +297,7 @@
                          (onResolveClicked)="resolveConflictsUsing($event.file,$event.theirs)"
                          (onDeleteClicked)="deleteClicked($event)"
                          [submodules]="repo.submodules"
+                         (onUndoSubmoduleClicked)="undoSubmoduleChanges([$event])"
                          [changeFilter]="stagedChangesFilter"></app-change-list>
       </app-layout-card>
       <app-layout-card [headerContent]="unstagedHeader"
@@ -339,6 +340,7 @@
                          (onResolveClicked)="resolveConflictsUsing($event.file,$event.theirs)"
                          (onDeleteClicked)="deleteClicked($event)"
                          [submodules]="repo.submodules"
+                         (onUndoSubmoduleClicked)="undoSubmoduleChanges([$event])"
                          [changeFilter]="unstagedChangesFilter"></app-change-list>
       </app-layout-card>
     </div>
