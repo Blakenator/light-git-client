@@ -563,102 +563,107 @@ export class GitClient {
         this.execute(this.getGitPath(), args, 'Get Commit History')
             .then(output => {
               let text = output.standardOutput;
-              let result: CommitSummaryModel[] = [];
-              let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*(?!commit\s+\S+\s*\r?\n\s*\|\|\|\|))/g;
-              let match = branchList.exec(text);
-
-              let currentBranch = 0;
-              let stack: { seeking: string, from: number, branchIndex: number }[] = [];
-
-              while (match) {
-                let commitSummary = new CommitSummaryModel();
-                commitSummary.hash = match[1];
-                commitSummary.authorName = match[2];
-                commitSummary.authorEmail = match[3];
-                commitSummary.authorDate = new Date(Date.parse(match[4]));
-                if (match[5]) {
-                  commitSummary.currentTags = match[5].split(',').map(x => x.trim());
-                }
-                commitSummary.message = match[7];
-
-                // git graph
-                commitSummary.graphBlockTargets = [];
-                commitSummary.parentHashes = match[6].split(/\s/);
-
-                let newIndex = 0;
-                let encounteredSeeking: string[] = [];
-                let added = false;
-                let newStack: { seeking: string, from: number, branchIndex: number }[] = [];
-                for (let j = 0; j < stack.length; j++) {
-                  if (stack[j].seeking != commitSummary.hash) {
-                    commitSummary.graphBlockTargets.push({
-                      target: stack[j].from,
-                      source: newIndex,
-                      isCommit: false,
-                      branchIndex: stack[j].branchIndex,
-                      isMerge: false,
-                    });
-                    encounteredSeeking.push(stack[j].seeking);
-                    newStack.push(Object.assign(stack[j], {from: newIndex}));
-                    newIndex++;
-                  } else if (encounteredSeeking.indexOf(commitSummary.hash) >= 0) {
-                    commitSummary.graphBlockTargets.push({
-                      target: stack[j].from,
-                      source: encounteredSeeking.indexOf(commitSummary.hash),
-                      isCommit: true,
-                      branchIndex: stack[j].branchIndex,
-                      isMerge: false,
-                    });
-                    added = true;
-                  } else if (encounteredSeeking.indexOf(commitSummary.hash) < 0) {
-                    commitSummary.graphBlockTargets.push({
-                      target: stack[j].from,
-                      source: newIndex,
-                      isCommit: true,
-                      branchIndex: stack[j].branchIndex,
-                      isMerge: commitSummary.parentHashes.length > 1,
-                    });
-                    encounteredSeeking.push(stack[j].seeking);
-                    added = true;
-                    let useCurrentBranch = true;
-                    for (let p of commitSummary.parentHashes) {
-                      if (useCurrentBranch) {
-                        newStack.push({
-                          seeking: p,
-                          from: newIndex,
-                          branchIndex: stack[j].branchIndex,
-                        });
-                        useCurrentBranch = false;
-                      } else {
-                        newStack.push({seeking: p, from: newIndex, branchIndex: currentBranch++});
-                      }
-                    }
-                    newIndex++;
-                  }
-                }
-                if (!added) {
-                  let fromIndex = commitSummary.graphBlockTargets.length;
-                  commitSummary.graphBlockTargets.push({
-                    target: -1,
-                    source: fromIndex,
-                    isCommit: true,
-                    branchIndex: currentBranch,
-                    isMerge: commitSummary.parentHashes.length > 1,
-                  });
-                  for (let p of commitSummary.parentHashes) {
-                    newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
-                  }
-                }
-                stack = newStack;
-                // end git graph
-
-                result.push(commitSummary);
-                match = branchList.exec(text);
-              }
+              let result = this.parseCommitString(text);
 
               resolve(result);
             }), reject);
     }));
+  }
+
+  public parseCommitString(text) {
+    let result: CommitSummaryModel[] = [];
+    let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
+    let match = branchList.exec(text);
+
+    let currentBranch = 0;
+    let stack: { seeking: string, from: number, branchIndex: number }[] = [];
+
+    while (match) {
+      let commitSummary = new CommitSummaryModel();
+      commitSummary.hash = match[1];
+      commitSummary.authorName = match[2];
+      commitSummary.authorEmail = match[3];
+      commitSummary.authorDate = new Date(Date.parse(match[4]));
+      if (match[5]) {
+        commitSummary.currentTags = match[5].split(',').map(x => x.trim());
+      }
+      commitSummary.message = match[7].trim();
+
+      // git graph
+      commitSummary.graphBlockTargets = [];
+      commitSummary.parentHashes = match[6].split(/\s/);
+
+      let newIndex = 0;
+      let encounteredSeeking: string[] = [];
+      let added = false;
+      let newStack: { seeking: string, from: number, branchIndex: number }[] = [];
+      for (let j = 0; j < stack.length; j++) {
+        if (stack[j].seeking != commitSummary.hash) {
+          commitSummary.graphBlockTargets.push({
+            target: stack[j].from,
+            source: newIndex,
+            isCommit: false,
+            branchIndex: stack[j].branchIndex,
+            isMerge: false,
+          });
+          encounteredSeeking.push(stack[j].seeking);
+          newStack.push(Object.assign(stack[j], {from: newIndex}));
+          newIndex++;
+        } else if (encounteredSeeking.indexOf(commitSummary.hash) >= 0) {
+          commitSummary.graphBlockTargets.push({
+            target: stack[j].from,
+            source: encounteredSeeking.indexOf(commitSummary.hash),
+            isCommit: true,
+            branchIndex: stack[j].branchIndex,
+            isMerge: false,
+          });
+          added = true;
+        } else if (encounteredSeeking.indexOf(commitSummary.hash) < 0) {
+          commitSummary.graphBlockTargets.push({
+            target: stack[j].from,
+            source: newIndex,
+            isCommit: true,
+            branchIndex: stack[j].branchIndex,
+            isMerge: commitSummary.parentHashes.length > 1,
+          });
+          encounteredSeeking.push(stack[j].seeking);
+          added = true;
+          let useCurrentBranch = true;
+          for (let p of commitSummary.parentHashes) {
+            if (useCurrentBranch) {
+              newStack.push({
+                seeking: p,
+                from: newIndex,
+                branchIndex: stack[j].branchIndex,
+              });
+              useCurrentBranch = false;
+            } else {
+              newStack.push({seeking: p, from: newIndex, branchIndex: currentBranch++});
+            }
+          }
+          newIndex++;
+        }
+      }
+      if (!added) {
+        let fromIndex = commitSummary.graphBlockTargets.length;
+        commitSummary.graphBlockTargets.push({
+          target: -1,
+          source: fromIndex,
+          isCommit: true,
+          branchIndex: currentBranch,
+          isMerge: commitSummary.parentHashes.length > 1,
+        });
+        for (let p of commitSummary.parentHashes) {
+          newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
+        }
+      }
+      stack = newStack;
+      // end git graph
+
+      result.push(commitSummary);
+      match = branchList.exec(text);
+    }
+    return result;
   }
 
   addWorktree(location: string,

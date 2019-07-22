@@ -60,7 +60,8 @@
                [ngClass]="{'message-expanded':messageExpanded[c.hash],'cursor-pointer':messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)}">
             <div class="d-inline-block" *ngFor="let tag of c.currentTags">
               <div [ngClass]="getTagClasses(tag)" class="badge mx-1">
-                <small *ngIf="tag.startsWith('origin/')"><i class="fa fa-cloud"></i></small>
+                <small *ngIf="isRemoteBranch(tag)"><i class="fa fa-cloud"></i></small>
+                <small *ngIf="isPlainTag(tag)"><i class="fa fa-tag"></i></small>
                 {{tag.replace('tag: ', '')}}
               </div>
             </div>
