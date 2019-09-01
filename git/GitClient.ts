@@ -125,9 +125,8 @@ export class GitClient {
   openRepo(): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>((resolve, reject) => {
       this.execute(this.getGitPath(), ['rev-parse', '--is-inside-work-tree'], 'Check Is Git Working Tree').then(() => {
-        this.getBranches().then(rep => {
+        this.getBranches(this.workingDir).then(rep => {
           let res = Object.assign(new RepositoryModel(), rep || {});
-          res.path = this.workingDir;
           res.name = path.basename(this.workingDir);
           resolve(res);
         }).catch(err => reject(serializeError(err)));
@@ -197,7 +196,8 @@ export class GitClient {
     let remotes = branches.filter(b => b.isRemote);
     let promises: Promise<void>[] = [];
     if (locals.length > 0) {
-      promises.push(this.simpleOperation(this.getGitPath(),
+      promises.push(this.simpleOperation(
+        this.getGitPath(),
         ['branch', '-D', '--'].concat(locals.map(b => b.name)),
         'Delete Branches'));
     }
@@ -380,7 +380,8 @@ export class GitClient {
 
   resolveConflictUsing(file: string, theirs: boolean) {
     return new Promise<void>((resolve, reject) => {
-      this.simpleOperation(this.getGitPath(),
+      this.simpleOperation(
+        this.getGitPath(),
         ['checkout', '-q', '--' + (theirs ? 'theirs' : 'ours'), '--', file],
         'Resolve File Conflicts')
           .then(() => {
@@ -396,8 +397,12 @@ export class GitClient {
   }
 
   undoFileChanges(files: string[], revision: string, staged: boolean) {
+    if (files.length===0){
+      return Promise.reject('No files selected');
+    }
     if (staged) {
-      return this.simpleOperation(this.getGitPath(),
+      return this.simpleOperation(
+        this.getGitPath(),
         ['checkout', '-q', (revision || 'HEAD'), '--', ...files],
         'Undo File Changes');
     } else {
@@ -407,7 +412,7 @@ export class GitClient {
           this.deleteStash(0).then(resolve).catch(reject);
         }).catch(error => {
           if (error.toString().indexOf('fatal: unrecognized input') >= 0 ||
-              error.toString().match(/(^|\r?\n)warning:\s+((CR)?LF)\s+will\s+be\s+replaced/i)) {
+            error.toString().match(/(^|\r?\n)warning:\s+((CR)?LF)\s+will\s+be\s+replaced/i)) {
             this.deleteStash(0).then(resolve).catch(reject);
           } else {
             reject(error);
@@ -419,27 +424,33 @@ export class GitClient {
 
   undoSubmoduleChanges(submodules: SubmoduleModel[]) {
     return Promise.all(submodules.map(s =>
-      this.simpleOperation(this.getGitPath(),
+      this.simpleOperation(
+        this.getGitPath(),
         ['reset', '--hard'],
         'Undo Submodule File Changes',
         path.join(this.workingDir, s.path))
           .then(() =>
-            this.simpleOperation(this.getGitPath(),
+            this.simpleOperation(
+              this.getGitPath(),
               ['submodule', 'update', '--recursive', '--init', '--', s.path],
               'Undo Submodule Commit Changes'))));
   }
 
   hardReset() {
     return this.simpleOperation(this.getGitPath(), ['reset', '--hard'], 'Hard Reset/Undo All')
-               .then(() => this.simpleOperation(this.getGitPath(),
-                 ['submodule', 'foreach', '--recursive', this.getGitPath() +
-                                                         ' reset --hard'],
+               .then(() => this.simpleOperation(
+                 this.getGitPath(),
+                 [
+                   'submodule', 'foreach', '--recursive', this.getGitPath() +
+                 ' reset --hard',
+                 ],
                  'Reset All Submodule File Changes'))
                .then(() => this.updateSubmodules(true));
   }
 
   merge(file: string, tool: string) {
-    return this.simpleOperation(this.getGitPath(),
+    return this.simpleOperation(
+      this.getGitPath(),
       ['mergetool', '--tool=' + (tool || 'meld'), file],
       'Resolve Merge Conflict');
   }
@@ -462,7 +473,8 @@ export class GitClient {
   }
 
   fastForward(branch: string) {
-    return this.simpleOperation(this.getGitPath(),
+    return this.simpleOperation(
+      this.getGitPath(),
       ['fetch', '-q', 'origin', branch + ':' + branch],
       'Fast-Forward Branch');
   }
@@ -507,7 +519,7 @@ export class GitClient {
           this.execute(this.getGitPath(), ['--version'], 'Check Git Version')
               .then(output => {
                 result.git = output.standardOutput &&
-                             output.standardOutput.indexOf('git version') >= 0;
+                  output.standardOutput.indexOf('git version') >= 0;
                 resolve1();
               })
               .catch(error => {
@@ -526,7 +538,7 @@ export class GitClient {
               .then(
                 output => {
                   result.bash = output.standardOutput &&
-                                output.standardOutput.indexOf('GNU bash') >= 0;
+                    output.standardOutput.indexOf('GNU bash') >= 0;
                   resolve1();
                 })
               .catch(() => {
@@ -543,7 +555,10 @@ export class GitClient {
   }
 
   pull(force: boolean) {
-    return this.simpleOperation(this.getGitPath(), ['pull', (force ? ' -f' : '')], 'Pull');
+    return this.simpleOperation(
+      this.getGitPath(),
+      ['pull', (force ? ' -f' : ''), (GitClient.settings.rebasePull ? '--rebase' : '')],
+      'Pull');
   }
 
   getCommitHistory(count: number, skip: number, activeBranch: string): Promise<CommitSummaryModel[]> {
@@ -668,7 +683,8 @@ export class GitClient {
 
   addWorktree(location: string,
               branch: string): Observable<CommandEvent> {
-    return this.executeLive('Add Worktree',
+    return this.executeLive(
+      'Add Worktree',
       this.getGitPath(),
       ['worktree', 'add', location, branch.replace(/^origin\//, '')]);
   }
@@ -677,9 +693,10 @@ export class GitClient {
     return this.executeLive('Clone Repository', this.getGitPath(), ['clone', url, location]);
   }
 
-  getBranches(): Promise<RepositoryModel> {
+  getBranches(repoPath: string): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>(((resolve, reject) => {
       let result = new RepositoryModel();
+      result.path = repoPath;
       let promises = [];
       let branchList = /^\s*(\*)?\s*(\S+)\s+(\S+)\s+(\[\s*(\S+?)(\s*:\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\s*(.*)?$/gm;
       promises.push(
@@ -866,13 +883,13 @@ export class GitClient {
                   ignoreError: boolean = false,
                   workingDir?: string): Promise<CommandOutputModel<void>> {
     let timeoutErrorMessage = 'command timed out (>' +
-                              GitClient.settings.commandTimeoutSeconds +
-                              's): ' +
-                              command +
-                              ' ' +
-                              args.join(' ') +
-                              '\n\nEither adjust the timeout in the Settings menu or ' +
-                              '\nfind the root cause of the timeout';
+      GitClient.settings.commandTimeoutSeconds +
+      's): ' +
+      command +
+      ' ' +
+      args.join(' ') +
+      '\n\nEither adjust the timeout in the Settings menu or ' +
+      '\nfind the root cause of the timeout';
 
     return new Promise<CommandOutputModel<void>>((resolve, reject) => {
       let currentOut = '', currentErr = '';
@@ -890,7 +907,7 @@ export class GitClient {
           race = setTimeout(() => reject(timeoutErrorMessage), GitClient.settings.commandTimeoutSeconds * 1000);
         } else {
           if (currentErr.split(/\r?\n/).every(x => x.trim().length == 0 || x.trim().startsWith('warning:')) ||
-              ignoreError) {
+            ignoreError) {
             resolve(CommandOutputModel.command(currentOut, currentErr, event.exit));
           } else {
             reject(CommandOutputModel.command(currentOut, currentErr, event.exit));

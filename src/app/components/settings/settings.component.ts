@@ -69,31 +69,31 @@ export class SettingsComponent implements OnInit {
   }
 
   saveSettings() {
-    if (this.gitService.repo) {
+    if (this.gitService.repo && this.gitService.repo.path) {
       if (this.tempSettings.username != this.settingsService.settings.username ||
-          this.tempSettings.email != this.settingsService.settings.email) {
+        this.tempSettings.email != this.settingsService.settings.email) {
         this.gitService.setBulkGitSettings({
           'user.name': this.tempSettings.username || '',
           'user.email': this.tempSettings.email || '',
         }, this.setGlobalDefaultUserConfig);
       }
       if (this.mergetoolName.trim() &&
-          (!this.mergetoolConfig ||
-           this.mergetoolName != this.mergetoolConfig.value ||
-           this.mergetoolCommandConfig.value != this.mergetoolCommand) &&
-          this.mergetoolName) {
+        (!this.mergetoolConfig ||
+          this.mergetoolName != this.mergetoolConfig.value ||
+          this.mergetoolCommandConfig.value != this.mergetoolCommand) &&
+        this.mergetoolName) {
         this.gitService.setBulkGitSettings({
           'merge.tool': this.mergetoolName,
           ['mergetool.' + this.mergetoolName + '.cmd']: this.mergetoolCommand,
         }, this.setGlobalDefaultMergetoolConfig);
       }
       if (this.credentialHelper &&
-          (!this.credentialHelperConfig ||
-           this.credentialHelper != this.credentialHelperConfig.value ||
-           (this.credentialHelper == 'cache' && this.cacheHelperSeconds))) {
+        (!this.credentialHelperConfig ||
+          this.credentialHelper != this.credentialHelperConfig.value ||
+          (this.credentialHelper == 'cache' && this.cacheHelperSeconds))) {
         this.gitService.setBulkGitSettings({
           'credential.helper': this.credentialHelper +
-                               (this.credentialHelper == 'cache' ? ' --timeout ' + this.cacheHelperSeconds : ''),
+            (this.credentialHelper == 'cache' ? ' --timeout ' + this.cacheHelperSeconds : ''),
         }, true);
       }
     }
@@ -195,11 +195,11 @@ export class SettingsComponent implements OnInit {
 
   saveConfigItem(originalItem: ConfigItemModel, rename?: ConfigItemModel) {
     if (!this.editedItem ||
-        !(this.editedItem.key || '').trim() ||
-        !this.currentEdit ||
-        ((!this.clickedKey && this.editedItem.value == originalItem.value) ||
+      !(this.editedItem.key || '').trim() ||
+      !this.currentEdit ||
+      ((!this.clickedKey && this.editedItem.value == originalItem.value) ||
         (this.clickedKey && this.editedItem.key == originalItem.key)) ||
-        (!this.currentEdit.sourceFile && !this.currentEdit.value)) {
+      (!this.currentEdit.sourceFile && !this.currentEdit.value)) {
       return;
     }
     this.currentEdit = undefined;

@@ -378,7 +378,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.GETBRANCHES, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].getBranches(), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].getBranches(args[1]), event, args);
     });
 
     ipcMain.on(Channels.MERGE, (event, args) => {

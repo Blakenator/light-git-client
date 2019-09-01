@@ -8,6 +8,7 @@ export class SettingsModel {
   ];
 
   public darkMode: boolean;
+  public rebasePull: boolean;
   public openRepos: string[];
   public tabNames: string[];
   public activeTab: number;
@@ -52,6 +53,7 @@ export class SettingsModel {
               allowStats: boolean = false,
               splitFilenameDisplay: boolean = false,
               commitAndPush: boolean = false,
+              rebasePull: boolean = false,
               loadedCodeWatchers: CodeWatcherModel[] = [],
               codeWatcherPaths: string[] = []) {
     this.darkMode = darkMode;
@@ -77,6 +79,7 @@ export class SettingsModel {
     this.commitAndPush = commitAndPush;
     this.loadedCodeWatchers = loadedCodeWatchers;
     this.codeWatcherPaths = codeWatcherPaths;
+    this.rebasePull = rebasePull;
   }
 
   static sanitizePath(path) {
@@ -106,6 +109,7 @@ export class SettingsModel {
     res.allowPrerelease = this.allowPrerelease;
     res.airplaneMode = this.airplaneMode;
     res.commitAndPush = this.commitAndPush;
+    res.rebasePull = this.rebasePull;
     res.splitFilenameDisplay = this.splitFilenameDisplay;
     res.statsId = this.statsId + '';
     return res;

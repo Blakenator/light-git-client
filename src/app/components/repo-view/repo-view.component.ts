@@ -271,8 +271,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         true)
           .then(() => {
             if ((this.changes.stagedChanges.length > 0 || this.changes.unstagedChanges.length > 0) &&
-                !this.changes.description &&
-                !this.changes.description.trim()) {
+              !this.changes.description &&
+              !this.changes.description.trim()) {
               this.changes.description = `Merged ${this.activeMergeInfo.target.name} into ${this.repo.localBranches.find(
                 b => b.isCurrentBranch).name}`;
             }
@@ -456,6 +456,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   undoFileChanges(files: string[], staged: boolean, revision: string = '') {
+    if (files.length === 0) {
+      return;
+    }
     this.simpleOperation(
       this.gitService.undoFileChanges(
         files.filter(f => !this.repo.submodules.some(s => s.path === f)),
@@ -463,7 +466,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         staged),
       'undoFileChanges',
       'undoing changes for the files');
-    this.undoSubmoduleChanges(  files.map(f => this.repo.submodules.find(s => s.path === f))
+    this.undoSubmoduleChanges(files.map(f => this.repo.submodules.find(s => s.path === f))
                                    .filter(f => !!f));
     this.clearSelectedChanges();
     this.activeUndo = undefined;
@@ -517,8 +520,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.gitService.fetch()
         .catch((err: string) => {
           if (err && err
-                    .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
-              (!this.firstNoRemoteErrorDisplayed || manualFetch)) {
+              .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
+            (!this.firstNoRemoteErrorDisplayed || manualFetch)) {
             this.handleErrorMessage(new ErrorModel(
               this._errorClassLocation + 'fetch',
               'fetching remote changes',
@@ -604,10 +607,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           const currentBranch = this.repo.localBranches.find(x => x.isCurrentBranch);
           this.diffCommitInfo.hash = branch.currentHash + ' <--> ' + currentBranch.currentHash;
           this.diffCommitInfo.message = 'Diff of all changes since last common ancestor between \'' +
-                                        branch.name +
-                                        '\' and \'' +
-                                        currentBranch.name +
-                                        '\'';
+            branch.name +
+            '\' and \'' +
+            currentBranch.name +
+            '\'';
           this.loadingService.setLoading(false);
           this.changeDetectorRef.detectChanges();
         })
@@ -742,9 +745,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.changes.description = this.changes.description.substring(
       0,
       this.currentCommitCursorPosition - this.positionInAutoComplete) +
-                               this.suggestions[this.selectedAutocompleteItem] +
-                               this.changes.description.substring(this.currentCommitCursorPosition +
-                               (removeEnter ? 1 : 0));
+      this.suggestions[this.selectedAutocompleteItem] +
+      this.changes.description.substring(this.currentCommitCursorPosition +
+        (removeEnter ? 1 : 0));
     this.selectedAutocompleteItem = 0;
     this.suggestions = [];
   }
@@ -884,13 +887,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   private loadRepo(path: string = '') {
     this._repoPath = path || (this.isNested ?
-      this._repoPath :
-                     this.tabService.activeRepoCache.path || this._repoPath);
+                              this._repoPath :
+                              this.tabService.activeRepoCache.path || this._repoPath);
     this.repo = this.tabService.activeRepoCache;
     this.loadingService.setLoading(true);
     this.gitService.loadRepo(this._repoPath)
         .then(repo => {
-          if (repo.path !== this.tabService.activeRepoCache.path) {
+          if (repo.path !== this.tabService.activeRepoCache.path && this.tabService.activeRepoCache.path) {
             this.loadingService.setLoading(false);
             return;
           }

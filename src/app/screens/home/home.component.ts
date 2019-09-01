@@ -88,8 +88,9 @@ export class HomeComponent implements OnInit {
   }
 
   loadRepo(path: string) {
-    if (this.tabService.getActiveTabData().cache.path === path) {
-      this.tabService.updateTabData(this.tabService.getNewTab(path, TabService.basename(path)).cache);
+    if (!this.tabService.getActiveTabData().cache.path || this.tabService.getActiveTabData().cache.path === path) {
+      this.tabService.updateTabData(this.tabService.getNewTab(path).cache);
+      this.tabService.updateTabName(TabService.basename(path));
       this.saveOpenRepos();
     }
   }

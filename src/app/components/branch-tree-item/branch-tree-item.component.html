@@ -134,7 +134,7 @@
                   (click)="onMergeClicked.emit(b)"
                   *ngIf="!b.isCurrentBranch"
                   [openDelay]="500" ngbTooltip="Merge Branch into Current Branch">
-            <i class="fa fa-code-branch merge-branch-icon"></i>
+            <i class="material-icons">merge_type</i>
           </button>
           <button class="btn btn-danger btn-sm"
                   (click)="onDeleteClicked.emit(b)"
