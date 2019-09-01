@@ -86,6 +86,7 @@ export class SettingsComponent implements OnInit {
           'merge.tool': this.mergetoolName,
           ['mergetool.' + this.mergetoolName + '.cmd']: this.mergetoolCommand,
         }, this.setGlobalDefaultMergetoolConfig);
+        this.tempSettings.mergetool = this.mergetoolName;
       }
       if (this.credentialHelper &&
         (!this.credentialHelperConfig ||
