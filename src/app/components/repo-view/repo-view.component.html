@@ -346,7 +346,8 @@
     </div>
     <div class="card flex-shrink-0">
       <div class="card-body p-3">
-        <app-pretty-checkbox [(value)]="settingsService.settings.commitAndPush"
+        <app-pretty-checkbox class="d-inline-block"
+                             [(value)]="settingsService.settings.commitAndPush"
                              (valueChange)="changeDetectorRef.detectChanges(); settingsService.saveSettings()">
           Commit and Push
         </app-pretty-checkbox>

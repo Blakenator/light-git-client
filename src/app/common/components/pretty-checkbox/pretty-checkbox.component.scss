@@ -31,3 +31,13 @@ $bg: rgb(170, 170, 170);
     box-shadow: $material-shadow;
   }
 }
+
+.check-state:hover .check-indicator {
+  &:not(.show) {
+    background-color: rgba(128, 128, 128, .2);
+  }
+
+  &.show {
+    background-color: darken($bg, 10%);
+  }
+}
