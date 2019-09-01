@@ -142,18 +142,18 @@
           <i class="fa fa-plus"></i>
         </button>
         <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown>
-          <button class="btn btn-primary"
-                  [openDelay]="500" ngbTooltip="Update Submodules"
-                  (click)="updateSubmodules(false)">
-            <i class="fa fa-tasks"></i>
+          <button class="btn btn-sm btn-primary"
+                  [openDelay]="500" ngbTooltip="Update Submodules Recursively"
+                  (click)="updateSubmodules(true)">
+            <i class="fa fa-sitemap"></i>
           </button>
           <button class="btn btn-primary dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
           </button>
           <div ngbDropdownMenu>
-            <button class="btn btn-sm btn-primary mx-1"
-                    [openDelay]="500" ngbTooltip="Update Submodules Recursively"
-                    (click)="updateSubmodules(true)">
-              <i class="fa fa-sitemap"></i>
+            <button class="btn btn-primary mx-2 btn-sm"
+                    [openDelay]="500" ngbTooltip="Update Submodules"
+                    (click)="updateSubmodules(false)">
+              <i class="fa fa-tasks"></i>
             </button>
           </div>
         </div>
@@ -260,7 +260,7 @@
                        expandKey="staged"
                        cardTitle="Staged Changes ({{changes.stagedChanges.length}})">
         <ng-template #stagedChangesHeader>
-          <div class="d-inline-block mx-2">
+          <div class="btn-group-sm btn-group mx-2">
             <button class="btn btn-secondary" (click)="unstageAll()" [openDelay]="500" ngbTooltip="Unstage All">
               <i class="fa fa-angle-double-down"></i></button>
             <button class="btn btn-secondary"
@@ -304,7 +304,7 @@
                        expandKey="unstaged"
                        cardTitle="Unstaged Changes ({{changes.unstagedChanges.length}})">
         <ng-template #unstagedHeader>
-          <div class="d-inline-block mx-2">
+          <div class="btn-group-sm btn-group mx-2">
             <button class="btn btn-secondary" (click)="stageAll()" [openDelay]="500" ngbTooltip="Stage All">
               <i class="fa fa-angle-double-up"></i>
             </button>

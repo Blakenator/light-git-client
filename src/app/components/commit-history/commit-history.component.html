@@ -41,6 +41,7 @@
       <th class="d-none d-sm-table-cell" *ngIf="commitFilter">Email</th>
       <th>Date</th>
       <th>Hash</th>
+      <th></th>
     </tr>
     </thead>
     <tbody>
@@ -80,14 +81,25 @@
       <td [openDelay]="500" [ngbTooltip]="c.hash">
         <div class="position-relative">
           {{c.hash.substr(0, 8)}}
-          <div class="btn-group-sm btn-group expand-container position-absolute">
-            <button class="btn btn-warning" [openDelay]="500" ngbTooltip="View Commit Diff" (click)="getCommitDiff(c)">
+        </div>
+      </td>
+      <td class="py-0 pl-0 pr-2">
+        <div class="btn-group btn-group-sm align-items-center" ngbDropdown placement="bottom-right" container="body">
+          <button class="btn btn-sm px-1 py-0 btn-light action-expand" ngbDropdownToggle><i class="fa fa-ellipsis-h"></i></button>
+          <div ngbDropdownMenu class="px-1">
+            <button class="btn btn-warning mx-1 btn-sm"
+                    [openDelay]="500"
+                    ngbTooltip="View Commit Diff"
+                    (click)="getCommitDiff(c)">
               <i class="fa fa-eye"></i>
             </button>
-            <button class="btn btn-info" [openDelay]="500" ngbTooltip="Cherry-pick commit" (click)="cherryPickCommit(c)">
+            <button class="btn btn-info mx-1 btn-sm"
+                    [openDelay]="500"
+                    ngbTooltip="Cherry-pick commit"
+                    (click)="cherryPickCommit(c)">
               <i class="fa fa-band-aid"></i>
             </button>
-            <button class="btn btn-secondary" [openDelay]="500" ngbTooltip="Checkout commit" (click)="checkout(c)">
+            <button class="btn btn-secondary mx-1 btn-sm" [openDelay]="500" ngbTooltip="Checkout commit" (click)="checkout(c)">
               <i class="fa fa-shopping-cart"></i>
             </button>
           </div>

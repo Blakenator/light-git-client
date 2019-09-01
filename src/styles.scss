@@ -1,4 +1,4 @@
-$border-radius: .15em;
+$border-radius: .4em;
 $material-shadow: 0 3px 1px -2px rgba(0, 0, 0, .2),
 0 2px 2px 0 rgba(0, 0, 0, .14),
 0 1px 5px 0 rgba(0, 0, 0, .12);
@@ -13,7 +13,6 @@ $material-dialog-shadow: 0 4px 8px rgba(0, 0, 0, .32),
 html, body {
   margin: 0;
   padding: 0;
-
   height: 100%;
 }
 
@@ -30,6 +29,16 @@ html, body {
   -webkit-border-radius: $border-radius;
   -moz-border-radius: $border-radius;
   border-radius: $border-radius;
+
+  &:not(.expanded) .card-header {
+    border-bottom-right-radius: $border-radius !important;
+    border-bottom-left-radius: $border-radius !important;
+  }
+
+  .card-header {
+    border-top-right-radius: $border-radius !important;
+    border-top-left-radius: $border-radius !important;
+  }
 }
 
 .dropdown-menu {
@@ -61,6 +70,16 @@ html, body {
   display: inline-flex;
   border-radius: $border-radius;
   box-shadow: $material-shadow;
+}
+
+.btn-group > .btn:first-of-type {
+  border-bottom-left-radius: $border-radius;
+  border-top-left-radius: $border-radius;
+}
+
+.btn-group > .btn:last-of-type, .btn-group-sm > .dropdown-toggle:last-of-type > .btn:last-of-type, .btn-group-sm > .dropdown-toggle:last-of-type {
+  border-bottom-right-radius: $border-radius;
+  border-top-right-radius: $border-radius;
 }
 
 .form-control {
@@ -307,4 +326,13 @@ $status-deleted: rgba(222, 35, 14, 0.6);
 
 .alert-warning {
   color: #222;
+}
+
+.action-expand.dropdown-toggle::after {
+  display: none;
+}
+
+.dropdown-menu.show {
+  min-width: unset;
+  width: unset;
 }

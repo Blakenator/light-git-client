@@ -61,7 +61,7 @@
         </div>
         <div *ngIf="!isRenamingBranch(b)"
              class="branch-button-bar text-right"
-             [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
+             [ngClass]="{expanded:actionExpanded[b.name],'py-1':actionExpanded[b.name]}">
           <button class="btn btn-info btn-sm" (click)="startRename(b.name)" [openDelay]="500" ngbTooltip="Rename local branch">
             <i class="material-icons">edit</i></button>
           <div class="btn-group btn-group-sm mx-1"
@@ -131,7 +131,7 @@
               </button>
             </div>
           </div>
-          <button class="btn btn-success btn-sm"
+          <button class="btn btn-success btn-sm mx-1"
                   (click)="onMergeClicked.emit(b)"
                   *ngIf="!b.isCurrentBranch"
                   [openDelay]="500" ngbTooltip="Merge Branch into Current Branch">

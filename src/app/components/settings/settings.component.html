@@ -12,7 +12,7 @@
            modalClass="dialog-wide"
            [affirmativeButtonDisabled]="saveDisabledReason()">
   <div *ngIf="tempSettings">
-    <div>
+    <div class="btn-group">
       <div *ngFor="let tab of tabs;let i = index"
            class="btn btn-secondary"
            [ngClass]="{'settings-tab':true,active:currentTab==i}"
