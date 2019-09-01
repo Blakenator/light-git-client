@@ -168,11 +168,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).length == 0) {
       return;
     }
-    let files = Object.keys(this.selectedUnstagedChanges)
-                      .filter(x => this.selectedUnstagedChanges[x])
-                      .map(f => f.replace(/.*?->\s*/, ''));
+    let files = this.getSelectedUnstagedFiles();
     this.simpleOperation(this.gitService.stage(files), 'stageSelectedChanges', 'staging selected changes');
     this.selectedUnstagedChanges = {};
+  }
+
+  getSelectedUnstagedFiles() {
+    return Object.keys(this.selectedUnstagedChanges)
+                 .filter(x => this.selectedUnstagedChanges[x])
+                 .map(f => f.replace(/.*?->\s*/, ''));
   }
 
   unstageAll() {
@@ -184,11 +188,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).length == 0) {
       return;
     }
-    let files = Object.keys(this.selectedStagedChanges)
-                      .filter(x => this.selectedStagedChanges[x])
-                      .map(f => f.replace(/.*?->\s*/, ''));
+    let files = this.getSelectedStagedFiles();
     this.simpleOperation(this.gitService.unstage(files), 'unstageSelectedChanges', 'unstaging selected changes');
     this.selectedStagedChanges = {};
+  }
+
+  getSelectedStagedFiles() {
+    return Object.keys(this.selectedStagedChanges)
+                 .filter(x => this.selectedStagedChanges[x])
+                 .map(f => f.replace(/.*?->\s*/, ''));
   }
 
   getFullRefresh(clearCommitInfo: boolean, keepDiffCommitSelection: boolean = true, manualFetch: boolean = false) {
@@ -447,13 +455,29 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  undoFileChanges(file: string, staged: boolean, revision: string = '') {
+  undoFileChanges(files: string[], staged: boolean, revision: string = '') {
+    if (files.length === 0) {
+      return;
+    }
     this.simpleOperation(
-      this.gitService.undoFileChanges(file, revision, staged),
+      this.gitService.undoFileChanges(
+        files.filter(f => !this.repo.submodules.some(s => s.path === f)),
+        revision,
+        staged),
       'undoFileChanges',
-      'undoing changes for the file');
+      'undoing changes for the files');
+    this.undoSubmoduleChanges(files.map(f => this.repo.submodules.find(s => s.path === f))
+                                   .filter(f => !!f));
     this.clearSelectedChanges();
     this.activeUndo = undefined;
+  }
+
+  undoSubmoduleChanges(submodules: SubmoduleModel[]) {
+    this.simpleOperation(
+      this.gitService.undoSubmoduleChanges(submodules),
+      'undoSubmoduleChanges',
+      'undoing changes for the submodules');
+    this.clearSelectedChanges();
   }
 
   confirmUndo(file: string) {
@@ -686,7 +710,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     return result;
   }
 
-  setCurrentCursorPosition($event) {
+  setCurrentCursorPosition($event: KeyboardEvent | any) {
     if (this.commitMessageDebounce) {
       clearTimeout(this.commitMessageDebounce);
     }
@@ -700,10 +724,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         return;
       }
       $event.stopPropagation();
-      if ($event.key == 'Enter' && !$event.ctrlKey) {
+      if ($event.key == 'Enter' && !$event.ctrlKey && !$event.metaKey) {
         this.currentCommitCursorPosition--;
         this.chooseAutocomleteItem(true);
-      } else if ($event.key == 'Tab' && !$event.ctrlKey) {
+      } else if ($event.key == 'Tab' && !$event.ctrlKey && !$event.metaKey) {
         $event.preventDefault();
         this.chooseAutocomleteItem(true);
       } else if ($event.key == 'ArrowUp') {
@@ -869,6 +893,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.loadingService.setLoading(true);
     this.gitService.loadRepo(this._repoPath)
         .then(repo => {
+          if (repo.path !== this.tabService.activeRepoCache.path && this.tabService.activeRepoCache.path) {
+            this.loadingService.setLoading(false);
+            return;
+          }
           this.repo = repo;
           if (!this.isNested) {
             Object.assign(this.tabService.activeRepoCache, this.repo);
@@ -889,6 +917,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   private handleBranchChanges(changes: RepositoryModel) {
+    if (changes.path !== this.tabService.activeRepoCache.path) {
+      this.loadingService.setLoading(false);
+      return;
+    }
     this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
     this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));

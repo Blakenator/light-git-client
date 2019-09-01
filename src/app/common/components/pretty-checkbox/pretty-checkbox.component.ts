@@ -14,5 +14,4 @@ export class PrettyCheckboxComponent implements OnInit {
 
   ngOnInit() {
   }
-
 }

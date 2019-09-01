@@ -22,6 +22,7 @@ export namespace Channels {
   export const GETCOMMITHISTORY = "getCommitHistory";
   export const CHECKOUT = "checkout";
   export const UNDOFILECHANGES = "discardFileChanges";
+  export const UNDOSUBMODULECHANGES = "discardSubmoduleChanges";
   export const PUSH = "push";
   export const PULL = "pull";
   export const MERGE = "merge";

@@ -45,38 +45,42 @@
     </div>
   </div>
   <div *ngIf="diffHeaders" class="px-2">
-    <app-layout-card *ngFor="let header of getFilteredDiffHeaders()"
+    <app-layout-card *ngFor="let reducedHeader of getFilteredDiffHeaders()"
                      [headerContent]="diffHeader"
                      [persistExpand]="false"
                      customHeaderClass="justify-content-between"
-                     [localExpandedDefault]="getLocalExpandedDefault(header)">
+                     [localExpandedDefault]="getLocalExpandedDefault(reducedHeader.header)">
       <ng-template #diffHeader>
         <div class="flex-grow-1 normal-font-size filename clickable">
           <div class="d-inline-block clickable"
-               *ngFor="let part of header.toFilename.replace('->','/->/').split('/'); let i=index">
+               *ngFor="let part of reducedHeader.header.toFilename.replace('->','/->/').split('/'); let i=index">
             <span class="badge badge-light clickable">{{part}}</span>
-            <span *ngIf="i<header.toFilename.split('/').length-1">/</span>
+            <span *ngIf="i<reducedHeader.header.toFilename.split('/').length-1">/</span>
           </div>
-          <button class="copy-filename mx-1 p-1 btn btn-light" title="Copy" (click)="clipboardService.copy(header.toFilename)">
+          <button class="copy-filename mx-1 p-1 btn btn-light"
+                  [openDelay]="500"
+                  ngbTooltip="Copy"
+                  (click)="clipboardService.copy(reducedHeader.header.toFilename)">
             <i class="fa fa-copy"> </i>
           </button>
         </div>
         <div class="flex-grow-0 center-text-vertical tag-container">
-          <span class="text-muted mx-3 normal-font-size" *ngIf="header.stagedState"><i>{{header.stagedState}}</i></span>
-          <span [class]="'tag '+header.action">{{header.action}}</span>
+          <span class="text-muted mx-3 normal-font-size"
+                *ngIf="reducedHeader.header.stagedState"><i>{{reducedHeader.header.stagedState}}</i></span>
+          <span [class]="'tag '+reducedHeader.header.action">{{reducedHeader.header.action}}</span>
         </div>
       </ng-template>
       <div class="diff-header">
-        <div *ngFor="let hunk of header.hunks">
+        <div *ngFor="let hunk of (reducedHeader.tooLong?reducedHeader.reducedHunks: reducedHeader.header.hunks)">
           <div class="btn btn-block btn-warning mt-3 d-flex justify-content-between"
-               *ngIf="!isEditingHunk(hunk,header) && hasConflictingWatcher(hunk,header)"
-               (click)="watcherClick(hunk,header)">
+               *ngIf="!isEditingHunk(hunk,reducedHeader.header) && hasConflictingWatcher(hunk,reducedHeader.header)"
+               (click)="watcherClick(hunk,reducedHeader.header)">
             <i class="fa fa-exclamation-triangle"></i>
             Code watcher warnings
             <i class="fa fa-arrow-down"></i>
           </div>
           <div class="d-flex hunk">
-            <div class="linenumber-block" *ngIf="!isEditingHunk(hunk,header)">
+            <div class="linenumber-block" *ngIf="!isEditingHunk(hunk,reducedHeader.header)">
               <div *ngFor="let line of hunk.lines" class="d-flex">
                 <div class="linenumber">{{!getAddition(line) ? line.fromLineNumber : '-'}}</div>
                 <div class="linenumber">{{!getDeletion(line) ? line.toLineNumber : '-'}}</div>
@@ -85,35 +89,39 @@
               </div>
             </div>
             <div class="code-line-block flex-grow-1 flex-shrink-1">
-              <pre *ngIf="!isEditingHunk(hunk,header)"><code highlight [code]="getHunkCode(hunk)"></code></pre>
+              <pre *ngIf="!isEditingHunk(hunk,reducedHeader.header)"><code highlight [code]="getHunkCode(hunk)"></code></pre>
               <textarea oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                         onfocus='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                         class="form-control"
                         (keyup.escape)="cancelEdit()"
                         [autofocus]
                         wrap="soft"
-                        *ngIf="isEditingHunk(hunk,header)"
+                        *ngIf="isEditingHunk(hunk,reducedHeader.header)"
                         [(ngModel)]="editedText"></textarea>
             </div>
             <div class="float-btn-container">
-              <div *ngIf="!isEditingHunk(hunk,header)">
+              <div *ngIf="!isEditingHunk(hunk,reducedHeader.header)">
                 <button class="btn btn-warning btn-sm m-1"
-                        title="Undo hunk"
-                        (click)="undoHunk(hunk,header)"><i class="fa fa-undo"></i></button>
+                        [openDelay]="500" ngbTooltip="Undo hunk"
+                        (click)="undoHunk(hunk,reducedHeader.header)"><i class="fa fa-undo"></i></button>
                 <button class="btn btn-info btn-sm m-1"
-                        title="Edit hunk"
-                        (click)="startEdit(hunk,header)"><i class="material-icons">edit</i></button>
+                        [openDelay]="500" ngbTooltip="Edit hunk"
+                        (click)="startEdit(hunk,reducedHeader.header)"><i class="material-icons">edit</i></button>
               </div>
-              <div *ngIf="isEditingHunk(hunk,header)">
+              <div *ngIf="isEditingHunk(hunk,reducedHeader.header)">
                 <button class="btn btn-success btn-sm m-1"
-                        title="Save Changes"
+                        [openDelay]="500" ngbTooltip="Save Changes"
                         (click)="saveEditedHunk()"><i class="fa fa-save"></i></button>
                 <button class="btn btn-primary btn-sm m-1 d-inline-flex justify-content-center"
-                        title="Cancel Edit"
+                        [openDelay]="500" ngbTooltip="Cancel Edit"
                         (click)="cancelEdit()"><i class="fa fa-times"></i></button>
               </div>
             </div>
           </div>
+        </div>
+        <div *ngIf="reducedHeader.tooLong" class="p-2">
+          <p>Too many changed lines, remaining hunks hidden...</p>
+          <button class="btn btn-sm btn-warning" (click)="reducedHeader.tooLong=false">Show Hidden</button>
         </div>
       </div>
     </app-layout-card>

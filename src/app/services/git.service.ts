@@ -16,6 +16,7 @@ import {SettingsService} from './settings.service';
 import {AlertService} from '../common/services/alert.service';
 import {NotificationModel} from '../../../shared/notification.model';
 import {BranchModel} from '../../../shared/git/Branch.model';
+import {SubmoduleModel} from '../../../shared/git/submodule.model';
 
 @Injectable({
   providedIn: 'root',
@@ -224,10 +225,16 @@ export class GitService {
     return this.handleAirplaneMode(this.electronService.rpc(Channels.FETCH, [this.repo.path]));
   }
 
-  undoFileChanges(file: string, revision: string, staged: boolean): Promise<void> {
+  undoFileChanges(file: string[], revision: string, staged: boolean): Promise<void> {
     return this.detectCrlfWarning(this.electronService.rpc(
       Channels.UNDOFILECHANGES,
       [this.repo.path, file, revision, staged]), true);
+  }
+
+  undoSubmoduleChanges(submodules: SubmoduleModel[]): Promise<void> {
+    return this.electronService.rpc(
+      Channels.UNDOSUBMODULECHANGES,
+      [this.repo.path, submodules]);
   }
 
   resolveConflictsUsing(file: string, theirs: boolean): Promise<void> {

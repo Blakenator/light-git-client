@@ -3,7 +3,7 @@
   <tr>
     <th class="pl-1 pr-0">
       <i (click)="toggleSelectAll()"
-         class="far"
+         class="far cursor-pointer"
          [ngClass]="{'fa-check-square':selectAll,'fa-square':!selectAll}"></i>
     </th>
     <th width="1%"></th>
@@ -26,13 +26,13 @@
       <i [ngClass]="{far:true,'fa-check-square':selectedChanges[c.file],'fa-square':!selectedChanges[c.file]}"></i>
     </td>
     <td>
-      <i class="fas fa-{{getChangeType(c)}}" [title]="getChangeTypeDescription(c)"></i>
+      <i class="fas fa-{{getChangeType(c)}}" [openDelay]="500" [ngbTooltip]="getChangeTypeDescription(c)"></i>
     </td>
     <td *ngIf="settingsService.settings.splitFilenameDisplay" class="text-nowrap">
       <small>{{c.file.substring(c.file.lastIndexOf('/') + 1).replace('"', '')}}</small>
     </td>
     <td>
-      <div class="change-filename" [title]="c.file">
+      <div class="change-filename" [openDelay]="500" [ngbTooltip]="c.file">
         <div class="d-inline-block" *ngFor="let part of getSplitFilepath(c.file); let i=index">
           <span class="badge badge-light" *ngIf="part!='->'">{{part}}</span>
           <small *ngIf="part=='->'"><i class="fa fa-arrow-right"></i></small>
@@ -40,17 +40,17 @@
         </div>
       </div>
     </td>
-    <td class="center-text-vertical">
+    <td class="center-text-vertical text-right">
       <div class="btn-group btn-group-sm" (click)="$event.preventDefault();$event.stopPropagation()">
         <button *ngIf="!isDeleted(c)&&!isMergeConflict(c.change)"
                 class="btn btn-warning btn-sm"
-                title="Undo changes to this file"
+                [openDelay]="500" ngbTooltip="Undo changes to this file"
                 (click)="undoFileClicked(c.file)">
           <i class="fa fa-undo"></i>
         </button>
         <div class="btn-group btn-group-sm" *ngIf="isMergeConflict(c.change)">
           <button class="btn btn-success btn-sm"
-                  title="Open configured merge tool"
+                  [openDelay]="500" ngbTooltip="Open configured merge tool"
                   (click)="mergeClicked(c.file)">
             <i class="material-icons">merge_type</i>
           </button>
@@ -59,12 +59,12 @@
             <div ngbDropdownMenu>
               <button class="btn btn-light mx-1"
                       (click)="onResolveClicked.emit({file:c.file,theirs:false})"
-                      title="Resolve using Mine">
+                      [openDelay]="500" ngbTooltip="Resolve using Mine">
                 <i class="fa fa-user"></i>
               </button>
               <button class="btn btn-light mx-1"
                       (click)="onResolveClicked.emit({file:c.file,theirs:true})"
-                      title="Resolve using Theirs">
+                      [openDelay]="500" ngbTooltip="Resolve using Theirs">
                 <i class="fa fa-users"></i>
               </button>
             </div>
@@ -75,9 +75,9 @@
         </div>
         <ng-template #deleteButton>
           <button class="btn btn-danger btn-sm"
-                  title="Delete file"
+                  [openDelay]="500" ngbTooltip="Delete file"
                   (click)="deleteClicked(c.file)">
-            <i class="material-icons">delete</i>
+            <i class="fa fa-trash"></i>
           </button>
         </ng-template>
         <div class="btn-group btn-group-sm" ngbDropdown *ngIf="!isDeleted(c)" placement="bottom-right" container="body">

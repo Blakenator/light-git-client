@@ -5,9 +5,18 @@ import {GitClient} from './git/GitClient';
 import {AskPassApplication} from './askPassApplication';
 import {take} from 'rxjs/operators';
 import {MainApplication} from './mainApplication';
+import * as mkdirp from 'mkdirp';
 
-const output = fs.createWriteStream(path.join(app.getPath('userData'), 'stdout.log'), {flags: 'a'});
-const errorOutput = fs.createWriteStream(path.join(app.getPath('userData'), 'stderr.log'), {flags: 'a'});
+const userDataPath = app.getPath('userData');
+if (!fs.existsSync(userDataPath)) {
+  mkdirp(userDataPath, (err) => {
+    if (err) {
+      dialog.showErrorBox('An error occurred', err.toString());
+    }
+  });
+}
+const output = fs.createWriteStream(path.join(userDataPath, 'stdout.log'), {flags: 'a'});
+const errorOutput = fs.createWriteStream(path.join(userDataPath, 'stderr.log'), {flags: 'a'});
 const logger = new console.Console(output, errorOutput);
 GitClient.logger = logger;
 

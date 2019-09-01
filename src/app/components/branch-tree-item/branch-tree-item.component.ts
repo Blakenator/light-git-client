@@ -97,7 +97,9 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   renameBranch(originalName: string) {
-    this.onBranchRename.emit({oldName: originalName, newName: this.activeRenames[originalName]});
+    if(this.activeRenames[originalName]) {
+      this.onBranchRename.emit({oldName: originalName, newName: this.activeRenames[originalName]});
+    }
     this.cancelRename(originalName);
   }
 
@@ -130,5 +132,8 @@ export class BranchTreeItemComponent implements OnInit {
 
   isBranchCurrent(name: string) {
     return !!this.localBranches.find(local => local.name == name.replace('origin/', '') && local.isCurrentBranch);
+  }
+  isRenamingBranch(branch:BranchModel){
+    return this.activeRenames[branch.name]!==undefined;
   }
 }

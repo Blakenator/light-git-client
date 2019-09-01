@@ -30,4 +30,10 @@ export class MergeBranchComponent implements OnInit {
       return '';
     }
   }
+
+  swapTargets() {
+    const into = this.activeMergeInfo.into;
+    this.activeMergeInfo.into = this.activeMergeInfo.target;
+    this.activeMergeInfo.target = into;
+  }
 }

@@ -12,6 +12,7 @@
          (keyup)="checkValid()"
          [autofocus]
          (keyup.enter)="okClicked()"
-         (keyup.control.enter)="okClicked()">
+         (keyup.control.enter)="okClicked()"
+         (keyup.meta.enter)="okClicked()">
   <p *ngIf="errorMessage" class="error-message"><i class="fa fa-exclamation-circle mr-2"></i>{{errorMessage}}</p>
 </app-modal>

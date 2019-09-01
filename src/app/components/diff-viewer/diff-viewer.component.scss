@@ -14,10 +14,6 @@
   overflow-y: auto;
 }
 
-pre code {
-  line-height: 1.6;
-}
-
 .linenumber-block {
   line-height: 1.6;
   font-size: 87.5%;
@@ -41,13 +37,6 @@ pre code {
     user-select: none;
   }
 }
-
-.code-line-block {
-  pre {
-    margin: 0;
-  }
-}
-
 .addition {
   background-color: rgba(0, 255, 0, .4);
 }
@@ -141,6 +130,13 @@ pre code {
 
   pre {
     overflow-x: visible;
+    border-radius: $border-radius;
+    margin: 0;
+
+    code {
+      line-height: 1.6;
+      background: rgba(255, 255, 255, .85);
+    }
   }
 }
 
