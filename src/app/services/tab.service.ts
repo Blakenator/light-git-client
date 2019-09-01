@@ -33,6 +33,10 @@ export class TabService {
     return folderPath.substring(folderPath.replace(/\\/g, '/').lastIndexOf('/') + 1);
   }
 
+  public tabCount(): number {
+    return this.tabData.length;
+  }
+
   getActiveTabData() {
     return this.tabData[this.activeTab];
   }
@@ -46,5 +50,13 @@ export class TabService {
 
   public getNewTab(path?: string, name?: string) {
     return {name: name || 'Tab ' + this.activeTab, cache: Object.assign(new RepositoryModel(), {path: path || ''})};
+  }
+
+  public updateTabData(data: RepositoryModel, index: number = this.activeTab) {
+    this.tabData[index].cache = data;
+  }
+
+  public updateTabName(name: string, index: number = this.activeTab) {
+    this.tabData[index].name = name;
   }
 }

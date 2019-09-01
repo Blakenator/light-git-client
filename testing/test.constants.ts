@@ -107,14 +107,46 @@ rename to log6.txt`,
       hunkData: [],
     },
   ];
+  static parseCommitCases: CommitMessageCase[] = [{
+    name: 'multiple line commit message',
+    commitCount: 1,
+    content: `commit 06ecb33540044044d4da41a3a8f59fe0a1900885
+||||06ecb33540044044d4da41a3a8f59fe0a1900885|Blake Stacks|blake@blakestacks.com|Sun Jul 21 19:52:53 2019 -0700|HEAD -> new-branch, origin/new-branch|88826d2ac6d676e7a003c3e6e81d40853abcbc64|This is a pretty long message
+
+multiple lines and everything
+
+why not more?
+
+`,
+    hash: '06ecb33540044044d4da41a3a8f59fe0a1900885',
+    authorName: 'Blake Stacks',
+    authorEmail: 'blake@blakestacks.com',
+    message: `This is a pretty long message
+
+multiple lines and everything
+
+why not more?`
+  }];
 }
 
 interface DiffCase {
   name: string;
   content: string;
+
   toFilename: string;
   fromFilename: string;
   headerCount: number;
   hunkCount: number;
   hunkData: { fromStart: number, fromCount: number, toStart: number, toCount: number, }[][];
+}
+
+interface CommitMessageCase {
+  name: string;
+  content: string;
+  commitCount: number;
+
+  message: string;
+  hash: string;
+  authorName: string;
+  authorEmail: string;
 }

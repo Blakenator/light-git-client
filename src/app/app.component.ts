@@ -22,6 +22,12 @@ export class AppComponent {
           event.preventDefault();
           event.stopPropagation();
         }
+        if (event.key == 'c') {
+          document.execCommand('copy');
+          toReturn = false;
+          event.preventDefault();
+          event.stopPropagation();
+        }
       }
 
       return toReturn;

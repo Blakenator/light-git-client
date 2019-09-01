@@ -125,9 +125,8 @@ export class GitClient {
   openRepo(): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>((resolve, reject) => {
       this.execute(this.getGitPath(), ['rev-parse', '--is-inside-work-tree'], 'Check Is Git Working Tree').then(() => {
-        this.getBranches().then(rep => {
+        this.getBranches(this.workingDir).then(rep => {
           let res = Object.assign(new RepositoryModel(), rep || {});
-          res.path = this.workingDir;
           res.name = path.basename(this.workingDir);
           resolve(res);
         }).catch(err => reject(serializeError(err)));
@@ -203,10 +202,8 @@ export class GitClient {
         'Delete Branches'));
     }
     if (remotes.length > 0) {
-      promises.push(this.simpleOperation(
-        this.getGitPath(),
-        ['push', 'origin', '--delete', '--'].concat(remotes.map(b => b.name.replace(/^origin\//, ''))),
-        'Delete Remote Branches').catch((error: string) => {
+      promises.push(this.simpleOperation(this.getGitPath(), ['push', 'origin', '--delete', '--'].concat(remotes.map(
+        b => b.name.replace(/^origin\//, ''))), 'Delete Remote Branches').catch((error: string) => {
         if (!error.match(/To\s+.*\r?\n\s+-\s+\[deleted]/i)) {
           throw error;
         }
@@ -306,12 +303,11 @@ export class GitClient {
       if (unstaged && unstaged.length > 0) {
         let command: string = this.getGitPath();
         promises.push(this.execute(command, [
-            'diff',
-            (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
-            '--',
-            ...unstaged,
-          ], 'Get Unstaged Changes Diff',
-          true)
+          'diff',
+          (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
+          '--',
+          ...unstaged,
+        ], 'Get Unstaged Changes Diff', true)
                           .then(output => {
                             result.merge(output);
                             return this.parseDiffString(output.standardOutput, DiffHeaderStagedState.UNSTAGED);
@@ -320,13 +316,12 @@ export class GitClient {
       if (staged && staged.length > 0) {
         let command: string = this.getGitPath();
         promises.push(this.execute(command, [
-            'diff',
-            (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
-            '--staged',
-            '--',
-            ...staged,
-          ], 'Get Staged Changes Diff',
-          true)
+          'diff',
+          (GitClient.settings.diffIgnoreWhitespace ? '-w' : ''),
+          '--staged',
+          '--',
+          ...staged,
+        ], 'Get Staged Changes Diff', true)
                           .then(output => {
                             result.merge(output);
                             return this.parseDiffString(output.standardOutput, DiffHeaderStagedState.STAGED);
@@ -401,19 +396,19 @@ export class GitClient {
     });
   }
 
-  undoFileChanges(file: string, revision: string, staged: boolean) {
+  undoFileChanges(files: string[], revision: string, staged: boolean) {
+    if (files.length===0){
+      return Promise.reject('No files selected');
+    }
     if (staged) {
       return this.simpleOperation(
         this.getGitPath(),
-        ['checkout', '-q', (revision || 'HEAD'), '--', file],
+        ['checkout', '-q', (revision || 'HEAD'), '--', ...files],
         'Undo File Changes');
     } else {
       return new Promise<void>((resolve, reject) => {
-        let args = ['stash', 'push', '--keep-index', '--', file];
-        this.simpleOperation(
-          this.getGitPath(),
-          args,
-          'Stash Local File Changes').then(() => {
+        let args = ['stash', 'push', '--keep-index', '--', ...files];
+        this.simpleOperation(this.getGitPath(), args, 'Stash Local File Changes').then(() => {
           this.deleteStash(0).then(resolve).catch(reject);
         }).catch(error => {
           if (error.toString().indexOf('fatal: unrecognized input') >= 0 ||
@@ -427,8 +422,30 @@ export class GitClient {
     }
   }
 
+  undoSubmoduleChanges(submodules: SubmoduleModel[]) {
+    return Promise.all(submodules.map(s =>
+      this.simpleOperation(
+        this.getGitPath(),
+        ['reset', '--hard'],
+        'Undo Submodule File Changes',
+        path.join(this.workingDir, s.path))
+          .then(() =>
+            this.simpleOperation(
+              this.getGitPath(),
+              ['submodule', 'update', '--recursive', '--init', '--', s.path],
+              'Undo Submodule Commit Changes'))));
+  }
+
   hardReset() {
-    return this.simpleOperation(this.getGitPath(), ['reset', '--hard'], 'Hard Reset/Undo All');
+    return this.simpleOperation(this.getGitPath(), ['reset', '--hard'], 'Hard Reset/Undo All')
+               .then(() => this.simpleOperation(
+                 this.getGitPath(),
+                 [
+                   'submodule', 'foreach', '--recursive', this.getGitPath() +
+                 ' reset --hard',
+                 ],
+                 'Reset All Submodule File Changes'))
+               .then(() => this.updateSubmodules(true));
   }
 
   merge(file: string, tool: string) {
@@ -467,20 +484,17 @@ export class GitClient {
   }
 
   pushBranch(branch: BranchModel, force: boolean) {
-    return this.simpleOperation(
-      this.getGitPath(),
-      [
-        'push',
-        '-q',
-        'origin',
-        (!branch.trackingPath ? '-u' : ''),
-        (branch ? branch.name + ':' + (branch.trackingPath || branch.name).replace(/^origin\//, '') : ''),
-        (force ? ' --force' : ''),
-      ],
-      'Push');
+    return this.simpleOperation(this.getGitPath(), [
+      'push',
+      '-q',
+      'origin',
+      (!branch.trackingPath ? '-u' : ''),
+      (branch ? branch.name + ':' + (branch.trackingPath || branch.name).replace(/^origin\//, '') : ''),
+      (force ? ' --force' : ''),
+    ], 'Push');
   }
 
-  updateSubmodules(branch: string, recursive: boolean) {
+  updateSubmodules(recursive?: boolean, branch?: string) {
     return this.simpleOperation(this.getGitPath(), [
       'submodule',
       'update',
@@ -541,7 +555,10 @@ export class GitClient {
   }
 
   pull(force: boolean) {
-    return this.simpleOperation(this.getGitPath(), ['pull', (force ? ' -f' : '')], 'Pull');
+    return this.simpleOperation(
+      this.getGitPath(),
+      ['pull', (force ? ' -f' : ''), (GitClient.settings.rebasePull ? '--rebase' : '')],
+      'Pull');
   }
 
   getCommitHistory(count: number, skip: number, activeBranch: string): Promise<CommitSummaryModel[]> {
@@ -561,102 +578,107 @@ export class GitClient {
         this.execute(this.getGitPath(), args, 'Get Commit History')
             .then(output => {
               let text = output.standardOutput;
-              let result: CommitSummaryModel[] = [];
-              let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*(?!commit\s+\S+\s*\r?\n\s*\|\|\|\|))/g;
-              let match = branchList.exec(text);
-
-              let currentBranch = 0;
-              let stack: { seeking: string, from: number, branchIndex: number }[] = [];
-
-              while (match) {
-                let commitSummary = new CommitSummaryModel();
-                commitSummary.hash = match[1];
-                commitSummary.authorName = match[2];
-                commitSummary.authorEmail = match[3];
-                commitSummary.authorDate = new Date(Date.parse(match[4]));
-                if (match[5]) {
-                  commitSummary.currentTags = match[5].split(',').map(x => x.trim());
-                }
-                commitSummary.message = match[7];
-
-                // git graph
-                commitSummary.graphBlockTargets = [];
-                commitSummary.parentHashes = match[6].split(/\s/);
-
-                let newIndex = 0;
-                let encounteredSeeking: string[] = [];
-                let added = false;
-                let newStack: { seeking: string, from: number, branchIndex: number }[] = [];
-                for (let j = 0; j < stack.length; j++) {
-                  if (stack[j].seeking != commitSummary.hash) {
-                    commitSummary.graphBlockTargets.push({
-                      target: stack[j].from,
-                      source: newIndex,
-                      isCommit: false,
-                      branchIndex: stack[j].branchIndex,
-                      isMerge: false,
-                    });
-                    encounteredSeeking.push(stack[j].seeking);
-                    newStack.push(Object.assign(stack[j], {from: newIndex}));
-                    newIndex++;
-                  } else if (encounteredSeeking.indexOf(commitSummary.hash) >= 0) {
-                    commitSummary.graphBlockTargets.push({
-                      target: stack[j].from,
-                      source: encounteredSeeking.indexOf(commitSummary.hash),
-                      isCommit: true,
-                      branchIndex: stack[j].branchIndex,
-                      isMerge: false,
-                    });
-                    added = true;
-                  } else if (encounteredSeeking.indexOf(commitSummary.hash) < 0) {
-                    commitSummary.graphBlockTargets.push({
-                      target: stack[j].from,
-                      source: newIndex,
-                      isCommit: true,
-                      branchIndex: stack[j].branchIndex,
-                      isMerge: commitSummary.parentHashes.length > 1,
-                    });
-                    encounteredSeeking.push(stack[j].seeking);
-                    added = true;
-                    let useCurrentBranch = true;
-                    for (let p of commitSummary.parentHashes) {
-                      if (useCurrentBranch) {
-                        newStack.push({
-                          seeking: p,
-                          from: newIndex,
-                          branchIndex: stack[j].branchIndex,
-                        });
-                        useCurrentBranch = false;
-                      } else {
-                        newStack.push({seeking: p, from: newIndex, branchIndex: currentBranch++});
-                      }
-                    }
-                    newIndex++;
-                  }
-                }
-                if (!added) {
-                  let fromIndex = commitSummary.graphBlockTargets.length;
-                  commitSummary.graphBlockTargets.push({
-                    target: -1,
-                    source: fromIndex,
-                    isCommit: true,
-                    branchIndex: currentBranch,
-                    isMerge: commitSummary.parentHashes.length > 1,
-                  });
-                  for (let p of commitSummary.parentHashes) {
-                    newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
-                  }
-                }
-                stack = newStack;
-                // end git graph
-
-                result.push(commitSummary);
-                match = branchList.exec(text);
-              }
+              let result = this.parseCommitString(text);
 
               resolve(result);
             }), reject);
     }));
+  }
+
+  public parseCommitString(text) {
+    let result: CommitSummaryModel[] = [];
+    let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
+    let match = branchList.exec(text);
+
+    let currentBranch = 0;
+    let stack: { seeking: string, from: number, branchIndex: number }[] = [];
+
+    while (match) {
+      let commitSummary = new CommitSummaryModel();
+      commitSummary.hash = match[1];
+      commitSummary.authorName = match[2];
+      commitSummary.authorEmail = match[3];
+      commitSummary.authorDate = new Date(Date.parse(match[4]));
+      if (match[5]) {
+        commitSummary.currentTags = match[5].split(',').map(x => x.trim());
+      }
+      commitSummary.message = match[7].trim();
+
+      // git graph
+      commitSummary.graphBlockTargets = [];
+      commitSummary.parentHashes = match[6].split(/\s/);
+
+      let newIndex = 0;
+      let encounteredSeeking: string[] = [];
+      let added = false;
+      let newStack: { seeking: string, from: number, branchIndex: number }[] = [];
+      for (let j = 0; j < stack.length; j++) {
+        if (stack[j].seeking != commitSummary.hash) {
+          commitSummary.graphBlockTargets.push({
+            target: stack[j].from,
+            source: newIndex,
+            isCommit: false,
+            branchIndex: stack[j].branchIndex,
+            isMerge: false,
+          });
+          encounteredSeeking.push(stack[j].seeking);
+          newStack.push(Object.assign(stack[j], {from: newIndex}));
+          newIndex++;
+        } else if (encounteredSeeking.indexOf(commitSummary.hash) >= 0) {
+          commitSummary.graphBlockTargets.push({
+            target: stack[j].from,
+            source: encounteredSeeking.indexOf(commitSummary.hash),
+            isCommit: true,
+            branchIndex: stack[j].branchIndex,
+            isMerge: false,
+          });
+          added = true;
+        } else if (encounteredSeeking.indexOf(commitSummary.hash) < 0) {
+          commitSummary.graphBlockTargets.push({
+            target: stack[j].from,
+            source: newIndex,
+            isCommit: true,
+            branchIndex: stack[j].branchIndex,
+            isMerge: commitSummary.parentHashes.length > 1,
+          });
+          encounteredSeeking.push(stack[j].seeking);
+          added = true;
+          let useCurrentBranch = true;
+          for (let p of commitSummary.parentHashes) {
+            if (useCurrentBranch) {
+              newStack.push({
+                seeking: p,
+                from: newIndex,
+                branchIndex: stack[j].branchIndex,
+              });
+              useCurrentBranch = false;
+            } else {
+              newStack.push({seeking: p, from: newIndex, branchIndex: currentBranch++});
+            }
+          }
+          newIndex++;
+        }
+      }
+      if (!added) {
+        let fromIndex = commitSummary.graphBlockTargets.length;
+        commitSummary.graphBlockTargets.push({
+          target: -1,
+          source: fromIndex,
+          isCommit: true,
+          branchIndex: currentBranch,
+          isMerge: commitSummary.parentHashes.length > 1,
+        });
+        for (let p of commitSummary.parentHashes) {
+          newStack.push({seeking: p, from: fromIndex, branchIndex: currentBranch++});
+        }
+      }
+      stack = newStack;
+      // end git graph
+
+      result.push(commitSummary);
+      match = branchList.exec(text);
+    }
+    return result;
   }
 
   addWorktree(location: string,
@@ -671,9 +693,10 @@ export class GitClient {
     return this.executeLive('Clone Repository', this.getGitPath(), ['clone', url, location]);
   }
 
-  getBranches(): Promise<RepositoryModel> {
+  getBranches(repoPath: string): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>(((resolve, reject) => {
       let result = new RepositoryModel();
+      result.path = repoPath;
       let promises = [];
       let branchList = /^\s*(\*)?\s*(\S+)\s+(\S+)\s+(\[\s*(\S+?)(\s*:\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\s*(.*)?$/gm;
       promises.push(
@@ -854,8 +877,11 @@ export class GitClient {
     return SettingsModel.sanitizePath(GitClient.settings.bashPath);
   }
 
-  private execute(command: string, args: string[], name: string,
-                  ignoreError: boolean = false): Promise<CommandOutputModel<void>> {
+  private execute(command: string,
+                  args: string[],
+                  name: string,
+                  ignoreError: boolean = false,
+                  workingDir?: string): Promise<CommandOutputModel<void>> {
     let timeoutErrorMessage = 'command timed out (>' +
       GitClient.settings.commandTimeoutSeconds +
       's): ' +
@@ -868,7 +894,7 @@ export class GitClient {
     return new Promise<CommandOutputModel<void>>((resolve, reject) => {
       let currentOut = '', currentErr = '';
       let race = setTimeout(() => reject(timeoutErrorMessage), GitClient.settings.commandTimeoutSeconds * 1000);
-      this.executeLive(name, command, args, false).subscribe(event => {
+      this.executeLive(name, command, args, false, workingDir).subscribe(event => {
         clearTimeout(race);
         race = undefined;
         if (event.error) {
@@ -893,7 +919,9 @@ export class GitClient {
 
   private executeLive(commandName: string,
                       command: string,
-                      args: string[], includeCommand: boolean = true): Observable<CommandEvent> {
+                      args: string[],
+                      includeCommand: boolean = true,
+                      workingDir?: string): Observable<CommandEvent> {
     let subject = new Subject<CommandEvent>();
     let start = new Date();
     let stderr = '', stdout = '';
@@ -906,7 +934,7 @@ export class GitClient {
       command,
       safeArgs,
       {
-        cwd: this.workingDir,
+        cwd: workingDir || this.workingDir,
         env: Object.assign({}, process.env, {GIT_ASKPASS: process.env['GIT_ASKPASS'] || process.argv[0]}),
       });
     progress.stdout.on('data', data => {
@@ -938,9 +966,10 @@ export class GitClient {
 
   private simpleOperation(command: string,
                           args: string[],
-                          name: string): Promise<void> {
+                          name: string,
+                          workingDir?: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.execute(command, args, name)
+      this.execute(command, args, name, false, workingDir)
           .then(() => resolve())
           .catch((err: CommandOutputModel<void>) => {
             if (err && err.errorOutput) {

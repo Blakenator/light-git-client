@@ -2,27 +2,27 @@
   <div (click)="toggleChildrenVisible()"
        *ngIf="currentPath && (getFilteredChildren().length>0 || filteredLeaves.length>0)"
        class="folder"
-       [title]="currentPath">
+       [openDelay]="500" [ngbTooltip]="currentPath">
     <i [ngClass]="{fa:true,'fa-caret-right':!showChildren,'fa-caret-down':showChildren}"></i>
     <span>{{getDisplayPath()}}</span>
   </div>
   <div *ngIf="showChildren" [ngClass]="{children:currentPath}">
-    <div *ngFor="let b of filteredLeaves" class="branch" [title]="b.name">
+    <div *ngFor="let b of filteredLeaves" class="branch" [openDelay]="500" [ngbTooltip]="b.name">
       <div *ngIf="isLocal">
         <div class="d-flex"
-             *ngIf="!activeRenames[b.name]"
+             *ngIf="!isRenamingBranch(b)"
              [ngClass]="{'bold':b.isCurrentBranch,'text-muted':checkedOutOtherWorktree(b)}">
           <div class="flex-grow-1">
             {{getLeafName(b.name)}}
-            <small class="text-info" title="Branch checked out" *ngIf="b.isCurrentBranch">
+            <small class="text-info" [openDelay]="500" ngbTooltip="Branch checked out" *ngIf="b.isCurrentBranch">
               <i class="fa fa-shopping-cart"></i>
             </small>
             <small *ngIf="checkedOutOtherWorktree(b)"
-                   [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
+                   [openDelay]="500" [ngbTooltip]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
               <i class="fa fa-lock"></i>
             </small>
             <span *ngIf="b.trackingPath">
-              <small class="text-muted" [title]="b.trackingPath"><i class="fa fa-cloud"></i></small>
+              <small class="text-muted" [openDelay]="500" [ngbTooltip]="b.trackingPath"><i class="fa fa-cloud"></i></small>
               <i *ngIf="settingsService.settings.showTrackingPath">({{b.trackingPath}})</i>
               <span class="badge badge-info ml-1 cursor-pointer"
                     *ngIf="b.ahead"
@@ -43,25 +43,26 @@
                   [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
           </button>
         </div>
-        <div *ngIf="activeRenames[b.name]" class="input-group input-group-sm">
+        <div *ngIf="isRenamingBranch(b)" class="input-group input-group-sm">
           <input class="form-control"
                  [autofocus]
                  (keyup.enter)="renameBranch(b.name)"
+                 [placeholder]="b.name"
                  [(ngModel)]="activeRenames[b.name]">
           <div class="input-group-append">
             <button class="btn btn-sm btn-light"
-                    title="Cancel rename"
+                    [openDelay]="500" ngbTooltip="Cancel rename"
                     (click)="cancelRename(b.name)">
               <i class="fa fa-times-circle"></i>
             </button>
-            <button class="btn btn-sm btn-success" title="Rename local branch" (click)="renameBranch(b.name)">
+            <button class="btn btn-sm btn-success" [openDelay]="500" ngbTooltip="Rename local branch" (click)="renameBranch(b.name)">
               <i class="fa fa-check"></i></button>
           </div>
         </div>
-        <div *ngIf="!activeRenames[b.name]"
+        <div *ngIf="!isRenamingBranch(b)"
              class="branch-button-bar text-right"
-             [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
-          <button class="btn btn-info btn-sm" (click)="startRename(b.name)" title="Rename local branch">
+             [ngClass]="{expanded:actionExpanded[b.name],'py-1':actionExpanded[b.name]}">
+          <button class="btn btn-info btn-sm" (click)="startRename(b.name)" [openDelay]="500" ngbTooltip="Rename local branch">
             <i class="material-icons">edit</i></button>
           <div class="btn-group btn-group-sm mx-1"
                ngbDropdown
@@ -70,7 +71,7 @@
                *ngIf="!b.isCurrentBranch">
             <button class="btn btn-primary btn-sm"
                     (click)="checkoutBranch(b.name,false)"
-                    [title]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':'Checkout'"
+                    [openDelay]="500" [ngbTooltip]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':'Checkout'"
                     [disabled]="checkedOutOtherWorktree(b)">
               <i class="fa fa-shopping-cart"></i>
             </button>
@@ -79,7 +80,7 @@
             <div ngbDropdownMenu>
               <button class="btn btn-primary px-1"
                       (click)="checkoutBranch(b.name,true)"
-                      title="Checkout and Pull"
+                      [openDelay]="500" ngbTooltip="Checkout and Pull"
                       [disabled]="checkedOutOtherWorktree(b)">
                 <small>
                   <i class="fa fa-shopping-cart"></i>
@@ -92,14 +93,14 @@
           <button class="btn btn-light btn-sm"
                   (click)="onBranchPremergeClicked.emit(b)"
                   *ngIf="!b.isCurrentBranch"
-                  title="View all changes in current branch since this branch">
+                  [openDelay]="500" ngbTooltip="View all changes in current branch since this branch">
             <i class="fa fa-history"></i>
           </button>
           <button class="btn btn-light btn-sm"
                   *ngIf="!b.isCurrentBranch"
                   (click)="onFastForwardClicked.emit(b.name)"
                   [disabled]="b.ahead || !b.behind"
-                  title="Fast Forward Branch">
+                  [openDelay]="500" ngbTooltip="Fast Forward Branch">
             <i class="fa fa-fast-forward"></i>
           </button>
           <div class="btn-group btn-group-sm mx-1"
@@ -107,38 +108,38 @@
                placement="left"
                (click)="$event.stopPropagation()"
                *ngIf="b.isCurrentBranch && b.trackingPath">
-            <button class="btn btn-light" (click)="onPullClicked.emit()" title="Pull">
+            <button class="btn btn-light" (click)="onPullClicked.emit()" [openDelay]="500" ngbTooltip="Pull">
               <i class="fa fa-arrow-down"></i>
             </button>
             <button class="btn btn-light dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
             </button>
             <div ngbDropdownMenu>
-              <button class="btn btn-light" (click)="onForcePullClicked.emit()" title="Force Pull">
+              <button class="btn btn-light" (click)="onForcePullClicked.emit()" [openDelay]="500" ngbTooltip="Force Pull">
                 <i class="fa fa-shield-alt text-warning"></i>
               </button>
             </div>
           </div>
           <div class="btn-group btn-group-sm mx-1" ngbDropdown placement="left" (click)="$event.stopPropagation()">
-            <button class="btn btn-light" (click)="onPushClicked.emit(b)" title="Push">
+            <button class="btn btn-light" (click)="onPushClicked.emit(b)" [openDelay]="500" ngbTooltip="Push">
               <i class="fa fa-arrow-up"></i>
             </button>
             <button class="btn btn-light dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
             </button>
             <div ngbDropdownMenu>
-              <button class="btn btn-light" (click)="onForcePushClicked.emit(b)" title="Force Push">
+              <button class="btn btn-light" (click)="onForcePushClicked.emit(b)" [openDelay]="500" ngbTooltip="Force Push">
                 <i class="fa fa-shield-alt text-warning"></i>
               </button>
             </div>
           </div>
-          <button class="btn btn-success btn-sm"
+          <button class="btn btn-success btn-sm mx-1"
                   (click)="onMergeClicked.emit(b)"
                   *ngIf="!b.isCurrentBranch"
-                  title="Merge Branch into Current Branch">
-            <i class="fa fa-code-branch merge-branch-icon"></i>
+                  [openDelay]="500" ngbTooltip="Merge Branch into Current Branch">
+            <i class="material-icons">merge_type</i>
           </button>
           <button class="btn btn-danger btn-sm"
                   (click)="onDeleteClicked.emit(b)"
-                  title="Delete"
+                  [openDelay]="500" ngbTooltip="Delete"
                   *ngIf="!b.isCurrentBranch">
             <i class="fa fa-trash"></i>
           </button>
@@ -149,7 +150,7 @@
           <div class="flex-grow-1">
             <span>{{getLeafName(b.name)}}</span>
             <small [ngClass]="{'text-muted':!isBranchCurrent(b.name),'text-info':isBranchCurrent(b.name)}"
-                   title="Branch already checked out"
+                   [openDelay]="500" ngbTooltip="Branch already checked out"
                    *ngIf="isRemoteAlreadyCheckedOut(b.name)">
               <i class="fa fa-shopping-cart"></i>
             </small>
@@ -169,7 +170,7 @@
           </button>
           <button class="btn btn-primary px-1 mx-1"
                   (click)="checkoutBranch(b.name,true)"
-                  title="Checkout and Pull"
+                  [openDelay]="500" ngbTooltip="Checkout and Pull"
                   *ngIf="isRemoteAlreadyCheckedOut(b.name)">
             <small>
               <i class="fa fa-shopping-cart"></i>
@@ -179,7 +180,7 @@
           </button>
           <button class="btn btn-danger btn-sm"
                   (click)="onDeleteClicked.emit(b)"
-                  title="Delete">
+                  [openDelay]="500" ngbTooltip="Delete">
             <i class="fa fa-trash"></i>
           </button>
         </div>

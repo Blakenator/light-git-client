@@ -72,11 +72,19 @@ export class CommitHistoryComponent implements OnInit {
 
   getTagClasses(tag: string) {
     return {
-      'badge-info': !tag.startsWith('tag: ') && !tag.startsWith('origin/') && !tag.startsWith('HEAD'),
-      'badge-warning': tag.startsWith('tag: '),
-      'badge-primary': tag.startsWith('origin/'),
-      'badge-success': tag.startsWith('HEAD'),
+      'badge-info': !this.isPlainTag(tag) && !this.isRemoteBranch(tag) && !tag.startsWith('HEAD'),
+      'badge-success': this.isPlainTag(tag),
+      'badge-primary': this.isRemoteBranch(tag),
+      'badge-warning': tag.startsWith('HEAD'),
     };
+  }
+
+  isRemoteBranch(tag: string) {
+    return tag.startsWith('origin/');
+  }
+
+  isPlainTag(tag: string) {
+    return tag.startsWith('tag: ');
   }
 
   getSplitCommitMessage(commit: CommitSummaryModel) {

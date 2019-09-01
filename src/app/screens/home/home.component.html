@@ -29,14 +29,15 @@
                    [(ngModel)]="editedTabName"
                    (keyup.space)="$event.stopPropagation();$event.preventDefault()"
                    (keyup.enter)="saveEditedName(t)"
+                   (keyup.meta.enter)="saveEditedName(t)"
                    (keyup.control.enter)="saveEditedName(t)"
                    (click)="editClick($event,t)"/>
             <div class="input-group-append">
-              <button class="btn btn-light" (click)="cancelEdit($event)" title="Cancel Rename">
+              <button class="btn btn-light" (click)="cancelEdit($event)" [openDelay]="500" ngbTooltip="Cancel Rename">
                 <i class="fa fa-times-circle"></i></button>
             </div>
             <div class="input-group-append">
-              <button class="btn btn-success" (click)="saveEditedName(t)" title="Apply"><i class="fa fa-check"></i>
+              <button class="btn btn-success" (click)="saveEditedName(t)" [openDelay]="500" ngbTooltip="Apply"><i class="fa fa-check"></i>
               </button>
             </div>
           </div>

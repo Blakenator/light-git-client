@@ -65,12 +65,3 @@ th:first-child {
 .fa-minus {
   color: $status-deleted;
 }
-
-.action-expand.dropdown-toggle::after {
-  display: none;
-}
-
-.dropdown-menu.show {
-  min-width: unset;
-  width: unset;
-}

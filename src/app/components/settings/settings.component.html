@@ -1,4 +1,4 @@
-<button class="btn btn-secondary center-text-vertical mx-2" title="App Settings"
+<button class="btn btn-secondary center-text-vertical mx-2" [openDelay]="500" ngbTooltip="App Settings"
         (click)="copyTempSettings()">
   <i class="material-icons">settings</i>
   <span class="ml-1">Settings</span>
@@ -12,7 +12,7 @@
            modalClass="dialog-wide"
            [affirmativeButtonDisabled]="saveDisabledReason()">
   <div *ngIf="tempSettings">
-    <div>
+    <div class="btn-group">
       <div *ngFor="let tab of tabs;let i = index"
            class="btn btn-secondary"
            [ngClass]="{'settings-tab':true,active:currentTab==i}"
@@ -37,6 +37,11 @@
       <div class="row">
         <div class="col-6">
           <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.allowPrerelease">
+              Bleeding Edge Builds
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
             <app-pretty-checkbox [(value)]="tempSettings.darkMode" (valueChange)="setThemeTemp()">
               {{tempSettings.darkMode ? 'Dark' : 'Light'}} Mode
             </app-pretty-checkbox>
@@ -47,6 +52,11 @@
             </app-pretty-checkbox>
           </div>
           <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.rebasePull">
+              Pull with rebase
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
             <app-pretty-checkbox [(value)]="tempSettings.commitMessageAutocomplete">
               Show autocomplete when typing commit message
             </app-pretty-checkbox>
@@ -54,11 +64,6 @@
           <div class="my-2">
             <app-pretty-checkbox [(value)]="tempSettings.allowStats">
               Send anonymized statistics to help improve Light-Git
-            </app-pretty-checkbox>
-          </div>
-          <div class="my-2">
-            <app-pretty-checkbox [(value)]="tempSettings.allowPrerelease">
-              Bleeding Edge Builds
             </app-pretty-checkbox>
           </div>
           <div class="my-2">

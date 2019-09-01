@@ -8,6 +8,7 @@ describe('Git Client', () => {
       it(diffCase.name, () => {
         const client = new GitClient('');
         const diff = client.parseDiffString(diffCase.content, DiffHeaderStagedState.NONE);
+
         expect(diff.length).toBe(diffCase.headerCount);
         expect(diff[0].toFilename).toBe(diffCase.toFilename);
         expect(diff[0].fromFilename).toBe(diffCase.fromFilename);
@@ -21,6 +22,21 @@ describe('Git Client', () => {
             expect(diffHunkModel.toNumLines).toBe(diffCase.hunkData[i][j].toCount);
           }
         }
+      });
+    });
+  });
+
+  describe('Parse commit string', () => {
+    TestConstants.parseCommitCases.forEach(commitCase => {
+      it(commitCase.name, () => {
+        const client = new GitClient('');
+        const commit = client.parseCommitString(commitCase.content);
+
+        expect(commit.length).toBe(commitCase.commitCount);
+        expect(commit[0].message).toBe(commitCase.message);
+        expect(commit[0].hash).toBe(commitCase.hash);
+        expect(commit[0].authorName).toBe(commitCase.authorName);
+        expect(commit[0].authorEmail).toBe(commitCase.authorEmail);
       });
     });
   });

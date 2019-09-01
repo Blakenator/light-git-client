@@ -356,6 +356,10 @@ export class MainApplication extends GenericApplication {
       this.handleGitPromise(this.gitClients[args[1]].undoFileChanges(args[2], args[3], args[4]), event, args);
     });
 
+    ipcMain.on(Channels.UNDOSUBMODULECHANGES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].undoSubmoduleChanges(args[2]), event, args);
+    });
+
     ipcMain.on(Channels.RESOLVECONFLICTUSING, (event, args) => {
       this.handleGitPromise(this.gitClients[args[1]].resolveConflictUsing(args[2], args[3]), event, args);
     });
@@ -374,7 +378,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.GETBRANCHES, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].getBranches(), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].getBranches(args[1]), event, args);
     });
 
     ipcMain.on(Channels.MERGE, (event, args) => {

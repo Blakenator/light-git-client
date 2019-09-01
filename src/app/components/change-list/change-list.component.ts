@@ -14,6 +14,7 @@ export class ChangeListComponent implements OnInit {
   selectedChanges: { [key: string]: boolean } = {};
   @Output() onSelectChanged = new EventEmitter<{ [key: string]: boolean }>();
   @Output() onUndoFileClicked = new EventEmitter<string>();
+  @Output() onUndoSubmoduleClicked = new EventEmitter<SubmoduleModel>();
   @Output() onMergeClicked = new EventEmitter<string>();
   @Output() onResolveClicked = new EventEmitter<{ file: string, theirs: boolean }>();
   @Output() onDeleteClicked = new EventEmitter<string[]>();
@@ -81,9 +82,14 @@ export class ChangeListComponent implements OnInit {
   }
 
   undoFileClicked(file: string) {
-    this.onUndoFileClicked.emit(file.replace(/->.*/, ''));
-    if (file.indexOf('->') > 0) {
-      this.onDeleteClicked.emit([file.replace(/.*?->\s*/, '')]);
+    const submodule = this.isSubmodule(file);
+    if (submodule) {
+      this.onUndoSubmoduleClicked.emit(submodule);
+    } else {
+      this.onUndoFileClicked.emit(file.replace(/->.*/, ''));
+      if (file.indexOf('->') > 0) {
+        this.onDeleteClicked.emit([file.replace(/.*?->\s*/, '')]);
+      }
     }
   }
 
@@ -124,7 +130,7 @@ export class ChangeListComponent implements OnInit {
   }
 
   isSubmodule(currentPath: string) {
-    return this.submodules.some(s => s.path == currentPath);
+    return this.submodules.find(s => s.path == currentPath);
   }
 
   isDeleted(change: LightChange) {
