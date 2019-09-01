@@ -10,7 +10,7 @@
     <div *ngFor="let b of filteredLeaves" class="branch" [openDelay]="500" [ngbTooltip]="b.name">
       <div *ngIf="isLocal">
         <div class="d-flex"
-             *ngIf="!activeRenames[b.name]"
+             *ngIf="!isRenamingBranch(b)"
              [ngClass]="{'bold':b.isCurrentBranch,'text-muted':checkedOutOtherWorktree(b)}">
           <div class="flex-grow-1">
             {{getLeafName(b.name)}}
@@ -43,10 +43,11 @@
                   [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
           </button>
         </div>
-        <div *ngIf="activeRenames[b.name]" class="input-group input-group-sm">
+        <div *ngIf="isRenamingBranch(b)" class="input-group input-group-sm">
           <input class="form-control"
                  [autofocus]
                  (keyup.enter)="renameBranch(b.name)"
+                 [placeholder]="b.name"
                  [(ngModel)]="activeRenames[b.name]">
           <div class="input-group-append">
             <button class="btn btn-sm btn-light"
@@ -58,7 +59,7 @@
               <i class="fa fa-check"></i></button>
           </div>
         </div>
-        <div *ngIf="!activeRenames[b.name]"
+        <div *ngIf="!isRenamingBranch(b)"
              class="branch-button-bar text-right"
              [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
           <button class="btn btn-info btn-sm" (click)="startRename(b.name)" [openDelay]="500" ngbTooltip="Rename local branch">
