@@ -925,7 +925,7 @@ export class GitClient {
     let subject = new Subject<CommandEvent>();
     let start = new Date();
     let stderr = '', stdout = '';
-    let safeArgs = args.filter(x => !!x && !!x.trim()).map(x => x.trim());
+    let safeArgs = args.filter(x => !!x && !!x.toString().trim()).map(x => x.toString().trim());
     if (includeCommand) {
       subject.next(new CommandEvent(command + ' ' + safeArgs.join(' '), undefined, false));
     }
