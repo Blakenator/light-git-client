@@ -75,8 +75,16 @@
       <td class="hidden-until-hover d-none d-sm-table-cell"
           [openDelay]="500" [ngbTooltip]="c.authorEmail"
           *ngIf="commitFilter">{{c.authorEmail}}</td>
-      <td class="hidden-until-hover" [openDelay]="500" [ngbTooltip]="c.authorDate | date : 'full'">
-        {{c.authorDate | date : 'short'}}
+      <td class="hidden-until-hover" [openDelay]="500" [ngbTooltip]="dateTooltip">
+        {{c.commitDate | date : 'short'}}
+        <ng-template #dateTooltip>
+          <div>
+            <b>Author Date:</b> {{c.authorDate | date : 'full'}}
+          </div>
+          <div>
+            <b>Commit Date:</b> {{c.commitDate | date : 'full'}}
+          </div>
+        </ng-template>
       </td>
       <td [openDelay]="500" [ngbTooltip]="c.hash">
         <div class="position-relative">

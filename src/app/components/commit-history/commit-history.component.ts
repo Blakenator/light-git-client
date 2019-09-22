@@ -47,7 +47,7 @@ export class CommitHistoryComponent implements OnInit {
     }
   }
 
-  getFilteredCommitHistory() {
+  getFilteredCommitHistory():CommitSummaryModel[] {
     if (!this.commitFilter) {
       return this.commitHistory.slice(0, this.scrollOffset + this.numPerPage);
     } else {

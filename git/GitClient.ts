@@ -397,7 +397,7 @@ export class GitClient {
   }
 
   undoFileChanges(files: string[], revision: string, staged: boolean) {
-    if (files.length===0){
+    if (files.length === 0) {
       return Promise.reject('No files selected');
     }
     if (staged) {
@@ -572,7 +572,7 @@ export class GitClient {
       ];
       args = args.concat([
         '--skip=' + (skip || 0),
-        '--pretty=format:||||%H|%an|%ae|%ad|%D|%P|%B\n',
+        '--pretty=format:||||%H|%an|%ae|%ad|%cd|%D|%P|%B\n',
       ]);
       this.handleErrorDefault(
         this.execute(this.getGitPath(), args, 'Get Commit History')
@@ -587,7 +587,7 @@ export class GitClient {
 
   public parseCommitString(text) {
     let result: CommitSummaryModel[] = [];
-    let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
+    let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
     let match = branchList.exec(text);
 
     let currentBranch = 0;
@@ -599,14 +599,15 @@ export class GitClient {
       commitSummary.authorName = match[2];
       commitSummary.authorEmail = match[3];
       commitSummary.authorDate = new Date(Date.parse(match[4]));
+      commitSummary.commitDate = new Date(Date.parse(match[5]));
       if (match[5]) {
-        commitSummary.currentTags = match[5].split(',').map(x => x.trim());
+        commitSummary.currentTags = match[6].split(',').map(tag => tag.trim()).filter(tag => !!tag);
       }
-      commitSummary.message = match[7].trim();
+      commitSummary.message = match[8].trim();
 
       // git graph
       commitSummary.graphBlockTargets = [];
-      commitSummary.parentHashes = match[6].split(/\s/);
+      commitSummary.parentHashes = match[7].split(/\s/);
 
       let newIndex = 0;
       let encounteredSeeking: string[] = [];
