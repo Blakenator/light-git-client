@@ -71,6 +71,9 @@
         </div>
       </ng-template>
       <div class="diff-header">
+        <div *ngIf="reducedHeader.header.hunks.length==0" class="text-muted p-3">
+          No differences detected...
+        </div>
         <div *ngFor="let hunk of (reducedHeader.tooLong?reducedHeader.reducedHunks: reducedHeader.header.hunks)">
           <div class="btn btn-block btn-warning mt-3 d-flex justify-content-between"
                *ngIf="!isEditingHunk(hunk,reducedHeader.header) && hasConflictingWatcher(hunk,reducedHeader.header)"
