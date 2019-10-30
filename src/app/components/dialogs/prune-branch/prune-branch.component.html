@@ -19,6 +19,7 @@
     <select class="form-control m-2 flex-grow-1" [(ngModel)]="ageUnit" (ngModelChange)="updateBranchesByAge()">
       <option [ngValue]="1000*60*60*24">Days</option>
       <option [ngValue]="1000*60*60">Hours</option>
+      <option [ngValue]="1000*60">Minutes</option>
     </select>
   </div>
   <div>The following branches will be deleted:</div>
