@@ -21,7 +21,7 @@ export class FilterPipe implements PipeTransform {
     return searchTextIndex === needle.length;
   }
 
-  transform(items: any[], searchText: string): any[] {
+  transform(items: string[], searchText: string): string[] {
     if (!items) {
       return [];
     }
@@ -39,7 +39,7 @@ export class FilterPipe implements PipeTransform {
   name: 'filterObject',
 })
 export class FilterObjectPipe implements PipeTransform {
-  transform(items: any[], getValue: Function | string, searchText: string): any[] {
+  transform<T>(items: T[], getValue: Function | string, searchText: string): T[] {
     if (!items) {
       return [];
     }
