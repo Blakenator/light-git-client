@@ -7,7 +7,7 @@ import {LayoutCardHeaderComponent} from './layout-card-header/layout-card-header
   styleUrls: ['./layout-card.component.scss'],
 })
 export class LayoutCardComponent implements OnInit {
-  @ViewChild(LayoutCardHeaderComponent, { static: true }) header: LayoutCardHeaderComponent;
+  @ViewChild(LayoutCardHeaderComponent, {static: true}) header: LayoutCardHeaderComponent;
   @Input() customBodyClass = '';
   @Input() customHeaderClass = '';
   @Input() cardTitle: string;

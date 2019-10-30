@@ -127,11 +127,11 @@ export class DiffViewerComponent implements OnInit {
 
   isEditingHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
     return this.editingHunk &&
-           this.editingHeader &&
-           this.editingHunk.fromStartLine ==
-           hunk.fromStartLine &&
-           this.editingHeader.fromFilename ==
-           header.fromFilename;
+      this.editingHeader &&
+      this.editingHunk.fromStartLine ==
+      hunk.fromStartLine &&
+      this.editingHeader.fromFilename ==
+      header.fromFilename;
   }
 
   undoHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
@@ -168,7 +168,7 @@ export class DiffViewerComponent implements OnInit {
       return this.reducedHeaders.filter(header => {
         let needle = this.diffFilter.toLowerCase();
         return FilterPipe.fuzzyFilter(needle, header.header.fromFilename.toLowerCase()) ||
-               FilterPipe.fuzzyFilter(needle, header.header.toFilename.toLowerCase());
+          FilterPipe.fuzzyFilter(needle, header.header.toFilename.toLowerCase());
       }).slice(0, this.scrollOffset);
     }
   }

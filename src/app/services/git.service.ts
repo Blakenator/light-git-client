@@ -154,12 +154,14 @@ export class GitService {
     return this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, hash]);
   }
 
-  fastForwardBranch(branch: string): Promise<void> {
+  fastForwardBranch(branch: BranchModel): Promise<void> {
     return this.handleAirplaneMode(this.electronService.rpc(Channels.FASTFORWARDBRANCH, [this.repo.path, branch]));
   }
 
   checkout(branchOrHash: string, toNewBranch: boolean, andPull: boolean = false): Promise<void> {
-    return this._submoduleCheckoutListener.detect(this.electronService.rpc(Channels.CHECKOUT, [this.repo.path, branchOrHash, toNewBranch, andPull]),true);
+    return this._submoduleCheckoutListener.detect(this.electronService.rpc(
+      Channels.CHECKOUT,
+      [this.repo.path, branchOrHash, toNewBranch, andPull]), true);
   }
 
   pull(force: boolean): Promise<void> {

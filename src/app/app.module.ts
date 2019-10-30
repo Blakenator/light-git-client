@@ -44,7 +44,7 @@ import {GitGraphCanvasComponent} from './components/git-graph-canvas/git-graph-c
 import {ModalComponent} from './common/components/modal/modal.component';
 import {ConfirmModalComponent} from './common/components/confirm-modal/confirm-modal.component';
 import {AskPassComponent} from './screens/ask-pass/ask-pass.component';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {BrowserAnimationsModule, NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ScrollingModule} from '@angular/cdk/scrolling';
 import {LayoutCardComponent} from './components/layout-card/layout-card.component';
 import {LayoutCardHeaderComponent} from './components/layout-card/layout-card-header/layout-card-header.component';
@@ -55,6 +55,7 @@ import {TutorialComponent} from './components/tutorial/tutorial.component';
 import {PrettyCheckboxComponent} from './common/components/pretty-checkbox/pretty-checkbox.component';
 import {MergeBranchComponent} from './components/merge-branch/merge-branch.component';
 import {BranchChooserComponent} from './components/branch-chooser/branch-chooser.component';
+import {PruneBranchComponent} from './components/dialogs/prune-branch/prune-branch.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -97,6 +98,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     PrettyCheckboxComponent,
     MergeBranchComponent,
     BranchChooserComponent,
+    PruneBranchComponent,
   ],
   imports: [
     BrowserModule,
@@ -114,6 +116,7 @@ export function HttpLoaderFactory(http: HttpClient) {
       },
     }),
     NoopAnimationsModule,
+    BrowserAnimationsModule,
     ScrollingModule,
     DragDropModule,
   ],

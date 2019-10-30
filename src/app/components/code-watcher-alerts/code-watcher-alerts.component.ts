@@ -57,12 +57,12 @@ export class CodeWatcherAlertsComponent implements OnInit {
   }
 
   cancel() {
-    this.modalService.setModalVisible('codeWatcherModal',false);
+    this.modalService.setModalVisible('codeWatcherModal', false);
   }
 
   commitAnyway() {
     this.onCommitClicked.emit();
-    this.modalService.setModalVisible('codeWatcherModal',false);
+    this.modalService.setModalVisible('codeWatcherModal', false);
   }
 
   getLinesFromMatch(hunk: DiffHunkModel, watcher: CodeWatcherModel) {
@@ -87,7 +87,7 @@ export class CodeWatcherAlertsComponent implements OnInit {
       }
     } else {
       this.watcherAlerts = alerts;
-      this.modalService.setModalVisible('codeWatcherModal',true);
+      this.modalService.setModalVisible('codeWatcherModal', true);
     }
     this.applicationRef.tick();
   }

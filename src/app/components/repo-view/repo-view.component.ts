@@ -32,6 +32,7 @@ import {LoadingService} from '../../services/loading.service';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 import {TabService} from '../../services/tab.service';
+import {EqualityUtil} from '../../common/equality.util';
 
 @Component({
   selector: 'app-repo-view',
@@ -74,7 +75,6 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   crlfErrorToastTimeout: number;
   activeUndo: string;
   activeCommitHistoryBranch: BranchModel;
-  branchesToPrune: BranchModel[];
   readonly branchReplaceChars = {match: /[\s]/g, with: '-'};
   activeDeleteBranch: BranchModel;
   activeMergeInfo: { into: BranchModel, target: BranchModel, currentBranch: BranchModel };
@@ -155,7 +155,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   @HostListener('window:focus', ['$event'])
   onFocus(event: any): void {
     if (this.repo) {
-      this.getFullRefresh(false, !this.showDiff || this.diffCommitInfo != undefined);
+      setTimeout(() => {
+        this.getFullRefresh(false, !this.showDiff || this.diffCommitInfo != undefined);
+      }, 3000);
     }
   }
 
@@ -245,18 +247,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   pruneLocalBranches() {
-    this.branchesToPrune = this.repo.localBranches.filter(branch => !branch.trackingPath && !branch.isCurrentBranch);
     this.showModal('pruneConfirm', true);
   }
 
-  doPrune() {
+  doPrune(branches: BranchModel[]) {
     this.simpleOperation(
-      this.gitService.deleteBranch(this.branchesToPrune),
+      this.gitService.deleteBranch(branches),
       'pruneLocalBranches',
       'pruning local branches');
   }
 
-  fastForwardBranch(branch: string) {
+  fastForwardBranch(branch: BranchModel) {
     this.simpleOperation(this.gitService.fastForwardBranch(branch), 'fastForwardBranch', 'fast forwarding the branch');
   }
 
@@ -363,6 +364,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       skip,
       this.activeCommitHistoryBranch ? this.activeCommitHistoryBranch.name : undefined)
         .then(commits => {
+          if (EqualityUtil.listsEqual(this.commitHistory, commits, c => c.hash, undefined)) {
+            return;
+          }
           if (!skip || skip == 0) {
             this.commitHistory = commits;
           } else {
@@ -921,8 +925,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.loadingService.setLoading(false);
       return;
     }
-    this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
-    this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
+    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches, b => b.name, undefined)) {
+      this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
+    }
+    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches, b => b.name, undefined)) {
+      this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
+    }
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));

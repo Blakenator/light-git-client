@@ -1,0 +1,42 @@
+<app-confirm-modal modalTitle="Confirm Prune Branches"
+                   (onConfirm)="confirm()"
+                   [modalId]="'pruneConfirm'+repoViewUid"
+                   [confirmDisabled]="isConfirmDisabled()">
+  <div class="btn-group btn-group-sm mx-2">
+    <button class="btn btn{{ !byAge?'-primary':'-secondary' }}"
+            (click)="byAge=false">Merged
+    </button>
+    <button class="btn btn{{ byAge?'-primary':'-secondary' }}"
+            (click)="byAge=true">By Age
+    </button>
+  </div>
+  <div class="my-2 d-flex" *ngIf="byAge">
+    <input class="form-control m-2 flex-grow-1"
+           type="number"
+           [(ngModel)]="age"
+           placeholder="Age"
+           (ngModelChange)="updateBranchesByAge()">
+    <select class="form-control m-2 flex-grow-1" [(ngModel)]="ageUnit" (ngModelChange)="updateBranchesByAge()">
+      <option [ngValue]="1000*60*60*24">Days</option>
+      <option [ngValue]="1000*60*60">Hours</option>
+    </select>
+  </div>
+  <div>The following branches will be deleted:</div>
+  <div *ngIf="getActiveBranchList() as branches">
+    <div class="list-group my-2" *ngIf="branches.length>0">
+      <div *ngFor="let b of branches; let i=index"
+           class="list-group-item d-flex align-items-center py-1 pr-1">
+        <span class="flex-grow-1">{{b.name}}</span>
+        <div class="ml-2 mr-3">
+          {{getAgeString(b)}}
+          <i class="fa fa-stopwatch"></i>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="getActiveBranchList().splice(i,1)">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div *ngIf="branches.length===0" class="text-muted mt-2 mb-4">No branches to prune...</div>
+  </div>
+  <b>This cannot be undone</b>
+</app-confirm-modal>
