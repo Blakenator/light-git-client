@@ -18,11 +18,14 @@
               <i class="fa fa-shopping-cart"></i>
             </small>
             <small *ngIf="checkedOutOtherWorktree(b)"
-                   [openDelay]="500" [ngbTooltip]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
+                   [openDelay]="500"
+                   [ngbTooltip]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':null">
               <i class="fa fa-lock"></i>
             </small>
             <span *ngIf="b.trackingPath">
-              <small class="text-muted" [openDelay]="500" [ngbTooltip]="b.trackingPath"><i class="fa fa-cloud"></i></small>
+              <small class="text-muted"
+                     [openDelay]="500"
+                     [ngbTooltip]="b.trackingPath"><i class="fa fa-cloud"></i></small>
               <i *ngIf="settingsService.settings.showTrackingPath">({{b.trackingPath}})</i>
               <span class="badge badge-info ml-1 cursor-pointer"
                     *ngIf="b.ahead"
@@ -55,14 +58,20 @@
                     (click)="cancelRename(b.name)">
               <i class="fa fa-times-circle"></i>
             </button>
-            <button class="btn btn-sm btn-success" [openDelay]="500" ngbTooltip="Rename local branch" (click)="renameBranch(b.name)">
+            <button class="btn btn-sm btn-success"
+                    [openDelay]="500"
+                    ngbTooltip="Rename local branch"
+                    (click)="renameBranch(b.name)">
               <i class="fa fa-check"></i></button>
           </div>
         </div>
         <div *ngIf="!isRenamingBranch(b)"
              class="branch-button-bar text-right"
              [ngClass]="{expanded:actionExpanded[b.name],'py-1':actionExpanded[b.name]}">
-          <button class="btn btn-info btn-sm" (click)="startRename(b.name)" [openDelay]="500" ngbTooltip="Rename local branch">
+          <button class="btn btn-info btn-sm"
+                  (click)="startRename(b.name)"
+                  [openDelay]="500"
+                  ngbTooltip="Rename local branch">
             <i class="material-icons">edit</i></button>
           <div class="btn-group btn-group-sm mx-1"
                ngbDropdown
@@ -71,7 +80,8 @@
                *ngIf="!b.isCurrentBranch">
             <button class="btn btn-primary btn-sm"
                     (click)="checkoutBranch(b.name,false)"
-                    [openDelay]="500" [ngbTooltip]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':'Checkout'"
+                    [openDelay]="500"
+                    [ngbTooltip]="checkedOutOtherWorktree(b)?'This branch is currently checked out in worktree \''+checkedOutOtherWorktree(b).name+'\'':'Checkout'"
                     [disabled]="checkedOutOtherWorktree(b)">
               <i class="fa fa-shopping-cart"></i>
             </button>
@@ -98,7 +108,7 @@
           </button>
           <button class="btn btn-light btn-sm"
                   *ngIf="!b.isCurrentBranch"
-                  (click)="onFastForwardClicked.emit(b.name)"
+                  (click)="onFastForwardClicked.emit(b)"
                   [disabled]="b.ahead || !b.behind"
                   [openDelay]="500" ngbTooltip="Fast Forward Branch">
             <i class="fa fa-fast-forward"></i>
@@ -114,7 +124,10 @@
             <button class="btn btn-light dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
             </button>
             <div ngbDropdownMenu>
-              <button class="btn btn-light" (click)="onForcePullClicked.emit()" [openDelay]="500" ngbTooltip="Force Pull">
+              <button class="btn btn-light"
+                      (click)="onForcePullClicked.emit()"
+                      [openDelay]="500"
+                      ngbTooltip="Force Pull">
                 <i class="fa fa-shield-alt text-warning"></i>
               </button>
             </div>
@@ -126,7 +139,10 @@
             <button class="btn btn-light dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
             </button>
             <div ngbDropdownMenu>
-              <button class="btn btn-light" (click)="onForcePushClicked.emit(b)" [openDelay]="500" ngbTooltip="Force Push">
+              <button class="btn btn-light"
+                      (click)="onForcePushClicked.emit(b)"
+                      [openDelay]="500"
+                      ngbTooltip="Force Push">
                 <i class="fa fa-shield-alt text-warning"></i>
               </button>
             </div>

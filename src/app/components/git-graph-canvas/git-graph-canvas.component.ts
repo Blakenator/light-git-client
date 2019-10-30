@@ -9,7 +9,7 @@ import {SettingsService} from '../../services/settings.service';
 })
 export class GitGraphCanvasComponent implements OnInit {
   @Input() commit: CommitSummaryModel;
-  @ViewChild('canvas', { static: false }) canvas: ElementRef;
+  @ViewChild('canvas', {static: false}) canvas: ElementRef;
   getCommitBranchColor = CommitSummaryModel.getCommitBranchColor;
 
   constructor(public settingsService: SettingsService) {

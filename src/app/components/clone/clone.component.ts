@@ -1,5 +1,4 @@
 import {ApplicationRef, Component, EventEmitter, OnInit, Output} from '@angular/core';
-import {Observable} from 'rxjs';
 import {GitService} from '../../services/git.service';
 import {ModalService} from '../../common/services/modal.service';
 

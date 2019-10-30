@@ -481,22 +481,8 @@
     Are you sure you want to undo both <i>unstaged and staged</i> changes?<br/>
     <b>This cannot be undone</b>
   </app-confirm-modal>
-  <app-confirm-modal modalTitle="Confirm Delete Branches"
-                     (onConfirm)="doPrune()"
-                     [modalId]="'pruneConfirm'+repoViewUid"
-                     [confirmDisabled]="!branchesToPrune || branchesToPrune.length==0?'No branches to prune':''">
-    The following branches will be deleted:
-    <div class="list-group my-2">
-      <div *ngFor="let b of branchesToPrune; let i=index"
-           class="list-group-item d-flex align-items-center justify-content-between py-1 pr-1">
-        <span>{{b.name}}</span>
-        <button class="btn btn-primary btn-sm" (click)="branchesToPrune.splice(i,1)">
-          <i class="fa fa-times"></i>
-        </button>
-      </div>
-    </div>
-    <b>This cannot be undone</b>
-  </app-confirm-modal>
+  <app-prune-branch [localBranches]="repo.localBranches" (onConfirm)="doPrune($event)" [repoViewUid]="repoViewUid">
+  </app-prune-branch>
   <app-confirm-modal [modalTitle]="'Confirm Delete '+(activeDeleteBranch && activeDeleteBranch.isRemote?'Remote':'Local')+' Branch'"
                      (onConfirm)="deleteBranch()"
                      [modalId]="'confirmDeleteBranch'+repoViewUid">

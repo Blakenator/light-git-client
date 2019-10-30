@@ -336,3 +336,16 @@ $status-deleted: rgba(222, 35, 14, 0.6);
   min-width: unset;
   width: unset;
 }
+
+.tooltip.show {
+  opacity: 1;
+
+  .arrow::before {
+    border-top-color: hsl(0, 0%, 7%);
+  }
+
+  .tooltip-inner {
+    background-color: hsl(0, 0%, 15%);
+    box-shadow: $material-shadow;
+  }
+}

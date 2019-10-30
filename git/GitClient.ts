@@ -469,13 +469,13 @@ export class GitClient {
   }
 
   applyStash(index: number) {
-    return this.simpleOperation(this.getGitPath(), ['stash', 'apply', '--index', '' + index], 'Apply Stashed Changes');
+    return this.simpleOperation(this.getGitPath(), ['stash', 'apply', '' + index], 'Apply Stashed Changes');
   }
 
-  fastForward(branch: string) {
+  fastForward(branch: BranchModel) {
     return this.simpleOperation(
       this.getGitPath(),
-      ['fetch', '-q', 'origin', branch + ':' + branch],
+      ['fetch', '-q', 'origin', branch.trackingPath + ':' + branch],
       'Fast-Forward Branch');
   }
 
@@ -557,7 +557,7 @@ export class GitClient {
   pull(force: boolean) {
     return this.simpleOperation(
       this.getGitPath(),
-      ['pull', (force ? ' -f' : ''), (GitClient.settings.rebasePull ? '--rebase' : '')],
+      ['pull', (force ? ' -f' : ''), (GitClient.settings.rebasePull ? '--rebase' : ''),'-q'],
       'Pull');
   }
 
@@ -699,9 +699,10 @@ export class GitClient {
       let result = new RepositoryModel();
       result.path = repoPath;
       let promises = [];
-      let branchList = /^\s*(\*)?\s*(\S+)\s+(\S+)\s+(\[\s*(\S+?)(\s*:\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\s*(.*)?$/gm;
+      let branchList = /\s*(\*)?\|(\S+?)\|(\S+?)\|(\S*?)\|(\[(\s*((ahead|behind)\s+(\d+)),?\s*((behind)\s+(\d+))?)?\])?\|(.*?)\|(.*)?\|\|\|/gm;
+      let branchFormat = '--format=%(HEAD)|%(refname:lstrip=2)|%(objectname)|%(upstream:lstrip=2)|%(upstream:track)|%(committerdate)|%(subject)|||';
       promises.push(
-        this.execute(this.getGitPath(), ['branch', '-v', '-v', '--track'], 'Get Local Branches')
+        this.execute(this.getGitPath(), ['branch', branchFormat], 'Get Local Branches')
             .then(output => {
               let text = output.standardOutput;
               let match = branchList.exec(text);
@@ -710,8 +711,7 @@ export class GitClient {
                 branchModel.isCurrentBranch = match[1] == '*';
                 branchModel.name = match[2];
                 branchModel.currentHash = match[3];
-                branchModel.lastCommitText = match[13];
-                branchModel.trackingPath = match[5];
+                branchModel.trackingPath = match[4];
                 branchModel.isRemote = false;
                 if (match[8] === 'ahead') {
                   branchModel.ahead = +match[9];
@@ -721,11 +721,32 @@ export class GitClient {
                 } else if (match[8] === 'behind') {
                   branchModel.behind = +match[9];
                 }
+                branchModel.lastCommitDate=match[13];
+                branchModel.lastCommitText = match[14];
 
                 result.localBranches.push(branchModel);
                 match = branchList.exec(text);
               }
             }).catch(err => new ErrorModel('getLocalBranches', 'getting the list of locals', err)));
+
+      promises.push(this.execute(this.getGitPath(), ['branch', '-r', branchFormat], 'Get Remote Branches')
+                        .then(output => {
+                          let text = output.standardOutput;
+                          let match = branchList.exec(text);
+                          while (match) {
+                            let branchModel = new BranchModel();
+                            branchModel.name = match[2];
+                            branchModel.currentHash = match[3];
+                            branchModel.lastCommitDate=match[13];
+                            branchModel.lastCommitText = match[14];
+                            branchModel.isRemote = true;
+
+                            result.remoteBranches.push(branchModel);
+                            match = branchList.exec(text);
+                          }
+                        })
+                        .catch(err => new ErrorModel('getRemoteBranches', 'getting the list of remote branches', err)));
+
       promises.push(this.execute(this.getGitPath(), ['worktree', 'list', '--porcelain'], 'Get Worktrees')
                         .then(output => {
                           let text = output.standardOutput;
@@ -743,6 +764,7 @@ export class GitClient {
                           }
                         })
                         .catch(err => new ErrorModel('getWorktreeList', 'getting the list of worktrees', err)));
+
       promises.push(
         this.execute(this.getGitPath(), ['submodule', 'status', '--recursive'], 'Get Submodules')
             .then(output => {
@@ -760,6 +782,7 @@ export class GitClient {
               }
             })
             .catch(err => new ErrorModel('getSubmoduleList', 'getting the list of submodules', err)));
+
       promises.push(this.execute(this.getGitPath(), ['stash', 'list'], 'Get Stashes').then(output => {
         let text = output.standardOutput;
         let stashList = /^stash@{(\d+)}:\s+(WIP on|On)\s+(.+):\s+(.*)$/gmi;
@@ -774,22 +797,7 @@ export class GitClient {
           match = stashList.exec(text);
         }
       }).catch(err => new ErrorModel('getStashes', 'getting the list of stashes', err)));
-      promises.push(this.execute(this.getGitPath(), ['branch', '-r', '-v', '-v'], 'Get Remote Branches')
-                        .then(output => {
-                          let text = output.standardOutput;
-                          let match = branchList.exec(text);
-                          while (match) {
-                            let branchModel = new BranchModel();
-                            branchModel.name = match[2];
-                            branchModel.currentHash = match[3];
-                            branchModel.lastCommitText = match[13];
-                            branchModel.isRemote = true;
 
-                            result.remoteBranches.push(branchModel);
-                            match = branchList.exec(text);
-                          }
-                        })
-                        .catch(err => new ErrorModel('getRemoteBranches', 'getting the list of remote branches', err)));
       this.handleErrorDefault(Promise.all(promises).then(ignore => {
         let index = result.worktrees.findIndex(x => !path.relative(x.path, this.workingDir));
         if (index >= 0) {
