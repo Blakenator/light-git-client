@@ -359,7 +359,7 @@
                         placeholder="Commit message"
                         (blur)="cancelSuggestions()"
                         (keyup.control.enter)="startCommit()"
-                        (keyup.meta.enter)="startCommit()"
+                        (keydown.meta.enter)="startCommit()"
                         (keyup)="setCurrentCursorPosition($event)"
                         (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
               <div class="input-group-append"

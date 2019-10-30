@@ -36,7 +36,7 @@
         <div class="d-inline-block" *ngFor="let part of getSplitFilepath(c.file); let i=index">
           <span class="badge badge-light" *ngIf="part!='->'">{{part}}</span>
           <small *ngIf="part=='->'"><i class="fa fa-arrow-right"></i></small>
-          <span *ngIf="i<c.file.replace('->','/->/').split('/').length-1 && part!='->' && c.file.replace('->','/->/').split('/')[i+1]!='->'">/</span>
+          <span *ngIf="shouldShowTrailingSlash(c,i,part)">/</span>
         </div>
       </div>
     </td>

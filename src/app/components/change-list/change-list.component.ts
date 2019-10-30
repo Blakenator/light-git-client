@@ -137,6 +137,12 @@ export class ChangeListComponent implements OnInit {
     return this.getChangeType(change) == 'plus' || this.getChangeType(change) == 'question-circle';
   }
 
+  shouldShowTrailingSlash(change: LightChange, index: number, part: string) {
+    return index < change.file.replace('->', '/->/').split('/').length - 1 && part != '->' && change.file.replace(
+      '->',
+      '/->/').split('/')[index + 1] != '->';
+  }
+
   private updateSelection() {
     let changes: { [key: string]: boolean } = {};
     this._changes.forEach(x => changes[x.file] = this.selectedChanges[x.file]);
