@@ -843,6 +843,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
                           fullRefresh: boolean = true,
                           rethrowException: boolean = false): Promise<void> {
     this.loadingService.setLoading(true);
+    clearTimeout(this.debounceRefreshTimer);
     return op.then(() => {
       if (fullRefresh) {
         this.getFullRefresh(clearCommitInfo);
