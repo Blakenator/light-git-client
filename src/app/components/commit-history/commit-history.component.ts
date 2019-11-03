@@ -63,9 +63,11 @@ export class CommitHistoryComponent implements OnInit {
           c.hash.indexOf(needle) >= 0;
       });
     }
-    if (!EqualityUtil.listsEqual(this._lastCommitHistory, result, c => c.hash)) {
+    if (!EqualityUtil.listsEqual(this._lastCommitHistory, result)) {
       this._lastCommitHistory = result;
       return result;
+    }else{
+      return this._lastCommitHistory;
     }
   }
 

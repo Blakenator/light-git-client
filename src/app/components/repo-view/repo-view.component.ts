@@ -364,7 +364,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       skip,
       this.activeCommitHistoryBranch ? this.activeCommitHistoryBranch.name : undefined)
         .then(commits => {
-          if (EqualityUtil.listsEqual(this.commitHistory, commits, c => c.hash, undefined)) {
+          if (EqualityUtil.listsEqual(this.commitHistory, commits)) {
             return;
           }
           if (!skip || skip == 0) {
@@ -925,10 +925,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.loadingService.setLoading(false);
       return;
     }
-    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches, b => b.name, undefined)) {
+    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches)) {
       this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
     }
-    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches, b => b.name, undefined)) {
+    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches)) {
       this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
     }
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));

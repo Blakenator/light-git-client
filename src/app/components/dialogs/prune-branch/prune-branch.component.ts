@@ -21,10 +21,6 @@ export class PruneBranchComponent implements OnInit {
     }
 
     ngOnInit() {
-        console.log(
-            this.modalService.modals,
-            'pruneConfirm' + this.repoViewUid,
-            this.modalService.modals['pruneConfirm' + this.repoViewUid]);
         setTimeout(() => {
             this.modalService.modals['pruneConfirm' + this.repoViewUid].asObservable().subscribe(val => {
                 if (val) {
