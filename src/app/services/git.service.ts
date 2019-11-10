@@ -164,7 +164,9 @@ export class GitService {
   }
 
   pull(force: boolean): Promise<void> {
-    return this.handleAirplaneMode(this.electronService.rpc(Channels.PULL, [this.repo.path, force]));
+    return this.handleAirplaneMode(this._submoduleCheckoutListener.detect(this.electronService.rpc(
+      Channels.PULL,
+      [this.repo.path, force]), true));
   }
 
   push(branch: BranchModel, force: boolean): Promise<void> {
@@ -257,10 +259,11 @@ export class GitService {
     return this.electronService.rpc(Channels.HARDRESET, [this.repo.path]);
   }
 
-  commit(description: string, commitAndPush: boolean): Promise<void> {
+  commit(description: string, commitAndPush: boolean, amend: boolean): Promise<void> {
     return this._remoteMessageListener.detect(this.electronService.rpc(
       Channels.COMMIT,
-      [this.repo.path, description, commitAndPush, this.repo.localBranches.find(b => b.isCurrentBranch)]), true);
+      [this.repo.path, description, commitAndPush, this.repo.localBranches.find(b => b.isCurrentBranch), amend]),
+      true);
   }
 
   getBranchChanges(): Promise<RepositoryModel> {

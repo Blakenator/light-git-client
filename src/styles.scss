@@ -340,8 +340,20 @@ $status-deleted: rgba(222, 35, 14, 0.6);
 .tooltip.show {
   opacity: 1;
 
-  .arrow::before {
+  &bs-tooltip-top .arrow::before {
     border-top-color: hsl(0, 0%, 7%);
+  }
+
+  &bs-tooltip-right .arrow::before {
+    border-right-color: hsl(0, 0%, 7%);
+  }
+
+  &bs-tooltip-left .arrow::before {
+    border-left-color: hsl(0, 0%, 7%);
+  }
+
+  &bs-tooltip-bottom .arrow::before {
+    border-bottom-color: hsl(0, 0%, 7%);
   }
 
   .tooltip-inner {

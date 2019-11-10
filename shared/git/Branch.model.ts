@@ -5,6 +5,7 @@ export class BranchModel {
   public isRemote: boolean;
   public currentHash:string;
   public trackingPath:string;
+  public isTrackingPathGone: boolean;
   public lastCommitText:string;
   public lastCommitDate:string;
   public ahead: number;

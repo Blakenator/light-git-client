@@ -1,23 +1,22 @@
 <head *ngIf="repo">
-  <title>Light Git - {{repo.name}} - {{getCurrentBranch().name}}</title>
+  <title>{{tabService.getActiveTabData().name}} - {{getCurrentBranch()?.name}} - Light Git</title>
 </head>
-<div *ngIf="repo" (focus)="getFullRefresh(false)" class="row full-width">
+<div *ngIf="repo" (focus)="getFullRefresh(false)" class="row full-width bg-light-mode">
   <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
     <h1>{{repo.name}}
       <span class="d-inline-block btn-group">
         <button class="btn btn-primary"
                 (click)="openTerminal()"
-                [openDelay]="500" ngbTooltip="Open Bash Terminal at Repo Root"><i class="fas fa-terminal"></i></button>
+                ngbTooltip="Open Bash Terminal at Repo Root"><i class="fas fa-terminal"></i></button>
         <button class="btn btn-info"
                 (click)="openFolder()"
-                [openDelay]="500" ngbTooltip="Open Folder at Repo Root"><i class="fas fa-folder-open"></i></button>
+                ngbTooltip="Open Folder at Repo Root"><i class="fas fa-folder-open"></i></button>
         <button class="btn btn-primary"
                 (click)="getFullRefresh(false,false,true)"
-                [openDelay]="500"
                 ngbTooltip="Refresh All Changes (local and remote)"><i class="fas fa-sync-alt"></i></button>
         <button class="btn btn-warning"
                 (click)="showModal('discardAllModal')"
-                [openDelay]="500" ngbTooltip="Discard All Changes Since the Last Commit (CAN'T UNDO!)">
+                ngbTooltip="Discard All Changes Since the Last Commit (CAN'T UNDO!)">
           <i class="fa fa-undo"></i>
           Discard All
         </button>
@@ -34,16 +33,16 @@
                [(ngModel)]="localBranchFilter">
         <button class="btn btn-primary btn-sm mx-1"
                 (click)="showModal('createBranch')"
-                [openDelay]="500" ngbTooltip="Create branch off current HEAD">
+                ngbTooltip="Create branch off current HEAD">
           <i class="fa fa-code-branch"></i></button>
         <button class="btn btn-primary btn-sm mx-1"
                 (click)="pruneLocalBranches()"
-                [openDelay]="500" ngbTooltip="Remove local branches without a tracking URL">
+                ngbTooltip="Remove local branches without a tracking URL">
           <i class="fas fa-cut"></i>
         </button>
         <button class="btn btn-success btn-sm mx-1"
                 (click)="startMerge()"
-                [openDelay]="500" ngbTooltip="Merge two branches">
+                ngbTooltip="Merge two branches">
           <i class="material-icons">merge_type</i>
         </button>
       </ng-template>
@@ -89,14 +88,14 @@
                placeholder="Filter..."
                [(ngModel)]="worktreeFilter">
         <button class="btn btn-sm btn-primary mx-1"
-                [openDelay]="500" ngbTooltip="Add Worktree"
+                ngbTooltip="Add Worktree"
                 (click)="setAddWorktreeVisible(true)">
           <i class="fa fa-plus"></i>
         </button>
       </ng-template>
       <div class="card-body">
         <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter" class="d-flex">
-          <span [openDelay]="500" [ngbTooltip]="w.path"
+          <span [ngbTooltip]="w.path"
                 [ngClass]="{'bold':w.isCurrent}"
                 class="flex-grow-1">
             {{w.name}}
@@ -105,11 +104,11 @@
           <div class="flex-grow-0 ml-3">
             <button class="btn btn-info btn-sm"
                     (click)="openFolder(w.path)"
-                    [openDelay]="500"
+
                     ngbTooltip="Open folder at Worktree root"><i
               class="fas fa-folder-open"></i></button>
             <button class="btn btn-primary btn-sm"
-                    [openDelay]="500" ngbTooltip="Open in New Tab"
+                    ngbTooltip="Open in New Tab"
                     *ngIf="w.currentHash!='bare' && !w.isCurrent"
                     (click)="onOpenRepoNewTab.emit(w.path)">
               <i class="fa fa-external-link-square-alt"></i>
@@ -137,13 +136,13 @@
                placeholder="Filter..."
                [(ngModel)]="submoduleFilter">
         <button class="btn btn-sm btn-primary mx-1"
-                [openDelay]="500" ngbTooltip="Add Submodule"
+                ngbTooltip="Add Submodule"
                 (click)="showModal('addSubmodule')">
           <i class="fa fa-plus"></i>
         </button>
         <div class="btn-group btn-group-sm flex-shrink-0" ngbDropdown>
           <button class="btn btn-sm btn-primary"
-                  [openDelay]="500" ngbTooltip="Update Submodules Recursively"
+                  ngbTooltip="Update Submodules Recursively"
                   (click)="updateSubmodules(true)">
             <i class="fa fa-sitemap"></i>
           </button>
@@ -151,7 +150,7 @@
           </button>
           <div ngbDropdownMenu>
             <button class="btn btn-primary mx-2 btn-sm"
-                    [openDelay]="500" ngbTooltip="Update Submodules"
+                    ngbTooltip="Update Submodules"
                     (click)="updateSubmodules(false)">
               <i class="fa fa-tasks"></i>
             </button>
@@ -160,7 +159,7 @@
       </ng-template>
       <div class="card-body">
         <div *ngFor="let w of repo.submodules | filterObject : 'path' : submoduleFilter" class="d-flex">
-          <span [openDelay]="500" [ngbTooltip]="w.path" class="flex-grow-1">
+          <span [ngbTooltip]="w.path" class="flex-grow-1">
             <span class="badge badge-light badge-pill" *ngFor="let r of w.path.split('/');let i=index">
               {{r}}
               <i class="mx-1 fa fa-arrow-right" *ngIf="i<w.path.split('/').length-1"></i>
@@ -168,12 +167,12 @@
           </span>
           <div class="flex-grow-0 d-flex">
             <button class="btn btn-primary btn-sm"
-                    [openDelay]="500" ngbTooltip="Open in New Tab"
+                    ngbTooltip="Open in New Tab"
                     (click)="onOpenRepoNewTab.emit(repo.path+'/'+w.path)">
               <i class="fa fa-external-link-square-alt"></i>
             </button>
             <button class="btn btn-warning btn-sm"
-                    [openDelay]="500" ngbTooltip="Quick View"
+                    ngbTooltip="Quick View"
                     (click)="viewSubmodule(w)">
               <i class="fa fa-eye"></i>
             </button>
@@ -188,13 +187,13 @@
                [(ngModel)]="stashFilter">
         <div class="btn-group btn-group-sm mx-1" ngbDropdown>
           <button class="btn btn-secondary"
-                  [openDelay]="500" ngbTooltip="Stash All Changes"
+                  ngbTooltip="Stash All Changes"
                   (click)="stash(false)"><i class="fa fa-boxes"></i></button>
           <button class="btn btn-secondary dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
           </button>
           <div ngbDropdownMenu>
             <button class="btn btn-sm btn-secondary mx-1"
-                    [openDelay]="500" ngbTooltip="Stash Unstaged Changes"
+                    ngbTooltip="Stash Unstaged Changes"
                     (click)="stash(true)"><i class="fa fa-box"></i></button>
           </div>
         </div>
@@ -209,19 +208,19 @@
             <div class="d-flex">
               <button class="btn btn-warning btn-sm mx-1"
                       (click)="viewStash(s.index)"
-                      [openDelay]="500"
+
                       ngbTooltip="View Stash Diff">
                 <i class="fa fa-eye"></i>
               </button>
               <button class="btn btn-light btn-sm mx-1"
                       (click)="applyStash(s.index)"
-                      [openDelay]="500"
+
                       ngbTooltip="Apply Stash">
                 <i class="fa fa-box-open"></i>
               </button>
               <button class="btn btn-danger btn-sm mx-1"
                       (click)="deleteStash(s.index)"
-                      [openDelay]="500"
+
                       ngbTooltip="Delete Stash">
                 <i class="fa fa-trash"></i>
               </button>
@@ -258,14 +257,16 @@
     <div *ngIf="changes" class="flex-grow-1 d-flex flex-column">
       <app-layout-card [headerContent]="stagedChangesHeader"
                        expandKey="staged"
-                       cardTitle="Staged Changes ({{changes.stagedChanges.length}})">
+                       [style.minHeight]="'25vh'"
+                       cardTitle="Staged Changes">
         <ng-template #stagedChangesHeader>
+          <span class="badge badge-pill badge-light py-1 px-2 m-1">{{changes.stagedChanges.length}}</span>
           <div class="btn-group-sm btn-group mx-2">
-            <button class="btn btn-secondary" (click)="unstageAll()" [openDelay]="500" ngbTooltip="Unstage All">
+            <button class="btn btn-secondary" (click)="unstageAll()" ngbTooltip="Unstage All">
               <i class="fa fa-angle-double-down"></i></button>
             <button class="btn btn-secondary"
                     (click)="unstageSelected()"
-                    [openDelay]="500" ngbTooltip="Unstage Selected">
+                    ngbTooltip="Unstage Selected">
               <i class="fa fa-angle-down"></i></button>
           </div>
           <input class="mx-1 form-control"
@@ -280,12 +281,12 @@
             </button>
           </div>
           <button class="btn btn-sm btn-warning mx-1"
-                  [openDelay]="500" ngbTooltip="Undo changes for selected staged files"
+                  ngbTooltip="Undo changes for selected staged files"
                   (click)="undoFileChanges(getSelectedStagedFiles(),true)">
             <i class="fa fa-undo"></i>
           </button>
           <button class="btn btn-sm btn-danger mx-1"
-                  [openDelay]="500" ngbTooltip="Delete selected staged files"
+                  ngbTooltip="Delete selected staged files"
                   (click)="deleteClicked(getSelectedStagedFiles())">
             <i class="fa fa-trash"></i>
           </button>
@@ -302,13 +303,15 @@
       </app-layout-card>
       <app-layout-card [headerContent]="unstagedHeader"
                        expandKey="unstaged"
-                       cardTitle="Unstaged Changes ({{changes.unstagedChanges.length}})">
+                       [style.minHeight]="'25vh'"
+                       cardTitle="Unstaged Changes">
         <ng-template #unstagedHeader>
+          <span class="badge badge-pill badge-light py-1 px-2 m-1">{{changes.unstagedChanges.length}}</span>
           <div class="btn-group-sm btn-group mx-2">
-            <button class="btn btn-secondary" (click)="stageAll()" [openDelay]="500" ngbTooltip="Stage All">
+            <button class="btn btn-secondary" (click)="stageAll()" ngbTooltip="Stage All">
               <i class="fa fa-angle-double-up"></i>
             </button>
-            <button class="btn btn-secondary" (click)="stageSelected()" [openDelay]="500" ngbTooltip="Stage Selected">
+            <button class="btn btn-secondary" (click)="stageSelected()" ngbTooltip="Stage Selected">
               <i class="fa fa-angle-up"></i></button>
           </div>
           <input class="mx-1 form-control"
@@ -323,12 +326,12 @@
             </button>
           </div>
           <button class="btn btn-sm btn-warning mx-1"
-                  [openDelay]="500" ngbTooltip="Undo changes for selected unstaged files"
+                  ngbTooltip="Undo changes for selected unstaged files"
                   (click)="undoFileChanges(getSelectedUnstagedFiles(),false)">
             <i class="fa fa-undo"></i>
           </button>
           <button class="btn btn-sm btn-danger mx-1"
-                  [openDelay]="500" ngbTooltip="Delete selected unstaged files"
+                  ngbTooltip="Delete selected unstaged files"
                   (click)="deleteClicked(getSelectedUnstagedFiles())">
             <i class="fa fa-trash"></i>
           </button>
@@ -358,16 +361,29 @@
                         [(ngModel)]="changes.description"
                         placeholder="Commit message"
                         (blur)="cancelSuggestions()"
-                        (keyup.control.enter)="startCommit()"
-                        (keydown.meta.enter)="startCommit()"
+                        (keyup.control.enter)="startCommit(false)"
+                        (keydown.meta.enter)="startCommit(false)"
                         (keyup)="setCurrentCursorPosition($event)"
                         (keydown.tab)="setCurrentCursorPosition($event)"></textarea>
               <div class="input-group-append"
-                   [ngbTooltip]="changes.stagedChanges.length==0 ? 'No staged changes' : ''">
+                   [ngbTooltip]="getCommitDisabledTooltip()"
+                   ngbDropdown>
                 <button class="btn btn-success"
-                        (click)="startCommit()"
-                        [disabled]="loadingService.isLoading || changes.stagedChanges.length==0">Commit
+                        (click)="startCommit(false)"
+                        [disabled]="getCommitDisabledTooltip()">
+                  Commit
                 </button>
+                <button class="btn btn-success dropdown-toggle dropdown-toggle-split" ngbDropdownToggle>
+                </button>
+                <div ngbDropdownMenu class="px-2">
+                  <div [ngbTooltip]="getCommitDisabledTooltip()">
+                    <button class="btn btn-success"
+                            (click)="startCommit(false)"
+                            [disabled]="getCommitDisabledTooltip()">
+                      Amend
+                    </button>
+                  </div>
+                </div>
               </div>
               <div class="input-group-append" *ngIf="hasWatcherAlerts">
                 <button class="btn btn-warning"

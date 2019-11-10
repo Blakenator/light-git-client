@@ -58,7 +58,7 @@
             <span *ngIf="i<reducedHeader.header.toFilename.split('/').length-1">/</span>
           </div>
           <button class="copy-filename mx-1 p-1 btn btn-light"
-                  [openDelay]="500"
+
                   ngbTooltip="Copy"
                   (click)="clipboardService.copy(reducedHeader.header.toFilename)">
             <i class="fa fa-copy"> </i>
@@ -105,18 +105,18 @@
             <div class="float-btn-container">
               <div *ngIf="!isEditingHunk(hunk,reducedHeader.header)">
                 <button class="btn btn-warning btn-sm m-1"
-                        [openDelay]="500" ngbTooltip="Undo hunk"
+                        ngbTooltip="Undo hunk"
                         (click)="undoHunk(hunk,reducedHeader.header)"><i class="fa fa-undo"></i></button>
                 <button class="btn btn-info btn-sm m-1"
-                        [openDelay]="500" ngbTooltip="Edit hunk"
+                        ngbTooltip="Edit hunk"
                         (click)="startEdit(hunk,reducedHeader.header)"><i class="material-icons">edit</i></button>
               </div>
               <div *ngIf="isEditingHunk(hunk,reducedHeader.header)">
                 <button class="btn btn-success btn-sm m-1"
-                        [openDelay]="500" ngbTooltip="Save Changes"
+                        ngbTooltip="Save Changes"
                         (click)="saveEditedHunk()"><i class="fa fa-save"></i></button>
                 <button class="btn btn-primary btn-sm m-1 d-inline-flex justify-content-center"
-                        [openDelay]="500" ngbTooltip="Cancel Edit"
+                        ngbTooltip="Cancel Edit"
                         (click)="cancelEdit()"><i class="fa fa-times"></i></button>
               </div>
             </div>

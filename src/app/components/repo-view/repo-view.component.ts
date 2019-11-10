@@ -80,11 +80,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   activeMergeInfo: { into: BranchModel, target: BranchModel, currentBranch: BranchModel };
   private $destroy = new Subject<void>();
   private destroyed = false;
-  private refreshDebounce;
+  private periodicRefreshTimer;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
   private firstNoRemoteErrorDisplayed = false;
   private commitMessageDebounce: number;
+  private _shouldAmendCommit: boolean;
 
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
@@ -149,7 +150,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroyed = true;
     this.$destroy.next();
-    clearInterval(this.refreshDebounce);
+    clearInterval(this.periodicRefreshTimer);
   }
 
   @HostListener('window:focus', ['$event'])
@@ -281,7 +282,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       });
     };
 
-    if (this.getCurrentBranch().name == this.activeMergeInfo.into.name) {
+    if (this.getCurrentBranch() && this.getCurrentBranch().name == this.activeMergeInfo.into.name) {
       doMerge();
     } else {
       this.simpleOperation(
@@ -381,11 +382,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   commit() {
-    if (this.changes.stagedChanges.length == 0) {
+    if (this.changes.stagedChanges.length == 0 && this.getCurrentBranch()) {
       return;
     }
     this.loadingService.setLoading(true);
-    this.gitService.commit(this.changes.description, this.settingsService.settings.commitAndPush)
+    this.gitService.commit(
+      this.changes.description.trim().length <= 0 && this._shouldAmendCommit ?
+      this.getCurrentBranch().lastCommitText :
+      this.changes.description,
+      this.settingsService.settings.commitAndPush,
+      this._shouldAmendCommit)
         .then(() => {
           this.changes.description = '';
           this.showDiff = false;
@@ -494,7 +500,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getCurrentBranch(): BranchModel {
-    return this.repo.localBranches.find(x => x.isCurrentBranch) || new BranchModel();
+    return this.repo.localBranches.find(x => x.isCurrentBranch);
   }
 
   getBranchName(branch: BranchModel) {
@@ -701,9 +707,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
             return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
           }));
 
-    const currentBranchName = this.getCurrentBranch().name;
-    this.getFilenameChunks(currentBranchName)
-        .forEach(y => optionsSet[y.trim()] = this.levenshtein(currentBranchName, lastWord));
+    if (this.getCurrentBranch()) {
+      const currentBranchName = this.getCurrentBranch().name;
+      this.getFilenameChunks(currentBranchName)
+          .forEach(y => optionsSet[y.trim()] = this.levenshtein(currentBranchName, lastWord));
+    }
     const result = Object.keys(optionsSet)
                          // .sort((a, b) => optionsSet[a] - optionsSet[b])
                          .filter(x => FilterPipe.fuzzyFilter(
@@ -809,7 +817,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.getCommitHistory();
   }
 
-  startCommit() {
+  startCommit(amend: boolean) {
+    this._shouldAmendCommit = amend;
     if (this.changes.stagedChanges.length > 0) {
       this.codeWatcherService.showWatchers();
     }
@@ -834,6 +843,18 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.gitService.resolveConflictsUsing(file, theirs),
       'resolveConflictsUsing',
       'resolving conflicts');
+  }
+
+  getCommitDisabledTooltip() {
+    if (this.loadingService.isLoading) {
+      return 'Refreshing repo info, please wait';
+    } else if (this.changes.stagedChanges.length === 0) {
+      return 'No staged changes';
+    } else if (!this.getCurrentBranch()) {
+      return 'No branch checked out';
+    } else {
+      return '';
+    }
   }
 
   private simpleOperation(op: Promise<void>,
@@ -909,7 +930,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.getCommandHistory();
           this.getFullRefresh(false, false);
           this.changeDetectorRef.detectChanges();
-          this.refreshDebounce = setInterval(() => this.getFullRefresh(false), 1000 * 60 * 5);
+          this.periodicRefreshTimer = setInterval(() => this.getFullRefresh(false), 1000 * 60 * 5);
         }).catch(err => {
       this.loadingService.setLoading(false);
       this.onLoadRepoFailed.emit(new ErrorModel(this._errorClassLocation + 'loadRepo', 'loading the repo', err));

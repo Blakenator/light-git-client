@@ -337,7 +337,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.COMMIT, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].commit(args[2], args[3], args[4]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].commit(args[2], args[3], args[4], args[5]), event, args);
     });
 
     ipcMain.on(Channels.CHERRYPICKCOMMIT, (event, args) => {

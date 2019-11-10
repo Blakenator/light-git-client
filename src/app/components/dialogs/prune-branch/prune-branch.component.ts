@@ -25,7 +25,8 @@ export class PruneBranchComponent implements OnInit {
             this.modalService.modals['pruneConfirm' + this.repoViewUid].asObservable().subscribe(val => {
                 if (val) {
                     this.branchesByMerge = this.localBranches.filter(
-                        branch => !branch.trackingPath && !branch.isCurrentBranch);
+                      branch => !branch.trackingPath && !branch.isCurrentBranch && branch.name !== 'master')
+                                               .sort((a, b) => a.name.localeCompare(b.name));
                     this.updateBranchesByAge();
                 }
             });
@@ -34,7 +35,11 @@ export class PruneBranchComponent implements OnInit {
 
     updateBranchesByAge() {
         this.branchesByAge = this.localBranches.filter(
-            branch => new Date(branch.lastCommitDate).getTime() < new Date().getTime() - this.age * this.ageUnit);
+          branch =>
+            new Date(branch.lastCommitDate).getTime() < new Date().getTime() - this.age * this.ageUnit &&
+            branch.name !== 'master')
+                                 .sort((a, b) => new Date(b.lastCommitDate).getTime() -
+                                   new Date(a.lastCommitDate).getTime());
     }
 
     confirm() {
