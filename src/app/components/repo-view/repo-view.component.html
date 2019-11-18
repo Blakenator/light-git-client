@@ -378,7 +378,7 @@
                 <div ngbDropdownMenu class="px-2">
                   <div [ngbTooltip]="getCommitDisabledTooltip()">
                     <button class="btn btn-success"
-                            (click)="startCommit(false)"
+                            (click)="startCommit(true)"
                             [disabled]="getCommitDisabledTooltip()">
                       Amend
                     </button>
