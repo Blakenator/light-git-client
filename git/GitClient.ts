@@ -484,7 +484,7 @@ export class GitClient {
     fastForward(branch: BranchModel) {
         return this.simpleOperation(
             this.getGitPath(),
-          ['fetch', '-q', 'origin', branch.trackingPath.replace(/^origin/, '') + ':' + branch.name],
+          ['fetch', '-q', 'origin', branch.trackingPath.replace(/^origin\//, '') + ':' + branch.name],
             'Fast-Forward Branch');
     }
 
