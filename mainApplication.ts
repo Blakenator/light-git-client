@@ -160,7 +160,9 @@ export class MainApplication extends GenericApplication {
   }
 
   stopWatchingSettings() {
-    this.isWatchingSettingsDir.close();
+    if(this.isWatchingSettingsDir) {
+      this.isWatchingSettingsDir.close();
+    }
   }
 
   loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
