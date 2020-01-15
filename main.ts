@@ -24,10 +24,10 @@ process.on('uncaughtException', (error) => {
   logger.error(JSON.stringify(error));
   console.error(error);
 
-  dialog.showMessageBox({
+  dialog.showMessageBox(null, {
     type: 'error',
     message: `An error occurred. Please see the log for more details. Message: ${error.message}`,
-  }, () => {
+  }).then(() => {
     process.exit(-1);
   });
 });

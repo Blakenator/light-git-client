@@ -56,6 +56,8 @@ import {PrettyCheckboxComponent} from './common/components/pretty-checkbox/prett
 import {MergeBranchComponent} from './components/merge-branch/merge-branch.component';
 import {BranchChooserComponent} from './components/branch-chooser/branch-chooser.component';
 import {PruneBranchComponent} from './components/dialogs/prune-branch/prune-branch.component';
+import {RestoreStashComponent} from './components/dialogs/restore-stash/restore-stash.component';
+import {AgeInfoComponent} from './common/components/age-info/age-info.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -99,6 +101,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     MergeBranchComponent,
     BranchChooserComponent,
     PruneBranchComponent,
+    RestoreStashComponent,
+    AgeInfoComponent,
   ],
   imports: [
     BrowserModule,

@@ -130,6 +130,14 @@ export class GitService {
     return this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip, activeBranch]);
   }
 
+  getDeletedStashes(): Promise<CommitSummaryModel[]> {
+    return this.electronService.rpc(Channels.GETDELETEDSTASHES, [this.repo.path]);
+  }
+
+  restoreDeletedStash(stashHash:string): Promise<void> {
+    return this.electronService.rpc(Channels.RESTOREDELETEDSTASH, [this.repo.path,stashHash]);
+  }
+
   loadRepo(repoPath: string): Promise<RepositoryModel> {
     this.repo = new RepositoryModel();
     this.repo.path = repoPath;

@@ -21,6 +21,8 @@ export namespace Channels {
   export const COMMIT = "commit";
   export const GETCOMMITHISTORY = "getCommitHistory";
   export const CHECKOUT = "checkout";
+  export const GETDELETEDSTASHES = "getDeletedStashes";
+  export const RESTOREDELETEDSTASH = "restoreDeletedStash";
   export const UNDOFILECHANGES = "discardFileChanges";
   export const UNDOSUBMODULECHANGES = "discardSubmoduleChanges";
   export const PUSH = "push";

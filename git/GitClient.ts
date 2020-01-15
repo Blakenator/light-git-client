@@ -26,6 +26,7 @@ export class GitClient {
     static settings: SettingsModel;
     private commandHistory: CommandHistoryModel[] = [];
     private commandHistoryListener = new Subject<CommandHistoryModel[]>();
+    private readonly COMMIT_FORMAT = '||||%H|%an|%ae|%ad|%cd|%D|%P|%B\n';
 
     constructor(private workingDir: string) {
     }
@@ -568,9 +569,41 @@ export class GitClient {
 
     pull(force: boolean) {
         return this.simpleOperation(
-            this.getGitPath(),
-            ['pull', (force ? ' -f' : ''), (GitClient.settings.rebasePull ? '--rebase' : ''), '-q'],
-            'Pull');
+          this.getGitPath(),
+          ['pull', (force ? ' -f' : ''), (GitClient.settings.rebasePull ? '--rebase' : ''), '-q'],
+          'Pull');
+    }
+
+    restoreDeletedStash(stashHash: string): Promise<void> {
+        return this.simpleOperation(
+          this.getGitPath(),
+          ['branch', `restored-stash/${stashHash}`, stashHash],
+          'Restore Deleted Stash');
+    }
+
+    getDeletedStashes(): Promise<CommitSummaryModel[]> {
+        return new Promise<CommitSummaryModel[]>(((resolve, reject) => {
+            this.handleErrorDefault(
+              this.execute(this.getGitPath(), ['fsck', '--no-reflog'], 'Get Dangling Commits')
+                  .then(output => {
+                      const commits = output.standardOutput.split('\n')
+                                            .filter(line => line.match(/dangling commit/))
+                                            .map(line => line.replace(/dangling\s+commit\s+/, ''));
+                      this.handleErrorDefault(
+                        this.execute(
+                          this.getGitPath(),
+                          [
+                              'show', '--quiet',
+                              `--pretty=format:commit %H\n${this.COMMIT_FORMAT}`, ...commits,
+                          ],
+                          'Get Dangling Commit Info')
+                            .then(logOutput => {
+                                let models = this.parseCommitString(
+                                  logOutput.standardOutput);
+                                resolve(models);
+                            }), reject);
+                  }), reject);
+        }));
     }
 
     getCommitHistory(count: number, skip: number, activeBranch: string): Promise<CommitSummaryModel[]> {
@@ -584,7 +617,7 @@ export class GitClient {
             ];
             args = args.concat([
                 '--skip=' + (skip || 0),
-                '--pretty=format:||||%H|%an|%ae|%ad|%cd|%D|%P|%B\n',
+                `--pretty=format:${this.COMMIT_FORMAT}`,
             ]);
             this.handleErrorDefault(
                 this.execute(this.getGitPath(), args, 'Get Commit History')
@@ -599,8 +632,8 @@ export class GitClient {
 
     public parseCommitString(text) {
         let result: CommitSummaryModel[] = [];
-        let branchList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
-        let match = branchList.exec(text);
+        let commitList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
+        let match = commitList.exec(text);
 
         let currentBranch = 0;
         let stack: { seeking: string, from: number, branchIndex: number }[] = [];
@@ -689,7 +722,7 @@ export class GitClient {
             // end git graph
 
             result.push(commitSummary);
-            match = branchList.exec(text);
+            match = commitList.exec(text);
         }
         return result;
     }

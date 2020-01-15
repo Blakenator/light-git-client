@@ -838,6 +838,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.showModal('mergeBranchModal');
   }
 
+  showRestoreStashDialog() {
+    this.showModal('restoreDeletedStash');
+  }
+
   resolveConflictsUsing(file: string, theirs: boolean) {
     this.simpleOperation(
       this.gitService.resolveConflictsUsing(file, theirs),

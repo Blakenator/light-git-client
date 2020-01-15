@@ -197,6 +197,11 @@
                     (click)="stash(true)"><i class="fa fa-box"></i></button>
           </div>
         </div>
+        <button class="btn btn-secondary btn-sm mx-1"
+                (click)="showRestoreStashDialog()"
+                ngbTooltip="Restore deleted stash">
+          <i class="fas fa-history"></i>
+        </button>
       </ng-template>
       <div class="card-body">
         <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter" class="d-flex">
@@ -432,8 +437,7 @@
                          (onHunkChangeError)="hunkChangeError($event)"
                          (onIngoreWhitespaceClicked)="getFileDiff()"
                          (onExitCommitClicked)="leaveCommitDiff()"
-                         (onNavigateToHash)="viewCommitDiff($event)"
-                         (onWatcherClick)="codeWatcherService.showWatchers()"></app-diff-viewer>
+                         (onNavigateToHash)="viewCommitDiff($event)"></app-diff-viewer>
       </div>
       <app-commit-history [commitHistory]="commitHistory"
                           *ngIf="!showDiff"
@@ -510,4 +514,5 @@
                     (onCancel)="cancelMerge()"
                     (onFinish)="mergeBranch()"
                     [locals]="repo.localBranches"></app-merge-branch>
+  <app-restore-stash [repoViewUid]="repoViewUid"></app-restore-stash>
 </div>
