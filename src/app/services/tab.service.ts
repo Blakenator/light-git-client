@@ -19,7 +19,7 @@ export class TabService {
   }
 
   set activeTab(value: number) {
-    this._activeTab = value;
+    this._activeTab = Math.max(0, value);
   }
 
   get activeRepoCache(): RepositoryModel {

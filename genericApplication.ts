@@ -65,6 +65,7 @@ export abstract class GenericApplication {
       y: 0,
       width: this.windowWidth || screen.getPrimaryDisplay().workAreaSize.width * .6,
       height: this.windowHeight || screen.getPrimaryDisplay().workAreaSize.height * .8,
+      webPreferences: {nodeIntegration: true},
     });
 
     if (this.startMaximized) {

@@ -33,11 +33,12 @@
                    (keyup.control.enter)="saveEditedName(t)"
                    (click)="editClick($event,t)"/>
             <div class="input-group-append">
-              <button class="btn btn-light" (click)="cancelEdit($event)" [openDelay]="500" ngbTooltip="Cancel Rename">
+                <button class="btn btn-light" (click)="cancelEdit($event)" ngbTooltip="Cancel Rename">
                 <i class="fa fa-times-circle"></i></button>
             </div>
             <div class="input-group-append">
-              <button class="btn btn-success" (click)="saveEditedName(t)" [openDelay]="500" ngbTooltip="Apply"><i class="fa fa-check"></i>
+                <button class="btn btn-success" (click)="saveEditedName(t)" ngbTooltip="Apply">
+                <i class="fa fa-check"></i>
               </button>
             </div>
           </div>

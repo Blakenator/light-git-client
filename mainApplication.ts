@@ -175,7 +175,7 @@ export class MainApplication extends GenericApplication {
   }
 
   handleGitPromise(p: Promise<any>,
-                   event: { sender: { send: (channel: string, content: any) => {} } },
+                   event: { sender: { send: (channel: string, content: any) => any } },
                    args: any[]) {
     p.then(content => this.defaultReply(event, args, content))
      .catch(content => this.defaultReply(event, args, content, false));
@@ -337,7 +337,7 @@ export class MainApplication extends GenericApplication {
     });
 
     ipcMain.on(Channels.COMMIT, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].commit(args[2], args[3], args[4]), event, args);
+      this.handleGitPromise(this.gitClients[args[1]].commit(args[2], args[3], args[4], args[5]), event, args);
     });
 
     ipcMain.on(Channels.CHERRYPICKCOMMIT, (event, args) => {
@@ -346,6 +346,14 @@ export class MainApplication extends GenericApplication {
 
     ipcMain.on(Channels.GETCOMMITHISTORY, (event, args) => {
       this.handleGitPromise(this.gitClients[args[1]].getCommitHistory(args[2], args[3], args[4]), event, args);
+    });
+
+    ipcMain.on(Channels.GETDELETEDSTASHES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getDeletedStashes(), event, args);
+    });
+
+    ipcMain.on(Channels.RESTOREDELETEDSTASH, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].restoreDeletedStash(args[2]), event, args);
     });
 
     ipcMain.on(Channels.CHECKOUT, (event, args) => {

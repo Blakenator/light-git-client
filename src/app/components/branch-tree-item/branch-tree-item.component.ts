@@ -4,6 +4,12 @@ import {WorktreeModel} from '../../../../shared/git/worktree.model';
 import {SettingsService} from '../../services/settings.service';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
 
+enum TrackingMode {
+  remote,
+  local,
+  broken
+}
+
 @Component({
   selector: 'app-branch-tree-item',
   templateUrl: './branch-tree-item.component.html',
@@ -19,7 +25,7 @@ export class BranchTreeItemComponent implements OnInit {
   @Output() onPushClicked = new EventEmitter<BranchModel>();
   @Output() onForcePushClicked = new EventEmitter<BranchModel>();
   @Output() onDeleteClicked = new EventEmitter<BranchModel>();
-  @Output() onFastForwardClicked = new EventEmitter<string>();
+  @Output() onFastForwardClicked = new EventEmitter<BranchModel>();
   @Output() onBranchPremergeClicked = new EventEmitter<BranchModel>();
   @Output() onMergeClicked = new EventEmitter<BranchModel>();
   @Output() onPullClicked = new EventEmitter<void>();
@@ -30,6 +36,8 @@ export class BranchTreeItemComponent implements OnInit {
   children;
   activeRenames: { [key: string]: string } = {};
   actionExpanded: { [key: string]: boolean } = {};
+
+  TrackingMode = TrackingMode;
 
   constructor(public settingsService: SettingsService) {
   }
@@ -97,7 +105,7 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   renameBranch(originalName: string) {
-    if(this.activeRenames[originalName]) {
+    if (this.activeRenames[originalName]) {
       this.onBranchRename.emit({oldName: originalName, newName: this.activeRenames[originalName]});
     }
     this.cancelRename(originalName);
@@ -126,14 +134,25 @@ export class BranchTreeItemComponent implements OnInit {
     if (b.isCurrentBranch) {
       this.onPullClicked.emit();
     } else if (b.behind && !b.ahead) {
-      this.onFastForwardClicked.emit(b.name);
+      this.onFastForwardClicked.emit(b);
     }
   }
 
   isBranchCurrent(name: string) {
     return !!this.localBranches.find(local => local.name == name.replace('origin/', '') && local.isCurrentBranch);
   }
-  isRenamingBranch(branch:BranchModel){
-    return this.activeRenames[branch.name]!==undefined;
+
+  isRenamingBranch(branch: BranchModel) {
+    return this.activeRenames[branch.name] !== undefined;
+  }
+
+  getTrackingMode(branch: BranchModel) {
+    if (branch.trackingPath.indexOf('origin/') === 0) {
+      return TrackingMode.remote;
+    } else if (branch.isTrackingPathGone) {
+      return TrackingMode.broken;
+    } else {
+      return TrackingMode.local;
+    }
   }
 }

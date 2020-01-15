@@ -11,8 +11,14 @@ export class ModalService {
   }
 
   registerModal(key: string) {
-    this.modals[key] = new Subject<boolean>();
+    if (!this.modals[key]) {
+      this.modals[key] = new Subject<boolean>();
+    }
     return this.modals[key];
+  }
+
+  getSetVisibleListener(key: string) {
+    return this.registerModal(key).asObservable();
   }
 
   setModalVisible(key: string, val: boolean) {

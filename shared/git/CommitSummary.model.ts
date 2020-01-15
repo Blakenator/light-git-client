@@ -3,6 +3,7 @@ export class CommitSummaryModel {
   public authorName: string;
   public authorEmail: string;
   public authorDate: Date;
+  public commitDate: Date;
   public message: string;
   public currentTags: string[];
   public parentHashes: string[];

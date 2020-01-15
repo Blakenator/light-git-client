@@ -32,6 +32,7 @@ import {LoadingService} from '../../services/loading.service';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 import {TabService} from '../../services/tab.service';
+import {EqualityUtil} from '../../common/equality.util';
 
 @Component({
   selector: 'app-repo-view',
@@ -74,17 +75,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   crlfErrorToastTimeout: number;
   activeUndo: string;
   activeCommitHistoryBranch: BranchModel;
-  branchesToPrune: BranchModel[];
   readonly branchReplaceChars = {match: /[\s]/g, with: '-'};
   activeDeleteBranch: BranchModel;
   activeMergeInfo: { into: BranchModel, target: BranchModel, currentBranch: BranchModel };
   private $destroy = new Subject<void>();
   private destroyed = false;
-  private refreshDebounce;
+  private periodicRefreshTimer;
   private currentCommitCursorPosition: number;
   private _errorClassLocation = 'Repo view component, ';
   private firstNoRemoteErrorDisplayed = false;
   private commitMessageDebounce: number;
+  private _shouldAmendCommit: boolean;
 
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
@@ -149,13 +150,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroyed = true;
     this.$destroy.next();
-    clearInterval(this.refreshDebounce);
+    clearInterval(this.periodicRefreshTimer);
   }
 
   @HostListener('window:focus', ['$event'])
   onFocus(event: any): void {
     if (this.repo) {
-      this.getFullRefresh(false, !this.showDiff || this.diffCommitInfo != undefined);
+      setTimeout(() => {
+        this.getFullRefresh(false, !this.showDiff || this.diffCommitInfo != undefined);
+      }, 3000);
     }
   }
 
@@ -245,18 +248,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   pruneLocalBranches() {
-    this.branchesToPrune = this.repo.localBranches.filter(branch => !branch.trackingPath && !branch.isCurrentBranch);
     this.showModal('pruneConfirm', true);
   }
 
-  doPrune() {
+  doPrune(branches: BranchModel[]) {
     this.simpleOperation(
-      this.gitService.deleteBranch(this.branchesToPrune),
+      this.gitService.deleteBranch(branches),
       'pruneLocalBranches',
       'pruning local branches');
   }
 
-  fastForwardBranch(branch: string) {
+  fastForwardBranch(branch: BranchModel) {
     this.simpleOperation(this.gitService.fastForwardBranch(branch), 'fastForwardBranch', 'fast forwarding the branch');
   }
 
@@ -280,7 +282,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       });
     };
 
-    if (this.getCurrentBranch().name == this.activeMergeInfo.into.name) {
+    if (this.getCurrentBranch() && this.getCurrentBranch().name == this.activeMergeInfo.into.name) {
       doMerge();
     } else {
       this.simpleOperation(
@@ -363,6 +365,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       skip,
       this.activeCommitHistoryBranch ? this.activeCommitHistoryBranch.name : undefined)
         .then(commits => {
+          if (EqualityUtil.listsEqual(this.commitHistory, commits)) {
+            return;
+          }
           if (!skip || skip == 0) {
             this.commitHistory = commits;
           } else {
@@ -377,11 +382,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   commit() {
-    if (this.changes.stagedChanges.length == 0) {
+    if (this.changes.stagedChanges.length == 0 && this.getCurrentBranch()) {
       return;
     }
     this.loadingService.setLoading(true);
-    this.gitService.commit(this.changes.description, this.settingsService.settings.commitAndPush)
+    this.gitService.commit(
+      this.changes.description.trim().length <= 0 && this._shouldAmendCommit ?
+      this.getCurrentBranch().lastCommitText :
+      this.changes.description,
+      this.settingsService.settings.commitAndPush,
+      this._shouldAmendCommit)
         .then(() => {
           this.changes.description = '';
           this.showDiff = false;
@@ -490,7 +500,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getCurrentBranch(): BranchModel {
-    return this.repo.localBranches.find(x => x.isCurrentBranch) || new BranchModel();
+    return this.repo.localBranches.find(x => x.isCurrentBranch);
   }
 
   getBranchName(branch: BranchModel) {
@@ -697,9 +707,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
             return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
           }));
 
-    const currentBranchName = this.getCurrentBranch().name;
-    this.getFilenameChunks(currentBranchName)
-        .forEach(y => optionsSet[y.trim()] = this.levenshtein(currentBranchName, lastWord));
+    if (this.getCurrentBranch()) {
+      const currentBranchName = this.getCurrentBranch().name;
+      this.getFilenameChunks(currentBranchName)
+          .forEach(y => optionsSet[y.trim()] = this.levenshtein(currentBranchName, lastWord));
+    }
     const result = Object.keys(optionsSet)
                          // .sort((a, b) => optionsSet[a] - optionsSet[b])
                          .filter(x => FilterPipe.fuzzyFilter(
@@ -805,7 +817,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.getCommitHistory();
   }
 
-  startCommit() {
+  startCommit(amend: boolean) {
+    this._shouldAmendCommit = amend;
     if (this.changes.stagedChanges.length > 0) {
       this.codeWatcherService.showWatchers();
     }
@@ -825,11 +838,27 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.showModal('mergeBranchModal');
   }
 
+  showRestoreStashDialog() {
+    this.showModal('restoreDeletedStash');
+  }
+
   resolveConflictsUsing(file: string, theirs: boolean) {
     this.simpleOperation(
       this.gitService.resolveConflictsUsing(file, theirs),
       'resolveConflictsUsing',
       'resolving conflicts');
+  }
+
+  getCommitDisabledTooltip() {
+    if (this.loadingService.isLoading) {
+      return 'Refreshing repo info, please wait';
+    } else if (this.changes.stagedChanges.length === 0) {
+      return 'No staged changes';
+    } else if (!this.getCurrentBranch()) {
+      return 'No branch checked out';
+    } else {
+      return '';
+    }
   }
 
   private simpleOperation(op: Promise<void>,
@@ -839,6 +868,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
                           fullRefresh: boolean = true,
                           rethrowException: boolean = false): Promise<void> {
     this.loadingService.setLoading(true);
+    clearTimeout(this.debounceRefreshTimer);
     return op.then(() => {
       if (fullRefresh) {
         this.getFullRefresh(clearCommitInfo);
@@ -904,7 +934,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.getCommandHistory();
           this.getFullRefresh(false, false);
           this.changeDetectorRef.detectChanges();
-          this.refreshDebounce = setInterval(() => this.getFullRefresh(false), 1000 * 60 * 5);
+          this.periodicRefreshTimer = setInterval(() => this.getFullRefresh(false), 1000 * 60 * 5);
         }).catch(err => {
       this.loadingService.setLoading(false);
       this.onLoadRepoFailed.emit(new ErrorModel(this._errorClassLocation + 'loadRepo', 'loading the repo', err));
@@ -921,8 +951,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.loadingService.setLoading(false);
       return;
     }
-    this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
-    this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
+    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches)) {
+      this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
+    }
+    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches)) {
+      this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
+    }
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));

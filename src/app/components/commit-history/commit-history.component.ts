@@ -2,6 +2,7 @@ import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
 import {BranchModel} from '../../../../shared/git/Branch.model';
+import {EqualityUtil} from '../../common/equality.util';
 
 @Component({
   selector: 'app-commit-history',
@@ -21,6 +22,7 @@ export class CommitHistoryComponent implements OnInit {
   numPerPage = 50;
   commitFilter: string;
   messageExpanded: { [key: string]: boolean } = {};
+  private _lastCommitHistory: CommitSummaryModel[];
 
   constructor() {
   }
@@ -47,11 +49,12 @@ export class CommitHistoryComponent implements OnInit {
     }
   }
 
-  getFilteredCommitHistory() {
+  getFilteredCommitHistory(): CommitSummaryModel[] {
+    let result: CommitSummaryModel[];
     if (!this.commitFilter) {
-      return this.commitHistory.slice(0, this.scrollOffset + this.numPerPage);
+      result = this.commitHistory.slice(0, this.scrollOffset + this.numPerPage);
     } else {
-      return this.commitHistory.filter(c => {
+      result = this.commitHistory.filter(c => {
         const needle = this.commitFilter.toLowerCase();
         return FilterPipe.fuzzyFilter(needle, c.message.toLowerCase()) ||
           FilterPipe.fuzzyFilter(needle, c.authorName.toLowerCase()) ||
@@ -59,6 +62,12 @@ export class CommitHistoryComponent implements OnInit {
           FilterPipe.fuzzyFilter(needle, c.authorDate.toString().toLowerCase()) ||
           c.hash.indexOf(needle) >= 0;
       });
+    }
+    if (!EqualityUtil.listsEqual(this._lastCommitHistory, result)) {
+      this._lastCommitHistory = result;
+      return result;
+    }else{
+      return this._lastCommitHistory;
     }
   }
 
