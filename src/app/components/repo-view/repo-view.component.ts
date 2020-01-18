@@ -87,6 +87,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   private commitMessageDebounce: number;
   private _shouldAmendCommit: boolean;
 
+  private readonly ON_WINDOW_FOCUS_TIMEOUT = 3000;
+  private readonly REFRESH_ALL_DEBOUNCE = 400;
+
   constructor(private electronService: ElectronService,
               private settingsService: SettingsService,
               private errorService: ErrorService,
@@ -158,7 +161,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (this.repo) {
       setTimeout(() => {
         this.getFullRefresh(false, !this.showDiff || this.diffCommitInfo != undefined);
-      }, 3000);
+      }, this.ON_WINDOW_FOCUS_TIMEOUT);
     }
   }
 
@@ -221,7 +224,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
             this._errorClassLocation + 'getFileChanges',
             'getting file changes',
             err)));
-    }, 400);
+    }, this.REFRESH_ALL_DEBOUNCE);
   }
 
   getBranchChanges() {
