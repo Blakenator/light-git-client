@@ -1,5 +1,5 @@
 <head *ngIf="repo">
-  <title>{{tabService.getActiveTabData().name}} - {{getCurrentBranch()?.name}} - Light Git</title>
+  <title>{{tabDataService.getActiveTabData().name}} - {{getCurrentBranch()?.name}} - Light Git</title>
 </head>
 <div *ngIf="repo" (focus)="getFullRefresh(false)" class="row full-width bg-light-mode">
   <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
@@ -445,7 +445,7 @@
                           (onClickCherryPick)="cherryPickCommit($event)"
                           (onScrollDown)="getCommitHistory(commitHistory.length)"
                           [branches]="repo.localBranches"
-                          [activeBranch]="activeCommitHistoryBranch"
+                          [(activeBranch)]="activeCommitHistoryBranch"
                           (onChooseBranch)="handleActiveBranchUpdate($event)"
                           (onClickCheckout)="checkout({branch:$event.hash,andPull:false},false)"></app-commit-history>
     </app-layout-card>

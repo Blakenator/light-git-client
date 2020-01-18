@@ -1,13 +1,17 @@
 import {Injectable} from '@angular/core';
 import {SettingsService} from './settings.service';
 import {RepositoryModel} from '../../../shared/git/Repository.model';
+import {BranchModel} from '../../../shared/git/Branch.model';
 
 @Injectable({
   providedIn: 'root',
 })
-export class TabService {
+export class TabDataService {
   tabData: { name: string, cache: RepositoryModel }[] = [{name: '', cache: new RepositoryModel()}];
   private _repoCache: { [key: string]: RepositoryModel } = {};
+  private _localBranchMap: Map<string, Map<string, BranchModel>> = new Map();
+  private _remoteBranchMap: Map<string, Map<string, BranchModel>> = new Map();
+  private _currentBranchMap:Map<string,BranchModel>=new Map();
 
   constructor(private settingsService: SettingsService) {
   }
@@ -54,9 +58,30 @@ export class TabService {
 
   public updateTabData(data: RepositoryModel, index: number = this.activeTab) {
     this.tabData[index].cache = data;
+    this._localBranchMap.set(data.path,new Map<string, BranchModel>(data.localBranches.map(branch => [
+      branch.name,
+      branch
+    ])));
+    this._remoteBranchMap.set(data.path,new Map<string, BranchModel>(data.remoteBranches.map(branch => [
+      branch.name,
+      branch
+    ])));
+    this._currentBranch=data.localBranches.find(branch=>branch.isCurrentBranch);
   }
 
   public updateTabName(name: string, index: number = this.activeTab) {
     this.tabData[index].name = name;
+  }
+
+  public getRemoteBranchMap(){
+    return this._remoteBranchMap.get(this.activeRepoCache.path);
+  }
+
+  public getLocalBranchMap(){
+    return this._localBranchMap.get(this.activeRepoCache.path);
+  }
+
+  public getCurrentBranch(){
+    return this._currentBranchMap.get(this.activeRepoCache.path);
   }
 }

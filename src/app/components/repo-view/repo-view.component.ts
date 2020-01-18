@@ -31,7 +31,7 @@ import {SubmoduleModel} from '../../../../shared/git/submodule.model';
 import {LoadingService} from '../../services/loading.service';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
-import {TabService} from '../../services/tab.service';
+import {TabDataService} from '../../services/tab-data.service';
 import {EqualityUtil} from '../../common/equality.util';
 
 @Component({
@@ -98,7 +98,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               public modalService: ModalService,
               errorHandler: ErrorHandler,
               private _changeDetectorRef: ChangeDetectorRef,
-              private tabService: TabService,
+              private tabDataService: TabDataService,
               private gitService: GitService) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
     this.gitService.onCommandHistoryUpdated.asObservable().pipe(takeUntil(this.$destroy)).subscribe(history => {
@@ -278,14 +278,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
             if ((this.changes.stagedChanges.length > 0 || this.changes.unstagedChanges.length > 0) &&
               !this.changes.description &&
               !this.changes.description.trim()) {
-              this.changes.description = `Merged ${this.activeMergeInfo.target.name} into ${this.repo.localBranches.find(
-                b => b.isCurrentBranch).name}`;
+              this.changes.description = `Merged ${this.activeMergeInfo.target.name} into ${this.tabDataService.getCurrentBranch().name}`;
             }
           }).catch(() => {
       });
     };
 
-    if (this.getCurrentBranch() && this.getCurrentBranch().name == this.activeMergeInfo.into.name) {
+    if (this.tabDataService.getCurrentBranch() && this.tabDataService.getCurrentBranch().name ==
+      this.activeMergeInfo.into.name) {
       doMerge();
     } else {
       this.simpleOperation(
@@ -385,13 +385,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   commit() {
-    if (this.changes.stagedChanges.length == 0 && this.getCurrentBranch()) {
+    if (this.changes.stagedChanges.length == 0 && this.tabDataService.getCurrentBranch()) {
       return;
     }
     this.loadingService.setLoading(true);
     this.gitService.commit(
       this.changes.description.trim().length <= 0 && this._shouldAmendCommit ?
-      this.getCurrentBranch().lastCommitText :
+      this.tabDataService.getCurrentBranch().lastCommitText :
       this.changes.description,
       this.settingsService.settings.commitAndPush,
       this._shouldAmendCommit)
@@ -415,7 +415,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   checkout(event: { branch: string, andPull: boolean }, newBranch: boolean) {
-    let localBranchExists = this.repo.localBranches.find(local => local.name == event.branch.replace('origin/', ''));
+    let localBranchExists = this.tabDataService.getLocalBranchMap().has(event.branch.replace('origin/', ''));
     this.simpleOperation(this.gitService.checkout(
       localBranchExists ? event.branch.replace('origin/', '') : event.branch,
       newBranch && !localBranchExists,
@@ -498,16 +498,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.showModal('undoFileModal');
   }
 
-  isRemoteAlreadyCheckedOut(branch: string) {
-    return this.repo.localBranches.filter(x => x.name == branch.replace('origin/', '')).length > 0;
-  }
-
   getCurrentBranch(): BranchModel {
-    return this.repo.localBranches.find(x => x.isCurrentBranch);
-  }
-
-  getBranchName(branch: BranchModel) {
-    return branch.name;
+    return this.tabDataService.getCurrentBranch();
   }
 
   deleteWorktree(w) {
@@ -617,7 +609,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
           this.diffHeaders = diff;
           this.showDiff = true;
           this.diffCommitInfo = new CommitSummaryModel();
-          const currentBranch = this.repo.localBranches.find(x => x.isCurrentBranch);
+          const currentBranch = this.tabDataService.getCurrentBranch();
           this.diffCommitInfo.hash = branch.currentHash + ' <--> ' + currentBranch.currentHash;
           this.diffCommitInfo.message = 'Diff of all changes since last common ancestor between \'' +
             branch.name +
@@ -667,7 +659,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getCreateStashDefaultText() {
-    return (this.repo.localBranches.find(x => x.isCurrentBranch) || new BranchModel()).lastCommitText;
+    return this.tabDataService.getCurrentBranch()?.lastCommitText ?? '';
   }
 
   getFilenameChunks(filename: string) {
@@ -710,13 +702,13 @@ export class RepoViewComponent implements OnInit, OnDestroy {
             return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
           }));
 
-    if (this.getCurrentBranch()) {
-      const currentBranchName = this.getCurrentBranch().name;
+    if (this.tabDataService.getCurrentBranch()) {
+      const currentBranchName = this.tabDataService.getCurrentBranch().name;
       this.getFilenameChunks(currentBranchName)
           .forEach(y => optionsSet[y.trim()] = this.levenshtein(currentBranchName, lastWord));
     }
     const result = Object.keys(optionsSet)
-                         // .sort((a, b) => optionsSet[a] - optionsSet[b])
+      // .sort((a, b) => optionsSet[a] - optionsSet[b])
                          .filter(x => FilterPipe.fuzzyFilter(
                            lastWord.toLowerCase(),
                            x.toLocaleLowerCase()) || optionsSet[x] < lastWord.length / 3)
@@ -832,7 +824,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   startMerge(target?: BranchModel) {
-    let currentBranch = this.repo.localBranches.find(b => b.isCurrentBranch);
+    let currentBranch = this.tabDataService.getCurrentBranch();
     this.activeMergeInfo = {
       into: currentBranch,
       currentBranch,
@@ -857,7 +849,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return 'Refreshing repo info, please wait';
     } else if (this.changes.stagedChanges.length === 0) {
       return 'No staged changes';
-    } else if (!this.getCurrentBranch()) {
+    } else if (!this.tabDataService.getCurrentBranch()) {
       return 'No branch checked out';
     } else {
       return '';
@@ -921,18 +913,18 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   private loadRepo(path: string = '') {
     this._repoPath = path || (this.isNested ?
                               this._repoPath :
-                              this.tabService.activeRepoCache.path || this._repoPath);
-    this.repo = this.tabService.activeRepoCache;
+                              this.tabDataService.activeRepoCache.path || this._repoPath);
+    this.repo = this.tabDataService.activeRepoCache;
     this.loadingService.setLoading(true);
     this.gitService.loadRepo(this._repoPath)
         .then(repo => {
-          if (repo.path !== this.tabService.activeRepoCache.path && this.tabService.activeRepoCache.path) {
+          if (repo.path !== this.tabDataService.activeRepoCache.path && this.tabDataService.activeRepoCache.path) {
             this.loadingService.setLoading(false);
             return;
           }
           this.repo = repo;
           if (!this.isNested) {
-            Object.assign(this.tabService.activeRepoCache, this.repo);
+            Object.assign(this.tabDataService.activeRepoCache, this.repo);
           }
           this.getCommandHistory();
           this.getFullRefresh(false, false);
@@ -950,7 +942,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   private handleBranchChanges(changes: RepositoryModel) {
-    if (changes.path !== this.tabService.activeRepoCache.path) {
+    if (changes.path !== this.tabDataService.activeRepoCache.path) {
       this.loadingService.setLoading(false);
       return;
     }
@@ -963,7 +955,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
-    Object.assign(this.tabService.activeRepoCache, this.repo || {});
+    Object.assign(this.tabDataService.activeRepoCache, this.repo || {});
     this.changeDetectorRef.detectChanges();
     this.loadingService.setLoading(false);
   }

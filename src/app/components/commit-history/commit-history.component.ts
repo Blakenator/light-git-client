@@ -3,6 +3,7 @@ import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
 import {BranchModel} from '../../../../shared/git/Branch.model';
 import {EqualityUtil} from '../../common/equality.util';
+import {TabDataService} from '../../services/tab-data.service';
 
 @Component({
   selector: 'app-commit-history',
@@ -13,6 +14,7 @@ export class CommitHistoryComponent implements OnInit {
   @Input() commitHistory: CommitSummaryModel[];
   @Input() branches: BranchModel[];
   @Input() activeBranch: BranchModel;
+  @Output() activeBranchChange = new EventEmitter<BranchModel>();
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
   @Output() onScrollDown = new EventEmitter<any>();
   @Output() onClickCherryPick = new EventEmitter<CommitSummaryModel>();
@@ -24,7 +26,7 @@ export class CommitHistoryComponent implements OnInit {
   messageExpanded: { [key: string]: boolean } = {};
   private _lastCommitHistory: CommitSummaryModel[];
 
-  constructor() {
+  constructor(private tabService: TabDataService) {
   }
 
   ngOnInit() {
@@ -114,19 +116,15 @@ export class CommitHistoryComponent implements OnInit {
   isCurrentBranchActive() {
     return this.branches &&
       this.activeBranch &&
-      this.getCurrentBranch().name == this.activeBranch.name;
-  }
-
-  getCurrentBranch() {
-    return this.branches.find(b => b.isCurrentBranch);
+      this.tabService.getLocalBranchMap().get(this.activeBranch.name)?.isCurrentBranch;
   }
 
   toggleSoloCurrentBranch() {
-    this.setActiveBranch(this.getCurrentBranch());
+    this.setActiveBranch(this.tabService.getCurrentBranch());
   }
 
   setActiveBranch(b: any) {
-    this.activeBranch = !this.activeBranch || b.name != this.activeBranch.name ? b : undefined;
+    this.activeBranchChange.emit(!this.activeBranch || b.name != this.activeBranch.name ? b : undefined);
     this.onChooseBranch.emit(this.activeBranch);
   }
 }

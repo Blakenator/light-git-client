@@ -3,6 +3,7 @@ import {BranchModel} from '../../../../shared/git/Branch.model';
 import {WorktreeModel} from '../../../../shared/git/worktree.model';
 import {SettingsService} from '../../services/settings.service';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
+import {TabDataService} from '../../services/tab-data.service';
 
 enum TrackingMode {
   remote,
@@ -39,7 +40,7 @@ export class BranchTreeItemComponent implements OnInit {
 
   TrackingMode = TrackingMode;
 
-  constructor(public settingsService: SettingsService) {
+  constructor(public settingsService: SettingsService,public tabDataService:TabDataService) {
   }
 
   _branches: BranchModel[];
@@ -97,7 +98,7 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   isRemoteAlreadyCheckedOut(name: string) {
-    return !!this.localBranches.find(local => local.name == name.replace('origin/', ''));
+    return this.tabDataService.getLocalBranchMap().has(name.replace('origin/', ''));
   }
 
   checkedOutOtherWorktree(b: BranchModel) {
@@ -139,7 +140,7 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   isBranchCurrent(name: string) {
-    return !!this.localBranches.find(local => local.name == name.replace('origin/', '') && local.isCurrentBranch);
+    return !!this.tabDataService.getLocalBranchMap().get( name.replace('origin/', ''))?.isCurrentBranch;
   }
 
   isRenamingBranch(branch: BranchModel) {

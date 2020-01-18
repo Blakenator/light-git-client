@@ -19,6 +19,7 @@ import {SubmoduleModel} from '../../../shared/git/submodule.model';
 import {CrlfListener} from './warning-listeners/crlf.listener';
 import {RemoteMessageListener} from './warning-listeners/remote-message.listener';
 import {SubmoduleCheckoutListener} from './warning-listeners/submodule-checkout.listener';
+import {TabDataService} from './tab-data.service';
 
 @Injectable({
   providedIn: 'root',
@@ -39,7 +40,8 @@ export class GitService {
   constructor(private electronService: ElectronService,
               private errorService: ErrorService,
               private settingsService: SettingsService,
-              private alertService: AlertService) {
+              private alertService: AlertService,
+  private tabDataService:TabDataService) {
     electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
     this._onRemoteMessage.asObservable().subscribe(notification => this.alertService.showNotification(notification));
   }
@@ -270,7 +272,7 @@ export class GitService {
   commit(description: string, commitAndPush: boolean, amend: boolean): Promise<void> {
     return this._remoteMessageListener.detect(this.electronService.rpc(
       Channels.COMMIT,
-      [this.repo.path, description, commitAndPush, this.repo.localBranches.find(b => b.isCurrentBranch), amend]),
+      [this.repo.path, description, commitAndPush, this.tabDataService.getCurrentBranch(), amend]),
       true);
   }
 

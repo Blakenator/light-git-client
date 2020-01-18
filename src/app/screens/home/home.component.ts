@@ -7,7 +7,7 @@ import {ErrorModel} from '../../../../shared/common/error.model';
 import {ErrorService} from '../../common/services/error.service';
 import {LoadingService} from '../../services/loading.service';
 import {CdkDragDrop} from '@angular/cdk/drag-drop';
-import {TabService} from '../../services/tab.service';
+import {TabDataService} from '../../services/tab-data.service';
 import {NgbTooltipConfig} from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
@@ -26,7 +26,7 @@ export class HomeComponent implements OnInit {
                 private loadingService: LoadingService,
                 private http: HttpClient,
                 private cd: ChangeDetectorRef,
-                public tabService: TabService,
+                public tabService: TabDataService,
                 private gitService: GitService,
                 config: NgbTooltipConfig) {
         config.container = 'body';
@@ -50,7 +50,7 @@ export class HomeComponent implements OnInit {
             this.tabService.tabData = this.settingsService.settings.tabNames.map((x, index) =>
                 this.tabService.getNewTab(
                     this.settingsService.settings.openRepos[index],
-                    x || TabService.basename(this.settingsService.settings.openRepos[index])));
+                    x || TabDataService.basename(this.settingsService.settings.openRepos[index])));
             this.tabService.initializeCache();
             this.gitService.repo = this.tabService.activeRepoCache;
             this.gitService.checkGitBashVersions();
@@ -66,7 +66,7 @@ export class HomeComponent implements OnInit {
 
     addTab(path: string = '') {
         this.activeTab = this.tabService.tabCount();
-        this.tabService.tabData.push(this.tabService.getNewTab(path, TabService.basename(path)));
+        this.tabService.tabData.push(this.tabService.getNewTab(path, TabDataService.basename(path)));
         if (path) {
             setTimeout(() => {
                 this.loadRepo(path);
@@ -90,7 +90,7 @@ export class HomeComponent implements OnInit {
     loadRepo(path: string) {
         if (!this.tabService.getActiveTabData().cache.path || this.tabService.getActiveTabData().cache.path === path) {
             this.tabService.updateTabData(this.tabService.getNewTab(path).cache);
-            this.tabService.updateTabName(TabService.basename(path));
+            this.tabService.updateTabName(TabDataService.basename(path));
             this.saveOpenRepos();
         }
     }

@@ -2,7 +2,7 @@ import {Component, Input, OnInit} from '@angular/core';
 import {SettingsModel} from '../../../../../shared/SettingsModel';
 import {CodeWatcherModel} from '../../../../../shared/code-watcher.model';
 import {ModalService} from '../../../common/services/modal.service';
-import {TabService} from '../../../services/tab.service';
+import {TabDataService} from '../../../services/tab-data.service';
 
 @Component({
   selector: 'app-code-watcher-config',
@@ -78,6 +78,6 @@ export class CodeWatcherConfigComponent implements OnInit {
   }
 
   getDropdownLabelText(w: CodeWatcherModel) {
-    return TabService.basename(w.path);
+    return TabDataService.basename(w.path);
   }
 }
