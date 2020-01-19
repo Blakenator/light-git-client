@@ -62,11 +62,11 @@ export class TabDataService {
       branch.name,
       branch
     ])));
-    this._remoteBranchMap.set(data.path,new Map<string, BranchModel>(data.remoteBranches.map(branch => [
+    this._remoteBranchMap.set(data.path, new Map<string, BranchModel>(data.remoteBranches.map(branch => [
       branch.name,
-      branch
+      branch,
     ])));
-    this._currentBranch=data.localBranches.find(branch=>branch.isCurrentBranch);
+    this._currentBranchMap.set(this.activeRepoCache.path, data.localBranches.find(branch => branch.isCurrentBranch));
   }
 
   public updateTabName(name: string, index: number = this.activeTab) {
@@ -74,11 +74,11 @@ export class TabDataService {
   }
 
   public getRemoteBranchMap(){
-    return this._remoteBranchMap.get(this.activeRepoCache.path);
+    return this._remoteBranchMap.get(this.activeRepoCache.path) ?? new Map();
   }
 
   public getLocalBranchMap(){
-    return this._localBranchMap.get(this.activeRepoCache.path);
+    return this._localBranchMap.get(this.activeRepoCache.path) ?? new Map();
   }
 
   public getCurrentBranch(){

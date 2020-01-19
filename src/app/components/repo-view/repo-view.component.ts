@@ -12,7 +12,7 @@ import {
 import {ElectronService} from '../../common/services/electron.service';
 import {SettingsService} from '../../services/settings.service';
 import {RepositoryModel} from '../../../../shared/git/Repository.model';
-import {CommitModel} from '../../../../shared/git/Commit.model';
+import {ChangeType, CommitModel} from '../../../../shared/git/Commit.model';
 import {Channels} from '../../../../shared/Channels';
 import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
 import {BranchModel} from '../../../../shared/git/Branch.model';
@@ -433,7 +433,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.clearSelectedChanges();
   }
 
-  deleteClicked(files: string[]) {
+  deleteFiles(files: string[]) {
     this.simpleOperation(this.gitService.deleteFiles(files), 'deleteFiles', 'deleting the file');
     this.clearSelectedChanges();
   }
@@ -472,15 +472,30 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (files.length === 0) {
       return;
     }
+    const fileSet = new Set(files);
+    const changes = (staged ? this.changes.stagedChanges : this.changes.unstagedChanges)
+      .filter(change => fileSet.has(change.file));
+    const changeSet = new Set(changes.map(change => change.file));
+    const submoduleSet = new Set(this.repo.submodules.map(mod => mod.path));
+
+    const deletes = changes
+      .filter(change => change.change === ChangeType.Addition && !submoduleSet.has(change.file))
+      .map(change => change.file);
+    const undos = changes
+      .filter(change => change.change !== ChangeType.Addition && !submoduleSet.has(change.file))
+      .map(change => change.file);
+    const subs = this.repo.submodules.filter(sub => changeSet.has(sub.path));
+
     this.simpleOperation(
       this.gitService.undoFileChanges(
-        files.filter(f => !this.repo.submodules.some(s => s.path === f)),
+        undos,
         revision,
         staged),
       'undoFileChanges',
       'undoing changes for the files');
-    this.undoSubmoduleChanges(files.map(f => this.repo.submodules.find(s => s.path === f))
-                                   .filter(f => !!f));
+    this.deleteFiles(deletes);
+    this.undoSubmoduleChanges(subs);
+
     this.clearSelectedChanges();
     this.activeUndo = undefined;
   }
@@ -955,7 +970,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
     this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
     this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
-    Object.assign(this.tabDataService.activeRepoCache, this.repo || {});
+    this.tabDataService.updateTabData(this.repo);
     this.changeDetectorRef.detectChanges();
     this.loadingService.setLoading(false);
   }

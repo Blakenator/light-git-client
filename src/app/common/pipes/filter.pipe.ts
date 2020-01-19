@@ -10,7 +10,7 @@ export class FilterPipe implements PipeTransform {
    * @param haystack needle
    * @returns {boolean} was the needle fuzzy found in the haystack
    */
-  static fuzzyFilter(needle, haystack): boolean {
+  static fuzzyFilter(needle: string, haystack: string): boolean {
     let searchTextIndex = 0;
     for (let index = 0; index < haystack.length; index++) {
       if (haystack[index] === needle[searchTextIndex]) {
@@ -21,7 +21,11 @@ export class FilterPipe implements PipeTransform {
     return searchTextIndex === needle.length;
   }
 
-  transform(items: string[], searchText: string): string[] {
+  static containsFilter(needle: string, haystack: string) {
+    return haystack.indexOf(needle) >= 0;
+  }
+
+  static doFilter<T>(items: T[], searchText: string, useFuzzy: boolean, getFilterText: (item: T) => string): T[] {
     if (!items) {
       return [];
     }
@@ -30,8 +34,14 @@ export class FilterPipe implements PipeTransform {
     }
     searchText = searchText.toLowerCase();
     return items.filter(it => {
-      return FilterPipe.fuzzyFilter(searchText, it.toLowerCase());
+      return useFuzzy ?
+             FilterPipe.fuzzyFilter(searchText, getFilterText(it).toLowerCase()) :
+             FilterPipe.containsFilter(searchText, getFilterText(it).toLowerCase());
     });
+  }
+
+  transform(items: string[], searchText: string, useFuzzy: boolean = true): string[] {
+    return FilterPipe.doFilter(items, searchText, useFuzzy, item => item);
   }
 }
 
@@ -39,7 +49,7 @@ export class FilterPipe implements PipeTransform {
   name: 'filterObject',
 })
 export class FilterObjectPipe implements PipeTransform {
-  transform<T>(items: T[], getValue: Function | string, searchText: string): T[] {
+  transform<T>(items: T[], getValue: Function | string, searchText: string, useFuzzy: boolean = true): T[] {
     if (!items) {
       return [];
     }
@@ -47,9 +57,10 @@ export class FilterObjectPipe implements PipeTransform {
       return items;
     }
     searchText = searchText.toLowerCase();
-    return items.filter(it => {
-      let key = (typeof getValue == 'function' ? getValue(it) : it[getValue]).toLowerCase();
-      return it !== undefined && FilterPipe.fuzzyFilter(searchText, key);
-    });
+    return FilterPipe.doFilter(
+      items,
+      searchText,
+      useFuzzy,
+      it => (typeof getValue == 'function' ? getValue(it) : it[getValue]).toLowerCase());
   }
 }

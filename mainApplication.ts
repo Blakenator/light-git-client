@@ -38,15 +38,16 @@ export class MainApplication extends GenericApplication {
     Object.assign(settingsModel, settingsModel);
     GitClient.settings = settingsModel;
 
-    let settingsToSave: { [path: string]: CodeWatcherModel[] } = {};
+    let watchersToSave: Map<string, CodeWatcherModel[]> = new Map();
+
     settingsModel.loadedCodeWatchers.forEach(w => {
-      if (!settingsToSave[w.path]) {
-        settingsToSave[w.path] = [];
+      if (!watchersToSave.has(w.path)) {
+        watchersToSave.set(w.path, []);
       }
-      settingsToSave[w.path].push(w);
+      watchersToSave.get(w.path).push(w);
     });
-    Object.keys(settingsToSave).forEach(p => {
-      this.saveWatchers(p, settingsToSave[p]);
+    Array.from(watchersToSave.entries()).forEach(([file, watchers]) => {
+      this.saveWatchers(file, watchers);
     });
 
     delete settingsModel.loadedCodeWatchers;
@@ -112,11 +113,6 @@ export class MainApplication extends GenericApplication {
   }
 
   saveWatchers(path: string, watchers: CodeWatcherModel[]) {
-    watchers = watchers.map(w => {
-      let newW = Object.assign({}, w);
-      delete newW.path;
-      return newW;
-    });
     fs.writeFileSync(path, JSON.stringify(watchers, null, '   '), {encoding: 'utf8'});
   }
 

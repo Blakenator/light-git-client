@@ -76,7 +76,6 @@
                             [branches]="repo.remoteBranches"
                             (onCheckoutClicked)="checkout($event,true)"
                             (onDeleteClicked)="markDeleteBranch($event)"
-                            [localBranches]="repo.localBranches"
                             [worktrees]="repo.worktrees"></app-branch-tree-item>
     </app-layout-card>
     <app-layout-card [headerContent]="worktreeHeader"
@@ -292,7 +291,7 @@
           </button>
           <button class="btn btn-sm btn-danger mx-1"
                   ngbTooltip="Delete selected staged files"
-                  (click)="deleteClicked(getSelectedStagedFiles())">
+                  (click)="deleteFiles(getSelectedStagedFiles())">
             <i class="fa fa-trash"></i>
           </button>
         </ng-template>
@@ -301,7 +300,7 @@
                          (onUndoFileClicked)="confirmUndo($event)"
                          (onMergeClicked)="merge($event)"
                          (onResolveClicked)="resolveConflictsUsing($event.file,$event.theirs)"
-                         (onDeleteClicked)="deleteClicked($event)"
+                         (onDeleteClicked)="deleteFiles($event)"
                          [submodules]="repo.submodules"
                          (onUndoSubmoduleClicked)="undoSubmoduleChanges([$event])"
                          [changeFilter]="stagedChangesFilter"></app-change-list>
@@ -337,7 +336,7 @@
           </button>
           <button class="btn btn-sm btn-danger mx-1"
                   ngbTooltip="Delete selected unstaged files"
-                  (click)="deleteClicked(getSelectedUnstagedFiles())">
+                  (click)="deleteFiles(getSelectedUnstagedFiles())">
             <i class="fa fa-trash"></i>
           </button>
         </ng-template>
@@ -346,7 +345,7 @@
                          (onUndoFileClicked)="undoFileChanges([$event],false)"
                          (onMergeClicked)="merge($event)"
                          (onResolveClicked)="resolveConflictsUsing($event.file,$event.theirs)"
-                         (onDeleteClicked)="deleteClicked($event)"
+                         (onDeleteClicked)="deleteFiles($event)"
                          [submodules]="repo.submodules"
                          (onUndoSubmoduleClicked)="undoSubmoduleChanges([$event])"
                          [changeFilter]="unstagedChangesFilter"></app-change-list>
@@ -445,7 +444,7 @@
                           (onClickCherryPick)="cherryPickCommit($event)"
                           (onScrollDown)="getCommitHistory(commitHistory.length)"
                           [branches]="repo.localBranches"
-                          [(activeBranch)]="activeCommitHistoryBranch"
+                          [activeBranch]="activeCommitHistoryBranch"
                           (onChooseBranch)="handleActiveBranchUpdate($event)"
                           (onClickCheckout)="checkout({branch:$event.hash,andPull:false},false)"></app-commit-history>
     </app-layout-card>

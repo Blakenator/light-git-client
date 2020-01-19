@@ -14,7 +14,6 @@ export class CommitHistoryComponent implements OnInit {
   @Input() commitHistory: CommitSummaryModel[];
   @Input() branches: BranchModel[];
   @Input() activeBranch: BranchModel;
-  @Output() activeBranchChange = new EventEmitter<BranchModel>();
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
   @Output() onScrollDown = new EventEmitter<any>();
   @Output() onClickCherryPick = new EventEmitter<CommitSummaryModel>();
@@ -58,10 +57,10 @@ export class CommitHistoryComponent implements OnInit {
     } else {
       result = this.commitHistory.filter(c => {
         const needle = this.commitFilter.toLowerCase();
-        return FilterPipe.fuzzyFilter(needle, c.message.toLowerCase()) ||
-          FilterPipe.fuzzyFilter(needle, c.authorName.toLowerCase()) ||
-          FilterPipe.fuzzyFilter(needle, c.authorEmail.toLowerCase()) ||
-          FilterPipe.fuzzyFilter(needle, c.authorDate.toString().toLowerCase()) ||
+        return FilterPipe.containsFilter(needle, c.message.toLowerCase()) ||
+          FilterPipe.containsFilter(needle, c.authorName.toLowerCase()) ||
+          FilterPipe.containsFilter(needle, c.authorEmail.toLowerCase()) ||
+          FilterPipe.containsFilter(needle, c.authorDate.toString().toLowerCase()) ||
           c.hash.indexOf(needle) >= 0;
       });
     }
@@ -124,7 +123,6 @@ export class CommitHistoryComponent implements OnInit {
   }
 
   setActiveBranch(b: any) {
-    this.activeBranchChange.emit(!this.activeBranch || b.name != this.activeBranch.name ? b : undefined);
-    this.onChooseBranch.emit(this.activeBranch);
+    this.onChooseBranch.emit(!this.activeBranch || b.name != this.activeBranch.name ? b : undefined);
   }
 }

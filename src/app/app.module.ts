@@ -5,12 +5,9 @@ import {BrowserModule} from '@angular/platform-browser';
 import {ErrorHandler, NgModule} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 
-import {HttpClient, HttpClientModule} from '@angular/common/http';
+import {HttpClientModule} from '@angular/common/http';
 
 import {AppRoutingModule} from './app-routing.module';
-// NG Translate
-import {TranslateLoader, TranslateModule} from '@ngx-translate/core';
-import {TranslateHttpLoader} from '@ngx-translate/http-loader';
 
 import {ElectronService} from './common/services/electron.service';
 
@@ -58,11 +55,6 @@ import {BranchChooserComponent} from './components/branch-chooser/branch-chooser
 import {PruneBranchComponent} from './components/dialogs/prune-branch/prune-branch.component';
 import {RestoreStashComponent} from './components/dialogs/restore-stash/restore-stash.component';
 import {AgeInfoComponent} from './common/components/age-info/age-info.component';
-
-// AoT requires an exported function for factories
-export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, './assets/i18n/', '.json');
-}
 
 @NgModule({
   declarations: [
@@ -112,13 +104,6 @@ export function HttpLoaderFactory(http: HttpClient) {
     AppRoutingModule,
     NgbModule,
     HighlightModule.forRoot(),
-    TranslateModule.forRoot({
-      loader: {
-        provide: TranslateLoader,
-        useFactory: (HttpLoaderFactory),
-        deps: [HttpClient],
-      },
-    }),
     NoopAnimationsModule,
     BrowserAnimationsModule,
     ScrollingModule,

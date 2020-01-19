@@ -3,10 +3,10 @@
        *ngIf="currentPath && (getFilteredChildren().length>0 || filteredLeaves.length>0)"
        class="folder"
        [ngbTooltip]="currentPath">
-    <i [ngClass]="{fa:true,'fa-caret-right':!showChildren,'fa-caret-down':showChildren}"></i>
+    <i [ngClass]="{fa:true,'fa-caret-right':!shouldShowChildren(),'fa-caret-down':shouldShowChildren()}"></i>
     <span>{{getDisplayPath()}}</span>
   </div>
-  <div *ngIf="showChildren" [ngClass]="{children:currentPath}">
+  <div *ngIf="shouldShowChildren()" [ngClass]="{children:currentPath}">
     <div *ngFor="let b of filteredLeaves" class="branch" [ngbTooltip]="b.name">
       <div *ngIf="isLocal">
         <div class="d-flex"
@@ -48,10 +48,10 @@
             </span>
           </div>
           <button class="btn btn-sm btn-secondary flex-grow-0 py-0 m-0 quick-actions-expand"
-                  [ngClass]="{'expanded':actionExpanded[b.name]}"
-                  (click)="actionExpanded[b.name]=!actionExpanded[b.name]">
+                  [ngClass]="{'expanded':isActionExpanded(b.name)}"
+                  (click)="toggleActionExpanded(b.name)">
             <span class="fa"
-                  [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
+                  [ngClass]="{'fa-ellipsis-h':!isActionExpanded(b.name),'fa-times':isActionExpanded(b.name)}"></span>
           </button>
         </div>
         <div *ngIf="isRenamingBranch(b)" class="input-group input-group-sm">
@@ -59,7 +59,8 @@
                  [autofocus]
                  (keyup.enter)="renameBranch(b.name)"
                  [placeholder]="b.name"
-                 [(ngModel)]="activeRenames[b.name]">
+                 [ngModel]="activeRenames.get(b.name)"
+                 (ngModelChange)="activeRenames.set(b.name,$event)">
           <div class="input-group-append">
             <button class="btn btn-sm btn-light"
                     ngbTooltip="Cancel rename"
@@ -75,7 +76,7 @@
         </div>
         <div *ngIf="!isRenamingBranch(b)"
              class="branch-button-bar text-right"
-             [ngClass]="{expanded:actionExpanded[b.name],'py-1':actionExpanded[b.name]}">
+             [ngClass]="{expanded:isActionExpanded(b.name),'py-1':isActionExpanded(b.name)}">
           <button class="btn btn-info btn-sm"
                   (click)="startRename(b.name)"
 
@@ -180,13 +181,13 @@
             </small>
           </div>
           <button class="btn btn-sm btn-secondary flex-grow-0 py-0 m-0 quick-actions-expand"
-                  (click)="actionExpanded[b.name]=!actionExpanded[b.name]">
+                  (click)="toggleActionExpanded(b.name)">
             <span class="fa"
-                  [ngClass]="{'fa-ellipsis-h':!actionExpanded[b.name],'fa-times':actionExpanded[b.name]}"></span>
+                  [ngClass]="{'fa-ellipsis-h':!isActionExpanded(b.name),'fa-times':isActionExpanded(b.name)}"></span>
           </button>
         </div>
         <div class="branch-button-bar text-right"
-             [ngClass]="{expanded:actionExpanded[b.name],'my-2':actionExpanded[b.name]}">
+             [ngClass]="{expanded:isActionExpanded(b.name),'my-2':isActionExpanded(b.name)}">
           <button class="btn btn-primary btn-sm mx-1"
                   (click)="checkoutBranch(b.name,false)"
                   *ngIf="!isRemoteAlreadyCheckedOut(b.name)">
@@ -224,9 +225,11 @@
                             (onBranchPremergeClicked)="onBranchPremergeClicked.emit($event)"
                             (onFastForwardClicked)="onFastForwardClicked.emit($event)"
                             (onMergeClicked)="onMergeClicked.emit($event)"
-                            [localBranches]="localBranches"
                             [worktrees]="worktrees"
-                            (onBranchRename)="onBranchRename.emit($event)"></app-branch-tree-item>
+                            (onBranchRename)="onBranchRename.emit($event)"
+                            [showChildrenMap]="showChildrenMap"
+                            [actionExpandedMap]="actionExpandedMap"
+                            [activeRenames]="activeRenames"></app-branch-tree-item>
     </div>
   </div>
 </div>

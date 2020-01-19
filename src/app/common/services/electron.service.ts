@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {ElectronResponse} from '../../../../shared/common/electron-response';
 
-const {ipcRenderer} = window.require('electron');
+const {ipcRenderer} = (window as any).require('electron');
 
 @Injectable()
 export class ElectronService {

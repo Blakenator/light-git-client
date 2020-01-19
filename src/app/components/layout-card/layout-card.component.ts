@@ -30,9 +30,9 @@ export class LayoutCardComponent implements OnInit {
   }
 
   ngOnInit() {
-    setTimeout(() => {
+    // setTimeout(() => {
       this.updateFlexBindings(this.header.getExpandState());
-    }, 50);
+    // }, 50);
   }
 
   updateFlexBindings(expanded: boolean) {
