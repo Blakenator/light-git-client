@@ -8,6 +8,7 @@ import {ErrorModel} from '../../../../shared/common/error.model';
 import {DiffHunkModel} from '../../../../shared/git/diff.hunk.model';
 import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
 import {ModalService} from '../../common/services/modal.service';
+import {JobSchedulerService} from '../../services/job-system/job-scheduler.service';
 
 @Component({
   selector: 'app-code-watcher-alerts',
@@ -25,6 +26,7 @@ export class CodeWatcherAlertsComponent implements OnInit {
               private codeWatcherService: CodeWatcherService,
               private errorService: ErrorService,
               private modalService: ModalService,
+              private jobSchedulerService: JobSchedulerService,
               private applicationRef: ApplicationRef) {
     codeWatcherService.onShowWatchers.asObservable().subscribe(request => this.checkFileWatchers(request));
   }
@@ -37,7 +39,7 @@ export class CodeWatcherAlertsComponent implements OnInit {
     if (request.forHeader) {
       this.parseDiffInformation([request.forHeader]);
     } else {
-      this.gitService.getFileDiff(['.'], ['.'])
+      this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getFileDiff(['.'], ['.'])).result
           .then((diff: DiffHeaderModel[]) => {
             this.parseDiffInformation(diff);
           })

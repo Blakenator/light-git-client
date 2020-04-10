@@ -11,6 +11,8 @@ import {DiffLineModel, LineState} from '../../../../shared/git/diff.line.model';
 import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
 import {ClipboardService} from '../../services/clipboard.service';
+import {JobSchedulerService} from '../../services/job-system/job-scheduler.service';
+import {Channels} from '../../../../shared/Channels';
 
 @Component({
   selector: 'app-diff-viewer',
@@ -37,6 +39,7 @@ export class DiffViewerComponent implements OnInit {
               private errorService: ErrorService,
               private codeWatcherService: CodeWatcherService,
               private gitService: GitService,
+              private jobSchedulerService: JobSchedulerService,
               public clipboardService: ClipboardService) {
   }
 
@@ -107,7 +110,7 @@ export class DiffViewerComponent implements OnInit {
       this.editingHunk = undefined;
       return;
     }
-    this.gitService.changeHunk(this.editingHeader.toFilename, this.editingHunk, this.editedText)
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.changeHunk(this.editingHeader.toFilename, this.editingHunk, this.editedText)).result
         .then(() => {
           this.onHunkChanged.emit();
           this.editingHeader = undefined;

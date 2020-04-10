@@ -7,7 +7,7 @@
       <i class="fa fa-plane"></i>
     </div>
     <app-settings class="nav-item"></app-settings>
-    <app-loading-spinner [show]="isLoading" class="nav-item mx-2" [keepSpacing]="true"></app-loading-spinner>
+    <app-loading-spinner [show]="jobSchedulerService.isRunning(tabService.getActiveTabData()?.cache.path)" class="nav-item mx-2" [keepSpacing]="true"></app-loading-spinner>
     <div class="tab-container btn-group nav-item flex-grow-1 pl"
          cdkDropListOrientation="horizontal"
          cdkDropList

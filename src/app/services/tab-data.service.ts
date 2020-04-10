@@ -2,6 +2,7 @@ import {Injectable} from '@angular/core';
 import {SettingsService} from './settings.service';
 import {RepositoryModel} from '../../../shared/git/Repository.model';
 import {BranchModel} from '../../../shared/git/Branch.model';
+import {JobSchedulerService} from './job-system/job-scheduler.service';
 
 @Injectable({
   providedIn: 'root',
@@ -13,7 +14,10 @@ export class TabDataService {
   private _remoteBranchMap: Map<string, Map<string, BranchModel>> = new Map();
   private _currentBranchMap:Map<string,BranchModel>=new Map();
 
-  constructor(private settingsService: SettingsService) {
+  constructor(private settingsService: SettingsService,private jobSchedulerService:JobSchedulerService) {
+    this.jobSchedulerService.onFinishQueue.subscribe(({affectedAreas,path})=>{
+      console.log(path,affectedAreas);
+    })
   }
 
   private _activeTab: number;

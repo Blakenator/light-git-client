@@ -33,6 +33,8 @@ import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 import {TabDataService} from '../../services/tab-data.service';
 import {EqualityUtil} from '../../common/equality.util';
+import {JobSchedulerService} from '../../services/job-system/job-scheduler.service';
+import {Job} from '../../services/job-system/models';
 
 @Component({
   selector: 'app-repo-view',
@@ -99,6 +101,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
               errorHandler: ErrorHandler,
               private _changeDetectorRef: ChangeDetectorRef,
               private tabDataService: TabDataService,
+              private jobSchedulerService: JobSchedulerService,
               private gitService: GitService) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
     this.gitService.onCommandHistoryUpdated.asObservable().pipe(takeUntil(this.$destroy)).subscribe(history => {
@@ -218,7 +221,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       this.getCommitHistory();
       this.getFileDiff(clearCommitInfo);
       this.loadingService.setLoading(true);
-      this.gitService.getFileChanges()
+      this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getFileChanges()).result
           .then(changes => this.handleFileChanges(changes, keepDiffCommitSelection))
           .catch(err => this.handleErrorMessage(new ErrorModel(
             this._errorClassLocation + 'getFileChanges',
@@ -230,7 +233,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   getBranchChanges() {
     // not simple
     this.loadingService.setLoading(true);
-    this.gitService.getBranchChanges()
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getBranchChanges()).result
         .then(changes => this.handleBranchChanges(changes))
         .catch(err => this.handleErrorMessage(new ErrorModel(
           this._errorClassLocation + 'getBranches',
@@ -340,7 +343,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       staged = ['.'];
     }
     this.loadingService.setLoading(true);
-    this.gitService.getFileDiff(unstaged, staged)
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getFileDiff(unstaged, staged)).result
         .then(diff => {
           this.diffHeaders = diff.sort((a, b) => {
             if (a.stagedState != b.stagedState) {
@@ -364,9 +367,9 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     this.loadingService.setLoading(true);
-    this.gitService.getCommitHistory(
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getCommitHistory(
       skip,
-      this.activeCommitHistoryBranch ? this.activeCommitHistoryBranch.name : undefined)
+      this.activeCommitHistoryBranch ? this.activeCommitHistoryBranch.name : undefined)).result
         .then(commits => {
           if (EqualityUtil.listsEqual(this.commitHistory, commits)) {
             return;
@@ -389,12 +392,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     this.loadingService.setLoading(true);
-    this.gitService.commit(
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.commit(
       this.changes.description.trim().length <= 0 && this._shouldAmendCommit ?
       this.tabDataService.getCurrentBranch().lastCommitText :
       this.changes.description,
       this.settingsService.settings.commitAndPush,
-      this._shouldAmendCommit)
+      this._shouldAmendCommit)).result
         .then(() => {
           this.changes.description = '';
           this.showDiff = false;
@@ -531,13 +534,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   addSubmodule(url: string, path: string) {
-    this.simpleOperation(this.gitService.addSubmodule(url, path), 'addSubmodule', 'adding the submodule');
+    this.simpleOperation(this.gitService.addSubmodule(
+      url,
+      path), 'addSubmodule', 'adding the submodule');
     this.clearSelectedChanges();
   }
 
   fetch(manualFetch: boolean = false) {
     this.loadingService.setLoading(true);
-    this.gitService.fetch()
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.fetch()).result
         .catch((err: string) => {
           if (err && err
               .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
@@ -560,7 +565,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   getCommandHistory() {
     this.loadingService.setLoading(true);
-    this.gitService.getCommandHistory()
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getCommandHistory()).result
         .then(history => {
           this.commandHistory = history;
           this.changeDetectorRef.detectChanges();
@@ -603,7 +608,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     this.loadingService.setLoading(true);
-    this.gitService.getCommitDiff(commit)
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getCommitDiff(commit)).result
         .then(diff => {
           this.diffHeaders = diff;
           this.showDiff = true;
@@ -619,7 +624,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   getBranchPremerge(branch: BranchModel) {
     this.loadingService.setLoading(true);
-    this.gitService.getBranchPremerge(branch.currentHash)
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getBranchPremerge(branch.currentHash)).result
         .then(diff => {
           this.diffHeaders = diff;
           this.showDiff = true;
@@ -641,12 +646,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   applyStash(index: number) {
-    this.simpleOperation(this.gitService.applyStash(index), 'applyStash', 'applying the stash');
+    this.simpleOperation(
+      this.gitService.applyStash(index),
+      'applyStash',
+      'applying the stash');
     this.clearSelectedChanges();
   }
 
   viewStash(index: number) {
-    this.gitService.getStashDiff(index)
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getStashDiff(index)).result
         .then(diff => {
           this.diffHeaders = diff;
           this.showDiff = true;
@@ -665,7 +673,10 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   deleteStash(index: number) {
     this.repo.stashes.splice(index, 1);
     this.repo.stashes.forEach((stash, i) => stash.index = i);
-    this.simpleOperation(this.gitService.deleteStash(index), 'deleteStash', 'deleting the stash');
+    this.simpleOperation(
+      this.gitService.deleteStash(index),
+      'deleteStash',
+      'deleting the stash');
     this.clearSelectedChanges();
   }
 
@@ -871,7 +882,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     }
   }
 
-  private simpleOperation(op: Promise<void>,
+  private simpleOperation(op: Job<void>,
                           functionName: string,
                           occurredWhile: string,
                           clearCommitInfo: boolean = false,
@@ -879,7 +890,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
                           rethrowException: boolean = false): Promise<void> {
     this.loadingService.setLoading(true);
     clearTimeout(this.debounceRefreshTimer);
-    return op.then(() => {
+    return this.jobSchedulerService.scheduleSimpleOperation(op).result.then(() => {
       if (fullRefresh) {
         this.getFullRefresh(clearCommitInfo);
       }
@@ -931,7 +942,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
                               this.tabDataService.activeRepoCache.path || this._repoPath);
     this.repo = this.tabDataService.activeRepoCache;
     this.loadingService.setLoading(true);
-    this.gitService.loadRepo(this._repoPath)
+    this.jobSchedulerService.scheduleSimpleOperation(this.gitService.loadRepo(this._repoPath)).result
         .then(repo => {
           if (repo.path !== this.tabDataService.activeRepoCache.path && this.tabDataService.activeRepoCache.path) {
             this.loadingService.setLoading(false);

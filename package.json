@@ -58,7 +58,8 @@
     "rxjs": "^6.5.3",
     "serialize-error": "^3.0.0",
     "tslib": "^1.10.0",
-    "universal-analytics": "^0.4.20"
+    "universal-analytics": "^0.4.20",
+    "uuid": "^7.0.3"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.900.0-rc.9",

@@ -9,6 +9,7 @@ import {LoadingService} from '../../services/loading.service';
 import {CdkDragDrop} from '@angular/cdk/drag-drop';
 import {TabDataService} from '../../services/tab-data.service';
 import {NgbTooltipConfig} from '@ng-bootstrap/ng-bootstrap';
+import {JobSchedulerService} from '../../services/job-system/job-scheduler.service';
 
 @Component({
     selector: 'app-home',
@@ -16,7 +17,6 @@ import {NgbTooltipConfig} from '@ng-bootstrap/ng-bootstrap';
     styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit {
-    isLoading = false;
     editingTab = -1;
     editedTabName = '';
 
@@ -27,6 +27,7 @@ export class HomeComponent implements OnInit {
                 private http: HttpClient,
                 private cd: ChangeDetectorRef,
                 public tabService: TabDataService,
+                public jobSchedulerService: JobSchedulerService,
                 private gitService: GitService,
                 config: NgbTooltipConfig) {
         config.container = 'body';
@@ -42,7 +43,6 @@ export class HomeComponent implements OnInit {
 
     ngOnInit() {
         this.loadingService.onLoadingChanged.subscribe(val => {
-            this.isLoading = val;
             this.cd.detectChanges();
         });
         this.settingsService.loadSettings(callback => {
