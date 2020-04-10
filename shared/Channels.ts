@@ -1,6 +1,10 @@
 export namespace Channels {
   export const GETFILECHANGES = "getFileChanges";
-  export const GETBRANCHES= "getBranches";
+  export const GETLOCALBRANCHES= "getLocalBranches";
+  export const GETREMOTEBRANCHES= "getRemoteBranches";
+  export const GETSUBMODULES= "getSubmodules";
+  export const GETWORKTREES= "getWorktrees";
+  export const GETSTASHES= "getStashes";
   export const MERGEBRANCH= "mergeBranch";
   export const CHANGEHUNK= "changeHunk";
   export const OPENDEVTOOLS= "openDevTools";

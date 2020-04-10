@@ -54,9 +54,3 @@ export class CommitSummaryModel {
     };
   }
 }
-
-export class CommitGraphNode {
-  public children: CommitGraphNode[] = [];
-  public hash = '';
-  public parents: CommitGraphNode[] = [];
-}

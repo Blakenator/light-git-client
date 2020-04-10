@@ -2,6 +2,9 @@ import {BranchModel} from './Branch.model';
 import {WorktreeModel} from './worktree.model';
 import {StashModel} from './stash.model';
 import {SubmoduleModel} from './submodule.model';
+import {CommitSummaryModel} from './CommitSummary.model';
+import {CommitModel} from './Commit.model';
+import * as _ from 'lodash';
 
 export class RepositoryModel {
   public name = '';
@@ -13,6 +16,8 @@ export class RepositoryModel {
   public worktrees: WorktreeModel[] = [];
   public stashes: StashModel[] = [];
   public submodules: SubmoduleModel[] = [];
+  public commitHistory: CommitSummaryModel[] = [];
+  public changes: CommitModel = new CommitModel();
 
   copy(obj: any | RepositoryModel): RepositoryModel {
     this.name = obj.name;
@@ -23,6 +28,8 @@ export class RepositoryModel {
     this.worktrees = (obj.worktrees || []).map(x => Object.assign(new WorktreeModel(), x || {}));
     this.stashes = (obj.stashes || []).map(x => Object.assign(new StashModel(), x || {}));
     this.submodules = (obj.submodules || []).map(x => Object.assign(new SubmoduleModel(), x || {}));
+    this.commitHistory = (obj.commitHistory || []).map(x => Object.assign(new CommitSummaryModel(), x || {}));
+    this.changes = ({...new CommitModel(), ..._.cloneDeep(obj)});
     return this;
   }
 }

@@ -72,7 +72,7 @@ export class SettingsComponent implements OnInit {
   }
 
   saveSettings() {
-    if (this.gitService.repo && this.gitService.repo.path) {
+    if (this.gitService.getRepo() && this.gitService.getRepo().path) {
       if (this.tempSettings.username != this.settingsService.settings.username ||
         this.tempSettings.email != this.settingsService.settings.email) {
         this.gitService.setBulkGitSettings({
@@ -121,7 +121,7 @@ export class SettingsComponent implements OnInit {
 
     this.tempSettings = this.settingsService.settings.clone();
     this.modalService.setModalVisible('settings', true);
-    if (this.gitService.repo) {
+    if (this.gitService.getRepo()) {
       this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getConfigItems())
           .result
           .then(configItems => {

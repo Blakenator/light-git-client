@@ -12,13 +12,13 @@ export class JobSchedulerService {
   private _isRunningMap = new Map<string, boolean>();
   private _affectedAreas: Set<RepoArea> = new Set<RepoArea>();
 
-  private _onFinishQueue = new Subject<{ affectedAreas: RepoArea[], path: string }>();
+  private _onFinishQueue = new Subject<{ affectedAreas: Set<RepoArea>, path: string }>();
   public onFinishQueue = this._onFinishQueue.asObservable();
   private _onStartQueue = new Subject<string>();
   public onStartQueue = this._onStartQueue.asObservable();
 
   scheduleSimpleOperation<T>(job: Job<T>) {
-    let operation = new Operation<T>({name: job.channel, jobs: [job]});
+    let operation = new Operation<T>({name: job.config.command, jobs: [job]});
     this.schedule(operation.jobs);
     return operation;
   }
@@ -43,38 +43,38 @@ export class JobSchedulerService {
       job.setStatus(JobStatus.SCHEDULED);
     });
 
-    this.start();
+    Promise.resolve().then(() => this.start());
   }
 
   start() {
-    this._queueMap.forEach((queue, path) => {
-      console.log(queue, path, this.isRunning(path));
+    this._queueMap.forEach(async (queue, path) => {
       if (!this.isRunning(path)) {
+        if (queue.length === 0) {
+          return;
+        }
         this._isRunningMap.set(path, true);
         this._onStartQueue.next(path);
-        this.executeNext(queue, path);
+        while (queue.length > 0) {
+          await this.executeNext(queue, path);
+        }
+          this._isRunningMap.set(path, false);
+          this._onFinishQueue.next({affectedAreas: this._affectedAreas, path});
+          this._affectedAreas = new Set<RepoArea>();
       }
     });
   }
 
   executeNext(queue: Job[], path: string) {
-    if (queue.length === 0) {
-      this._isRunningMap.set(path, false);
-      this._onFinishQueue.next({affectedAreas: Array.from(this._affectedAreas), path});
-      this._affectedAreas = new Set<RepoArea>();
-      return;
-    }
     const job = queue.shift();
 
     if (job.operation.status === JobStatus.FAILED) {
       job.setStatus(JobStatus.SKIPPED);
-      this.executeNext(queue, path);
-      return;
+      return Promise.resolve();
     }
 
     job.setStatus(JobStatus.IN_PROGRESS);
 
-    job.config.execute().then(result => {
+    return job.config.execute().then(result => {
       job.succeed(result);
       job.setStatus(JobStatus.SUCCEEDED);
       if (job.operation.jobs.every(j => j.status === JobStatus.SUCCEEDED)) {
@@ -89,8 +89,6 @@ export class JobSchedulerService {
       job.config.affectedAreas.forEach(area => {
         this._affectedAreas.add(area);
       });
-
-      this.executeNext(queue, path);
     });
   }
 

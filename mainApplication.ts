@@ -163,7 +163,7 @@ export class MainApplication extends GenericApplication {
 
   loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
     this.gitClients[repoPath] = new GitClient(repoPath);
-    this.loadedRepos[repoPath] = this.gitClients[repoPath].openRepo();
+    this.loadedRepos[repoPath] = this.gitClients[repoPath].checkIfGitRepo();
     this.gitClients[repoPath].onCommandExecuted.subscribe(
       history =>
         this.window.webContents.send(
@@ -383,8 +383,24 @@ export class MainApplication extends GenericApplication {
       this.handleGitPromise(this.gitClients[args[1]].pull(args[2]), event, args);
     });
 
-    ipcMain.on(Channels.GETBRANCHES, (event, args) => {
-      this.handleGitPromise(this.gitClients[args[1]].getBranches(args[1]), event, args);
+    ipcMain.on(Channels.GETSTASHES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getStashes(), event, args);
+    });
+
+    ipcMain.on(Channels.GETWORKTREES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getWorktrees(), event, args);
+    });
+
+    ipcMain.on(Channels.GETLOCALBRANCHES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getLocalBranches(), event, args);
+    });
+
+    ipcMain.on(Channels.GETREMOTEBRANCHES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getRemoteBranches(), event, args);
+    });
+
+    ipcMain.on(Channels.GETSUBMODULES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getSubmodules(), event, args);
     });
 
     ipcMain.on(Channels.MERGE, (event, args) => {

@@ -10,6 +10,15 @@ export enum RepoArea {
   WORKTREES='WORKTREES',
   SETTINGS='SETTINGS',
 }
+export const RepoAreaDefaults={
+  ALL:new Set([RepoArea.LOCAL_BRANCHES,
+    RepoArea.REMOTE_BRANCHES,
+    RepoArea.LOCAL_CHANGES,
+    RepoArea.STASHES,
+    RepoArea.SUBMODULES,
+    RepoArea.COMMIT_HISTORY,
+    RepoArea.WORKTREES])
+}
 
 export enum JobStatus {
   UNSCHEDULED='UNSCHEDULED',

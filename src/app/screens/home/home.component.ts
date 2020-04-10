@@ -47,13 +47,9 @@ export class HomeComponent implements OnInit {
         });
         this.settingsService.loadSettings(callback => {
             this.activeTab = this.settingsService.settings.activeTab;
-            this.tabService.tabData = this.settingsService.settings.tabNames.map((x, index) =>
-                this.tabService.getNewTab(
-                    this.settingsService.settings.openRepos[index],
-                    x || TabDataService.basename(this.settingsService.settings.openRepos[index])));
             this.tabService.initializeCache();
-            this.gitService.repo = this.tabService.activeRepoCache;
-            this.gitService.checkGitBashVersions();
+            this.jobSchedulerService.scheduleSimpleOperation(this.gitService.checkGitBashVersions());
+            this.jobSchedulerService.scheduleSimpleOperation(this.gitService.loadRepo(this.tabService.activeRepoCache.path));
         });
     }
 
@@ -66,7 +62,7 @@ export class HomeComponent implements OnInit {
 
     addTab(path: string = '') {
         this.activeTab = this.tabService.tabCount();
-        this.tabService.tabData.push(this.tabService.getNewTab(path, TabDataService.basename(path)));
+        this.tabService.tabData.push({path,name: TabDataService.basename(path)});
         if (path) {
             setTimeout(() => {
                 this.loadRepo(path);
@@ -88,9 +84,9 @@ export class HomeComponent implements OnInit {
     }
 
     loadRepo(path: string) {
-        if (!this.tabService.getActiveTabData().cache.path || this.tabService.getActiveTabData().cache.path === path) {
-            this.tabService.updateTabData(this.tabService.getNewTab(path).cache);
-            this.tabService.updateTabName(TabDataService.basename(path));
+        if (!this.tabService.getActiveTabData().path || this.tabService.getActiveTabData().path === path) {
+            // this.tabService.updateTabData(this.tabService.getNewTab(path).cache);
+            // this.tabService.updateTabName(TabDataService.basename(path));
             this.saveOpenRepos();
         }
     }
@@ -98,10 +94,9 @@ export class HomeComponent implements OnInit {
     saveOpenRepos() {
         this.settingsService.settings.activeTab = this.activeTab;
         this.settingsService.settings.tabNames = this.tabService.tabData.map(t => t.name);
-        this.settingsService.settings.openRepos = this.tabService.tabData.map(t => t.cache.path);
+        this.settingsService.settings.openRepos = this.tabService.tabData.map(t => t.path);
         this.editingTab = -1;
         this.editedTabName = '';
-        this.gitService.repo = this.tabService.activeRepoCache;
         this.settingsService.saveSettings();
     }
 
@@ -113,7 +108,7 @@ export class HomeComponent implements OnInit {
 
     repoLoadFailed($event: ErrorModel) {
         this.errorService.receiveError($event);
-        this.tabService.updateTabData(this.tabService.getNewTab('').cache);
+        // this.tabService.updateTabData(this.tabService.getNewTab('').cache);
         this.cd.detectChanges();
     }
 

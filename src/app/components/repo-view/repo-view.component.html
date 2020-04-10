@@ -1,9 +1,9 @@
-<head *ngIf="repo">
+<head *ngIf="this.getRepo()">
   <title>{{tabDataService.getActiveTabData().name}} - {{getCurrentBranch()?.name}} - Light Git</title>
 </head>
-<div *ngIf="repo" (focus)="getFullRefresh(false)" class="row full-width bg-light-mode">
+<div *ngIf="this.getRepo()" (focus)="getFullRefresh()" class="row full-width bg-light-mode">
   <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
-    <h1>{{repo.name}}
+    <h1>{{this.getRepo().name}}
       <span class="d-inline-block btn-group">
         <button class="btn btn-primary"
                 (click)="openTerminal()"
@@ -12,7 +12,7 @@
                 (click)="openFolder()"
                 ngbTooltip="Open Folder at Repo Root"><i class="fas fa-folder-open"></i></button>
         <button class="btn btn-primary"
-                (click)="getFullRefresh(false,false,true)"
+                (click)="getFullRefresh()"
                 ngbTooltip="Refresh All Changes (local and remote)"><i class="fas fa-sync-alt"></i></button>
         <button class="btn btn-warning"
                 (click)="showModal('discardAllModal')"
@@ -48,7 +48,7 @@
       </ng-template>
       <app-branch-tree-item [isLocal]="true"
                             [filter]="localBranchFilter"
-                            [branches]="repo.localBranches"
+                            [branches]="this.getRepo().localBranches"
                             (onCheckoutClicked)="checkout($event,false)"
                             (onPushClicked)="push($event,false)"
                             (onForcePushClicked)="push($event,true)"
@@ -58,7 +58,7 @@
                             (onMergeClicked)="startMerge($event)"
                             (onFastForwardClicked)="fastForwardBranch($event)"
                             (onBranchPremergeClicked)="getBranchPremerge($event)"
-                            [worktrees]="repo.worktrees"
+                            [worktrees]="this.getRepo().worktrees"
                             (onBranchRename)="renameBranch($event)"></app-branch-tree-item>
     </app-layout-card>
     <app-layout-card [headerContent]="remoteHeader"
@@ -73,10 +73,10 @@
       </ng-template>
       <app-branch-tree-item [isLocal]="false"
                             [filter]="remoteBranchFilter"
-                            [branches]="repo.remoteBranches"
+                            [branches]="this.getRepo().remoteBranches"
                             (onCheckoutClicked)="checkout($event,true)"
                             (onDeleteClicked)="markDeleteBranch($event)"
-                            [worktrees]="repo.worktrees"></app-branch-tree-item>
+                            [worktrees]="this.getRepo().worktrees"></app-branch-tree-item>
     </app-layout-card>
     <app-layout-card [headerContent]="worktreeHeader"
                      iconClass="fa fa-copy"
@@ -93,7 +93,7 @@
         </button>
       </ng-template>
       <div class="card-body">
-        <div *ngFor="let w of repo.worktrees | filterObject : 'name' : worktreeFilter" class="d-flex">
+        <div *ngFor="let w of this.getRepo().worktrees | filterObject : 'name' : worktreeFilter" class="d-flex">
           <span [ngbTooltip]="w.path"
                 [ngClass]="{'bold':w.isCurrent}"
                 class="flex-grow-1">
@@ -157,7 +157,7 @@
         </div>
       </ng-template>
       <div class="card-body">
-        <div *ngFor="let w of repo.submodules | filterObject : 'path' : submoduleFilter" class="d-flex">
+        <div *ngFor="let w of this.getRepo().submodules | filterObject : 'path' : submoduleFilter" class="d-flex">
           <span [ngbTooltip]="w.path" class="flex-grow-1">
             <span class="badge badge-light badge-pill" *ngFor="let r of w.path.split('/');let i=index">
               {{r}}
@@ -167,7 +167,7 @@
           <div class="flex-grow-0 d-flex">
             <button class="btn btn-primary btn-sm"
                     ngbTooltip="Open in New Tab"
-                    (click)="onOpenRepoNewTab.emit(repo.path+'/'+w.path)">
+                    (click)="onOpenRepoNewTab.emit(this.getRepo().path+'/'+w.path)">
               <i class="fa fa-external-link-square-alt"></i>
             </button>
             <button class="btn btn-warning btn-sm"
@@ -203,7 +203,7 @@
         </button>
       </ng-template>
       <div class="card-body">
-        <div *ngFor="let s of repo.stashes | filterObject : getStashFilterText : stashFilter" class="d-flex">
+        <div *ngFor="let s of this.getRepo().stashes | filterObject : getStashFilterText : stashFilter" class="d-flex">
           <div class="stash-message flex-grow-1">
             <span class="badge badge-info">{{s.index}}</span>
             : {{s.message}}
@@ -258,13 +258,16 @@
     </app-layout-card>
   </div>
   <div class="col-sm col-md-4 d-flex flex-column mb-1 repo-column">
-    <div *ngIf="changes" class="flex-grow-1 d-flex flex-column">
+    <div *ngIf="this.getRepo().changes" class="flex-grow-1 d-flex flex-column">
       <app-layout-card [headerContent]="stagedChangesHeader"
                        expandKey="staged"
                        [style.minHeight]="'25vh'"
                        cardTitle="Staged Changes">
         <ng-template #stagedChangesHeader>
-          <span class="badge badge-pill badge-light py-1 px-2 m-1">{{changes.stagedChanges.length}}</span>
+          <span class="badge badge-pill badge-light py-1 px-2 m-1">{{this.getRepo().changes.stagedChanges.length}}</span>
+          <input class="mx-1 form-control"
+                 placeholder="Filter..."
+                 [(ngModel)]="stagedChangesFilter">
           <div class="btn-group-sm btn-group mx-2">
             <button class="btn btn-secondary" (click)="unstageAll()" ngbTooltip="Unstage All">
               <i class="fa fa-angle-double-down"></i></button>
@@ -273,9 +276,6 @@
                     ngbTooltip="Unstage Selected">
               <i class="fa fa-angle-down"></i></button>
           </div>
-          <input class="mx-1 form-control"
-                 placeholder="Filter..."
-                 [(ngModel)]="stagedChangesFilter">
           <div class="btn-group btn-group-sm mx-1">
             <button class="btn btn{{ settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
                     (click)="setFilenameSplit(true)">Split
@@ -295,13 +295,13 @@
             <i class="fa fa-trash"></i>
           </button>
         </ng-template>
-        <app-change-list [changes]="changes.stagedChanges"
+        <app-change-list [changes]="this.getRepo().changes.stagedChanges"
                          (onSelectChanged)="selectionChanged($event,true)"
                          (onUndoFileClicked)="confirmUndo($event)"
                          (onMergeClicked)="merge($event)"
                          (onResolveClicked)="resolveConflictsUsing($event.file,$event.theirs)"
                          (onDeleteClicked)="deleteFiles($event)"
-                         [submodules]="repo.submodules"
+                         [submodules]="this.getRepo().submodules"
                          (onUndoSubmoduleClicked)="undoSubmoduleChanges([$event])"
                          [changeFilter]="stagedChangesFilter"></app-change-list>
       </app-layout-card>
@@ -310,7 +310,10 @@
                        [style.minHeight]="'25vh'"
                        cardTitle="Unstaged Changes">
         <ng-template #unstagedHeader>
-          <span class="badge badge-pill badge-light py-1 px-2 m-1">{{changes.unstagedChanges.length}}</span>
+          <span class="badge badge-pill badge-light py-1 px-2 m-1">{{this.getRepo().changes.unstagedChanges.length}}</span>
+          <input class="mx-1 form-control"
+                 placeholder="Filter..."
+                 [(ngModel)]="unstagedChangesFilter">
           <div class="btn-group-sm btn-group mx-2">
             <button class="btn btn-secondary" (click)="stageAll()" ngbTooltip="Stage All">
               <i class="fa fa-angle-double-up"></i>
@@ -318,9 +321,6 @@
             <button class="btn btn-secondary" (click)="stageSelected()" ngbTooltip="Stage Selected">
               <i class="fa fa-angle-up"></i></button>
           </div>
-          <input class="mx-1 form-control"
-                 placeholder="Filter..."
-                 [(ngModel)]="unstagedChangesFilter">
           <div class="btn-group btn-group-sm mx-1">
             <button class="btn btn{{ settingsService.settings.splitFilenameDisplay?'-primary':'-secondary' }}"
                     (click)="setFilenameSplit(true)">Split
@@ -340,13 +340,13 @@
             <i class="fa fa-trash"></i>
           </button>
         </ng-template>
-        <app-change-list [changes]="changes.unstagedChanges"
+        <app-change-list [changes]="this.getRepo().changes.unstagedChanges"
                          (onSelectChanged)="selectionChanged($event,false)"
                          (onUndoFileClicked)="undoFileChanges([$event],false)"
                          (onMergeClicked)="merge($event)"
                          (onResolveClicked)="resolveConflictsUsing($event.file,$event.theirs)"
                          (onDeleteClicked)="deleteFiles($event)"
-                         [submodules]="repo.submodules"
+                         [submodules]="this.getRepo().submodules"
                          (onUndoSubmoduleClicked)="undoSubmoduleChanges([$event])"
                          [changeFilter]="unstagedChangesFilter"></app-change-list>
       </app-layout-card>
@@ -362,7 +362,7 @@
           <div class="dropup flex-grow-1 mt-1 position-relative">
             <div class="input-group">
               <textarea class="form-control"
-                        [(ngModel)]="changes.description"
+                        [(ngModel)]="this.getRepo().changes.description"
                         placeholder="Commit message"
                         (blur)="cancelSuggestions()"
                         (keyup.control.enter)="startCommit(false)"
@@ -432,18 +432,17 @@
       <div class="card-body" *ngIf="showDiff">
         <app-diff-viewer [diffHeaders]="diffHeaders"
                          [diffCommitInfo]="diffCommitInfo"
-                         (onHunkChanged)="getFullRefresh(false,false)"
                          (onHunkChangeError)="hunkChangeError($event)"
                          (onIngoreWhitespaceClicked)="getFileDiff()"
                          (onExitCommitClicked)="leaveCommitDiff()"
                          (onNavigateToHash)="viewCommitDiff($event)"></app-diff-viewer>
       </div>
-      <app-commit-history [commitHistory]="commitHistory"
+      <app-commit-history [commitHistory]="this.getRepo().commitHistory"
                           *ngIf="!showDiff"
                           (onClickCommitDiff)="viewCommitDiff($event.hash)"
                           (onClickCherryPick)="cherryPickCommit($event)"
-                          (onScrollDown)="getCommitHistory(commitHistory.length)"
-                          [branches]="repo.localBranches"
+                          (onScrollDown)="getCommitHistory(this.getRepo().commitHistory.length)"
+                          [branches]="this.getRepo().localBranches"
                           [activeBranch]="activeCommitHistoryBranch"
                           (onChooseBranch)="handleActiveBranchUpdate($event)"
                           (onClickCheckout)="checkout({branch:$event.hash,andPull:false},false)"></app-commit-history>
@@ -470,9 +469,8 @@
                    (onClickOk)="createStash($event)"></app-input-modal>
   <app-code-watcher-alerts (onCommitClicked)="commit()"></app-code-watcher-alerts>
   <app-add-worktree [uidSalt]="repoViewUid"
-                    [branches]="repo.remoteBranches"
-                    [worktrees]="repo.worktrees"
-                    (onAddWorktree)="getFullRefresh(false)"></app-add-worktree>
+                    [branches]="this.getRepo().remoteBranches"
+                    [worktrees]="this.getRepo().worktrees"></app-add-worktree>
   <app-add-submodule [uidSalt]="repoViewUid"
                      (onAddClicked)="addSubmodule($event.url,$event.path)"></app-add-submodule>
   <app-confirm-modal modalTitle="Confirm Discard All"
@@ -488,7 +486,7 @@
              (onCancel)="activeSubmodule=null"
              (onFinish)="activeSubmodule=null">
     <div *ngIf="activeSubmodule">
-      <app-repo-view [repoPath]="repo.path+'/'+ activeSubmodule.path"
+      <app-repo-view [repoPath]="this.getRepo().path+'/'+ activeSubmodule.path"
                      [isNested]="true"
                      (onOpenRepoNewTab)="onOpenRepoNewTab.emit($event)"
                      (onLoadRepoFailed)="onLoadRepoFailed.emit($event)"></app-repo-view>
@@ -500,7 +498,7 @@
     Are you sure you want to undo both <i>unstaged and staged</i> changes?<br/>
     <b>This cannot be undone</b>
   </app-confirm-modal>
-  <app-prune-branch [localBranches]="repo.localBranches" (onConfirm)="doPrune($event)" [repoViewUid]="repoViewUid">
+  <app-prune-branch [localBranches]="this.getRepo().localBranches" (onConfirm)="doPrune($event)" [repoViewUid]="repoViewUid">
   </app-prune-branch>
   <app-confirm-modal [modalTitle]="'Confirm Delete '+(activeDeleteBranch && activeDeleteBranch.isRemote?'Remote':'Local')+' Branch'"
                      (onConfirm)="deleteBranch()"
@@ -512,6 +510,6 @@
                     [activeMergeInfo]="activeMergeInfo"
                     (onCancel)="cancelMerge()"
                     (onFinish)="mergeBranch()"
-                    [locals]="repo.localBranches"></app-merge-branch>
+                    [locals]="this.getRepo().localBranches"></app-merge-branch>
   <app-restore-stash [repoViewUid]="repoViewUid"></app-restore-stash>
 </div>

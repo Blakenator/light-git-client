@@ -1,7 +1,6 @@
 import {Injectable} from '@angular/core';
 import {Subject} from 'rxjs';
 import {JobSchedulerService} from './job-system/job-scheduler.service';
-import {TabDataService} from './tab-data.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,20 +8,20 @@ import {TabDataService} from './tab-data.service';
 export class LoadingService {
   private _loading = new Subject<boolean>();
 
-  private _isLoading = false;
-
-  constructor(private jobSchedulerService: JobSchedulerService, private tabDataService: TabDataService) {
+  constructor(private jobSchedulerService: JobSchedulerService) {
     jobSchedulerService.onFinishQueue.subscribe(({path}) => {
       // if (tabDataService.activeRepoCache.path === path) {
-        this._loading.next(false);
+      this._loading.next(false);
       // }
     });
     jobSchedulerService.onStartQueue.subscribe((path) => {
       // if (tabDataService.activeRepoCache.path === path) {
-        this._loading.next(true);
+      this._loading.next(true);
       // }
     });
   }
+
+  private _isLoading = false;
 
   public get isLoading() {
     return this._isLoading;
@@ -33,7 +32,7 @@ export class LoadingService {
   }
 
   public setLoading(val: boolean) {
-    this._isLoading = val;
-    this._loading.next(val);
+    // this._isLoading = val;
+    // this._loading.next(val);
   }
 }

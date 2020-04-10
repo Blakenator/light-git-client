@@ -7,14 +7,14 @@
       <i class="fa fa-plane"></i>
     </div>
     <app-settings class="nav-item"></app-settings>
-    <app-loading-spinner [show]="jobSchedulerService.isRunning(tabService.getActiveTabData()?.cache.path)" class="nav-item mx-2" [keepSpacing]="true"></app-loading-spinner>
+    <app-loading-spinner [show]="jobSchedulerService.isRunning(tabService.getActiveTabData()?.path)" class="nav-item mx-2" [keepSpacing]="true"></app-loading-spinner>
     <div class="tab-container btn-group nav-item flex-grow-1 pl"
          cdkDropListOrientation="horizontal"
          cdkDropList
          (cdkDropListDropped)="moveTab($event)">
       <button *ngFor="let tab of tabService.tabData; let t = index"
               (click)="changeTab(t)"
-              [ngbTooltip]="tab.cache.path"
+              [ngbTooltip]="tab.path"
               placement="bottom"
               container="body"
               cdkDrag
@@ -57,10 +57,9 @@
   </nav>
   <div class="main-body flex-grow-1">
     <div *ngIf="activeTab>=0">
-      <app-new-tab-page (onReady)="loadRepo($event)"
-                        *ngIf="!getActiveTabData()?.cache.path"></app-new-tab-page>
-      <app-repo-view *ngIf="getActiveTabData()?.cache.path"
-                     [repoPath]="getActiveTabData()?.cache.path"
+      <app-new-tab-page *ngIf="!getActiveTabData()?.path"></app-new-tab-page>
+      <app-repo-view *ngIf="getActiveTabData()?.path"
+                     [repoPath]="getActiveTabData()?.path"
                      (onLoadRepoFailed)="repoLoadFailed($event)"
                      (onOpenRepoNewTab)="addTab($event)"></app-repo-view>
     </div>

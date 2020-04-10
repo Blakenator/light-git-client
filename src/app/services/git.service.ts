@@ -1,6 +1,5 @@
 import {Injectable} from '@angular/core';
 import {Channels} from '../../../shared/Channels';
-import {RepositoryModel} from '../../../shared/git/Repository.model';
 import {ElectronService} from '../common/services/electron.service';
 import {ConfigItemModel} from '../../../shared/git/config-item.model';
 import {DiffHeaderModel} from '../../../shared/git/diff.header.model';
@@ -19,16 +18,18 @@ import {SubmoduleModel} from '../../../shared/git/submodule.model';
 import {CrlfListener} from './warning-listeners/crlf.listener';
 import {RemoteMessageListener} from './warning-listeners/remote-message.listener';
 import {SubmoduleCheckoutListener} from './warning-listeners/submodule-checkout.listener';
-import {TabDataService} from './tab-data.service';
 import {Job, JobConfig, RepoArea} from './job-system/models';
+import {WorktreeModel} from '../../../shared/git/worktree.model';
+import {StashModel} from '../../../shared/git/stash.model';
+import {TabDataService} from './tab-data.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GitService {
-  public repo: RepositoryModel;
   public onCommandHistoryUpdated = new Subject<CommandHistoryModel[]>();
   public isRepoLoaded = false;
+  public tabDataService: TabDataService;
   private _onCrlfError = new Subject<{ start: string, end: string }>();
   public readonly onCrlfError = this._onCrlfError.asObservable();
   private _onRemoteMessage = new Subject<NotificationModel>();
@@ -41,10 +42,13 @@ export class GitService {
   constructor(private electronService: ElectronService,
               private errorService: ErrorService,
               private settingsService: SettingsService,
-              private alertService: AlertService,
-  private tabDataService:TabDataService) {
+              private alertService: AlertService) {
     electronService.listen(Channels.COMMANDHISTORYCHANGED, resp => this.onCommandHistoryUpdated.next(resp));
     this._onRemoteMessage.asObservable().subscribe(notification => this.alertService.showNotification(notification));
+  }
+
+  public getRepo() {
+    return this.tabDataService.activeRepoCache;
   }
 
   handleAirplaneMode<T>(promise: Promise<T>, airplaneDefault?: T) {
@@ -60,7 +64,7 @@ export class GitService {
       affectedAreas: [],
       command: Channels.GETCONFIGITEMS,
       reorderable: true,
-      execute: () => this.electronService.rpc(Channels.GETCONFIGITEMS, [this.repo.path]),
+      execute: () => this.electronService.rpc(Channels.GETCONFIGITEMS, [this.getRepo().path]),
     });
   }
 
@@ -71,13 +75,13 @@ export class GitService {
       result.push(this.getJob({
         affectedAreas: [RepoArea.SETTINGS],
         command: Channels.SETCONFIGITEM,
-        execute: () => this.electronService.rpc(Channels.SETCONFIGITEM, [this.repo.path, rename]),
+        execute: () => this.electronService.rpc(Channels.SETCONFIGITEM, [this.getRepo().path, rename]),
       }));
     }
     result.push(this.getJob({
       affectedAreas: [RepoArea.SETTINGS],
       command: Channels.SETCONFIGITEM,
-      execute: () => this.electronService.rpc(Channels.SETCONFIGITEM, [this.repo.path, item]),
+      execute: () => this.electronService.rpc(Channels.SETCONFIGITEM, [this.getRepo().path, item]),
     }));
     return result;
   }
@@ -86,12 +90,12 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.LOCAL_CHANGES, RepoArea.COMMIT_HISTORY],
       command: Channels.MERGEBRANCH,
-      execute: () => this.swallowError(this.electronService.rpc(Channels.MERGEBRANCH, [this.repo.path, branch])),
+      execute: () => this.swallowError(this.electronService.rpc(Channels.MERGEBRANCH, [this.getRepo().path, branch])),
     });
   }
 
   addWorktree(location: string, branch: string, callback: (out: string, err: string, done: boolean) => any) {
-    this.electronService.rpc(Channels.ADDWORKTREE, [this.repo.path, location, branch], false);
+    this.electronService.rpc(Channels.ADDWORKTREE, [this.getRepo().path, location, branch], false);
     this.electronService.listen(Channels.ADDWORKTREE, (result: { out: string, err: string, done: boolean }) => {
       callback(result.out, result.err, result.done);
       if (result.done) {
@@ -117,7 +121,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_CHANGES],
       command: Channels.CHANGEHUNK,
-      execute: () => this.electronService.rpc(Channels.CHANGEHUNK, [this.repo.path, filename, hunk, changedText]),
+      execute: () => this.electronService.rpc(Channels.CHANGEHUNK, [this.getRepo().path, filename, hunk, changedText]),
     });
   }
 
@@ -125,7 +129,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_CHANGES],
       command: Channels.APPLYSTASH,
-      execute: () => this.electronService.rpc(Channels.APPLYSTASH, [this.repo.path, index]),
+      execute: () => this.electronService.rpc(Channels.APPLYSTASH, [this.getRepo().path, index]),
     });
   }
 
@@ -133,7 +137,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.STASHES],
       command: Channels.DELETESTASH,
-      execute: () => this.electronService.rpc(Channels.DELETESTASH, [this.repo.path, index]),
+      execute: () => this.electronService.rpc(Channels.DELETESTASH, [this.getRepo().path, index]),
     });
   }
 
@@ -144,7 +148,7 @@ export class GitService {
       reorderable: true,
       execute: () => this.handleAirplaneMode(this.electronService.rpc(
         Channels.UPDATESUBMODULES,
-        [this.repo.path, recursive, branch])),
+        [this.getRepo().path, recursive, branch])),
     });
   }
 
@@ -154,7 +158,7 @@ export class GitService {
       command: Channels.ADDSUBMODULE,
       execute: () => this.handleAirplaneMode(this.electronService.rpc(
         Channels.ADDSUBMODULE,
-        [this.repo.path, url, path])),
+        [this.getRepo().path, url, path])),
     });
   }
 
@@ -164,7 +168,7 @@ export class GitService {
       command: Channels.GETFILEDIFF,
       reorderable: true,
       execute: () => this._crlfListener.detect(
-        this.electronService.rpc(Channels.GETFILEDIFF, [this.repo.path, unstaged, staged]),
+        this.electronService.rpc(Channels.GETFILEDIFF, [this.getRepo().path, unstaged, staged]),
         false),
     });
   }
@@ -174,7 +178,7 @@ export class GitService {
       affectedAreas: [],
       command: Channels.GETBRANCHPREMERGE,
       reorderable: true,
-      execute: () => this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.repo.path, branchHash]),
+      execute: () => this.electronService.rpc(Channels.GETBRANCHPREMERGE, [this.getRepo().path, branchHash]),
     });
   }
 
@@ -183,7 +187,9 @@ export class GitService {
       affectedAreas: [],
       command: Channels.GETCOMMITHISTORY,
       reorderable: true,
-      execute: () => this.electronService.rpc(Channels.GETCOMMITHISTORY, [this.repo.path, 300, skip, activeBranch]),
+      execute: () => this.electronService.rpc(
+        Channels.GETCOMMITHISTORY,
+        [this.getRepo().path, 300, skip, activeBranch]),
     });
   }
 
@@ -192,7 +198,7 @@ export class GitService {
       affectedAreas: [],
       command: Channels.GETDELETEDSTASHES,
       reorderable: true,
-      execute: () => this.electronService.rpc(Channels.GETDELETEDSTASHES, [this.repo.path]),
+      execute: () => this.electronService.rpc(Channels.GETDELETEDSTASHES, [this.getRepo().path]),
     });
   }
 
@@ -200,30 +206,23 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_BRANCHES],
       command: Channels.RESTOREDELETEDSTASH,
-      execute: () => this.electronService.rpc(Channels.RESTOREDELETEDSTASH, [this.repo.path, stashHash]),
+      execute: () => this.electronService.rpc(Channels.RESTOREDELETEDSTASH, [this.getRepo().path, stashHash]),
     });
   }
 
-  loadRepo(repoPath: string): Job<RepositoryModel> {
-    this.repo = new RepositoryModel();
-    this.repo.path = repoPath;
+  loadRepo(repoPath: string): Job<void> {
     return this.getJob({
       affectedAreas: [
         RepoArea.LOCAL_BRANCHES,
+        RepoArea.REMOTE_BRANCHES,
         RepoArea.STASHES,
         RepoArea.COMMIT_HISTORY,
-        RepoArea.REMOTE_BRANCHES,
+        RepoArea.LOCAL_CHANGES,
         RepoArea.WORKTREES,
-
         RepoArea.SUBMODULES,
       ],
       command: Channels.LOADREPO,
-      execute: () => this.electronService.rpc(Channels.LOADREPO, [repoPath]).then(repo => {
-        this.repo.copy(repo);
-        this.isRepoLoaded = true;
-        this._repoLoaded.next();
-        return Promise.resolve(this.repo);
-      }),
+      execute: () => this.electronService.rpc(Channels.LOADREPO, [repoPath]),
     });
   }
 
@@ -232,7 +231,7 @@ export class GitService {
       affectedAreas: [],
       command: Channels.COMMITDIFF,
       reorderable: true,
-      execute: () => this.electronService.rpc(Channels.COMMITDIFF, [this.repo.path, hash]),
+      execute: () => this.electronService.rpc(Channels.COMMITDIFF, [this.getRepo().path, hash]),
     });
   }
 
@@ -240,7 +239,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [],
       command: Channels.STASHDIFF,
-      execute: () => this.electronService.rpc(Channels.STASHDIFF, [this.repo.path, stashIndex]),
+      execute: () => this.electronService.rpc(Channels.STASHDIFF, [this.getRepo().path, stashIndex]),
     });
   }
 
@@ -248,7 +247,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_CHANGES, RepoArea.COMMIT_HISTORY],
       command: Channels.CHERRYPICKCOMMIT,
-      execute: () => this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.repo.path, hash]),
+      execute: () => this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [this.getRepo().path, hash]),
     });
   }
 
@@ -258,17 +257,17 @@ export class GitService {
       command: Channels.FASTFORWARDBRANCH,
       execute: () => this.handleAirplaneMode(this.electronService.rpc(
         Channels.FASTFORWARDBRANCH,
-        [this.repo.path, branch])),
+        [this.getRepo().path, branch])),
     });
   }
 
   checkout(branchOrHash: string, toNewBranch: boolean, andPull: boolean = false): Job<void> {
     return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.LOCAL_CHANGES],
+      affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.LOCAL_CHANGES,RepoArea.COMMIT_HISTORY],
       command: Channels.CHECKOUT,
       execute: () => this._submoduleCheckoutListener.detect(this.electronService.rpc(
         Channels.CHECKOUT,
-        [this.repo.path, branchOrHash, toNewBranch, andPull]), true),
+        [this.getRepo().path, branchOrHash, toNewBranch, andPull]), true),
     });
   }
 
@@ -278,7 +277,7 @@ export class GitService {
       command: Channels.PULL,
       execute: () => this.handleAirplaneMode(this._submoduleCheckoutListener.detect(this.electronService.rpc(
         Channels.PULL,
-        [this.repo.path, force]), true)),
+        [this.getRepo().path, force]), true)),
     });
   }
 
@@ -288,7 +287,7 @@ export class GitService {
       command: Channels.PUSH,
       execute: () => this._remoteMessageListener.detect(this.handleAirplaneMode(this.electronService.rpc(
         Channels.PUSH,
-        [this.repo.path, branch, force])), true),
+        [this.getRepo().path, branch, force])), true),
     });
   }
 
@@ -296,7 +295,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_CHANGES],
       command: Channels.DELETEFILES,
-      execute: () => this.electronService.rpc(Channels.DELETEFILES, [this.repo.path, files]),
+      execute: () => this.electronService.rpc(Channels.DELETEFILES, [this.getRepo().path, files]),
     });
   }
 
@@ -304,7 +303,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.SETTINGS],
       command: Channels.SETGITSETTINGS,
-      execute: () => this.electronService.rpc(Channels.SETGITSETTINGS, [this.repo.path, config, useGlobal]),
+      execute: () => this.electronService.rpc(Channels.SETGITSETTINGS, [this.getRepo().path, config, useGlobal]),
     });
   }
 
@@ -338,7 +337,7 @@ export class GitService {
       affectedAreas: [RepoArea.LOCAL_CHANGES],
       command: Channels.GITSTAGE,
       execute: () => this._crlfListener.detect(
-        this.electronService.rpc(Channels.GITSTAGE, [this.repo.path, files]),
+        this.electronService.rpc(Channels.GITSTAGE, [this.getRepo().path, files]),
         true),
     });
   }
@@ -348,7 +347,7 @@ export class GitService {
       affectedAreas: [RepoArea.LOCAL_CHANGES],
       command: Channels.GITUNSTAGE,
       execute: () => this._crlfListener.detect(
-        this.electronService.rpc(Channels.GITUNSTAGE, [this.repo.path, files]),
+        this.electronService.rpc(Channels.GITUNSTAGE, [this.getRepo().path, files]),
         true),
     });
   }
@@ -357,7 +356,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.COMMIT_HISTORY],
       command: Channels.CREATEBRANCH,
-      execute: () => this.electronService.rpc(Channels.CREATEBRANCH, [this.repo.path, branchName]),
+      execute: () => this.electronService.rpc(Channels.CREATEBRANCH, [this.getRepo().path, branchName]),
     });
   }
 
@@ -365,7 +364,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.COMMIT_HISTORY],
       command: Channels.DELETEBRANCH,
-      execute: () => this.electronService.rpc(Channels.DELETEBRANCH, [this.repo.path, branches]),
+      execute: () => this.electronService.rpc(Channels.DELETEBRANCH, [this.getRepo().path, branches]),
     });
   }
 
@@ -373,7 +372,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_CHANGES],
       command: Channels.MERGE,
-      execute: () => this.electronService.rpc(Channels.MERGE, [this.repo.path, file, mergetool]),
+      execute: () => this.electronService.rpc(Channels.MERGE, [this.getRepo().path, file, mergetool]),
     });
   }
 
@@ -381,7 +380,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.WORKTREES],
       command: Channels.DELETEWORKTREE,
-      execute: () => this.electronService.rpc(Channels.DELETEWORKTREE, [this.repo.path, worktreeName]),
+      execute: () => this.electronService.rpc(Channels.DELETEWORKTREE, [this.getRepo().path, worktreeName]),
     });
   }
 
@@ -391,7 +390,7 @@ export class GitService {
       command: Channels.STASH,
       execute: () => this._crlfListener.detect(this.electronService.rpc(
         Channels.STASH,
-        [this.repo.path, onlyUnstaged, stashName]), true),
+        [this.getRepo().path, onlyUnstaged, stashName]), true),
     });
   }
 
@@ -399,7 +398,7 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.REMOTE_BRANCHES, RepoArea.COMMIT_HISTORY, RepoArea.SUBMODULES],
       command: Channels.FETCH,
-      execute: () => this.handleAirplaneMode(this.electronService.rpc(Channels.FETCH, [this.repo.path])),
+      execute: () => this.handleAirplaneMode(this.electronService.rpc(Channels.FETCH, [this.getRepo().path])),
     });
   }
 
@@ -409,7 +408,7 @@ export class GitService {
       command: Channels.UNDOFILECHANGES,
       execute: () => this._crlfListener.detect(this.electronService.rpc(
         Channels.UNDOFILECHANGES,
-        [this.repo.path, file, revision, staged]), true),
+        [this.getRepo().path, file, revision, staged]), true),
     });
   }
 
@@ -419,7 +418,7 @@ export class GitService {
       command: Channels.UNDOSUBMODULECHANGES,
       execute: () => this.electronService.rpc(
         Channels.UNDOSUBMODULECHANGES,
-        [this.repo.path, submodules]),
+        [this.getRepo().path, submodules]),
     });
   }
 
@@ -429,7 +428,7 @@ export class GitService {
       command: Channels.RESOLVECONFLICTUSING,
       execute: () => this._crlfListener.detect(this.electronService.rpc(
         Channels.RESOLVECONFLICTUSING,
-        [this.repo.path, file, theirs]), true),
+        [this.getRepo().path, file, theirs]), true),
     });
   }
 
@@ -437,48 +436,90 @@ export class GitService {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_CHANGES],
       command: Channels.GETDELETEDSTASHES,
-      execute: () => this.electronService.rpc(Channels.HARDRESET, [this.repo.path]),
+      execute: () => this.electronService.rpc(Channels.HARDRESET, [this.getRepo().path]),
     });
   }
 
-  commit(description: string, commitAndPush: boolean, amend: boolean): Job<void> {
+  commit(description: string, commitAndPush: boolean, amend: boolean, currentBranch: BranchModel): Job<void> {
     return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
+      affectedAreas: [
+        RepoArea.LOCAL_CHANGES,
+        RepoArea.LOCAL_BRANCHES,
+        RepoArea.REMOTE_BRANCHES,
+        RepoArea.COMMIT_HISTORY,],
       command: Channels.COMMIT,
       execute: () => this._remoteMessageListener.detect(
         this.electronService.rpc(
           Channels.COMMIT,
-          [this.repo.path, description, commitAndPush, this.tabDataService.getCurrentBranch(), amend]),
+          [this.getRepo().path, description, commitAndPush, currentBranch, amend]),
         true),
     });
   }
 
-  getBranchChanges(): Job<RepositoryModel> {
+  getWorktrees(): Job<WorktreeModel[]> {
     return this.getJob({
       affectedAreas: [],
-      command: Channels.GETBRANCHES,
-      execute: () =>  this.electronService.rpc(Channels.GETBRANCHES, [this.repo.path])});
+      command: Channels.GETWORKTREES,
+      execute: () => this.electronService.rpc(Channels.GETWORKTREES, [this.getRepo().path]),
+    });
+  }
+
+  getSubmodules(): Job<SubmoduleModel[]> {
+    return this.getJob({
+      affectedAreas: [],
+      command: Channels.GETSUBMODULES,
+      execute: () => this.electronService.rpc(Channels.GETSUBMODULES, [this.getRepo().path]),
+    });
+  }
+
+  getLocalBranches(): Job<BranchModel[]> {
+    return this.getJob({
+      affectedAreas: [],
+      command: Channels.GETLOCALBRANCHES,
+      execute: () => this.electronService.rpc(Channels.GETLOCALBRANCHES, [this.getRepo().path]),
+    });
+  }
+
+  getRemoteBranches(): Job<BranchModel[]> {
+    return this.getJob({
+      affectedAreas: [],
+      command: Channels.GETREMOTEBRANCHES,
+      execute: () => this.electronService.rpc(Channels.GETREMOTEBRANCHES, [this.getRepo().path]),
+    });
+  }
+
+  getStashes(): Job<StashModel[]> {
+    return this.getJob({
+      affectedAreas: [],
+      command: Channels.GETSTASHES,
+      execute: () => this.electronService.rpc(Channels.GETSTASHES, [this.getRepo().path]),
+    });
   }
 
   getFileChanges(): Job<CommitModel> {
     return this.getJob({
       affectedAreas: [],
       command: Channels.GETFILECHANGES,
-      execute: () =>  this.electronService.rpc(Channels.GETFILECHANGES, [this.repo.path])});
+      execute: () => this.electronService.rpc(Channels.GETFILECHANGES, [this.getRepo().path]),
+    });
   }
 
   getCommandHistory(): Job<CommandHistoryModel[]> {
     return this.getJob({
       affectedAreas: [],
       command: Channels.GETCOMMANDHISTORY,
-      execute: () => this.electronService.rpc(Channels.GETCOMMANDHISTORY, [this.repo.path])});
+      execute: () => this.electronService.rpc(Channels.GETCOMMANDHISTORY, [this.getRepo().path]),
+    });
   }
 
   renameBranch(branch: { oldName: string, newName: string }): Job<void> {
     return this.getJob({
       affectedAreas: [RepoArea.LOCAL_BRANCHES],
       command: Channels.RENAMEBRANCH,
-      execute: () => this.electronService.rpc(Channels.RENAMEBRANCH, [this.repo.path, branch.oldName, branch.newName])});
+      execute: () => this.electronService.rpc(
+        Channels.RENAMEBRANCH,
+        [this.getRepo().path, branch.oldName, branch.newName]),
+    });
   }
 
   private isAirplaneMode() {
@@ -492,6 +533,6 @@ export class GitService {
   }
 
   private getJob<T>(config: Omit<JobConfig<T>, 'repoPath'>): Job<T> {
-    return new Job<T>({...config, repoPath: this.repo.path});
+    return new Job<T>({...config, repoPath: this.getRepo().path});
   }
 }
