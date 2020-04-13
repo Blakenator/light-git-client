@@ -1,13 +1,26 @@
-import {Component, EventEmitter, HostBinding, Input, OnInit, Output, TemplateRef, ViewChild} from '@angular/core';
-import {LayoutCardHeaderComponent} from './layout-card-header/layout-card-header.component';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostBinding,
+  Input,
+  OnInit,
+  Output,
+  TemplateRef,
+  ViewChild,
+} from '@angular/core';
+import { LayoutCardHeaderComponent } from './layout-card-header/layout-card-header.component';
+import { Animations } from '../../common/animations';
 
 @Component({
   selector: 'app-layout-card',
   templateUrl: './layout-card.component.html',
   styleUrls: ['./layout-card.component.scss'],
+  animations: [Animations.growHeightIn, Animations.inOut],
 })
 export class LayoutCardComponent implements OnInit {
-  @ViewChild(LayoutCardHeaderComponent, {static: true}) header: LayoutCardHeaderComponent;
+  @ViewChild(LayoutCardHeaderComponent, { static: true })
+  header: LayoutCardHeaderComponent;
   @Input() customBodyClass = '';
   @Input() customHeaderClass = '';
   @Input() cardTitle: string;
@@ -16,7 +29,7 @@ export class LayoutCardComponent implements OnInit {
   @Input() persistExpand = true;
   @Input() localExpandedDefault = true;
   @Input() spaced = true;
-  @Input() maxHeightVh: number;
+  @Input() preventOverflow = true;
   @Input() headerContent: TemplateRef<any>;
   @Input() infiniteScrollDisabled = true;
   @Output() scrolled = new EventEmitter();
@@ -26,17 +39,14 @@ export class LayoutCardComponent implements OnInit {
   @HostBinding('class.d-flex') flexBinding = true;
   @HostBinding('class.flex-column') flexColumnBinding = true;
 
-  constructor() {
-  }
-
   ngOnInit() {
-    // setTimeout(() => {
+    setTimeout(() => {
       this.updateFlexBindings(this.header.getExpandState());
-    // }, 50);
+    }, 50);
   }
 
   updateFlexBindings(expanded: boolean) {
-    this.flexGrowClass = expanded && !this.maxHeightVh;
-    this.flexMinHeightClass = !expanded || !!this.maxHeightVh;
+    this.flexGrowClass = expanded;
+    this.flexMinHeightClass = !expanded;
   }
 }

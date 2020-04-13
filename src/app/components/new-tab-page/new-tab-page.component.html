@@ -1,19 +1,22 @@
 <div class="row">
-  <div class="p-4 col-6">
-    <h1>Load a Git Repository</h1>
-    <div>Choose the folder of the git repository or worktree that you would like to load</div>
-    <hr/>
-    <app-file-input [label]="'Repo Path'"
-                    [(filePath)]="repoPath"
-                    [isFolder]="true"
-                    (onEnterKeyPressed)="readyClicked()"></app-file-input>
-    <button class="btn btn-success" (click)="readyClicked()">Load</button>
-  </div>
-  <div class="p-4 col-6">
-    <h1>Clone a Repository</h1>
-    <div>Download a repository from a remote server</div>
-    <hr/>
-    <button class="btn btn-success" (click)="modalService.setModalVisible('cloneRepositoryModal',true)">Clone</button>
-  </div>
+    <div class="p-4 col-6">
+        <h1>Load a Git Repository</h1>
+        <div>Choose the folder of the git repository or worktree that you would like to load</div>
+        <hr/>
+        <div>
+            <app-file-input [label]="'Repo Path'"
+                            [(filePath)]="repoPath"
+                            [isFolder]="true"
+                            (onEnterKeyPressed)="loadClicked($event)"></app-file-input>
+        </div>
+        <button class="btn btn-success" (click)="loadClicked()">Load</button>
+    </div>
+    <div class="p-4 col-6">
+        <h1>Clone a Repository</h1>
+        <div>Download a repository from a remote server</div>
+        <hr/>
+        <button class="btn btn-success" (click)="modalService.setModalVisible('cloneRepositoryModal',true)">Clone
+        </button>
+    </div>
 </div>
-<app-clone (onCloneComplete)="repoPath=$event; readyClicked()"></app-clone>
+<app-clone></app-clone>

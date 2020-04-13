@@ -7,7 +7,6 @@ import {CommitModel} from './Commit.model';
 import * as _ from 'lodash';
 
 export class RepositoryModel {
-  public name = '';
   public path = '';
   public remotes: string[] = [];
 
@@ -20,7 +19,6 @@ export class RepositoryModel {
   public changes: CommitModel = new CommitModel();
 
   copy(obj: any | RepositoryModel): RepositoryModel {
-    this.name = obj.name;
     this.path = obj.path;
     this.remotes = obj.remotes;
     this.localBranches = (obj.localBranches || []).map(x => Object.assign(new BranchModel(), x || {}));

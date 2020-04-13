@@ -1,9 +1,9 @@
 <head *ngIf="this.getRepo()">
-  <title>{{tabDataService.getActiveTabData().name}} - {{getCurrentBranch()?.name}} - Light Git</title>
+  <title>{{tabDataService.getActiveTab().name}} - {{getCurrentBranch()?.name}} - Light Git</title>
 </head>
 <div *ngIf="this.getRepo()" (focus)="getFullRefresh()" class="row full-width bg-light-mode">
   <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
-    <h1>{{this.getRepo().name}}
+    <h1>{{this.tabDataService.getActiveTab().name}}
       <span class="d-inline-block btn-group">
         <button class="btn btn-primary"
                 (click)="openTerminal()"
@@ -261,7 +261,6 @@
     <div *ngIf="this.getRepo().changes" class="flex-grow-1 d-flex flex-column">
       <app-layout-card [headerContent]="stagedChangesHeader"
                        expandKey="staged"
-                       [style.minHeight]="'25vh'"
                        cardTitle="Staged Changes">
         <ng-template #stagedChangesHeader>
           <span class="badge badge-pill badge-light py-1 px-2 m-1">{{this.getRepo().changes.stagedChanges.length}}</span>
@@ -307,7 +306,6 @@
       </app-layout-card>
       <app-layout-card [headerContent]="unstagedHeader"
                        expandKey="unstaged"
-                       [style.minHeight]="'25vh'"
                        cardTitle="Unstaged Changes">
         <ng-template #unstagedHeader>
           <span class="badge badge-pill badge-light py-1 px-2 m-1">{{this.getRepo().changes.unstagedChanges.length}}</span>
@@ -417,7 +415,7 @@
       </div>
     </div>
   </div>
-  <div class="col-sm-12 col-md-5 repo-column">
+  <div class="col-sm-12 col-md-5 d-flex flex-column mb-1 repo-column">
     <app-layout-card [headerContent]="commitHistoryHeader" expandKey="commit-history" customBodyClass="diff-viewer">
       <ng-template #commitHistoryHeader>
         <div class="btn-group btn-group-sm mx-2">

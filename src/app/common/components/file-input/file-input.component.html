@@ -1,21 +1,22 @@
-<div>
-  <label>
-    {{label}}
-    <input class="form-control"
-           [(ngModel)]="filePath"
-           (keyup.enter)="enterKeyPressed()"
-           (change)="changeFilePath()"
-           [disabled]="disabled"/>
-  </label>
-  <label class="btn btn-light">
-    <input class="form-control d-none"
-           type="file"
-           [attr.webkitdirectory]="isFolder?'':null"
-           [attr.directory]="isFolder?'':null"
-           [attr.multiple]="allowMultiple?'':null"
-           [accept]="filter.join(', ')"
-           [disabled]="disabled"
-           (change)="changeFilePath($event)"/>
-    Browse
-  </label>
+<div class="d-inline-block">
+    <div>{{label}}</div>
+    <div class="input-group">
+        <input class="form-control"
+               [(ngModel)]="filePath"
+               (keyup.enter)="enterKeyPressed()"
+               (change)="changeFilePath()"
+               [disabled]="disabled"/>
+        <div class="input-group-append">
+            <label class="btn btn-light" *ngIf="!isFolder">
+                <input class="form-control d-none"
+                       type="file"
+                       [attr.multiple]="allowMultiple?'':null"
+                       [accept]="filter.join(', ')"
+                       [disabled]="disabled"
+                       (change)="changeFilePath($event)"/>
+                Browse
+            </label>
+            <button class="btn btn-success" (click)="openClicked()" *ngIf="isFolder">Browse</button>
+        </div>
+    </div>
 </div>

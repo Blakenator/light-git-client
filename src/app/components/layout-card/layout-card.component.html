@@ -1,21 +1,19 @@
-<div class="card d-flex flex-column" [ngClass]="{'my-1':spaced,'flex-grow-1 expanded':header.getExpandState()}">
-  <app-layout-card-header [cardTitle]="cardTitle"
-                          [persistExpand]="persistExpand"
-                          [expandKey]="expandKey"
-                          [iconClass]="iconClass"
-                          [localExpandedDefault]="localExpandedDefault"
-                          [content]="headerContent"
-                          [customHeaderClass]="customHeaderClass"
-                          (onToggleExpand)="updateFlexBindings($event)"></app-layout-card-header>
-  <div class="repo-section-container {{customBodyClass}}"
-       *ngIf="header.getExpandState()"
-       [ngClass]="{'flex-grow-1':header.getExpandState()}"
-       [style.maxHeight]="!maxHeightVh?'unset':maxHeightVh+'vh'"
-       infinite-scroll
-       (scrolled)="scrolled.emit($event)"
-       (scrolledUp)="scrolledUp.emit($event)"
-       [scrollWindow]="false"
-       [infiniteScrollDisabled]="infiniteScrollDisabled">
-    <ng-content></ng-content>
-  </div>
+<div class="card d-flex flex-column" [ngClass]="{'my-1':spaced,'flex-grow-1 expanded':header.getExpandState(),'prevent-overflow':preventOverflow}">
+    <app-layout-card-header [cardTitle]="cardTitle"
+                            [persistExpand]="persistExpand"
+                            [expandKey]="expandKey"
+                            [iconClass]="iconClass"
+                            [localExpandedDefault]="localExpandedDefault"
+                            [content]="headerContent"
+                            [customHeaderClass]="customHeaderClass"
+                            (onToggleExpand)="updateFlexBindings($event)"></app-layout-card-header>
+    <div class="repo-section-container {{customBodyClass}} flex-grow-1"
+         *ngIf="header.getExpandState()"
+         infinite-scroll
+         (scrolled)="scrolled.emit($event)"
+         (scrolledUp)="scrolledUp.emit($event)"
+         [scrollWindow]="false"
+         [infiniteScrollDisabled]="infiniteScrollDisabled">
+        <ng-content></ng-content>
+    </div>
 </div>

@@ -48,6 +48,7 @@
     <app-layout-card *ngFor="let reducedHeader of getFilteredDiffHeaders()"
                      [headerContent]="diffHeader"
                      [persistExpand]="false"
+                     [preventOverflow]="false"
                      customHeaderClass="justify-content-between"
                      [localExpandedDefault]="getLocalExpandedDefault(reducedHeader.header)">
       <ng-template #diffHeader>
