@@ -13,21 +13,21 @@ jobs:
 #    - stage: Run Tests
 #      os: osx
 #      osx_image: xcode10.2
-#      node_js: "11"
+#      node_js: "12"
 #      script:
 #        - npm i &> /dev/null
 #        - npm run test-node || travis_terminate 1
     - stage: Release
       os: osx
       osx_image: xcode10.2
-      node_js: "11"
+      node_js: "12"
       if: (branch = testing/build) OR (branch = master)
       script:
         - npm run release:mac
     - stage: Build
       os: osx
       osx_image: xcode10.2
-      node_js: "11"
+      node_js: "12"
       if: branch = staging
       script:
         - git lfs pull
@@ -35,22 +35,22 @@ jobs:
 
 #    - stage: Run Tests
 #      os: linux
-#      node_js: "11"
+#      node_js: "12"
 #      script:
-#        - nvm install 11
-#        - nvm use 11
+#        - nvm install 12
+#        - nvm use 12
 #        - git lfs pull
 #        - npm i &> /dev/null
 #        - npm run test-node || travis_terminate 1
     - stage: Release
       os: linux
-      node_js: "11"
+      node_js: "12"
       if: (branch = testing/build) OR (branch = master)
       script:
         - npm run release:linux
     - stage: Build
       os: linux
-      node_js: "11"
+      node_js: "12"
       if: branch = staging
       script:
         - npm run electron:linux
