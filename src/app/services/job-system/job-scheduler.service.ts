@@ -69,7 +69,6 @@ export class JobSchedulerService {
 
   executeNext(queue: Job[], path: string) {
     const job = queue.shift();
-    console.log('pop', job.config.command, job.config.repoPath);
 
     if (job.operation.status === JobStatus.FAILED) {
       job.setStatus(JobStatus.SKIPPED);
@@ -81,7 +80,6 @@ export class JobSchedulerService {
     return job.config
       .execute()
       .then((result) => {
-        console.log('finish');
         job.succeed(result);
         job.setStatus(JobStatus.SUCCEEDED);
         if (job.operation.jobs.every((j) => j.status === JobStatus.SUCCEEDED)) {
