@@ -47,6 +47,7 @@
     "electron-editor-context-menu": "^1.1.1",
     "electron-log": "^4.0.3",
     "electron-updater": "^4.2.5",
+    "fs-extra": "^9.0.0",
     "highlight.js": "^9.13.1",
     "lodash": "^4.17.15",
     "mkdirp": "^0.5.1",
