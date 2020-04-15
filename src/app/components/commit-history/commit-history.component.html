@@ -52,7 +52,7 @@
       <td class="commit-message-cell p-0">
         <div class="d-flex" (click)="expandMessage(c.hash,messageExpander)">
           <div class="pr-2 m-0 cursor-pointer d-flex align-items-center"
-               *ngIf="messageExpanded[c.hash]!=undefined || checkOverflow(messageExpander)">
+               *ngIf="messageExpanded[c.hash]!==undefined || checkOverflow(messageExpander)">
             <i class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></i>
             <i class="fa fa-caret-right" *ngIf="!messageExpanded[c.hash]"></i>
           </div>

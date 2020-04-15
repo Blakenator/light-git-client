@@ -13,7 +13,7 @@
   "main": "main.js",
   "private": false,
   "scripts": {
-    "postinstall": "npx electron-builder install-app-deps && npm rebuild && npx electron-rebuild",
+    "postinstall": "npx electron-builder install-app-deps",
     "ng": "ng",
     "start": "ELECTRON_ENV=development npm-run-all -p ng:serve electron:serve",
     "browserify": "browserify -x node_modules/electron/**/* --node main.js -o main.bundle.js",
@@ -88,7 +88,6 @@
     "electron": "^8.2.1",
     "electron-builder": "^22.4.1",
     "electron-packager": "^14.2.1",
-    "electron-rebuild": "^1.10.1",
     "jasmine": "^3.5.0",
     "jasmine-core": "^3.5.0",
     "jasmine-spec-reporter": "^4.2.1",

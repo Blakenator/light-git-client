@@ -6,6 +6,7 @@ import { JobSchedulerService } from './job-system/job-scheduler.service';
 import { RepoArea } from './job-system/models';
 import { GitService } from './git.service';
 import { ErrorService } from '../common/services/error.service';
+import { Subject } from 'rxjs';
 
 interface ITabInfo {
   name: string;
@@ -22,6 +23,9 @@ export class TabDataService {
   private _remoteBranchMap: Map<string, Map<string, BranchModel>> = new Map();
   private _currentBranchMap: Map<string, BranchModel> = new Map();
   private _isInitialized = false;
+
+  private _onFileDiff = new Subject<string>();
+  public onFileDiff = this._onFileDiff.asObservable();
 
   constructor(
     private settingsService: SettingsService,
@@ -169,7 +173,10 @@ export class TabDataService {
     if (affectedAreas.has(RepoArea.LOCAL_CHANGES)) {
       this.jobSchedulerService
         .scheduleSimpleOperation(this.gitService.getFileChanges())
-        .result.then((result) => (cache.changes = result))
+        .result.then((result) => {
+          cache.changes = { ...result, description: cache.changes.description };
+          this._onFileDiff.next(path);
+        })
         .catch((err) => this.errorService.receiveError(err));
     }
   }
