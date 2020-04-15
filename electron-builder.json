@@ -1,5 +1,5 @@
 {
-  "productName": "Light Git",
+  "productName": "Light-Git",
   "appId": "com.blakestacks.light-git-client",
   "directories": {
     "output": "app-builds"
