@@ -47,7 +47,7 @@
     "electron-log": "^2.2.14",
     "electron-spell-check-provider": "^1.1.1",
     "electron-updater": "^4.0.5",
-    "highlight.js": "^9.13.1",
+    "highlight.js": "^10.4.1",
     "mkdirp": "^0.5.1",
     "ng-diff-match-patch": "^3.0.1",
     "ngx-highlightjs": "^2.1.4",
