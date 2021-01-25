@@ -28,13 +28,10 @@ import { TabDataService } from './tab-data.service';
 })
 export class GitService {
   public onCommandHistoryUpdated = new Subject<CommandHistoryModel[]>();
-  public isRepoLoaded = false;
   public tabDataService: TabDataService;
   private _onCrlfError = new Subject<{ start: string; end: string }>();
   public readonly onCrlfError = this._onCrlfError.asObservable();
   private _onRemoteMessage = new Subject<NotificationModel>();
-  private _repoLoaded = new Subject<void>();
-  public readonly onRepoLoaded = this._repoLoaded.asObservable();
   private _crlfListener = new CrlfListener(this._onCrlfError);
   private _remoteMessageListener = new RemoteMessageListener(
     this._onRemoteMessage,
@@ -609,14 +606,16 @@ export class GitService {
     });
   }
 
-  fetch(): Job<void> {
+  fetch(refreshAreas: boolean = true): Job<void> {
     return this.getJob({
-      affectedAreas: [
-        RepoArea.LOCAL_BRANCHES,
-        RepoArea.REMOTE_BRANCHES,
-        RepoArea.COMMIT_HISTORY,
-        RepoArea.SUBMODULES,
-      ],
+      affectedAreas: refreshAreas
+        ? [
+            RepoArea.LOCAL_BRANCHES,
+            RepoArea.REMOTE_BRANCHES,
+            RepoArea.COMMIT_HISTORY,
+            RepoArea.SUBMODULES,
+          ]
+        : [],
       command: Channels.FETCH,
       execute: () =>
         this.handleAirplaneMode(

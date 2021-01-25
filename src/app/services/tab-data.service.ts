@@ -3,7 +3,7 @@ import { SettingsService } from './settings.service';
 import { RepositoryModel } from '../../../shared/git/Repository.model';
 import { BranchModel } from '../../../shared/git/Branch.model';
 import { JobSchedulerService } from './job-system/job-scheduler.service';
-import { RepoArea } from './job-system/models';
+import { Job, RepoArea } from './job-system/models';
 import { GitService } from './git.service';
 import { ErrorService } from '../common/services/error.service';
 import { Subject } from 'rxjs';
@@ -152,7 +152,13 @@ export class TabDataService {
     }
     if (affectedAreas.has(RepoArea.REMOTE_BRANCHES)) {
       this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getRemoteBranches())
+        .scheduleOperation<BranchModel[]>({
+          name: 'get remote branches and fetch',
+          jobs: [
+            this.gitService.fetch(false) as Job,
+            this.gitService.getRemoteBranches(),
+          ],
+        })
         .result.then((result) => {
           cache.remoteBranches = result;
           this._remoteBranchMap.set(

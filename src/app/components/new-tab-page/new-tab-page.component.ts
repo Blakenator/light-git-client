@@ -7,13 +7,11 @@ import { dialog } from 'electron';
   templateUrl: './new-tab-page.component.html',
   styleUrls: ['./new-tab-page.component.scss'],
 })
-export class NewTabPageComponent implements OnInit {
+export class NewTabPageComponent {
   repoPath = '';
   @Output() onLoadClicked = new EventEmitter<string>();
 
   constructor(public modalService: ModalService) {}
-
-  ngOnInit() {}
 
   loadClicked($event?: string) {
     this.repoPath = $event ?? this.repoPath;

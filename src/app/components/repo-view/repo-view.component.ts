@@ -6,7 +6,6 @@ import {
   HostListener,
   Input,
   OnDestroy,
-  OnInit,
   Output,
 } from '@angular/core';
 import { ElectronService } from '../../common/services/electron.service';
@@ -35,11 +34,7 @@ import { takeUntil } from 'rxjs/operators';
 import { TabDataService } from '../../services/tab-data.service';
 import { EqualityUtil } from '../../common/equality.util';
 import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
-import {
-  Job,
-  RepoArea,
-  RepoAreaDefaults,
-} from '../../services/job-system/models';
+import { Job, RepoAreaDefaults } from '../../services/job-system/models';
 
 @Component({
   selector: 'app-repo-view',
@@ -179,7 +174,7 @@ export class RepoViewComponent implements OnDestroy {
     if (this.getRepo()) {
       setTimeout(() => {
         this.tabDataService.updateAreas(
-          new Set([RepoArea.LOCAL_CHANGES]),
+          RepoAreaDefaults.LOCAL,
           this.getRepo().path,
         );
       }, this.ON_WINDOW_FOCUS_TIMEOUT);
@@ -407,7 +402,7 @@ export class RepoViewComponent implements OnDestroy {
   }
 
   getCommitHistory(skip: number = 0) {
-    if (!this.gitService.isRepoLoaded) {
+    if (!this.gitService.getRepo()) {
       setTimeout(() => this.getCommitHistory(skip), 100);
       return;
     }
@@ -586,7 +581,8 @@ export class RepoViewComponent implements OnDestroy {
     const deletes = changes
       .filter(
         (change) =>
-          change.change === ChangeType.Addition &&
+          (change.change === ChangeType.Addition ||
+            change.change === ChangeType.Untracked) &&
           !submoduleSet.has(change.file),
       )
       .map((change) => change.file);
@@ -594,6 +590,7 @@ export class RepoViewComponent implements OnDestroy {
       .filter(
         (change) =>
           change.change !== ChangeType.Addition &&
+          change.change !== ChangeType.Untracked &&
           !submoduleSet.has(change.file),
       )
       .map((change) => change.file);
@@ -932,6 +929,9 @@ export class RepoViewComponent implements OnDestroy {
     if (this.commitMessageDebounce) {
       clearTimeout(this.commitMessageDebounce);
     }
+    if (!this.settingsService.settings.commitMessageAutocomplete) {
+      return false;
+    }
     this.commitMessageDebounce = window.setTimeout(() => {
       this.currentCommitCursorPosition = $event.target.selectionStart;
 
@@ -1006,10 +1006,12 @@ export class RepoViewComponent implements OnDestroy {
   }
 
   cancelSuggestions() {
-    setTimeout(() => {
-      this.suggestions = [];
-      this.changeDetectorRef.detectChanges();
-    }, 300);
+    if (this.settingsService.settings.commitMessageAutocomplete) {
+      setTimeout(() => {
+        this.suggestions = [];
+        this.changeDetectorRef.detectChanges();
+      }, 300);
+    }
   }
 
   setFilenameSplit(val: boolean) {
