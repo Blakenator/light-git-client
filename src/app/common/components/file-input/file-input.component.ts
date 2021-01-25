@@ -6,7 +6,7 @@ const electron = (window as any).require('electron');
   templateUrl: './file-input.component.html',
   styleUrls: ['./file-input.component.scss'],
 })
-export class FileInputComponent implements OnInit {
+export class FileInputComponent {
   @Input() isFolder = false;
   @Input() disabled = false;
   @Input() allowMultiple = false;
@@ -18,8 +18,6 @@ export class FileInputComponent implements OnInit {
   @Output() filePathChange = new EventEmitter<string>();
 
   constructor() {}
-
-  ngOnInit() {}
 
   changeFilePath($event?: any) {
     let files: Record<number, { path: string; name: string }> & {

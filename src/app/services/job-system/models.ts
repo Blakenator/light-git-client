@@ -1,32 +1,43 @@
-import {v4 as uuidv4} from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 export enum RepoArea {
-  LOCAL_BRANCHES='LOCAL_BRANCHES',
-  REMOTE_BRANCHES='REMOTE_BRANCHES',
-  LOCAL_CHANGES='LOCAL_CHANGES',
-  STASHES='STASHES',
-  SUBMODULES='SUBMODULES',
-  COMMIT_HISTORY='COMMIT_HISTORY',
-  WORKTREES='WORKTREES',
-  SETTINGS='SETTINGS',
+  LOCAL_BRANCHES = 'LOCAL_BRANCHES',
+  REMOTE_BRANCHES = 'REMOTE_BRANCHES',
+  LOCAL_CHANGES = 'LOCAL_CHANGES',
+  STASHES = 'STASHES',
+  SUBMODULES = 'SUBMODULES',
+  COMMIT_HISTORY = 'COMMIT_HISTORY',
+  WORKTREES = 'WORKTREES',
+  SETTINGS = 'SETTINGS',
 }
-export const RepoAreaDefaults={
-  ALL:new Set([RepoArea.LOCAL_BRANCHES,
+
+export const RepoAreaDefaults = {
+  ALL: new Set([
+    RepoArea.LOCAL_BRANCHES,
     RepoArea.REMOTE_BRANCHES,
     RepoArea.LOCAL_CHANGES,
     RepoArea.STASHES,
     RepoArea.SUBMODULES,
     RepoArea.COMMIT_HISTORY,
-    RepoArea.WORKTREES])
-}
+    RepoArea.WORKTREES,
+  ]),
+  LOCAL: new Set([
+    RepoArea.LOCAL_BRANCHES,
+    RepoArea.LOCAL_CHANGES,
+    RepoArea.STASHES,
+    RepoArea.SUBMODULES,
+    RepoArea.COMMIT_HISTORY,
+    RepoArea.WORKTREES,
+  ]),
+};
 
 export enum JobStatus {
-  UNSCHEDULED='UNSCHEDULED',
-  SCHEDULED='SCHEDULED',
-  IN_PROGRESS='IN_PROGRESS',
-  SUCCEEDED='SUCCEEDED',
-  FAILED='FAILED',
-  SKIPPED='SKIPPED'
+  UNSCHEDULED = 'UNSCHEDULED',
+  SCHEDULED = 'SCHEDULED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED',
 }
 
 export interface JobConfig<T = any> {
@@ -43,10 +54,12 @@ export interface JobConfig<T = any> {
 
 class Deferrable<T> {
   result: Promise<T>;
-  private _deferred: { resolve: (arg: T) => void, reject: (arg: any) => void };
+  private _deferred: { resolve: (arg: T) => void; reject: (arg: any) => void };
 
   constructor() {
-    this.result = new Promise<T>((resolve, reject) => this._deferred = {resolve, reject});
+    this.result = new Promise<T>(
+      (resolve, reject) => (this._deferred = { resolve, reject }),
+    );
   }
 
   succeed(arg?: T) {
@@ -74,7 +87,10 @@ export class Job<T = any> extends Deferrable<T> {
     this.status = status;
     if (status !== JobStatus.SUCCEEDED && status !== JobStatus.SKIPPED) {
       this.operation.status = status;
-    } else if (status !== JobStatus.SUCCEEDED && this.operation.jobs.every(job => job.status === JobStatus.SUCCEEDED)) {
+    } else if (
+      status !== JobStatus.SUCCEEDED &&
+      this.operation.jobs.every((job) => job.status === JobStatus.SUCCEEDED)
+    ) {
       this.operation.status = status;
       this.operation.succeed();
     }
@@ -104,7 +120,7 @@ export class Operation<T = void> extends Deferrable<T> {
   }
 
   registerJobs(jobs: Job<T>[]) {
-    jobs.forEach(job => job.operation = this);
+    jobs.forEach((job) => (job.operation = this));
     this.jobs = this.jobs.concat(jobs);
   }
 }

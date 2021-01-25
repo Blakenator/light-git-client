@@ -1,15 +1,14 @@
-import {Component, Input, OnInit} from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-age-info',
   templateUrl: './age-info.component.html',
   styleUrls: ['./age-info.component.scss'],
 })
-export class AgeInfoComponent implements OnInit {
+export class AgeInfoComponent {
   @Input() date: Date | string;
 
-  constructor() {
-  }
+  constructor() {}
 
   static getTimeSinceString(date: Date) {
     let totalMinutes = (new Date().getTime() - date.getTime()) / 1000 / 60;
@@ -29,10 +28,9 @@ export class AgeInfoComponent implements OnInit {
     return result.join(' ');
   }
 
-  ngOnInit() {
-  }
-
   getAgeString() {
-    return AgeInfoComponent.getTimeSinceString(typeof this.date === 'string' ? new Date(this.date) : this.date);
+    return AgeInfoComponent.getTimeSinceString(
+      typeof this.date === 'string' ? new Date(this.date) : this.date,
+    );
   }
 }
