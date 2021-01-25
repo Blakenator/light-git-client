@@ -1,6 +1,7 @@
 import { app, ipcMain, shell } from 'electron';
 import { SettingsModel } from './shared/SettingsModel';
 import * as fs from 'fs-extra';
+import { mkdirpSync } from 'fs-extra';
 import { RepositoryModel } from './shared/git/Repository.model';
 import { GitClient } from './git/GitClient';
 import * as path from 'path';
@@ -10,7 +11,6 @@ import { Channels } from './shared/Channels';
 import { GenericApplication } from './genericApplication';
 import * as ua from 'universal-analytics';
 import { CodeWatcherModel } from './shared/code-watcher.model';
-import { mkdirpSync } from 'fs-extra';
 
 const opn = require('opn');
 
@@ -53,7 +53,10 @@ export class MainApplication extends GenericApplication {
 
     delete settingsModel.loadedCodeWatchers;
     delete settingsModel.codeWatchers;
-    mkdirpSync(app.getPath('userData'));
+    let userDataPath = app.getPath('userData');
+    if (!fs.existsSync(userDataPath)) {
+      mkdirpSync(userDataPath);
+    }
     fs.writeFileSync(
       this.getSettingsPath(),
       JSON.stringify(settingsModel, null, '   '),
