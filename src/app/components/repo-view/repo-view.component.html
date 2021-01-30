@@ -693,7 +693,8 @@
         (onClickCommitDiff)="viewCommitDiff($event.hash)"
         (onClickCherryPick)="cherryPickCommit($event)"
         (onScrollDown)="getCommitHistory(this.getRepo().commitHistory.length)"
-        [branches]="this.getRepo().localBranches"
+        [localBranches]="this.getRepo().localBranches"
+        [remoteBranches]="this.getRepo().remoteBranches"
         [activeBranch]="activeCommitHistoryBranch"
         (onChooseBranch)="handleActiveBranchUpdate($event)"
         (onClickCheckout)="
@@ -800,6 +801,7 @@
     (onCancel)="cancelMerge()"
     (onFinish)="mergeBranch()"
     [locals]="this.getRepo().localBranches"
+    [remotes]="this.getRepo().remoteBranches"
   ></app-merge-branch>
   <app-restore-stash [repoViewUid]="repoViewUid"></app-restore-stash>
 </div>

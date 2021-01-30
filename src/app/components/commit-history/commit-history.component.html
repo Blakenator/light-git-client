@@ -44,7 +44,8 @@
             ></button>
             <div ngbDropdownMenu>
               <app-branch-chooser
-                [branches]="branches"
+                [locals]="localBranches"
+                [remotes]="remoteBranches"
                 [selectedBranch]="activeBranch"
                 (selectedBranchChange)="
                   setActiveBranch($event); branchChooserDropdown.close()

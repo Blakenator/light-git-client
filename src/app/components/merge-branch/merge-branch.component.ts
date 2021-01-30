@@ -9,6 +9,7 @@ import { BranchModel } from '../../../../shared/git/Branch.model';
 export class MergeBranchComponent {
   @Input() uidSalt: number;
   @Input() locals: BranchModel[];
+  @Input() remotes: BranchModel[];
   @Input() activeMergeInfo: {
     into: BranchModel;
     target: BranchModel;

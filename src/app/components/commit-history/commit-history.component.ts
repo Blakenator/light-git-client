@@ -12,7 +12,8 @@ import * as _ from 'lodash';
   styleUrls: ['./commit-history.component.scss'],
 })
 export class CommitHistoryComponent {
-  @Input() branches: BranchModel[];
+  @Input() localBranches: BranchModel[];
+  @Input() remoteBranches: BranchModel[];
   @Input() activeBranch: BranchModel;
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
   @Output() onScrollDown = new EventEmitter<any>();
@@ -153,7 +154,7 @@ export class CommitHistoryComponent {
 
   isCurrentBranchActive() {
     return (
-      this.branches &&
+      this.localBranches &&
       this.activeBranch &&
       this.tabService.getLocalBranchMap().get(this.activeBranch.name)
         ?.isCurrentBranch
