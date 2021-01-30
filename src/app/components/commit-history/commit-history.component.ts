@@ -1,10 +1,10 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommitSummaryModel } from '../../../../shared/git/CommitSummary.model';
 import { FilterPipe } from '../../common/pipes/filter.pipe';
 import { BranchModel } from '../../../../shared/git/Branch.model';
 import { EqualityUtil } from '../../common/equality.util';
 import { TabDataService } from '../../services/tab-data.service';
-import { ResizeObserver } from '@juggle/resize-observer';
+import * as _ from 'lodash';
 
 @Component({
   selector: 'app-commit-history',
@@ -12,7 +12,6 @@ import { ResizeObserver } from '@juggle/resize-observer';
   styleUrls: ['./commit-history.component.scss'],
 })
 export class CommitHistoryComponent {
-  @Input() commitHistory: CommitSummaryModel[];
   @Input() branches: BranchModel[];
   @Input() activeBranch: BranchModel;
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
@@ -25,12 +24,21 @@ export class CommitHistoryComponent {
   commitFilter: string;
   messageExpanded: { [key: string]: boolean } = {};
   private _lastCommitHistory: CommitSummaryModel[];
-  private _overflowingCommitMap = new Map<
-    string,
-    { observer: ResizeObserver; overflowing: boolean }
-  >();
+  private _overflowingCommitMap = new Map<string, boolean>();
 
   constructor(private tabService: TabDataService) {}
+
+  private _commitHistory: CommitSummaryModel[];
+
+  get commitHistory(): CommitSummaryModel[] {
+    return this._commitHistory;
+  }
+
+  @Input()
+  set commitHistory(value: CommitSummaryModel[]) {
+    this._commitHistory = value;
+    this._commitHistory.forEach((commit) => this.checkOverflow(commit));
+  }
 
   getCommitDiff(commit: CommitSummaryModel) {
     this.onClickCommitDiff.emit(commit);
@@ -48,11 +56,11 @@ export class CommitHistoryComponent {
         0,
         Math.min(
           this.scrollOffset,
-          this.commitHistory.length - this.numPerPage,
+          this._commitHistory.length - this.numPerPage,
         ),
       ),
     );
-    if (this.scrollOffset >= this.commitHistory.length - this.numPerPage) {
+    if (this.scrollOffset >= this._commitHistory.length - this.numPerPage) {
       this.onScrollDown.emit();
     }
   }
@@ -60,9 +68,12 @@ export class CommitHistoryComponent {
   getFilteredCommitHistory(): CommitSummaryModel[] {
     let result: CommitSummaryModel[];
     if (!this.commitFilter) {
-      result = this.commitHistory.slice(0, this.scrollOffset + this.numPerPage);
+      result = this._commitHistory.slice(
+        0,
+        this.scrollOffset + this.numPerPage,
+      );
     } else {
-      result = this.commitHistory.filter((c) => {
+      result = this._commitHistory.filter((c) => {
         const needle = this.commitFilter.toLowerCase();
         return (
           FilterPipe.containsFilter(needle, c.message.toLowerCase()) ||
@@ -116,30 +127,27 @@ export class CommitHistoryComponent {
     return commit.message.split(/\r?\n/g);
   }
 
-  checkOverflow(element: any, hash: string) {
-    if (!this._overflowingCommitMap.has(hash)) {
-      this._overflowingCommitMap.set(hash, {
-        observer: new ResizeObserver((entries) => {
-          this._overflowingCommitMap.get(hash).overflowing =
-            element.offsetHeight < element.scrollHeight ||
-            element.offsetWidth < element.scrollWidth;
-        }),
-        overflowing:
-          element.offsetHeight < element.scrollHeight ||
-          element.offsetWidth < element.scrollWidth,
-      });
-      this._overflowingCommitMap.get(hash).observer.observe(element);
+  checkOverflow(commit: CommitSummaryModel) {
+    if (!this._overflowingCommitMap.has(commit.hash)) {
+      console.log('recalc overflow');
+      this._overflowingCommitMap.set(
+        commit.hash,
+        commit.currentTags.reduce((prev, value) => prev + value.length, 0) +
+          commit.currentTags.length * 3 +
+          commit.message.length >
+          65,
+      );
     }
 
-    return this._overflowingCommitMap.get(hash).overflowing;
+    return this._overflowingCommitMap.get(commit.hash);
   }
 
-  expandMessage(hash: string, messageExpander: any) {
+  expandMessage(commit: CommitSummaryModel) {
     if (
-      this.messageExpanded[hash] != undefined ||
-      this.checkOverflow(messageExpander, hash)
+      this.messageExpanded[commit.hash] != undefined ||
+      this.checkOverflow(commit)
     ) {
-      this.messageExpanded[hash] = !this.messageExpanded[hash];
+      this.messageExpanded[commit.hash] = !this.messageExpanded[commit.hash];
     }
   }
 
