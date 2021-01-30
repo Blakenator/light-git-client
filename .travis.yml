@@ -4,6 +4,7 @@ cache:
   directories:
     - $HOME/.cache/electron
     - $HOME/.cache/electron-builder
+  npm
 
 env:
   - ELECTRON_CACHE=$HOME/.cache/electron ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
