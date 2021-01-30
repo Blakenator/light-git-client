@@ -1,113 +1,118 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <base href="./">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
-  <link href="./assets/fa/css/fontawesome-all.css" rel="stylesheet">
-</head>
-<body>
-<style>
-  /* roboto-regular - latin */
-  @font-face {
-    font-family: 'Roboto';
-    font-style: normal;
-    font-weight: 400;
-    src: local('Roboto'), local('Roboto-Regular'),
-    url('assets/roboto-v18-latin-regular.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */ url('assets/roboto-v18-latin-regular.woff') format('woff'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
-  }
-
-  .d2h-code-linenumber {
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+/Edge */
-    user-select: none; /* Standard */
-  }
-
-  #loadingScreen {
-    position: fixed;
-    right: 100%;
-    left: -100%;
-    overflow: hidden;
-    top: 0;
-    bottom: 0;
-    background-color: #e69119;
-    transition: right .3s, left .3s;
-  }
-
-  #loadingScreen.visible {
-    left: 0;
-    right: 0;
-    transition: right .3s, left .3s;
-  }
-
-  #loadingScreen .content {
-    position: absolute;
-    display: flex;
-    flex-direction: row;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    align-items: center;
-  }
-
-  #loadingScreen .content img {
-    width: 20vh;
-  }
-
-  #loadingScreen .content h1 {
-    color: #0d0d0d;
-    font-size: 3rem !important;
-    font-weight: bold !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    font-family: Roboto, sans-serif !important;
-  }
-</style>
-<app-root></app-root>
-<div id="loadingScreen" class="visible">
-  <div class="content">
-    <div>
-      <img src="favicon.512x512.png">
-    </div>
-    <h1>Light Git</h1>
-  </div>
-</div>
-<script>
-  window.setTheme = (theme) => {
-    const head = document.head;
-    const THEME_STYLE = 'themeStyle';
-    let previousTheme = document.getElementById(THEME_STYLE);
-    if (!previousTheme) {
-      setLoading(true);
-    }
-    const link = document.createElement("link");
-
-    link.type = "text/css";
-    link.rel = "stylesheet";
-    link.id = THEME_STYLE;
-    link.href = './assets/' + theme + '.min.css';
-    link.onload = () => {
-      if (previousTheme) {
-        head.removeChild(previousTheme);
-      } else {
-        setTimeout(() => setLoading(false), 1200);
+  <head>
+    <meta charset="utf-8" />
+    <base href="./" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto"
+      rel="stylesheet"
+    />
+    <link href="./assets/fa/css/fontawesome-all.css" rel="stylesheet" />
+  </head>
+  <body>
+    <style>
+      /* roboto-regular - latin */
+      @font-face {
+        font-family: 'Roboto';
+        font-style: normal;
+        font-weight: 400;
+        src: local('Roboto'), local('Roboto-Regular'),
+          url('assets/roboto-v18-latin-regular.woff2') format('woff2'),
+          /* Chrome 26+, Opera 23+, Firefox 39+ */
+            url('assets/roboto-v18-latin-regular.woff') format('woff'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
       }
-    };
 
-    head.insertBefore(link, head.firstChild);
-  };
-  window.setTheme('light');
-  setTimeout(() => setLoading(false), 6000);
+      .d2h-code-linenumber {
+        -webkit-user-select: none; /* Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+/Edge */
+        user-select: none; /* Standard */
+      }
 
-  function setLoading(val) {
-    let classes = document.getElementById('loadingScreen').classList;
-    if (classes.contains('visible') !== val) {
-      classes.toggle('visible');
-    }
-  }
-</script>
-</body>
+      #loadingScreen {
+        position: fixed;
+        right: 100%;
+        left: -100%;
+        overflow: hidden;
+        top: 0;
+        bottom: 0;
+        background-color: #e69119;
+        transition: right 0.3s, left 0.3s;
+      }
+
+      #loadingScreen.visible {
+        left: 0;
+        right: 0;
+        transition: right 0.3s, left 0.3s;
+      }
+
+      #loadingScreen .content {
+        position: absolute;
+        display: flex;
+        flex-direction: row;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        align-items: center;
+      }
+
+      #loadingScreen .content img {
+        width: 20vh;
+      }
+
+      #loadingScreen .content h1 {
+        color: #0d0d0d;
+        font-size: 3rem !important;
+        font-weight: bold !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-family: Roboto, sans-serif !important;
+      }
+    </style>
+    <app-root></app-root>
+    <div id="loadingScreen" class="visible">
+      <div class="content">
+        <div>
+          <img src="favicon.512x512.png" />
+        </div>
+        <h1>Light Git</h1>
+      </div>
+    </div>
+    <script>
+      window.setTheme = (theme) => {
+        const head = document.head;
+        const THEME_STYLE = 'themeStyle';
+        let previousTheme = document.getElementById(THEME_STYLE);
+        if (!previousTheme) {
+          setLoading(true);
+        }
+        const link = document.createElement('link');
+
+        link.type = 'text/css';
+        link.rel = 'stylesheet';
+        link.id = THEME_STYLE;
+        link.href = './assets/' + theme + '.min.css';
+        link.onload = () => {
+          if (previousTheme) {
+            head.removeChild(previousTheme);
+          } else {
+            setTimeout(() => setLoading(false), 1200);
+          }
+        };
+
+        head.insertBefore(link, head.firstChild);
+      };
+      window.setTheme('light');
+      setTimeout(() => setLoading(false), 6000);
+
+      function setLoading(val) {
+        let classes = document.getElementById('loadingScreen').classList;
+        if (classes.contains('visible') !== val) {
+          classes.toggle('visible');
+        }
+      }
+    </script>
+  </body>
 </html>

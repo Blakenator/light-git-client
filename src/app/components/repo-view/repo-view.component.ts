@@ -284,6 +284,17 @@ export class RepoViewComponent implements OnDestroy {
 
   mergeBranch() {
     const doMerge = () => {
+      let updateMessage = () => {
+        if (
+          (this.getRepo().changes.stagedChanges.length > 0 ||
+            this.getRepo().changes.unstagedChanges.length > 0) &&
+          !this.getRepo().changes.description?.trim()
+        ) {
+          this.getRepo().changes.description = `Merged ${
+            this.activeMergeInfo.target.name
+          } into ${this.tabDataService.getCurrentBranch().name}`;
+        }
+      };
       this.simpleOperation(
         this.gitService.mergeBranch(this.activeMergeInfo.target.name),
         'mergeBranch',
@@ -292,19 +303,8 @@ export class RepoViewComponent implements OnDestroy {
         true,
         true,
       )
-        .then(() => {
-          if (
-            (this.getRepo().changes.stagedChanges.length > 0 ||
-              this.getRepo().changes.unstagedChanges.length > 0) &&
-            !this.getRepo().changes.description &&
-            !this.getRepo().changes.description.trim()
-          ) {
-            this.getRepo().changes.description = `Merged ${
-              this.activeMergeInfo.target.name
-            } into ${this.tabDataService.getCurrentBranch().name}`;
-          }
-        })
-        .catch(() => {});
+        .then(updateMessage)
+        .catch(updateMessage);
     };
 
     if (

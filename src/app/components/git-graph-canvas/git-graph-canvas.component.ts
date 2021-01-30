@@ -1,5 +1,8 @@
-import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
-import { CommitSummaryModel } from '../../../../shared/git/CommitSummary.model';
+import { Component, ElementRef, Input, ViewChild } from '@angular/core';
+import {
+  CommitSummaryModel,
+  TCommitGraphBlockTarget,
+} from '../../../../shared/git/CommitSummary.model';
 import { SettingsService } from '../../services/settings.service';
 
 @Component({
@@ -8,11 +11,22 @@ import { SettingsService } from '../../services/settings.service';
   styleUrls: ['./git-graph-canvas.component.scss'],
 })
 export class GitGraphCanvasComponent {
-  @Input() commit: CommitSummaryModel;
+  spacerList: TCommitGraphBlockTarget[];
   @ViewChild('canvas') canvas: ElementRef;
   getCommitBranchColor = CommitSummaryModel.getCommitBranchColor;
 
   constructor(public settingsService: SettingsService) {}
+
+  private _commit: CommitSummaryModel;
+
+  get commit(): CommitSummaryModel {
+    return this._commit;
+  }
+
+  @Input() set commit(value: CommitSummaryModel) {
+    this._commit = value;
+    this.spacerList = this.getSpacerList();
+  }
 
   getCurvedPathDef(block: {
     target: number;
@@ -26,9 +40,9 @@ export class GitGraphCanvasComponent {
     return `M${source} 25 C ${source} 12.5, ${target} 9, ${target} 0`;
   }
 
-  getSpacerList(c: CommitSummaryModel) {
+  getSpacerList() {
     let res = [];
-    c.graphBlockTargets.forEach((x) => {
+    this._commit.graphBlockTargets.forEach((x) => {
       let isCommit = x.isCommit;
       let isMerge = x.isMerge;
       let branch = x.branchIndex;
@@ -61,7 +75,7 @@ export class GitGraphCanvasComponent {
     return (
       this.getSafeHoriz(
         Math.max(
-          ...this.commit.graphBlockTargets.map((x) =>
+          ...this._commit.graphBlockTargets.map((x) =>
             Math.max(x.target, x.source),
           ),
         ) + 1,

@@ -7,7 +7,8 @@ import { BranchModel } from '../../../../shared/git/Branch.model';
   styleUrls: ['./branch-chooser.component.scss'],
 })
 export class BranchChooserComponent {
-  @Input() branches: BranchModel[];
+  @Input() locals: BranchModel[];
+  @Input() remotes: BranchModel[];
   @Input() selectedBranch: BranchModel;
   @Output() selectedBranchChange = new EventEmitter<BranchModel>();
   branchFilter: string;

@@ -44,7 +44,8 @@
             ></button>
             <div ngbDropdownMenu>
               <app-branch-chooser
-                [branches]="branches"
+                [locals]="localBranches"
+                [remotes]="remoteBranches"
                 [selectedBranch]="activeBranch"
                 (selectedBranchChange)="
                   setActiveBranch($event); branchChooserDropdown.close()
@@ -74,25 +75,19 @@
           <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
         </td>
         <td class="commit-message-cell p-0">
-          <div class="d-flex" (click)="expandMessage(c.hash, messageExpander)">
+          <div class="d-flex" (click)="expandMessage(c)">
             <div
               class="pr-2 m-0 cursor-pointer d-flex align-items-center"
-              *ngIf="
-                messageExpanded[c.hash] !== undefined ||
-                checkOverflow(messageExpander, c.hash)
-              "
+              *ngIf="messageExpanded[c.hash] !== undefined || checkOverflow(c)"
             >
               <i class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></i>
               <i class="fa fa-caret-right" *ngIf="!messageExpanded[c.hash]"></i>
             </div>
             <div
               class="flex-grow-1 message"
-              #messageExpander
               [ngClass]="{
                 'message-expanded': messageExpanded[c.hash],
-                'cursor-pointer':
-                  messageExpanded[c.hash] != undefined ||
-                  checkOverflow(messageExpander, c.hash)
+                'cursor-pointer': messageExpanded[c.hash] != undefined
               }"
             >
               <div class="d-inline-block" *ngFor="let tag of c.currentTags">

@@ -1,35 +1,42 @@
-<svg class="position-absolute" height="100%" [attr.width]="getSvgWidth()-10">
+<svg class="position-absolute" height="100%" [attr.width]="getSvgWidth() - 10">
   <g *ngFor="let block of commit.graphBlockTargets">
-    <path *ngIf="block.target>=0"
-          [attr.d]="getCurvedPathDef(block)"
-          [attr.stroke]="getCommitBranchColor(block.branchIndex)"
-          stroke-width="2"
-          fill="transparent"></path>
+    <path
+      *ngIf="block.target >= 0"
+      [attr.d]="getCurvedPathDef(block)"
+      [attr.stroke]="getCommitBranchColor(block.branchIndex)"
+      stroke-width="2"
+      fill="transparent"
+    ></path>
   </g>
-  <g *ngIf="getSpacerList(commit) as spacers">
+  <g *ngIf="spacerList as spacers">
     <path
       [attr.d]="getSpacerPathDef(spacer)"
       [attr.stroke]="getCommitBranchColor(spacer.branchIndex)"
       [style.borderRightColor]="getCommitBranchColor(spacer.branchIndex)"
       stroke-width="2px"
-      *ngFor="let spacer of spacers">
-    </path>
+      *ngFor="let spacer of spacers"
+    ></path>
     <g *ngFor="let spacer of spacers">
-      <text [attr.x]="(getSafeHoriz(spacer.source)-6)+'px'"
-            [attr.y]="29"
-            [attr.fill]="getCommitBranchColor(spacer.branchIndex)"
-            class="commit-marker"
-            *ngIf="spacer.isCommit && !spacer.isMerge"
-            font-size=".85em">&#xf111;
+      <text
+        [attr.x]="getSafeHoriz(spacer.source) - 6 + 'px'"
+        [attr.y]="29"
+        [attr.fill]="getCommitBranchColor(spacer.branchIndex)"
+        class="commit-marker"
+        *ngIf="spacer.isCommit && !spacer.isMerge"
+        font-size=".85em"
+      >
+        &#xf111;
       </text>
-      <text [attr.x]="(getSafeHoriz(spacer.source)-6)+'px'"
-            [attr.y]="29"
-            class="commit-marker"
-            [attr.fill]="settingsService.settings.darkMode?'white':'black'"
-            *ngIf="spacer.isCommit && spacer.isMerge">&#xf077;
+      <text
+        [attr.x]="getSafeHoriz(spacer.source) - 6 + 'px'"
+        [attr.y]="29"
+        class="commit-marker"
+        [attr.fill]="settingsService.settings.darkMode ? 'white' : 'black'"
+        *ngIf="spacer.isCommit && spacer.isMerge"
+      >
+        &#xf077;
       </text>
     </g>
   </g>
 </svg>
-<div [style.width]="getSvgWidth()+'px'">
-</div>
+<div [style.width]="getSvgWidth() + 'px'"></div>
