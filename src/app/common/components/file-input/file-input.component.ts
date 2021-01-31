@@ -1,6 +1,11 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 const electron = (window as any).require('electron');
 
+interface TFilePath {
+  path: string;
+  name: string;
+}
+
 @Component({
   selector: 'app-file-input',
   templateUrl: './file-input.component.html',
@@ -20,10 +25,10 @@ export class FileInputComponent {
   constructor() {}
 
   changeFilePath($event?: any) {
-    let files: Record<number, { path: string; name: string }> & {
+    let files: Record<number, TFilePath> & {
       length: number;
     } = ($event && $event.target.files) || [];
-    this._setPaths(Object.values(files).map((f) => f.path));
+    this._setPaths(Object.values(files).map((f: TFilePath) => f.path));
   }
 
   enterKeyPressed() {

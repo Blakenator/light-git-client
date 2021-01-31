@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { SettingsModel } from '../../../../../shared/SettingsModel';
 import { CodeWatcherModel } from '../../../../../shared/code-watcher.model';
 import { ModalService } from '../../../common/services/modal.service';
@@ -18,8 +18,8 @@ export class CodeWatcherConfigComponent {
   addWatcher(filename: string) {
     const model = new CodeWatcherModel();
     model.activeFilter = filename;
-    if (this.tempSettings.loadedCodeWatchers.length) {
-      model.path = this.tempSettings.loadedCodeWatchers[0].path;
+    if (this.tempSettings.codeWatcherPaths.length > 0) {
+      model.path = this.tempSettings.codeWatcherPaths[0];
     }
     this.tempSettings.loadedCodeWatchers.push(model);
   }
@@ -91,5 +91,14 @@ export class CodeWatcherConfigComponent {
 
   getDropdownLabelText(w: CodeWatcherModel) {
     return TabDataService.basename(w.path);
+  }
+
+  isValidRegex(regex: string) {
+    try {
+      const ignore = new RegExp(regex);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

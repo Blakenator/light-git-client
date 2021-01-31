@@ -48,6 +48,7 @@ export class MainApplication extends GenericApplication {
       watchersToSave.get(w.path).push(w);
     });
     Array.from(watchersToSave.entries()).forEach(([file, watchers]) => {
+      mkdirpSync(path.dirname(file));
       this.saveWatchers(file, watchers);
     });
 
@@ -142,9 +143,13 @@ export class MainApplication extends GenericApplication {
   }
 
   saveWatchers(path: string, watchers: CodeWatcherModel[]) {
-    fs.writeFileSync(path, JSON.stringify(watchers, null, '   '), {
-      encoding: 'utf8',
-    });
+    try {
+      fs.writeFileSync(path, JSON.stringify(watchers, null, '   '), {
+        encoding: 'utf8',
+      });
+    } catch (e) {
+      this.logger.error(e);
+    }
   }
 
   loadWatchers(
@@ -779,7 +784,7 @@ export class MainApplication extends GenericApplication {
       files = files.map((f) => f.replace(/["']/g, ''));
       for (let f of files) {
         promises.push(
-          new Promise((resolve, reject) => {
+          new Promise<void>((resolve, reject) => {
             let path1 = path.join(args[1], f);
             fs.remove(path1, (err) => {
               if (err) {

@@ -800,7 +800,7 @@ export class GitService {
 
   private swallowError<T>(promise: Promise<T>) {
     return new Promise<T>((resolve, reject) => {
-      promise.then(resolve).catch(() => resolve());
+      promise.then(resolve).catch(() => resolve(undefined));
     });
   }
 

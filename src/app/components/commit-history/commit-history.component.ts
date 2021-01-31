@@ -130,7 +130,6 @@ export class CommitHistoryComponent {
 
   checkOverflow(commit: CommitSummaryModel) {
     if (!this._overflowingCommitMap.has(commit.hash)) {
-      console.log('recalc overflow');
       this._overflowingCommitMap.set(
         commit.hash,
         commit.currentTags.reduce((prev, value) => prev + value.length, 0) +
