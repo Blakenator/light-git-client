@@ -16,15 +16,15 @@ jobs:
 #        - npm run test-node || travis_terminate 1
     - stage: Release
       os: osx
-      osx_image: xcode10.2
-      node_js: "12"
+      osx_image: xcode12.2
+      node_js: "14"
       if: (branch = testing/build) OR (branch = master)
       script:
         - npm run release:mac
     - stage: Build
       os: osx
-      osx_image: xcode10.2
-      node_js: "12"
+      osx_image: xcode12.2
+      node_js: "14"
       if: branch = staging
       script:
         - git lfs pull
@@ -41,16 +41,29 @@ jobs:
 #        - npm run test-node || travis_terminate 1
     - stage: Release
       os: linux
-      node_js: "12"
+      node_js: "14"
       if: (branch = testing/build) OR (branch = master)
       script:
         - npm run release:linux
     - stage: Build
       os: linux
-      node_js: "12"
+      node_js: "14"
       if: branch = staging
       script:
         - npm run electron:linux
+# WINDOWS
+    - stage: Release
+      os: windows
+      node_js: "14"
+      if: (branch = testing/build) OR (branch = master)
+      script:
+        - npm run release:windows
+    - stage: Build
+      os: windows
+      node_js: "14"
+      if: branch = staging
+      script:
+        - npm run electron:windows
 
 branches:
   only:
