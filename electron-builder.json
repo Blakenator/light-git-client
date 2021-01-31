@@ -49,6 +49,6 @@
         "repo": "light-git-client"
       }
     ],
-    "target": ["AppImage"]
+    "target": ["AppImage", "deb"]
   }
 }
