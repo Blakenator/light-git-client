@@ -2,7 +2,7 @@
   "compileOnSave": true,
   "compilerOptions": {
     "downlevelIteration": true,
-    "module": "esnext",
+    "module": "es2020",
     "outDir": "./dist/out-tsc",
     "inlineSourceMap": true,
     "declaration": false,
