@@ -1,4 +1,4 @@
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
 import {MergeBranchComponent} from './merge-branch.component';
 
@@ -6,7 +6,7 @@ describe('MergeBranchComponent', () => {
   let component: MergeBranchComponent;
   let fixture: ComponentFixture<MergeBranchComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [MergeBranchComponent],
     })
