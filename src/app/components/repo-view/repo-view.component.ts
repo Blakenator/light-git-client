@@ -598,13 +598,19 @@ export class RepoViewComponent implements OnDestroy {
       changeSet.has(sub.path),
     );
 
-    this.simpleOperation(
-      this.gitService.undoFileChanges(undos, revision, staged),
-      'undoFileChanges',
-      'undoing changes for the files',
-    );
-    this.deleteFiles(deletes);
-    this.undoSubmoduleChanges(subs);
+    if (undos.length > 0) {
+      this.simpleOperation(
+        this.gitService.undoFileChanges(undos, revision, staged),
+        'undoFileChanges',
+        'undoing changes for the files',
+      );
+    }
+    if (deletes.length > 0) {
+      this.deleteFiles(deletes);
+    }
+    if (subs.length > 0) {
+      this.undoSubmoduleChanges(subs);
+    }
 
     this.clearSelectedChanges();
     this.activeUndo = undefined;
