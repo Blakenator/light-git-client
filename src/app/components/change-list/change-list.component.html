@@ -1,93 +1,163 @@
 <table class="table table-striped">
-  <thead>
-  <tr>
-    <th class="pl-1 pr-0">
-      <i (click)="toggleSelectAll()"
-         class="far cursor-pointer"
-         [ngClass]="{'fa-check-square':selectAll,'fa-square':!selectAll}"></i>
-    </th>
-    <th width="1%"></th>
-    <th class="pl-1">
-      File
-      <i class="fa fa-filter" *ngIf="changeFilter" ngbTooltip="Filtered Results"></i>
-    </th>
-    <th class="pl-1" *ngIf="settingsService.settings.splitFilenameDisplay">
-      Path
-      <i class="fa fa-filter" *ngIf="changeFilter" ngbTooltip="Filtered Results"></i>
-    </th>
-    <th width="1%"></th>
-  </tr>
+  <thead class="change-list-header">
+    <tr>
+      <th class="pl-1 pr-0 bg-light">
+        <i
+          (click)="toggleSelectAll()"
+          class="far cursor-pointer"
+          [ngClass]="{ 'fa-check-square': selectAll, 'fa-square': !selectAll }"
+        ></i>
+      </th>
+      <th width="1%" class="bg-light"></th>
+      <th class="pl-1 bg-light">
+        File
+        <i
+          class="fa fa-filter"
+          *ngIf="changeFilter"
+          ngbTooltip="Filtered Results"
+        ></i>
+      </th>
+      <th
+        class="pl-1 bg-light"
+        *ngIf="settingsService.settings.splitFilenameDisplay"
+      >
+        Path
+        <i
+          class="fa fa-filter"
+          *ngIf="changeFilter"
+          ngbTooltip="Filtered Results"
+        ></i>
+      </th>
+      <th width="1%" class="bg-light"></th>
+    </tr>
   </thead>
   <tbody>
-  <tr *ngFor="let c of _changes | filterObject : 'file' : changeFilter"
-      (click)="toggleSelect(c.file,$event)"
-      class="change">
-    <td width="1%">
-      <i [ngClass]="{far:true,'fa-check-square':selectedChanges[c.file],'fa-square':!selectedChanges[c.file]}"></i>
-    </td>
-    <td>
-      <i class="fas fa-{{getChangeType(c)}}" [openDelay]="500" [ngbTooltip]="getChangeTypeDescription(c)"></i>
-    </td>
-    <td *ngIf="settingsService.settings.splitFilenameDisplay" class="text-nowrap">
-      <small>{{c.file.substring(c.file.lastIndexOf('/') + 1).replace('"', '')}}</small>
-    </td>
-    <td>
-      <div class="change-filename" [openDelay]="500" [ngbTooltip]="c.file">
-        <div class="d-inline-block" *ngFor="let part of getSplitFilepath(c.file); let i=index">
-          <span class="badge badge-light" *ngIf="part!='->'">{{part}}</span>
-          <small *ngIf="part=='->'"><i class="fa fa-arrow-right"></i></small>
-          <span *ngIf="i<c.file.replace('->','/->/').split('/').length-1 && part!='->' && c.file.replace('->','/->/').split('/')[i+1]!='->'">/</span>
+    <tr
+      *ngFor="let c of _changes | filterObject: 'file':changeFilter"
+      (click)="toggleSelect(c.file, $event)"
+      class="change"
+    >
+      <td width="1%">
+        <i
+          [ngClass]="{
+            far: true,
+            'fa-check-square': selectedChanges[c.file],
+            'fa-square': !selectedChanges[c.file]
+          }"
+        ></i>
+      </td>
+      <td>
+        <i
+          class="fas fa-{{ getChangeType(c) }}"
+          [ngbTooltip]="getChangeTypeDescription(c)"
+        ></i>
+      </td>
+      <td
+        *ngIf="settingsService.settings.splitFilenameDisplay"
+        class="text-nowrap"
+      >
+        <small>{{
+          c.file.substring(c.file.lastIndexOf('/') + 1).replace('"', '')
+        }}</small>
+      </td>
+      <td>
+        <div class="change-filename" [ngbTooltip]="c.file">
+          <div
+            class="d-inline-block"
+            *ngFor="let part of getSplitFilepath(c.file); let i = index"
+          >
+            <span class="badge badge-light" *ngIf="part != '->'">{{
+              part
+            }}</span>
+            <small *ngIf="part == '->'"
+              ><i class="fa fa-arrow-right"></i
+            ></small>
+            <span *ngIf="shouldShowTrailingSlash(c, i, part)">/</span>
+          </div>
         </div>
-      </div>
-    </td>
-    <td class="center-text-vertical text-right">
-      <div class="btn-group btn-group-sm" (click)="$event.preventDefault();$event.stopPropagation()">
-        <button *ngIf="!isDeleted(c)&&!isMergeConflict(c.change)"
-                class="btn btn-warning btn-sm"
-                [openDelay]="500" ngbTooltip="Undo changes to this file"
-                (click)="undoFileClicked(c.file)">
-          <i class="fa fa-undo"></i>
-        </button>
-        <div class="btn-group btn-group-sm" *ngIf="isMergeConflict(c.change)">
-          <button class="btn btn-success btn-sm"
-                  [openDelay]="500" ngbTooltip="Open configured merge tool"
-                  (click)="mergeClicked(c.file)">
-            <i class="material-icons">merge_type</i>
+      </td>
+      <td class="center-text-vertical text-right">
+        <div
+          class="btn-group btn-group-sm"
+          (click)="$event.preventDefault(); $event.stopPropagation()"
+        >
+          <button
+            *ngIf="!isDeleted(c) && !isMergeConflict(c.change)"
+            class="btn btn-warning btn-sm"
+            ngbTooltip="Undo changes to this file"
+            (click)="undoFileClicked(c.file)"
+          >
+            <i class="fa fa-undo"></i>
           </button>
-          <div class="btn-group btn-group-sm" ngbDropdown placement="bottom-right" autoClose="outside" container="body">
-            <button class="btn btn-success dropdown-toggle-split" ngbDropdownToggle></button>
-            <div ngbDropdownMenu>
-              <button class="btn btn-light mx-1"
-                      (click)="onResolveClicked.emit({file:c.file,theirs:false})"
-                      [openDelay]="500" ngbTooltip="Resolve using Mine">
-                <i class="fa fa-user"></i>
-              </button>
-              <button class="btn btn-light mx-1"
-                      (click)="onResolveClicked.emit({file:c.file,theirs:true})"
-                      [openDelay]="500" ngbTooltip="Resolve using Theirs">
-                <i class="fa fa-users"></i>
-              </button>
+          <div class="btn-group btn-group-sm" *ngIf="isMergeConflict(c.change)">
+            <button
+              class="btn btn-success btn-sm"
+              ngbTooltip="Open configured merge tool"
+              (click)="mergeClicked(c.file)"
+            >
+              <i class="material-icons">merge_type</i>
+            </button>
+            <div
+              class="btn-group btn-group-sm"
+              ngbDropdown
+              placement="bottom-right"
+              autoClose="outside"
+              container="body"
+            >
+              <button
+                class="btn btn-success dropdown-toggle-split"
+                ngbDropdownToggle
+              ></button>
+              <div ngbDropdownMenu>
+                <button
+                  class="btn btn-light mx-1"
+                  (click)="
+                    onResolveClicked.emit({ file: c.file, theirs: false })
+                  "
+                  ngbTooltip="Resolve using Mine"
+                >
+                  <i class="fa fa-user"></i>
+                </button>
+                <button
+                  class="btn btn-light mx-1"
+                  (click)="
+                    onResolveClicked.emit({ file: c.file, theirs: true })
+                  "
+                  ngbTooltip="Resolve using Theirs"
+                >
+                  <i class="fa fa-users"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="btn-group btn-group-sm" *ngIf="isDeleted(c)">
+            <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
+          </div>
+          <ng-template #deleteButton>
+            <button
+              class="btn btn-danger btn-sm"
+              ngbTooltip="Delete file"
+              (click)="deleteClicked(c.file)"
+            >
+              <i class="fa fa-trash"></i>
+            </button>
+          </ng-template>
+          <div
+            class="btn-group btn-group-sm"
+            ngbDropdown
+            *ngIf="!isDeleted(c)"
+            placement="bottom-right"
+            container="body"
+          >
+            <button class="btn btn-light action-expand" ngbDropdownToggle>
+              <i class="fa fa-ellipsis-h"></i>
+            </button>
+            <div ngbDropdownMenu class="px-1">
+              <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
             </div>
           </div>
         </div>
-        <div class="btn-group btn-group-sm" *ngIf="isDeleted(c)">
-          <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
-        </div>
-        <ng-template #deleteButton>
-          <button class="btn btn-danger btn-sm"
-                  [openDelay]="500" ngbTooltip="Delete file"
-                  (click)="deleteClicked(c.file)">
-            <i class="fa fa-trash"></i>
-          </button>
-        </ng-template>
-        <div class="btn-group btn-group-sm" ngbDropdown *ngIf="!isDeleted(c)" placement="bottom-right" container="body">
-          <button class="btn btn-light action-expand" ngbDropdownToggle><i class="fa fa-ellipsis-h"></i></button>
-          <div ngbDropdownMenu class="px-1">
-            <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
-          </div>
-        </div>
-      </div>
-    </td>
-  </tr>
+      </td>
+    </tr>
   </tbody>
 </table>

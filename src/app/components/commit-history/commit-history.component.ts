@@ -1,16 +1,19 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
-import {FilterPipe} from '../../common/pipes/filter.pipe';
-import {BranchModel} from '../../../../shared/git/Branch.model';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { CommitSummaryModel } from '../../../../shared/git/CommitSummary.model';
+import { FilterPipe } from '../../common/pipes/filter.pipe';
+import { BranchModel } from '../../../../shared/git/Branch.model';
+import { EqualityUtil } from '../../common/equality.util';
+import { TabDataService } from '../../services/tab-data.service';
+import * as _ from 'lodash';
 
 @Component({
   selector: 'app-commit-history',
   templateUrl: './commit-history.component.html',
   styleUrls: ['./commit-history.component.scss'],
 })
-export class CommitHistoryComponent implements OnInit {
-  @Input() commitHistory: CommitSummaryModel[];
-  @Input() branches: BranchModel[];
+export class CommitHistoryComponent {
+  @Input() localBranches: BranchModel[];
+  @Input() remoteBranches: BranchModel[];
   @Input() activeBranch: BranchModel;
   @Output() onClickCommitDiff = new EventEmitter<CommitSummaryModel>();
   @Output() onScrollDown = new EventEmitter<any>();
@@ -21,11 +24,21 @@ export class CommitHistoryComponent implements OnInit {
   numPerPage = 50;
   commitFilter: string;
   messageExpanded: { [key: string]: boolean } = {};
+  private _lastCommitHistory: CommitSummaryModel[];
+  private _overflowingCommitMap = new Map<string, boolean>();
 
-  constructor() {
+  constructor(private tabService: TabDataService) {}
+
+  private _commitHistory: CommitSummaryModel[];
+
+  get commitHistory(): CommitSummaryModel[] {
+    return this._commitHistory;
   }
 
-  ngOnInit() {
+  @Input()
+  set commitHistory(value: CommitSummaryModel[]) {
+    this._commitHistory = value;
+    this._commitHistory.forEach((commit) => this.checkOverflow(commit));
   }
 
   getCommitDiff(commit: CommitSummaryModel) {
@@ -39,26 +52,47 @@ export class CommitHistoryComponent implements OnInit {
     if (!down) {
       this.scrollOffset -= this.numPerPage / 4;
     }
-    this.scrollOffset = Math.round(Math.max(
-      0,
-      Math.min(this.scrollOffset, this.commitHistory.length - this.numPerPage)));
-    if (this.scrollOffset >= this.commitHistory.length - this.numPerPage) {
+    this.scrollOffset = Math.round(
+      Math.max(
+        0,
+        Math.min(
+          this.scrollOffset,
+          this._commitHistory.length - this.numPerPage,
+        ),
+      ),
+    );
+    if (this.scrollOffset >= this._commitHistory.length - this.numPerPage) {
       this.onScrollDown.emit();
     }
   }
 
-  getFilteredCommitHistory() {
+  getFilteredCommitHistory(): CommitSummaryModel[] {
+    let result: CommitSummaryModel[];
     if (!this.commitFilter) {
-      return this.commitHistory.slice(0, this.scrollOffset + this.numPerPage);
+      result = this._commitHistory.slice(
+        0,
+        this.scrollOffset + this.numPerPage,
+      );
     } else {
-      return this.commitHistory.filter(c => {
+      result = this._commitHistory.filter((c) => {
         const needle = this.commitFilter.toLowerCase();
-        return FilterPipe.fuzzyFilter(needle, c.message.toLowerCase()) ||
-          FilterPipe.fuzzyFilter(needle, c.authorName.toLowerCase()) ||
-          FilterPipe.fuzzyFilter(needle, c.authorEmail.toLowerCase()) ||
-          FilterPipe.fuzzyFilter(needle, c.authorDate.toString().toLowerCase()) ||
-          c.hash.indexOf(needle) >= 0;
+        return (
+          FilterPipe.containsFilter(needle, c.message.toLowerCase()) ||
+          FilterPipe.containsFilter(needle, c.authorName.toLowerCase()) ||
+          FilterPipe.containsFilter(needle, c.authorEmail.toLowerCase()) ||
+          FilterPipe.containsFilter(
+            needle,
+            c.authorDate.toString().toLowerCase(),
+          ) ||
+          c.hash.indexOf(needle) >= 0
+        );
       });
+    }
+    if (!EqualityUtil.listsEqual(this._lastCommitHistory, result)) {
+      this._lastCommitHistory = result;
+      return result;
+    } else {
+      return this._lastCommitHistory;
     }
   }
 
@@ -72,7 +106,10 @@ export class CommitHistoryComponent implements OnInit {
 
   getTagClasses(tag: string) {
     return {
-      'badge-info': !this.isPlainTag(tag) && !this.isRemoteBranch(tag) && !tag.startsWith('HEAD'),
+      'badge-info':
+        !this.isPlainTag(tag) &&
+        !this.isRemoteBranch(tag) &&
+        !tag.startsWith('HEAD'),
       'badge-success': this.isPlainTag(tag),
       'badge-primary': this.isRemoteBranch(tag),
       'badge-warning': tag.startsWith('HEAD'),
@@ -91,33 +128,45 @@ export class CommitHistoryComponent implements OnInit {
     return commit.message.split(/\r?\n/g);
   }
 
-  checkOverflow(element: any) {
-    return element.offsetHeight < element.scrollHeight ||
-      element.offsetWidth < element.scrollWidth;
+  checkOverflow(commit: CommitSummaryModel) {
+    if (!this._overflowingCommitMap.has(commit.hash)) {
+      this._overflowingCommitMap.set(
+        commit.hash,
+        commit.currentTags.reduce((prev, value) => prev + value.length, 0) +
+          commit.currentTags.length * 3 +
+          commit.message.length >
+          65,
+      );
+    }
+
+    return this._overflowingCommitMap.get(commit.hash);
   }
 
-  expandMessage(hash: string, messageExpander: any) {
-    if (this.messageExpanded[hash] != undefined || this.checkOverflow(messageExpander)) {
-      this.messageExpanded[hash] = !this.messageExpanded[hash];
+  expandMessage(commit: CommitSummaryModel) {
+    if (
+      this.messageExpanded[commit.hash] != undefined ||
+      this.checkOverflow(commit)
+    ) {
+      this.messageExpanded[commit.hash] = !this.messageExpanded[commit.hash];
     }
   }
 
   isCurrentBranchActive() {
-    return this.branches &&
+    return (
+      this.localBranches &&
       this.activeBranch &&
-      this.getCurrentBranch().name == this.activeBranch.name;
-  }
-
-  getCurrentBranch() {
-    return this.branches.find(b => b.isCurrentBranch);
+      this.tabService.getLocalBranchMap().get(this.activeBranch.name)
+        ?.isCurrentBranch
+    );
   }
 
   toggleSoloCurrentBranch() {
-    this.setActiveBranch(this.getCurrentBranch());
+    this.setActiveBranch(this.tabService.getCurrentBranch());
   }
 
   setActiveBranch(b: any) {
-    this.activeBranch = !this.activeBranch || b.name != this.activeBranch.name ? b : undefined;
-    this.onChooseBranch.emit(this.activeBranch);
+    this.onChooseBranch.emit(
+      !this.activeBranch || b.name != this.activeBranch.name ? b : undefined,
+    );
   }
 }

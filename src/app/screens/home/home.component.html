@@ -7,20 +7,20 @@
       <i class="fa fa-plane"></i>
     </div>
     <app-settings class="nav-item"></app-settings>
-    <app-loading-spinner [show]="isLoading" class="nav-item mx-2" [keepSpacing]="true"></app-loading-spinner>
+    <app-loading-spinner [show]="jobSchedulerService.isRunning(tabService.getActiveTab()?.path)" class="nav-item mx-2" [keepSpacing]="true"></app-loading-spinner>
     <div class="tab-container btn-group nav-item flex-grow-1 pl"
          cdkDropListOrientation="horizontal"
          cdkDropList
          (cdkDropListDropped)="moveTab($event)">
       <button *ngFor="let tab of tabService.tabData; let t = index"
               (click)="changeTab(t)"
-              [ngbTooltip]="tab.cache.path"
+              [ngbTooltip]="tab.path"
               placement="bottom"
               container="body"
               cdkDrag
               [cdkDragDisabled]="editingTab==t"
               cdkDragLockAxis="x"
-              [ngClass]="{'tab-btn btn center-text-vertical':true,'btn-primary':t==activeTab,'btn-light':t!=activeTab}">
+              [ngClass]="{'tab-btn btn center-text-vertical':true,'btn-primary':t==activeTabIndex,'btn-light':t!=activeTabIndex}">
         <div class="pr-1 center-text-vertical">
           <span *ngIf="editingTab!=t">{{tab.name}}</span>
           <div class="input-group" *ngIf="editingTab==t">
@@ -33,11 +33,12 @@
                    (keyup.control.enter)="saveEditedName(t)"
                    (click)="editClick($event,t)"/>
             <div class="input-group-append">
-              <button class="btn btn-light" (click)="cancelEdit($event)" [openDelay]="500" ngbTooltip="Cancel Rename">
+                <button class="btn btn-light" (click)="cancelEdit($event)" ngbTooltip="Cancel Rename">
                 <i class="fa fa-times-circle"></i></button>
             </div>
             <div class="input-group-append">
-              <button class="btn btn-success" (click)="saveEditedName(t)" [openDelay]="500" ngbTooltip="Apply"><i class="fa fa-check"></i>
+                <button class="btn btn-success" (click)="saveEditedName(t)" ngbTooltip="Apply">
+                <i class="fa fa-check"></i>
               </button>
             </div>
           </div>
@@ -55,11 +56,10 @@
     </div>
   </nav>
   <div class="main-body flex-grow-1">
-    <div *ngIf="activeTab>=0">
-      <app-new-tab-page (onReady)="loadRepo($event)"
-                        *ngIf="!getActiveTabData()?.cache.path"></app-new-tab-page>
-      <app-repo-view *ngIf="getActiveTabData()?.cache.path"
-                     [repoPath]="getActiveTabData()?.cache.path"
+    <div *ngIf="activeTabIndex>=0">
+      <app-new-tab-page *ngIf="!getActiveTab()?.path" (onLoadClicked)="loadRepo($event)"></app-new-tab-page>
+      <app-repo-view *ngIf="getActiveTab()?.path"
+                     [repoPath]="getActiveTab()?.path"
                      (onLoadRepoFailed)="repoLoadFailed($event)"
                      (onOpenRepoNewTab)="addTab($event)"></app-repo-view>
     </div>

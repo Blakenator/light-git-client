@@ -1,8 +1,15 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
+import {ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {BranchModel} from '../../../../shared/git/Branch.model';
 import {WorktreeModel} from '../../../../shared/git/worktree.model';
 import {SettingsService} from '../../services/settings.service';
 import {FilterPipe} from '../../common/pipes/filter.pipe';
+import {TabDataService} from '../../services/tab-data.service';
+
+enum TrackingMode {
+  remote,
+  local,
+  broken
+}
 
 @Component({
   selector: 'app-branch-tree-item',
@@ -10,28 +17,31 @@ import {FilterPipe} from '../../common/pipes/filter.pipe';
   styleUrls: ['./branch-tree-item.component.scss'],
 })
 export class BranchTreeItemComponent implements OnInit {
-  @Input() localBranches: BranchModel[];
   @Input() worktrees: WorktreeModel[];
   @Input() isLocal: boolean;
   @Input() currentPath = '';
   @Input() filter = '';
+  @Input() activeRenames: Map<string, string> = new Map<string, string>();
+  @Input() actionExpandedMap: Map<string, boolean> = new Map<string, boolean>();
+  @Input() showChildrenMap: Map<string, boolean> = new Map<string, boolean>();
+
   @Output() onCheckoutClicked = new EventEmitter<{ branch: string, andPull: boolean }>();
   @Output() onPushClicked = new EventEmitter<BranchModel>();
   @Output() onForcePushClicked = new EventEmitter<BranchModel>();
   @Output() onDeleteClicked = new EventEmitter<BranchModel>();
-  @Output() onFastForwardClicked = new EventEmitter<string>();
+  @Output() onFastForwardClicked = new EventEmitter<BranchModel>();
   @Output() onBranchPremergeClicked = new EventEmitter<BranchModel>();
   @Output() onMergeClicked = new EventEmitter<BranchModel>();
   @Output() onPullClicked = new EventEmitter<void>();
   @Output() onForcePullClicked = new EventEmitter<void>();
   @Output() onBranchRename = new EventEmitter<{ oldName: string, newName: string }>();
-  showChildren = true;
   leaves: BranchModel[];
-  children;
-  activeRenames: { [key: string]: string } = {};
-  actionExpanded: { [key: string]: boolean } = {};
+  children: { path: string, branches: BranchModel[] }[];
 
-  constructor(public settingsService: SettingsService) {
+  TrackingMode = TrackingMode;
+
+  constructor(public settingsService: SettingsService,
+              public tabDataService: TabDataService,) {
   }
 
   _branches: BranchModel[];
@@ -76,8 +86,20 @@ export class BranchTreeItemComponent implements OnInit {
     return this.currentPath.substring(this.currentPath.lastIndexOf('/') + 1);
   }
 
+  shouldShowChildren(): boolean {
+    return this.showChildrenMap.get(this.currentPath) ?? true;
+  }
+
+  isActionExpanded(branchName: string): boolean {
+    return this.actionExpandedMap.get(branchName);
+  }
+
   toggleChildrenVisible() {
-    this.showChildren = !this.showChildren;
+    this.showChildrenMap.set(this.currentPath, !this.shouldShowChildren());
+  }
+
+  toggleActionExpanded(branchName: string) {
+    this.actionExpandedMap.set(branchName, !this.isActionExpanded(branchName));
   }
 
   getChildPath(path: any) {
@@ -89,33 +111,34 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   isRemoteAlreadyCheckedOut(name: string) {
-    return !!this.localBranches.find(local => local.name == name.replace('origin/', ''));
+    return this.tabDataService.getLocalBranchMap().has(name.replace('origin/', ''));
   }
 
   checkedOutOtherWorktree(b: BranchModel) {
     return this.worktrees.find(w => w.currentBranch == b.name && !w.isCurrent);
   }
 
-  renameBranch(originalName: string) {
-    if(this.activeRenames[originalName]) {
-      this.onBranchRename.emit({oldName: originalName, newName: this.activeRenames[originalName]});
+  renameBranch(oldName: string) {
+    let newName = this.activeRenames.get(oldName);
+    if (newName) {
+      this.onBranchRename.emit({oldName, newName});
     }
-    this.cancelRename(originalName);
+    this.cancelRename(oldName);
   }
 
   cancelRename(branchName: string) {
-    delete (this.activeRenames[branchName]);
+    this.activeRenames.delete(branchName);
   }
 
   startRename(branchName: string) {
-    this.activeRenames[branchName] = branchName;
+    this.activeRenames.set(branchName, branchName);
   }
 
   getFilteredChildren() {
     if (this.filter === undefined) {
       return 1;
     }
-    return this.children.filter(c => FilterPipe.fuzzyFilter(this.filter, c.name || ''));
+    return this.children.filter(c => FilterPipe.fuzzyFilter(this.filter, c.path || ''));
   }
 
   checkoutBranch(name: string, ff: boolean) {
@@ -126,14 +149,25 @@ export class BranchTreeItemComponent implements OnInit {
     if (b.isCurrentBranch) {
       this.onPullClicked.emit();
     } else if (b.behind && !b.ahead) {
-      this.onFastForwardClicked.emit(b.name);
+      this.onFastForwardClicked.emit(b);
     }
   }
 
   isBranchCurrent(name: string) {
-    return !!this.localBranches.find(local => local.name == name.replace('origin/', '') && local.isCurrentBranch);
+    return !!this.tabDataService.getLocalBranchMap().get( name.replace('origin/', ''))?.isCurrentBranch;
   }
-  isRenamingBranch(branch:BranchModel){
-    return this.activeRenames[branch.name]!==undefined;
+
+  isRenamingBranch(branch: BranchModel) {
+    return this.activeRenames.has(branch.name);
+  }
+
+  getTrackingMode(branch: BranchModel) {
+    if (branch.trackingPath.indexOf('origin/') === 0) {
+      return TrackingMode.remote;
+    } else if (branch.isTrackingPathGone) {
+      return TrackingMode.broken;
+    } else {
+      return TrackingMode.local;
+    }
   }
 }

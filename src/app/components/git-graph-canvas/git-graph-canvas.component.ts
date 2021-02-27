@@ -1,32 +1,48 @@
-import {Component, ElementRef, Input, OnInit, ViewChild} from '@angular/core';
-import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
-import {SettingsService} from '../../services/settings.service';
+import { Component, ElementRef, Input, ViewChild } from '@angular/core';
+import {
+  CommitSummaryModel,
+  TCommitGraphBlockTarget,
+} from '../../../../shared/git/CommitSummary.model';
+import { SettingsService } from '../../services/settings.service';
 
 @Component({
   selector: 'app-git-graph-canvas',
   templateUrl: './git-graph-canvas.component.html',
   styleUrls: ['./git-graph-canvas.component.scss'],
 })
-export class GitGraphCanvasComponent implements OnInit {
-  @Input() commit: CommitSummaryModel;
+export class GitGraphCanvasComponent {
+  spacerList: TCommitGraphBlockTarget[];
   @ViewChild('canvas') canvas: ElementRef;
   getCommitBranchColor = CommitSummaryModel.getCommitBranchColor;
 
-  constructor(public settingsService: SettingsService) {
+  constructor(public settingsService: SettingsService) {}
+
+  private _commit: CommitSummaryModel;
+
+  get commit(): CommitSummaryModel {
+    return this._commit;
   }
 
-  ngOnInit() {
+  @Input() set commit(value: CommitSummaryModel) {
+    this._commit = value;
+    this.spacerList = this.getSpacerList();
   }
 
-  getCurvedPathDef(block: { target: number; source: number; isCommit: boolean; branchIndex: number; isMerge: boolean }) {
+  getCurvedPathDef(block: {
+    target: number;
+    source: number;
+    isCommit: boolean;
+    branchIndex: number;
+    isMerge: boolean;
+  }) {
     let source = this.getSafeHoriz(block.source);
     let target = this.getSafeHoriz(block.target);
     return `M${source} 25 C ${source} 12.5, ${target} 9, ${target} 0`;
   }
 
-  getSpacerList(c: CommitSummaryModel) {
+  getSpacerList() {
     let res = [];
-    c.graphBlockTargets.forEach(x => {
+    this._commit.graphBlockTargets.forEach((x) => {
       let isCommit = x.isCommit;
       let isMerge = x.isMerge;
       let branch = x.branchIndex;
@@ -46,7 +62,9 @@ export class GitGraphCanvasComponent implements OnInit {
   }
 
   getSpacerPathDef(spacer: any) {
-    return `M${this.getSafeHoriz(spacer.source)} 25 L ${this.getSafeHoriz(spacer.source)} 1000`;
+    return `M${this.getSafeHoriz(spacer.source)} 25 L ${this.getSafeHoriz(
+      spacer.source,
+    )} 1000`;
   }
 
   getSafeHoriz(slot: number) {
@@ -54,7 +72,14 @@ export class GitGraphCanvasComponent implements OnInit {
   }
 
   getSvgWidth() {
-    return this.getSafeHoriz(Math.max(...this.commit.graphBlockTargets.map(
-      x => Math.max(x.target, x.source))) + 1) + 10;
+    return (
+      this.getSafeHoriz(
+        Math.max(
+          ...this._commit.graphBlockTargets.map((x) =>
+            Math.max(x.target, x.source),
+          ),
+        ) + 1,
+      ) + 10
+    );
   }
 }

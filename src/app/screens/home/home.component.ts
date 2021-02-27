@@ -1,14 +1,16 @@
-import {ChangeDetectorRef, Component, OnInit} from '@angular/core';
-import {ElectronService} from '../../common/services/electron.service';
-import {HttpClient} from '@angular/common/http';
-import {SettingsService} from '../../services/settings.service';
-import {GitService} from '../../services/git.service';
-import {ErrorModel} from '../../../../shared/common/error.model';
-import {ErrorService} from '../../common/services/error.service';
-import {LoadingService} from '../../services/loading.service';
-import {CdkDragDrop} from '@angular/cdk/drag-drop';
-import {TabService} from '../../services/tab.service';
-import {NgbTooltipConfig} from '@ng-bootstrap/ng-bootstrap';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ElectronService } from '../../common/services/electron.service';
+import { HttpClient } from '@angular/common/http';
+import { SettingsService } from '../../services/settings.service';
+import { GitService } from '../../services/git.service';
+import { ErrorModel } from '../../../../shared/common/error.model';
+import { ErrorService } from '../../common/services/error.service';
+import { LoadingService } from '../../services/loading.service';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { TabDataService } from '../../services/tab-data.service';
+import { NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap';
+import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
+import { RepoAreaDefaults } from '../../services/job-system/models';
 
 @Component({
   selector: 'app-home',
@@ -16,69 +18,60 @@ import {NgbTooltipConfig} from '@ng-bootstrap/ng-bootstrap';
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit {
-  isLoading = false;
   editingTab = -1;
   editedTabName = '';
 
-  constructor(private electronService: ElectronService,
-              public settingsService: SettingsService,
-              public errorService: ErrorService,
-              private loadingService: LoadingService,
-              private http: HttpClient,
-              private cd: ChangeDetectorRef,
-              public tabService: TabService,
-              private gitService: GitService,
-              config: NgbTooltipConfig) {
+  constructor(
+    private electronService: ElectronService,
+    public settingsService: SettingsService,
+    public errorService: ErrorService,
+    private loadingService: LoadingService,
+    private http: HttpClient,
+    private cd: ChangeDetectorRef,
+    public tabService: TabDataService,
+    public jobSchedulerService: JobSchedulerService,
+    private gitService: GitService,
+    config: NgbTooltipConfig,
+  ) {
     config.container = 'body';
   }
 
-  get activeTab(): number {
-    return this.tabService.activeTab;
+  get activeTabIndex(): number {
+    return this.tabService.activeTabIndex;
   }
 
-  set activeTab(value: number) {
-    this.tabService.activeTab = value;
+  set activeTabIndex(value: number) {
+    this.tabService.activeTabIndex = value;
   }
 
   ngOnInit() {
-    this.loadingService.onLoadingChanged.subscribe(val => {
-      this.isLoading = val;
-      this.cd.detectChanges();
-    });
-    this.settingsService.loadSettings(callback => {
-      this.activeTab = this.settingsService.settings.activeTab;
-      this.tabService.tabData = this.settingsService.settings.tabNames.map((x, index) =>
-        this.tabService.getNewTab(
-          this.settingsService.settings.openRepos[index],
-          x || TabService.basename(this.settingsService.settings.openRepos[index])));
+    this.settingsService.loadSettings((callback) => {
+      this.activeTabIndex = this.settingsService.settings.activeTab;
       this.tabService.initializeCache();
-      this.gitService.repo = this.tabService.activeRepoCache;
-      this.gitService.checkGitBashVersions();
+      this.jobSchedulerService.scheduleSimpleOperation(
+        this.gitService.checkGitBashVersions(),
+      );
+      this.jobSchedulerService.scheduleSimpleOperation(
+        this.gitService.loadRepo(this.tabService.activeRepoCache.path),
+      );
     });
   }
 
-  changeTab(t: number) {
-    this.activeTab = -1;
+  public changeTab(t: number) {
+    this.activeTabIndex = t;
     this.cd.detectChanges();
-    this.activeTab = t;
     this.saveOpenRepos();
   }
 
   addTab(path: string = '') {
-    this.activeTab = this.tabService.tabCount();
-    this.tabService.tabData.push(this.tabService.getNewTab(path, TabService.basename(path)));
-    if (path) {
-      setTimeout(() => {
-        this.loadRepo(path);
-        this.cd.detectChanges();
-      }, 100);
-    }
+    this.tabService.tabData.push({ path, name: TabDataService.basename(path) });
+    this.activeTabIndex = this.tabService.tabCount() - 1;
     this.saveOpenRepos();
   }
 
   closeTab(t: number) {
-    if (this.activeTab == t) {
-      this.changeTab(--this.activeTab);
+    if (this.activeTabIndex == t) {
+      this.changeTab(this.activeTabIndex - 1);
     }
     this.tabService.tabData.splice(t, 1);
     if (this.tabService.tabCount() == 0) {
@@ -88,20 +81,23 @@ export class HomeComponent implements OnInit {
   }
 
   loadRepo(path: string) {
-    if (!this.tabService.getActiveTabData().cache.path || this.tabService.getActiveTabData().cache.path === path) {
-      this.tabService.updateTabData(this.tabService.getNewTab(path).cache);
-      this.tabService.updateTabName(TabService.basename(path));
-      this.saveOpenRepos();
-    }
+    this.tabService.initializeCacheForPath(path, TabDataService.basename(path));
+    this.saveOpenRepos();
+    this.jobSchedulerService.scheduleSimpleOperation(
+      this.gitService.loadRepo(path),
+    );
   }
 
   saveOpenRepos() {
-    this.settingsService.settings.activeTab = this.activeTab;
-    this.settingsService.settings.tabNames = this.tabService.tabData.map(t => t.name);
-    this.settingsService.settings.openRepos = this.tabService.tabData.map(t => t.cache.path);
+    this.settingsService.settings.activeTab = this.activeTabIndex;
+    this.settingsService.settings.tabNames = this.tabService.tabData.map(
+      (t) => t.name,
+    );
+    this.settingsService.settings.openRepos = this.tabService.tabData.map(
+      (t) => t.path,
+    );
     this.editingTab = -1;
     this.editedTabName = '';
-    this.gitService.repo = this.tabService.activeRepoCache;
     this.settingsService.saveSettings();
   }
 
@@ -113,7 +109,7 @@ export class HomeComponent implements OnInit {
 
   repoLoadFailed($event: ErrorModel) {
     this.errorService.receiveError($event);
-    this.tabService.updateTabData(this.tabService.getNewTab('').cache);
+    // this.tabService.updateTabData(this.tabService.getNewTab('').cache);
     this.cd.detectChanges();
   }
 
@@ -129,18 +125,28 @@ export class HomeComponent implements OnInit {
   }
 
   moveTab(event: CdkDragDrop<number[]>) {
-    this.tabService.tabData.splice(event.currentIndex, 0, this.tabService.tabData.splice(event.previousIndex, 1)[0]);
-    if (this.activeTab == event.previousIndex) {
-      this.activeTab = event.currentIndex;
-    } else if (this.activeTab > event.currentIndex && this.activeTab < event.previousIndex) {
-      this.activeTab++;
-    } else if (this.activeTab < event.currentIndex && this.activeTab > event.previousIndex) {
-      this.activeTab--;
+    this.tabService.tabData.splice(
+      event.currentIndex,
+      0,
+      this.tabService.tabData.splice(event.previousIndex, 1)[0],
+    );
+    if (this.activeTabIndex == event.previousIndex) {
+      this.changeTab(event.currentIndex);
+    } else if (
+      this.activeTabIndex > event.currentIndex &&
+      this.activeTabIndex < event.previousIndex
+    ) {
+      this.changeTab(this.activeTabIndex - 1);
+    } else if (
+      this.activeTabIndex < event.currentIndex &&
+      this.activeTabIndex > event.previousIndex
+    ) {
+      this.changeTab(this.activeTabIndex + 1);
     }
     this.saveOpenRepos();
   }
 
-  getActiveTabData() {
-    return this.tabService.getActiveTabData();
+  getActiveTab() {
+    return this.tabService.getActiveTab();
   }
 }

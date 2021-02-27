@@ -1,14 +1,14 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {ChangeType, LightChange} from '../../../../shared/git/Commit.model';
-import {SettingsService} from '../../services/settings.service';
-import {SubmoduleModel} from '../../../../shared/git/submodule.model';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { ChangeType, LightChange } from '../../../../shared/git/Commit.model';
+import { SettingsService } from '../../services/settings.service';
+import { SubmoduleModel } from '../../../../shared/git/submodule.model';
 
 @Component({
   selector: 'app-change-list',
   templateUrl: './change-list.component.html',
   styleUrls: ['./change-list.component.scss'],
 })
-export class ChangeListComponent implements OnInit {
+export class ChangeListComponent {
   @Input() changeFilter = '';
   @Input() submodules: SubmoduleModel[];
   selectedChanges: { [key: string]: boolean } = {};
@@ -16,13 +16,15 @@ export class ChangeListComponent implements OnInit {
   @Output() onUndoFileClicked = new EventEmitter<string>();
   @Output() onUndoSubmoduleClicked = new EventEmitter<SubmoduleModel>();
   @Output() onMergeClicked = new EventEmitter<string>();
-  @Output() onResolveClicked = new EventEmitter<{ file: string, theirs: boolean }>();
+  @Output() onResolveClicked = new EventEmitter<{
+    file: string;
+    theirs: boolean;
+  }>();
   @Output() onDeleteClicked = new EventEmitter<string[]>();
   selectAll = false;
   lastClicked: string;
 
-  constructor(public settingsService: SettingsService) {
-  }
+  constructor(public settingsService: SettingsService) {}
 
   _changes: LightChange[];
 
@@ -70,9 +72,6 @@ export class ChangeListComponent implements OnInit {
     }
   }
 
-  ngOnInit() {
-  }
-
   toggleSelectAll() {
     this.selectAll = !this.selectAll;
     for (let change of this._changes) {
@@ -108,16 +107,19 @@ export class ChangeListComponent implements OnInit {
   toggleSelect(file: string, $event: MouseEvent) {
     this.selectedChanges[file] = !this.selectedChanges[file];
     if ($event.shiftKey) {
-      const lastClickedIndex = this._changes.findIndex(c => c.file == this.lastClicked);
-      const thisClickedIndex = this._changes.findIndex(c => c.file == file);
+      const lastClickedIndex = this._changes.findIndex(
+        (c) => c.file == this.lastClicked,
+      );
+      const thisClickedIndex = this._changes.findIndex((c) => c.file == file);
       for (let c of this._changes.slice(
         Math.min(thisClickedIndex, lastClickedIndex),
-        Math.max(thisClickedIndex, lastClickedIndex))) {
+        Math.max(thisClickedIndex, lastClickedIndex),
+      )) {
         this.selectedChanges[c.file] = true;
       }
     }
     this.lastClicked = file;
-    this.selectAll = this._changes.every(x => this.selectedChanges[x.file]);
+    this.selectAll = this._changes.every((x) => this.selectedChanges[x.file]);
     this.onSelectChanged.emit(this.selectedChanges);
   }
 
@@ -130,16 +132,29 @@ export class ChangeListComponent implements OnInit {
   }
 
   isSubmodule(currentPath: string) {
-    return this.submodules.find(s => s.path == currentPath);
+    return this.submodules.find((s) => s.path == currentPath);
   }
 
   isDeleted(change: LightChange) {
-    return this.getChangeType(change) == 'plus' || this.getChangeType(change) == 'question-circle';
+    return (
+      this.getChangeType(change) == 'plus' ||
+      this.getChangeType(change) == 'question-circle'
+    );
+  }
+
+  shouldShowTrailingSlash(change: LightChange, index: number, part: string) {
+    return (
+      index < change.file.replace('->', '/->/').split('/').length - 1 &&
+      part != '->' &&
+      change.file.replace('->', '/->/').split('/')[index + 1] != '->'
+    );
   }
 
   private updateSelection() {
     let changes: { [key: string]: boolean } = {};
-    this._changes.forEach(x => changes[x.file] = this.selectedChanges[x.file]);
+    this._changes.forEach(
+      (x) => (changes[x.file] = this.selectedChanges[x.file]),
+    );
     this.selectedChanges = changes;
   }
 }

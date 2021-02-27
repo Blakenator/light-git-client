@@ -1,7 +1,12 @@
-<p>Watch your code changes for specified patterns, and alert you before you commit</p>
+<p>
+  Watch your code changes for specified patterns, and alert you before you
+  commit
+</p>
 <div class="form-group">
   <div class="mb-1">
-    <app-pretty-checkbox [(value)]="tempSettings.includeUnchangedInWatcherAnalysis">
+    <app-pretty-checkbox
+      [(value)]="tempSettings.includeUnchangedInWatcherAnalysis"
+    >
       Include Unchanged Surrounding Code in Analysis
     </app-pretty-checkbox>
   </div>
@@ -10,81 +15,153 @@
   Code Watcher files
   <div>
     <div class="list-group">
-      <div class="d-flex justify-content-between align-items-center list-group-item px-2 py-1"
-           *ngFor="let p of tempSettings.codeWatcherPaths; let i=index">
-        <app-file-input [(filePath)]="tempSettings.codeWatcherPaths[i]" class="watcher-file-input"></app-file-input>
-        <span class="badge badge-warning badge-pill">{{getWatcherCountInFile(p)}} <i class="fa fa-glasses"></i></span>
-        <button class="btn btn-primary btn-sm ml-3" (click)="deleteWatcherFile(p)">
+      <div
+        class="d-flex justify-content-between align-items-center list-group-item px-2 py-1"
+        *ngFor="let p of tempSettings.codeWatcherPaths; let i = index"
+      >
+        <app-file-input
+          [(filePath)]="tempSettings.codeWatcherPaths[i]"
+          class="watcher-file-input"
+        ></app-file-input>
+        <span class="badge badge-warning badge-pill"
+          >{{ getWatcherCountInFile(p) }} <i class="fa fa-glasses"></i
+        ></span>
+        <button
+          class="btn btn-primary btn-sm ml-3"
+          (click)="deleteWatcherFile(p)"
+        >
           <i class="fa fa-trash"></i>
         </button>
       </div>
     </div>
   </div>
-  <button class="btn btn-primary" (click)="tempSettings.codeWatcherPaths.push('')">Add</button>
+  <button
+    class="btn btn-primary"
+    (click)="tempSettings.codeWatcherPaths.push('')"
+  >
+    Add
+  </button>
 </div>
 <h5>Code Watchers</h5>
-<app-layout-card *ngFor="let g of getFilenames()"
-                 [headerContent]="watcherHeader"
-                 [persistExpand]="false">
+<app-layout-card
+  *ngFor="let g of getFilenames()"
+  [headerContent]="watcherHeader"
+  [persistExpand]="false"
+  [preventOverflow]="false"
+>
   <ng-template #watcherHeader>
-    <input type="text"
-           placeholder="All Files"
-           class="form-control expanded"
-           (change)="changeFilename(g,$event.target.value)"
-           [ngModel]="g">
+    <input
+      type="text"
+      placeholder="All Files"
+      class="form-control expanded"
+      (change)="changeFilename(g, $event.target.value)"
+      [ngModel]="g"
+    />
   </ng-template>
   <table class="table table-striped mb-0">
     <thead>
-    <tr>
-      <th>Name</th>
-      <th>Regex</th>
-      <th>Flags</th>
-      <th>Filename Filter</th>
-      <th>Enabled</th>
-      <th style="width: 1%"></th>
-    </tr>
+      <tr>
+        <th>Name</th>
+        <th>Regex</th>
+        <th>Flags</th>
+        <th>Filename Filter</th>
+        <th>Enabled</th>
+        <th style="width: 1%;"></th>
+      </tr>
     </thead>
     <tbody>
-    <tr *ngFor="let w of getWatchersInGroup(g)">
-      <td><input class="form-control" [(ngModel)]="w.name" placeholder="Watcher Name..."></td>
-      <td><input class="form-control" [(ngModel)]="w.regex" placeholder="Regex..."></td>
-      <td><input class="form-control small-input"
-                 [(ngModel)]="w.regexFlags"
-                 placeholder="Flags..."
-                 [pattern]="'^[gmisuy]*$'"></td>
-      <td><input class="form-control"
-                 [ngModel]="w.activeFilter"
-                 (change)="w.activeFilter=$event.target.value"
-                 placeholder="Filename Regex..."></td>
-      <td>
-        <app-pretty-checkbox [(value)]="w.enabled"></app-pretty-checkbox>
-      </td>
-      <td>
-        <div class="d-flex btn-group">
-          <div ngbDropdown class="btn-group btn-group-sm" container="body" placement="bottom-right">
-            <button class="btn btn-primary d-inline-flex align-items-center"
-                    ngbDropdownToggle>{{ getDropdownLabelText(w) }}</button>
-            <div ngbDropdownMenu class="dropdown-menu">
-              <button ngbDropdownItem class="dropdown-item"
-                      *ngFor="let p of tempSettings.codeWatcherPaths"
-                      (click)="w.path=p">{{ p }}</button>
+      <tr *ngFor="let w of getWatchersInGroup(g)">
+        <td>
+          <input
+            class="form-control"
+            [(ngModel)]="w.name"
+            placeholder="Watcher Name..."
+          />
+        </td>
+        <td>
+          <div class="d-flex flex-column">
+            <input
+              class="form-control"
+              [(ngModel)]="w.regex"
+              placeholder="Regex..."
+            />
+            <div
+              *ngIf="!isValidRegex(w.regex)"
+              class="d-flex align-items-center error-message"
+            >
+              <i class="fa fa-exclamation-circle mr-2"></i>Invalid Regex
             </div>
           </div>
-          <button class="btn btn-light td-btn" (click)="copyWatcher(w)">
-            <i class="fa fa-copy"></i></button>
-          <button class="btn btn-light td-btn" (click)="deleteWatcher(w)">
-            <i class="fa fa-trash"></i></button>
-        </div>
-      </td>
-    </tr>
+        </td>
+        <td>
+          <input
+            class="form-control small-input"
+            [(ngModel)]="w.regexFlags"
+            placeholder="Flags..."
+            [pattern]="'^[gmisuy]*$'"
+          />
+        </td>
+
+        <td>
+          <div class="d-flex flex-column">
+            <input
+              class="form-control"
+              [ngModel]="w.activeFilter"
+              (change)="w.activeFilter = $event.target.value"
+              placeholder="Filename Regex..."
+            />
+            <div
+              *ngIf="!isValidRegex(w.activeFilter)"
+              class="d-flex align-items-center error-message"
+            >
+              <i class="fa fa-exclamation-circle mr-2"></i>Invalid Regex
+            </div>
+          </div>
+        </td>
+
+        <td>
+          <app-pretty-checkbox [(value)]="w.enabled"></app-pretty-checkbox>
+        </td>
+        <td>
+          <div class="d-flex btn-group">
+            <div ngbDropdown class="btn-group btn-group-sm" container="body">
+              <button
+                class="btn btn-primary d-inline-flex align-items-center"
+                ngbDropdownToggle
+              >
+                {{ getDropdownLabelText(w) }}
+              </button>
+              <div ngbDropdownMenu class="dropdown-menu">
+                <button
+                  ngbDropdownItem
+                  class="dropdown-item"
+                  *ngFor="let p of tempSettings.codeWatcherPaths"
+                  (click)="w.path = p"
+                >
+                  {{ p }}
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-light td-btn" (click)="copyWatcher(w)">
+              <i class="fa fa-copy"></i>
+            </button>
+            <button class="btn btn-light td-btn" (click)="deleteWatcher(w)">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
     </tbody>
   </table>
   <div class="card-footer py-1">
     <button class="btn btn-info" (click)="addWatcher(g)">Add Watcher</button>
   </div>
 </app-layout-card>
-<app-confirm-modal modalTitle="Confirm Remove Watcher File"
-                   (onConfirm)="doDeleteWatcherFile(confirmDeletePath)"
-                   modalId="confirmDeleteWatcherFile">
-  All watchers in the file will be removed from your list of watchers. Are you sure you want to continue?
+<app-confirm-modal
+  modalTitle="Confirm Remove Watcher File"
+  (onConfirm)="doDeleteWatcherFile(confirmDeletePath)"
+  modalId="confirmDeleteWatcherFile"
+>
+  All watchers in the file will be removed from your list of watchers. Are you
+  sure you want to continue?
 </app-confirm-modal>

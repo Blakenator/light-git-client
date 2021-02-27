@@ -1,6 +1,10 @@
 export namespace Channels {
   export const GETFILECHANGES = "getFileChanges";
-  export const GETBRANCHES= "getBranches";
+  export const GETLOCALBRANCHES= "getLocalBranches";
+  export const GETREMOTEBRANCHES= "getRemoteBranches";
+  export const GETSUBMODULES= "getSubmodules";
+  export const GETWORKTREES= "getWorktrees";
+  export const GETSTASHES= "getStashes";
   export const MERGEBRANCH= "mergeBranch";
   export const CHANGEHUNK= "changeHunk";
   export const OPENDEVTOOLS= "openDevTools";
@@ -21,6 +25,8 @@ export namespace Channels {
   export const COMMIT = "commit";
   export const GETCOMMITHISTORY = "getCommitHistory";
   export const CHECKOUT = "checkout";
+  export const GETDELETEDSTASHES = "getDeletedStashes";
+  export const RESTOREDELETEDSTASH = "restoreDeletedStash";
   export const UNDOFILECHANGES = "discardFileChanges";
   export const UNDOSUBMODULECHANGES = "discardSubmoduleChanges";
   export const PUSH = "push";

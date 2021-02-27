@@ -1,9 +1,10 @@
 {
-  "productName": "Light Git",
+  "productName": "Light-Git",
   "appId": "com.blakestacks.light-git-client",
   "directories": {
     "output": "app-builds"
   },
+  "artifactName": "light-git-${version}.${ext}",
   "files": [
     "**/*",
     "!*.ts",
@@ -21,9 +22,7 @@
     "!tsconfig.json",
     "!tslint.json"
   ],
-  "extraFiles": [
-    "extra/**/*"
-  ],
+  "extraFiles": ["extra/**/*"],
   "win": {
     "icon": "dist",
     "publish": [
@@ -33,19 +32,12 @@
         "repo": "light-git-client"
       }
     ],
-    "target": [
-      "nsis",
-      "portable",
-      "7z",
-      "zip"
-    ],
+    "target": ["nsis", "portable", "7z", "zip"],
     "publisherName": "Blake Stacks"
   },
   "mac": {
     "icon": "dist",
-    "target": [
-      "dmg"
-    ]
+    "target": ["dmg"]
   },
   "linux": {
     "icon": "dist",
@@ -57,8 +49,6 @@
         "repo": "light-git-client"
       }
     ],
-    "target": [
-      "AppImage"
-    ]
+    "target": ["AppImage", "deb"]
   }
 }

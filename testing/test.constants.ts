@@ -111,7 +111,7 @@ rename to log6.txt`,
     name: 'multiple line commit message',
     commitCount: 1,
     content: `commit 06ecb33540044044d4da41a3a8f59fe0a1900885
-||||06ecb33540044044d4da41a3a8f59fe0a1900885|Blake Stacks|blake@blakestacks.com|Sun Jul 21 19:52:53 2019 -0700|HEAD -> new-branch, origin/new-branch|88826d2ac6d676e7a003c3e6e81d40853abcbc64|This is a pretty long message
+||||06ecb33540044044d4da41a3a8f59fe0a1900885|Blake Stacks|blake@blakestacks.com|Sun Jul 21 19:52:53 2019 -0700|Sun Jul 22 19:52:53 2019 -0700|HEAD -> new-branch, origin/new-branch|88826d2ac6d676e7a003c3e6e81d40853abcbc64|This is a pretty long message
 
 multiple lines and everything
 

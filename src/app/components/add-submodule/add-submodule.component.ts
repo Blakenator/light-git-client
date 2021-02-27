@@ -1,24 +1,30 @@
-import {ApplicationRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {ModalService} from '../../common/services/modal.service';
+import {
+  ApplicationRef,
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+} from '@angular/core';
+import { ModalService } from '../../common/services/modal.service';
 
 @Component({
   selector: 'app-add-submodule',
   templateUrl: './add-submodule.component.html',
   styleUrls: ['./add-submodule.component.scss'],
 })
-export class AddSubmoduleComponent implements OnInit {
+export class AddSubmoduleComponent {
   @Input() uidSalt = '';
-  @Output() onAddClicked = new EventEmitter<{ url: string, path: string }>();
+  @Output() onAddClicked = new EventEmitter<{ url: string; path: string }>();
   url: string;
   path: string;
   urlError: string;
   pathError: string;
 
-  constructor(private modalService: ModalService, private applicationRef: ApplicationRef) {
-  }
-
-  ngOnInit() {
-  }
+  constructor(
+    private modalService: ModalService,
+    private applicationRef: ApplicationRef,
+  ) {}
 
   addSubmodule() {
     const valid = this.url.trim();
@@ -28,7 +34,7 @@ export class AddSubmoduleComponent implements OnInit {
     }
     if (valid) {
       this.modalService.setModalVisible('addSubmodule' + this.uidSalt, false);
-      this.onAddClicked.emit({url: this.url, path: this.path});
+      this.onAddClicked.emit({ url: this.url, path: this.path });
     }
   }
 

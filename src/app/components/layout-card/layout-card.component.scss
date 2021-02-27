@@ -3,6 +3,7 @@
 }
 
 .card {
+  transition: min-height ease .5s;
   margin: 0;
   font-size: .9em;
 
@@ -12,6 +13,7 @@
 }
 
 :host {
+  transition: min-height ease .5s;
   &:not(.min-height) {
     min-height: 10em;
   }
@@ -24,4 +26,8 @@
 
 .td, .th {
   padding: .3em;
+}
+
+.prevent-overflow{
+  height:0;
 }
