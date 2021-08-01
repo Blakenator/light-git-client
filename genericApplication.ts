@@ -1,9 +1,9 @@
-import {app, BrowserWindow, screen} from 'electron';
+import { app, BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 import * as NodeNotifier from 'node-notifier';
-import {ElectronResponse} from './shared/common/electron-response';
+import { ElectronResponse } from './shared/common/electron-response';
 import * as url from 'url';
-import {UrlObject} from 'url';
+import { UrlObject } from 'url';
 
 const notifier = require('node-notifier');
 const version = require('./package.json');
@@ -63,15 +63,17 @@ export abstract class GenericApplication {
     this.window = new BrowserWindow({
       x: 0,
       y: 0,
-      width: this.windowWidth || screen.getPrimaryDisplay().workAreaSize.width * .6,
-      height: this.windowHeight || screen.getPrimaryDisplay().workAreaSize.height * .8,
-      webPreferences: {nodeIntegration: true},
+      width:
+        this.windowWidth || screen.getPrimaryDisplay().workAreaSize.width * 0.6,
+      height:
+        this.windowHeight ||
+        screen.getPrimaryDisplay().workAreaSize.height * 0.8,
+      webPreferences: { nodeIntegration: true, enableRemoteModule: true },
     });
 
     if (this.startMaximized) {
       this.window.maximize();
     }
-
 
     let aurl: UrlObject = {
       pathname: path.join(__dirname, this.rootHtmlPath || 'dist/index.html'),
@@ -92,15 +94,15 @@ export abstract class GenericApplication {
       this.windowClosed();
       this.window = null;
     });
-
   }
 
-  beforeQuit() {
-  }
-
+  beforeQuit() {}
 
   defaultReply(event, args, data?: any, success: boolean = true) {
-    event.sender.send(this.getReplyChannel(args), new ElectronResponse(data, success));
+    event.sender.send(
+      this.getReplyChannel(args),
+      new ElectronResponse(data, success),
+    );
   }
 
   getReplyChannel(arg) {
@@ -116,11 +118,7 @@ export abstract class GenericApplication {
     app.quit();
   }
 
-  protected onReady() {
+  protected onReady() {}
 
-  }
-
-  protected windowClosed() {
-
-  }
+  protected windowClosed() {}
 }

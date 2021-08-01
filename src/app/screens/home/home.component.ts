@@ -81,7 +81,8 @@ export class HomeComponent implements OnInit {
   }
 
   loadRepo(path: string) {
-    this.tabService.initializeCacheForPath(path, TabDataService.basename(path));
+    this.tabService.setActiveTabData(path);
+    this.tabService.initializeCacheForPath(path);
     this.saveOpenRepos();
     this.jobSchedulerService.scheduleSimpleOperation(
       this.gitService.loadRepo(path),
@@ -130,14 +131,17 @@ export class HomeComponent implements OnInit {
       0,
       this.tabService.tabData.splice(event.previousIndex, 1)[0],
     );
+    // if moving current tab
     if (this.activeTabIndex == event.previousIndex) {
       this.changeTab(event.currentIndex);
     } else if (
+      // moving non-active tab to the left of the active tab
       this.activeTabIndex > event.currentIndex &&
       this.activeTabIndex < event.previousIndex
     ) {
       this.changeTab(this.activeTabIndex - 1);
     } else if (
+      // moving non-active tab to the right of the active tab
       this.activeTabIndex < event.currentIndex &&
       this.activeTabIndex > event.previousIndex
     ) {

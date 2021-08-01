@@ -13,12 +13,18 @@ interface ITabInfo {
   path: string;
 }
 
+export interface RepoMetadata {
+  commitHistoryActiveBranch?: BranchModel;
+  selectedUnstagedChanges?: { [key: string]: boolean };
+  selectedStagedChanges?: { [key: string]: boolean };
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class TabDataService {
   tabData: ITabInfo[] = [{ name: '', path: '' }];
-  private _repoCache: { [key: string]: RepositoryModel } = {};
+  private _repoCache: { [key: string]: RepositoryModel & RepoMetadata } = {};
   private _localBranchMap: Map<string, Map<string, BranchModel>> = new Map();
   private _remoteBranchMap: Map<string, Map<string, BranchModel>> = new Map();
   private _currentBranchMap: Map<string, BranchModel> = new Map();
@@ -59,10 +65,9 @@ export class TabDataService {
   }
 
   get activeRepoCache(): RepositoryModel {
-    if (!this._repoCache[this.getActiveTab().path]) {
-      this._repoCache[this.getActiveTab().path] = new RepositoryModel();
-    }
-    return this._repoCache[this.getActiveTab().path];
+    let path = this.getActiveTab().path;
+    this.initializeCacheForPath(path);
+    return this._repoCache[path];
   }
 
   static basename(folderPath: string) {
@@ -86,9 +91,8 @@ export class TabDataService {
         name,
       }),
     );
-    this.tabData.forEach(({ path, name }) => {
-      this._repoCache[path] = new RepositoryModel();
-      this._repoCache[path].path = path;
+    this.tabData.forEach(({ path }) => {
+      this.initializeCacheForPath(path);
     });
     this._isInitialized = true;
   }
@@ -114,9 +118,17 @@ export class TabDataService {
       return;
     }
     let cache = this.getCacheFor(path);
+    if (!cache) {
+      return;
+    }
     if (affectedAreas.has(RepoArea.COMMIT_HISTORY)) {
       this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getCommitHistory(0))
+        .scheduleSimpleOperation(
+          this.gitService.getCommitHistory(
+            0,
+            cache.commitHistoryActiveBranch?.name,
+          ),
+        )
         .result.then((result) => (cache.commitHistory = result))
         .catch((err) => this.errorService.receiveError(err));
     }
@@ -130,24 +142,6 @@ export class TabDataService {
       this.jobSchedulerService
         .scheduleSimpleOperation(this.gitService.getWorktrees())
         .result.then((result) => (cache.worktrees = result))
-        .catch((err) => this.errorService.receiveError(err));
-    }
-    if (affectedAreas.has(RepoArea.LOCAL_BRANCHES)) {
-      this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getLocalBranches())
-        .result.then((result) => {
-          cache.localBranches = result;
-          this._localBranchMap.set(
-            path,
-            new Map<string, BranchModel>(
-              cache.localBranches.map((branch) => [branch.name, branch]),
-            ),
-          );
-          this._currentBranchMap.set(
-            path,
-            cache.localBranches.find((branch) => branch.isCurrentBranch),
-          );
-        })
         .catch((err) => this.errorService.receiveError(err));
     }
     if (affectedAreas.has(RepoArea.REMOTE_BRANCHES)) {
@@ -166,6 +160,24 @@ export class TabDataService {
             new Map<string, BranchModel>(
               cache.remoteBranches.map((branch) => [branch.name, branch]),
             ),
+          );
+        })
+        .catch((err) => this.errorService.receiveError(err));
+    }
+    if (affectedAreas.has(RepoArea.LOCAL_BRANCHES)) {
+      this.jobSchedulerService
+        .scheduleSimpleOperation(this.gitService.getLocalBranches())
+        .result.then((result) => {
+          cache.localBranches = result;
+          this._localBranchMap.set(
+            path,
+            new Map<string, BranchModel>(
+              cache.localBranches.map((branch) => [branch.name, branch]),
+            ),
+          );
+          this._currentBranchMap.set(
+            path,
+            cache.localBranches.find((branch) => branch.isCurrentBranch),
           );
         })
         .catch((err) => this.errorService.receiveError(err));
@@ -191,13 +203,25 @@ export class TabDataService {
     return this._repoCache[currentPath];
   }
 
-  public initializeCacheForPath(path: string, name: string) {
-    let activeTab = this.getActiveTab();
-    activeTab.name = activeTab.name || name;
-    activeTab.path = path;
+  public setMetadataForPath(
+    currentPath: string,
+    metadata: Partial<RepoMetadata>,
+  ) {
+    Object.assign(this._repoCache[currentPath], metadata);
+  }
+
+  public initializeCacheForPath(path: string) {
     if (!this.getCacheFor(path)) {
       this._repoCache[path] = new RepositoryModel();
       this._repoCache[path].path = path;
+      this._repoCache[path].selectedStagedChanges = {};
+      this._repoCache[path].selectedUnstagedChanges = {};
     }
+  }
+
+  public setActiveTabData(path: string, name?: string) {
+    let activeTab = this.getActiveTab();
+    activeTab.name = name || activeTab.name || TabDataService.basename(path);
+    activeTab.path = path;
   }
 }

@@ -630,7 +630,7 @@ export class GitService {
     staged: boolean,
   ): Job<void> {
     return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_BRANCHES],
+      affectedAreas: [RepoArea.LOCAL_CHANGES],
       command: Channels.UNDOFILECHANGES,
       execute: () =>
         this._crlfListener.detect(
