@@ -9,9 +9,10 @@ export class ElectronService {
   }
 
   rpc(functionName: string, functionParams: any[] = [], cleanup: boolean = true): Promise<any> {
+          let replyChannel = functionName+'reply';
     return new Promise<any>((resolve, reject) => {
       ipcRenderer.send(functionName, [functionName].concat(functionParams));
-      ipcRenderer.on(functionName + 'reply', (event, args: ElectronResponse) => {
+      ipcRenderer.on(replyChannel, (event, args: ElectronResponse) => {
         if (args.success) {
           resolve(args.content);
         } else {
@@ -19,6 +20,7 @@ export class ElectronService {
         }
         if (cleanup) {
           this.cleanupChannel(functionName);
+          this.cleanupChannel(replyChannel);
         }
       });
     });

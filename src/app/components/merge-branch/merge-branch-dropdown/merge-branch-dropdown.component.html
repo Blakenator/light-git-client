@@ -1,0 +1,16 @@
+<div ngbDropdown class="d-inline-block" autoClose="outside" container="body">
+  <button
+    class="btn btn-secondary d-inline-flex align-items-center"
+    ngbDropdownToggle
+  >
+    {{ selection?.name || 'Choose' }}
+  </button>
+  <div ngbDropdownMenu>
+    <app-branch-chooser
+      [locals]="locals"
+      [remotes]="remotes"
+      [selectedBranch]="selection"
+      (selectedBranchChange)="selectionChange.emit($event)"
+    ></app-branch-chooser>
+  </div>
+</div>

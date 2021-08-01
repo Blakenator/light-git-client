@@ -1,7 +1,7 @@
 # Light Git Client
 A light, elegant git client
 
-[![Build Status](https://travis-ci.org/Blakenator/light-git-client.png?branch=master)](https://travis-ci.org/Blakenator/light-git-client) [![Build status](https://ci.appveyor.com/api/projects/status/896vfu1sr2m5mbk2/branch/master?svg=true)](https://ci.appveyor.com/project/Blakenator/light-git-client/branch/master)
+[![Build Status](https://travis-ci.com/Blakenator/light-git-client.svg?branch=master)](https://travis-ci.com/Blakenator/light-git-client)
 
 
 ## Installation

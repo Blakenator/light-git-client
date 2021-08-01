@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
 import { RestoreStashComponent } from './restore-stash.component';
 
@@ -6,7 +6,7 @@ describe('RestoreStashComponent', () => {
   let component: RestoreStashComponent;
   let fixture: ComponentFixture<RestoreStashComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ RestoreStashComponent ]
     })

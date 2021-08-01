@@ -8,6 +8,7 @@ import {ConfigItemModel} from '../../../../shared/git/config-item.model';
 import {ModalService} from '../../common/services/modal.service';
 import {ErrorModel} from '../../../../shared/common/error.model';
 import {ErrorService} from '../../common/services/error.service';
+import {JobSchedulerService} from '../../services/job-system/job-scheduler.service';
 
 @Component({
   selector: 'app-settings',
@@ -44,7 +45,9 @@ export class SettingsComponent implements OnInit {
               private modalService: ModalService,
               private errorService: ErrorService,
               private applicationRef: ApplicationRef,
-              public settingsService: SettingsService) {
+              public settingsService: SettingsService,
+              private jobSchedulerService: JobSchedulerService,
+  ) {
   }
 
   ngOnInit() {
@@ -69,7 +72,7 @@ export class SettingsComponent implements OnInit {
   }
 
   saveSettings() {
-    if (this.gitService.repo && this.gitService.repo.path) {
+    if (this.gitService.getRepo() && this.gitService.getRepo().path) {
       if (this.tempSettings.username != this.settingsService.settings.username ||
         this.tempSettings.email != this.settingsService.settings.email) {
         this.gitService.setBulkGitSettings({
@@ -118,18 +121,20 @@ export class SettingsComponent implements OnInit {
 
     this.tempSettings = this.settingsService.settings.clone();
     this.modalService.setModalVisible('settings', true);
-    if (this.gitService.repo) {
-      this.gitService.getConfigItems().then(configItems => {
-        this.configItems = configItems;
-        this.handleItemsUpdate(this.configItems);
-        let username = this.configItems.find(item => item.key == 'user.name');
-        this.mergetoolConfig = this.configItems.find(item => item.key == 'merge.tool');
-        if (this.mergetoolConfig) {
-          this.mergetoolName = this.mergetoolConfig.value;
-          this.mergetoolCommandConfig = this.configItems.find(
-            item => item.key == 'mergetool.' + this.mergetoolName + '.cmd');
-          this.mergetoolCommand = this.mergetoolCommandConfig ? this.mergetoolCommandConfig.value : '';
-        }
+    if (this.gitService.getRepo()) {
+      this.jobSchedulerService.scheduleSimpleOperation(this.gitService.getConfigItems())
+          .result
+          .then(configItems => {
+            this.configItems = configItems;
+            this.handleItemsUpdate(this.configItems);
+            let username = this.configItems.find(item => item.key == 'user.name');
+            this.mergetoolConfig = this.configItems.find(item => item.key == 'merge.tool');
+            if (this.mergetoolConfig) {
+              this.mergetoolName = this.mergetoolConfig.value;
+              this.mergetoolCommandConfig = this.configItems.find(
+                item => item.key == 'mergetool.' + this.mergetoolName + '.cmd');
+              this.mergetoolCommand = this.mergetoolCommandConfig ? this.mergetoolCommandConfig.value : '';
+            }
         this.credentialHelperConfig = this.configItems.find(item => item.key == 'credential.helper');
         if (this.credentialHelperConfig) {
           this.credentialHelper = this.credentialHelperConfig.value.split(' ')[0];
@@ -233,7 +238,10 @@ export class SettingsComponent implements OnInit {
   }
 
   private doSaveItem(originalItem: ConfigItemModel, rename?: ConfigItemModel) {
-    this.gitService.setConfigItem(this.editedItem, rename)
+   this.jobSchedulerService.scheduleOperation({
+     name:Channels.SETCONFIGITEM,
+     jobs:this.gitService.setConfigItem(this.editedItem, rename)
+   }).result
         .then(items => this.handleItemsUpdate(items))
         .catch(error => {
           if (!this.editedItem.sourceFile) {

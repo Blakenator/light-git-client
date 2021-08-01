@@ -6,46 +6,43 @@ import {
   HostListener,
   Input,
   OnDestroy,
-  OnInit,
   Output,
 } from '@angular/core';
-import {ElectronService} from '../../common/services/electron.service';
-import {SettingsService} from '../../services/settings.service';
-import {RepositoryModel} from '../../../../shared/git/Repository.model';
-import {ChangeType, CommitModel} from '../../../../shared/git/Commit.model';
-import {Channels} from '../../../../shared/Channels';
-import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
-import {BranchModel} from '../../../../shared/git/Branch.model';
-import {GlobalErrorHandlerService} from '../../common/services/global-error-handler.service';
-import {StashModel} from '../../../../shared/git/stash.model';
-import {WorktreeModel} from '../../../../shared/git/worktree.model';
-import {DiffHeaderModel, DiffHeaderStagedState} from '../../../../shared/git/diff.header.model';
-import {FilterPipe} from '../../common/pipes/filter.pipe';
-import {CommandHistoryModel} from '../../../../shared/git/command-history.model';
-import {GitService} from '../../services/git.service';
-import {ErrorModel} from '../../../../shared/common/error.model';
-import {ErrorService} from '../../common/services/error.service';
-import {CodeWatcherService} from '../../services/code-watcher.service';
-import {ModalService} from '../../common/services/modal.service';
-import {SubmoduleModel} from '../../../../shared/git/submodule.model';
-import {LoadingService} from '../../services/loading.service';
-import {Subject} from 'rxjs';
-import {takeUntil} from 'rxjs/operators';
-import {TabDataService} from '../../services/tab-data.service';
-import {EqualityUtil} from '../../common/equality.util';
+import { ElectronService } from '../../common/services/electron.service';
+import { SettingsService } from '../../services/settings.service';
+import { ChangeType } from '../../../../shared/git/Commit.model';
+import { Channels } from '../../../../shared/Channels';
+import { CommitSummaryModel } from '../../../../shared/git/CommitSummary.model';
+import { BranchModel } from '../../../../shared/git/Branch.model';
+import { GlobalErrorHandlerService } from '../../common/services/global-error-handler.service';
+import { StashModel } from '../../../../shared/git/stash.model';
+import {
+  DiffHeaderModel,
+  DiffHeaderStagedState,
+} from '../../../../shared/git/diff.header.model';
+import { FilterPipe } from '../../common/pipes/filter.pipe';
+import { CommandHistoryModel } from '../../../../shared/git/command-history.model';
+import { GitService } from '../../services/git.service';
+import { ErrorModel } from '../../../../shared/common/error.model';
+import { ErrorService } from '../../common/services/error.service';
+import { CodeWatcherService } from '../../services/code-watcher.service';
+import { ModalService } from '../../common/services/modal.service';
+import { SubmoduleModel } from '../../../../shared/git/submodule.model';
+import { LoadingService } from '../../services/loading.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { RepoMetadata, TabDataService } from '../../services/tab-data.service';
+import { EqualityUtil } from '../../common/equality.util';
+import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
+import { Job, RepoAreaDefaults } from '../../services/job-system/models';
 
 @Component({
   selector: 'app-repo-view',
   templateUrl: './repo-view.component.html',
   styleUrls: ['./repo-view.component.scss'],
 })
-export class RepoViewComponent implements OnInit, OnDestroy {
-  repo: RepositoryModel;
-  changes: CommitModel = new CommitModel();
-  selectedUnstagedChanges: { [key: string]: boolean } = {};
-  selectedStagedChanges: { [key: string]: boolean } = {};
-  diffHeaders: DiffHeaderModel[] = [];
-  commitHistory: CommitSummaryModel[] = [];
+export class RepoViewComponent implements OnDestroy {
+  commitDiff: DiffHeaderModel[];
   showDiff = false;
   @Input() isNested = false;
   localBranchFilter = '';
@@ -71,13 +68,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   repoViewUid: number;
   activeSubmodule: SubmoduleModel;
   hasWatcherAlerts = false;
-  crlfError: { start: string, end: string };
+  crlfError: { start: string; end: string };
   crlfErrorToastTimeout: number;
-  activeUndo: string;
-  activeCommitHistoryBranch: BranchModel;
-  readonly branchReplaceChars = {match: /[\s]/g, with: '-'};
+  activeUndo: string[];
+  readonly branchReplaceChars = { match: /[\s]/g, with: '-' };
   activeDeleteBranch: BranchModel;
-  activeMergeInfo: { into: BranchModel, target: BranchModel, currentBranch: BranchModel };
+  activeMergeInfo: {
+    into: BranchModel;
+    target: BranchModel;
+    currentBranch: BranchModel;
+  };
   private $destroy = new Subject<void>();
   private destroyed = false;
   private periodicRefreshTimer;
@@ -87,38 +87,50 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   private commitMessageDebounce: number;
   private _shouldAmendCommit: boolean;
 
-  private readonly ON_WINDOW_FOCUS_TIMEOUT = 3000;
-  private readonly REFRESH_ALL_DEBOUNCE = 400;
+  private readonly ON_WINDOW_FOCUS_TIMEOUT = 500;
 
-  constructor(private electronService: ElectronService,
-              private settingsService: SettingsService,
-              private errorService: ErrorService,
-              public loadingService: LoadingService,
-              public codeWatcherService: CodeWatcherService,
-              public modalService: ModalService,
-              errorHandler: ErrorHandler,
-              private _changeDetectorRef: ChangeDetectorRef,
-              private tabDataService: TabDataService,
-              private gitService: GitService) {
+  constructor(
+    private electronService: ElectronService,
+    private settingsService: SettingsService,
+    private errorService: ErrorService,
+    public loadingService: LoadingService,
+    public codeWatcherService: CodeWatcherService,
+    public modalService: ModalService,
+    errorHandler: ErrorHandler,
+    private _changeDetectorRef: ChangeDetectorRef,
+    private tabDataService: TabDataService,
+    private jobSchedulerService: JobSchedulerService,
+    private gitService: GitService,
+  ) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
-    this.gitService.onCommandHistoryUpdated.asObservable().pipe(takeUntil(this.$destroy)).subscribe(history => {
-      this.commandHistory = history;
-      this.changeDetectorRef.detectChanges();
-    });
-    this.gitService.onCrlfError.pipe(takeUntil(this.$destroy)).subscribe(status => {
-      if (this.crlfErrorToastTimeout) {
-        clearTimeout(this.crlfErrorToastTimeout);
-        this.crlfErrorToastTimeout = undefined;
-      }
-      this.crlfError = status;
-      this.changeDetectorRef.detectChanges();
-      this.crlfErrorToastTimeout = window.setTimeout(() => {
-        this.crlfError = undefined;
-        this.crlfErrorToastTimeout = undefined;
+    this.gitService.onCommandHistoryUpdated
+      .asObservable()
+      .pipe(takeUntil(this.$destroy))
+      .subscribe((history) => {
+        this.commandHistory = history;
         this.changeDetectorRef.detectChanges();
-      }, 5000);
-    });
+      });
+    this.gitService.onCrlfError
+      .pipe(takeUntil(this.$destroy))
+      .subscribe((status) => {
+        if (this.crlfErrorToastTimeout) {
+          clearTimeout(this.crlfErrorToastTimeout);
+          this.crlfErrorToastTimeout = undefined;
+        }
+        this.crlfError = status;
+        this.changeDetectorRef.detectChanges();
+        this.crlfErrorToastTimeout = window.setTimeout(() => {
+          this.crlfError = undefined;
+          this.crlfErrorToastTimeout = undefined;
+          this.changeDetectorRef.detectChanges();
+        }, 5000);
+      });
     this.repoViewUid = Math.round(Math.random() * 10000000);
+    this.tabDataService.onFileDiff.subscribe((path) => {
+      if (path === this.getRepo().path) {
+        this.getFileDiff();
+      }
+    });
   }
 
   get changeDetectorRef(): ChangeDetectorRef {
@@ -126,8 +138,7 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return this._changeDetectorRef;
     } else {
       return Object.assign({}, this._changeDetectorRef, {
-        detectChanges: () => {
-        },
+        detectChanges: () => {},
       });
     }
   }
@@ -138,16 +149,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   set repoPath(value: string) {
     if (this._repoPath != value) {
       this._repoPath = value;
-      this.loadRepo(this._repoPath);
     }
+  }
+
+  public getRepo() {
+    return this.tabDataService.getCacheFor(this._repoPath);
   }
 
   getStashFilterText(stash: StashModel) {
     return stash.branchName + stash.message + stash.branchName;
-  }
-
-  ngOnInit() {
-    this.loadRepo();
   }
 
   ngOnDestroy() {
@@ -158,84 +168,84 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   @HostListener('window:focus', ['$event'])
   onFocus(event: any): void {
-    if (this.repo) {
+    if (this.getRepo()) {
       setTimeout(() => {
-        this.getFullRefresh(false, !this.showDiff || this.diffCommitInfo != undefined);
+        this.tabDataService.updateAreas(
+          RepoAreaDefaults.LOCAL,
+          this.getRepo().path,
+        );
       }, this.ON_WINDOW_FOCUS_TIMEOUT);
     }
   }
 
   stageAll() {
-    this.simpleOperation(this.gitService.stage(['.']), 'stageAllChanges', 'staging all changes');
-    this.selectedUnstagedChanges = {};
+    this.simpleOperation(
+      this.gitService.stage(['.']),
+      'stageAllChanges',
+      'staging all changes',
+    );
+    this.setRepoMetadata({ selectedUnstagedChanges: {} });
   }
 
   stageSelected() {
-    if (Object.keys(this.selectedUnstagedChanges).filter(x => this.selectedUnstagedChanges[x]).length == 0) {
+    if (
+      Object.keys(this.getRepo().selectedUnstagedChanges).filter(
+        (x) => this.getRepo().selectedUnstagedChanges[x],
+      ).length == 0
+    ) {
       return;
     }
     let files = this.getSelectedUnstagedFiles();
-    this.simpleOperation(this.gitService.stage(files), 'stageSelectedChanges', 'staging selected changes');
-    this.selectedUnstagedChanges = {};
+    this.simpleOperation(
+      this.gitService.stage(files),
+      'stageSelectedChanges',
+      'staging selected changes',
+    );
+    this.setRepoMetadata({ selectedUnstagedChanges: {} });
   }
 
   getSelectedUnstagedFiles() {
-    return Object.keys(this.selectedUnstagedChanges)
-                 .filter(x => this.selectedUnstagedChanges[x])
-                 .map(f => f.replace(/.*?->\s*/, ''));
+    return Object.keys(this.getRepo().selectedUnstagedChanges)
+      .filter((x) => this.getRepo().selectedUnstagedChanges[x])
+      .map((f) => f.replace(/.*?->\s*/, ''));
   }
 
   unstageAll() {
-    this.simpleOperation(this.gitService.unstage(['.']), 'unstageAllChanges', 'unstaging all changes');
-    this.selectedStagedChanges = {};
+    this.simpleOperation(
+      this.gitService.unstage(['.']),
+      'unstageAllChanges',
+      'unstaging all changes',
+    );
+    this.setRepoMetadata({
+      selectedStagedChanges: {},
+    });
   }
 
   unstageSelected() {
-    if (Object.keys(this.selectedStagedChanges).filter(x => this.selectedStagedChanges[x]).length == 0) {
+    if (
+      Object.keys(this.getRepo().selectedStagedChanges).filter(
+        (x) => this.getRepo().selectedStagedChanges[x],
+      ).length == 0
+    ) {
       return;
     }
     let files = this.getSelectedStagedFiles();
-    this.simpleOperation(this.gitService.unstage(files), 'unstageSelectedChanges', 'unstaging selected changes');
-    this.selectedStagedChanges = {};
+    this.simpleOperation(
+      this.gitService.unstage(files),
+      'unstageSelectedChanges',
+      'unstaging selected changes',
+    );
+    this.setRepoMetadata({ selectedStagedChanges: {} });
   }
 
   getSelectedStagedFiles() {
-    return Object.keys(this.selectedStagedChanges)
-                 .filter(x => this.selectedStagedChanges[x])
-                 .map(f => f.replace(/.*?->\s*/, ''));
+    return Object.keys(this.getRepo().selectedStagedChanges)
+      .filter((x) => this.getRepo().selectedStagedChanges[x])
+      .map((f) => f.replace(/.*?->\s*/, ''));
   }
 
-  getFullRefresh(clearCommitInfo: boolean, keepDiffCommitSelection: boolean = true, manualFetch: boolean = false) {
-    if (!this.repo) {
-      return;
-    }
-    if (this.debounceRefreshTimer) {
-      clearTimeout(this.debounceRefreshTimer);
-    }
-    this.debounceRefreshTimer = window.setTimeout(() => {
-      this.getBranchChanges();
-      this.fetch(manualFetch);
-      this.getCommitHistory();
-      this.getFileDiff(clearCommitInfo);
-      this.loadingService.setLoading(true);
-      this.gitService.getFileChanges()
-          .then(changes => this.handleFileChanges(changes, keepDiffCommitSelection))
-          .catch(err => this.handleErrorMessage(new ErrorModel(
-            this._errorClassLocation + 'getFileChanges',
-            'getting file changes',
-            err)));
-    }, this.REFRESH_ALL_DEBOUNCE);
-  }
-
-  getBranchChanges() {
-    // not simple
-    this.loadingService.setLoading(true);
-    this.gitService.getBranchChanges()
-        .then(changes => this.handleBranchChanges(changes))
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'getBranches',
-          'getting branch changes',
-          err)));
+  getFullRefresh() {
+    this.tabDataService.updateAreas(RepoAreaDefaults.ALL, this.getRepo().path);
   }
 
   markDeleteBranch(branch: BranchModel) {
@@ -247,7 +257,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(
       this.gitService.deleteBranch([this.activeDeleteBranch]),
       'confirmDeleteBranch',
-      'deleting the branch').then(() => this.activeDeleteBranch = undefined);
+      'deleting the branch',
+    ).then(() => (this.activeDeleteBranch = undefined));
   }
 
   pruneLocalBranches() {
@@ -258,34 +269,48 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(
       this.gitService.deleteBranch(branches),
       'pruneLocalBranches',
-      'pruning local branches');
+      'pruning local branches',
+    );
   }
 
   fastForwardBranch(branch: BranchModel) {
-    this.simpleOperation(this.gitService.fastForwardBranch(branch), 'fastForwardBranch', 'fast forwarding the branch');
+    this.simpleOperation(
+      this.gitService.fastForwardBranch(branch),
+      'fastForwardBranch',
+      'fast forwarding the branch',
+    );
   }
 
   mergeBranch() {
     const doMerge = () => {
+      let updateMessage = () => {
+        if (
+          (this.getRepo().changes.stagedChanges.length > 0 ||
+            this.getRepo().changes.unstagedChanges.length > 0) &&
+          !this.getRepo().changes.description?.trim()
+        ) {
+          this.getRepo().changes.description = `Merged ${
+            this.activeMergeInfo.target.name
+          } into ${this.tabDataService.getCurrentBranch().name}`;
+        }
+      };
       this.simpleOperation(
         this.gitService.mergeBranch(this.activeMergeInfo.target.name),
         'mergeBranch',
         'merging the branch',
         false,
         true,
-        true)
-          .then(() => {
-            if ((this.changes.stagedChanges.length > 0 || this.changes.unstagedChanges.length > 0) &&
-              !this.changes.description &&
-              !this.changes.description.trim()) {
-              this.changes.description = `Merged ${this.activeMergeInfo.target.name} into ${this.tabDataService.getCurrentBranch().name}`;
-            }
-          }).catch(() => {
-      });
+        true,
+      )
+        .then(updateMessage)
+        .catch(updateMessage);
     };
 
-    if (this.tabDataService.getCurrentBranch() && this.tabDataService.getCurrentBranch().name ==
-      this.activeMergeInfo.into.name) {
+    if (
+      this.tabDataService.getCurrentBranch() &&
+      this.tabDataService.getCurrentBranch().name ==
+        this.activeMergeInfo.into.name
+    ) {
       doMerge();
     } else {
       this.simpleOperation(
@@ -294,115 +319,157 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         'checking out the base branch',
         false,
         true,
-        true)
-          .then(() => {
-            doMerge();
-          }).catch(() => {
-      });
+        true,
+      )
+        .then(() => {
+          doMerge();
+        })
+        .catch(() => {});
     }
   }
 
-  renameBranch(branch: { oldName: string, newName: string }) {
-    this.simpleOperation(this.gitService.renameBranch(branch), 'renameBranch', 'renaming the branch');
+  renameBranch(branch: { oldName: string; newName: string }) {
+    this.simpleOperation(
+      this.gitService.renameBranch(branch),
+      'renameBranch',
+      'renaming the branch',
+    );
   }
 
   openTerminal() {
-    this.loadingService.setLoading(true);
-    this.electronService.rpc(Channels.OPENTERMINAL, [this.repo.path]).then(ignore => {
-    }).catch(err => this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'openTerminal', '', err)));
+    this.electronService
+      .rpc(Channels.OPENTERMINAL, [this.getRepo().path])
+      .then((ignore) => {})
+      .catch((err) =>
+        this.handleErrorMessage(
+          new ErrorModel(this._errorClassLocation + 'openTerminal', '', err),
+        ),
+      );
   }
 
   openFolder(path: string = '') {
-    this.loadingService.setLoading(true);
-    this.electronService.rpc(Channels.OPENFOLDER, [this.repo.path, path])
-        .then(ignore => {
-        })
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'openFolder',
-          'opening the folder',
-          err)));
+    this.electronService
+      .rpc(Channels.OPENFOLDER, [this.getRepo().path, path])
+      .then((ignore) => {})
+      .catch((err) =>
+        this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + 'openFolder',
+            'opening the folder',
+            err,
+          ),
+        ),
+      );
   }
 
-  getFileDiff(manualRefresh: boolean = false) {
-    if (!manualRefresh && this.diffCommitInfo) {
-      return;
-    } else if (manualRefresh) {
-      this.diffCommitInfo = undefined;
-    }
-    let unstaged = Object.keys(this.selectedUnstagedChanges)
-                         .filter(x => this.selectedUnstagedChanges[x])
-                         .map(x => x.replace(/.*->\s*/, ''));
-    let staged = Object.keys(this.selectedStagedChanges)
-                       .filter(x => this.selectedStagedChanges[x])
-                       .map(x => x.replace(/.*->\s*/, ''));
+  getFileDiff() {
+    // todo: move this to tab data service
+    let unstaged = Object.keys(this.getRepo().selectedUnstagedChanges)
+      .filter((x) => this.getRepo().selectedUnstagedChanges[x])
+      .map((x) => x.replace(/.*->\s*/, ''));
+    let staged = Object.keys(this.getRepo().selectedStagedChanges)
+      .filter((x) => this.getRepo().selectedStagedChanges[x])
+      .map((x) => x.replace(/.*->\s*/, ''));
     if (staged.length == 0 && unstaged.length == 0) {
       unstaged = ['.'];
       staged = ['.'];
     }
-    this.loadingService.setLoading(true);
-    this.gitService.getFileDiff(unstaged, staged)
-        .then(diff => {
-          this.diffHeaders = diff.sort((a, b) => {
-            if (a.stagedState != b.stagedState) {
-              return a.stagedState == DiffHeaderStagedState.UNSTAGED ? 1 : -1;
-            }
-            return a.toFilename.localeCompare(b.toFilename);
-          });
-          this.hasWatcherAlerts = this.codeWatcherService.getWatcherAlerts(this.diffHeaders).length > 0;
-          this.changeDetectorRef.detectChanges();
-          this.loadingService.setLoading(false);
-        })
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'getFileDiff',
-          'getting the file differences',
-          err)));
+
+    this.jobSchedulerService
+      .scheduleSimpleOperation(this.gitService.getFileDiff(unstaged, staged))
+      .result.then((diff) => {
+        this.getRepo().diff = diff.sort((a, b) => {
+          if (a.stagedState != b.stagedState) {
+            return a.stagedState == DiffHeaderStagedState.UNSTAGED ? 1 : -1;
+          }
+          return a.toFilename.localeCompare(b.toFilename);
+        });
+        this.hasWatcherAlerts =
+          this.codeWatcherService.getWatcherAlerts(this.getRepo().diff).length >
+          0;
+        this.changeDetectorRef.detectChanges();
+      })
+      .catch((err) =>
+        this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + 'getFileDiff',
+            'getting the file differences',
+            err,
+          ),
+        ),
+      );
   }
 
   getCommitHistory(skip: number = 0) {
-    if (!this.gitService.isRepoLoaded) {
+    if (!this.gitService.getRepo()) {
       setTimeout(() => this.getCommitHistory(skip), 100);
       return;
     }
-    this.loadingService.setLoading(true);
-    this.gitService.getCommitHistory(
-      skip,
-      this.activeCommitHistoryBranch ? this.activeCommitHistoryBranch.name : undefined)
-        .then(commits => {
-          if (EqualityUtil.listsEqual(this.commitHistory, commits)) {
-            return;
-          }
-          if (!skip || skip == 0) {
-            this.commitHistory = commits;
-          } else {
-            this.commitHistory = this.commitHistory.concat(commits);
-          }
-          this.changeDetectorRef.detectChanges();
-        })
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'getCommitHistory',
-          'getting commit history',
-          err)));
+
+    this.jobSchedulerService
+      .scheduleSimpleOperation(
+        this.gitService.getCommitHistory(
+          skip,
+          this.getRepo().commitHistoryActiveBranch?.name,
+        ),
+      )
+      .result.then((commits) => {
+        if (EqualityUtil.listsEqual(this.getRepo().commitHistory, commits)) {
+          return;
+        }
+        if (!skip || skip == 0) {
+          this.getRepo().commitHistory = commits;
+        } else {
+          this.getRepo().commitHistory = this.getRepo().commitHistory.concat(
+            commits,
+          );
+        }
+        this.changeDetectorRef.detectChanges();
+      })
+      .catch((err) =>
+        this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + 'getCommitHistory',
+            'getting commit history',
+            err,
+          ),
+        ),
+      );
   }
 
   commit() {
-    if (this.changes.stagedChanges.length == 0 && this.tabDataService.getCurrentBranch()) {
+    if (
+      this.getRepo().changes.stagedChanges.length == 0 &&
+      this.tabDataService.getCurrentBranch()
+    ) {
       return;
     }
-    this.loadingService.setLoading(true);
-    this.gitService.commit(
-      this.changes.description.trim().length <= 0 && this._shouldAmendCommit ?
-      this.tabDataService.getCurrentBranch().lastCommitText :
-      this.changes.description,
-      this.settingsService.settings.commitAndPush,
-      this._shouldAmendCommit)
-        .then(() => {
-          this.changes.description = '';
-          this.showDiff = false;
-          this.getFullRefresh(false, false);
-        })
-        .catch(err => {
-          return this.handleErrorMessage(new ErrorModel(this._errorClassLocation + 'commit', 'committing', err));
-        });
+
+    this.jobSchedulerService
+      .scheduleSimpleOperation(
+        this.gitService.commit(
+          this.getRepo().changes.description.trim().length <= 0 &&
+            this._shouldAmendCommit
+            ? this.tabDataService.getCurrentBranch().lastCommitText
+            : this.getRepo().changes.description,
+          this.settingsService.settings.commitAndPush,
+          this._shouldAmendCommit,
+          this.tabDataService.getCurrentBranch(),
+        ),
+      )
+      .result.then(() => {
+        this.getRepo().changes.description = '';
+        this.showDiff = false;
+      })
+      .catch((err) => {
+        return this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + 'commit',
+            'committing',
+            err,
+          ),
+        );
+      });
     this.clearSelectedChanges();
   }
 
@@ -410,31 +477,51 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(
       this.gitService.cherryPickCommit(commit.hash),
       'cherryPickCommit',
-      'cherry-picking commit onto current branch');
+      'cherry-picking commit onto current branch',
+    );
     this.clearSelectedChanges();
   }
 
-  checkout(event: { branch: string, andPull: boolean }, newBranch: boolean) {
-    let localBranchExists = this.tabDataService.getLocalBranchMap().has(event.branch.replace('origin/', ''));
-    this.simpleOperation(this.gitService.checkout(
-      localBranchExists ? event.branch.replace('origin/', '') : event.branch,
-      newBranch && !localBranchExists,
-      event.andPull), 'checkout', 'checking out the branch');
+  checkout(event: { branch: string; andPull: boolean }, newBranch: boolean) {
+    let localBranchExists = this.tabDataService
+      .getLocalBranchMap()
+      .has(event.branch.replace('origin/', ''));
+    this.simpleOperation(
+      this.gitService.checkout(
+        localBranchExists ? event.branch.replace('origin/', '') : event.branch,
+        newBranch && !localBranchExists,
+        event.andPull,
+      ),
+      'checkout',
+      'checking out the branch',
+    );
     this.clearSelectedChanges();
   }
 
   pull(force: boolean) {
-    this.simpleOperation(this.gitService.pull(force), 'pull', 'pulling the branch');
+    this.simpleOperation(
+      this.gitService.pull(force),
+      'pull',
+      'pulling the branch',
+    );
     this.clearSelectedChanges();
   }
 
   push(branch: BranchModel, force: boolean) {
-    this.simpleOperation(this.gitService.push(branch, force), 'push', 'pushing the branch');
+    this.simpleOperation(
+      this.gitService.push(branch, force),
+      'push',
+      'pushing the branch',
+    );
     this.clearSelectedChanges();
   }
 
   deleteFiles(files: string[]) {
-    this.simpleOperation(this.gitService.deleteFiles(files), 'deleteFiles', 'deleting the file');
+    this.simpleOperation(
+      this.gitService.deleteFiles(files),
+      'deleteFiles',
+      'deleting the file',
+    );
     this.clearSelectedChanges();
   }
 
@@ -442,7 +529,8 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(
       this.gitService.mergeFile(file, this.settingsService.settings.mergetool),
       'mergeFiles',
-      'merging the file');
+      'merging the file',
+    );
     this.clearSelectedChanges();
   }
 
@@ -459,12 +547,17 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(
       this.gitService.stashChanges(this.stashOnlyUnstaged, stashName),
       'createStash',
-      'creating the stash');
+      'creating the stash',
+    );
     this.clearSelectedChanges();
   }
 
   hardReset() {
-    this.simpleOperation(this.gitService.hardReset(), 'hardReset', 'resetting all changes');
+    this.simpleOperation(
+      this.gitService.hardReset(),
+      'hardReset',
+      'resetting all changes',
+    );
     this.clearSelectedChanges();
   }
 
@@ -473,28 +566,48 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return;
     }
     const fileSet = new Set(files);
-    const changes = (staged ? this.changes.stagedChanges : this.changes.unstagedChanges)
-      .filter(change => fileSet.has(change.file));
-    const changeSet = new Set(changes.map(change => change.file));
-    const submoduleSet = new Set(this.repo.submodules.map(mod => mod.path));
+    const changes = (staged
+      ? this.getRepo().changes.stagedChanges
+      : this.getRepo().changes.unstagedChanges
+    ).filter((change) => fileSet.has(change.file));
+    const changeSet = new Set(changes.map((change) => change.file));
+    const submoduleSet = new Set(
+      this.getRepo().submodules.map((mod) => mod.path),
+    );
 
     const deletes = changes
-      .filter(change => change.change === ChangeType.Addition && !submoduleSet.has(change.file))
-      .map(change => change.file);
+      .filter(
+        (change) =>
+          (change.change === ChangeType.Addition ||
+            change.change === ChangeType.Untracked) &&
+          !submoduleSet.has(change.file),
+      )
+      .map((change) => change.file);
     const undos = changes
-      .filter(change => change.change !== ChangeType.Addition && !submoduleSet.has(change.file))
-      .map(change => change.file);
-    const subs = this.repo.submodules.filter(sub => changeSet.has(sub.path));
+      .filter(
+        (change) =>
+          change.change !== ChangeType.Addition &&
+          change.change !== ChangeType.Untracked &&
+          !submoduleSet.has(change.file),
+      )
+      .map((change) => change.file);
+    const subs = this.getRepo().submodules.filter((sub) =>
+      changeSet.has(sub.path),
+    );
 
-    this.simpleOperation(
-      this.gitService.undoFileChanges(
-        undos,
-        revision,
-        staged),
-      'undoFileChanges',
-      'undoing changes for the files');
-    this.deleteFiles(deletes);
-    this.undoSubmoduleChanges(subs);
+    if (undos.length > 0) {
+      this.simpleOperation(
+        this.gitService.undoFileChanges(undos, revision, staged),
+        'undoFileChanges',
+        'undoing changes for the files',
+      );
+    }
+    if (deletes.length > 0) {
+      this.deleteFiles(deletes);
+    }
+    if (subs.length > 0) {
+      this.undoSubmoduleChanges(subs);
+    }
 
     this.clearSelectedChanges();
     this.activeUndo = undefined;
@@ -504,11 +617,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(
       this.gitService.undoSubmoduleChanges(submodules),
       'undoSubmoduleChanges',
-      'undoing changes for the submodules');
+      'undoing changes for the submodules',
+    );
     this.clearSelectedChanges();
   }
 
-  confirmUndo(file: string) {
+  confirmUndo(file: string[]) {
     this.activeUndo = file;
     this.showModal('undoFileModal');
   }
@@ -518,7 +632,11 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   deleteWorktree(w) {
-    this.simpleOperation(this.gitService.deleteWorktree(w.name), 'deleteWorktree', 'deleting the worktree');
+    this.simpleOperation(
+      this.gitService.deleteWorktree(w.name),
+      'deleteWorktree',
+      'deleting the worktree',
+    );
     this.clearSelectedChanges();
   }
 
@@ -526,53 +644,78 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(
       this.gitService.updateSubmodules(branch, recursive),
       'updateSubmodules',
-      'updating the submodules');
+      'updating the submodules',
+    );
     this.clearSelectedChanges();
   }
 
   addSubmodule(url: string, path: string) {
-    this.simpleOperation(this.gitService.addSubmodule(url, path), 'addSubmodule', 'adding the submodule');
+    this.simpleOperation(
+      this.gitService.addSubmodule(url, path),
+      'addSubmodule',
+      'adding the submodule',
+    );
     this.clearSelectedChanges();
   }
 
   fetch(manualFetch: boolean = false) {
-    this.loadingService.setLoading(true);
-    this.gitService.fetch()
-        .catch((err: string) => {
-          if (err && err
-              .indexOf('No remote repository specified.  Please, specify either a URL or a') >= 0 &&
-            (!this.firstNoRemoteErrorDisplayed || manualFetch)) {
-            this.handleErrorMessage(new ErrorModel(
+    this.jobSchedulerService
+      .scheduleSimpleOperation(this.gitService.fetch())
+      .result.catch((err: string) => {
+        if (
+          err &&
+          err.indexOf(
+            'No remote repository specified.  Please, specify either a URL or a',
+          ) >= 0 &&
+          (!this.firstNoRemoteErrorDisplayed || manualFetch)
+        ) {
+          this.handleErrorMessage(
+            new ErrorModel(
               this._errorClassLocation + 'fetch',
               'fetching remote changes',
-              err));
-            this.firstNoRemoteErrorDisplayed = true;
-          }
-          if (err && err
-            .indexOf('No remote repository specified.  Please, specify either a URL or a') < 0) {
-            this.handleErrorMessage(new ErrorModel(
+              err,
+            ),
+          );
+          this.firstNoRemoteErrorDisplayed = true;
+        }
+        if (
+          err &&
+          err.indexOf(
+            'No remote repository specified.  Please, specify either a URL or a',
+          ) < 0
+        ) {
+          this.handleErrorMessage(
+            new ErrorModel(
               this._errorClassLocation + 'fetch',
               'fetching remote changes',
-              err));
-          }
-        });
+              err,
+            ),
+          );
+        }
+      });
   }
 
   getCommandHistory() {
-    this.loadingService.setLoading(true);
-    this.gitService.getCommandHistory()
-        .then(history => {
-          this.commandHistory = history;
-          this.changeDetectorRef.detectChanges();
-        })
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'getCommandHistory',
-          'fetching git command history',
-          err)));
+    this.jobSchedulerService
+      .scheduleSimpleOperation(this.gitService.getCommandHistory())
+      .result.then((history) => {
+        this.commandHistory = history;
+        this.changeDetectorRef.detectChanges();
+      })
+      .catch((err) =>
+        this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + 'getCommandHistory',
+            'fetching git command history',
+            err,
+          ),
+        ),
+      );
   }
 
   toggleExpandState(key: string) {
-    this.settingsService.settings.expandStates[key] = !this.settingsService.settings.expandStates[key];
+    this.settingsService.settings.expandStates[key] = !this.settingsService
+      .settings.expandStates[key];
     this.settingsService.saveSettings();
   }
 
@@ -580,97 +723,134 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     return this.settingsService.settings.expandStates[key];
   }
 
-  selectionChanged(selectedChanges: { [key: string]: boolean }, isStaged: boolean) {
+  selectionChanged(
+    selectedChanges: { [key: string]: boolean },
+    isStaged: boolean,
+  ) {
     if (isStaged) {
-      this.selectedStagedChanges = selectedChanges;
+      this.setRepoMetadata({ selectedStagedChanges: selectedChanges });
     } else {
-      this.selectedUnstagedChanges = selectedChanges;
+      this.setRepoMetadata({ selectedUnstagedChanges: selectedChanges });
     }
-    this.getFileDiff(true);
+    this.getFileDiff();
     this.diffCommitInfo = undefined;
-    setTimeout(() => this.showDiff = true, 300);
+    setTimeout(() => (this.showDiff = true), 300);
   }
 
   leaveCommitDiff() {
     this.diffCommitInfo = undefined;
-    this.showDiff = false;
-    this.getFileDiff();
+    this.commitDiff = undefined;
   }
 
   viewCommitDiff(commit: string) {
-    let commitToView = this.commitHistory.find(x => x.hash == commit || x.hash.startsWith(commit));
+    let commitToView = this.getRepo().commitHistory.find(
+      (x) => x.hash == commit || x.hash.startsWith(commit),
+    );
     if (!commitToView) {
       return;
     }
-    this.loadingService.setLoading(true);
-    this.gitService.getCommitDiff(commit)
-        .then(diff => {
-          this.diffHeaders = diff;
-          this.showDiff = true;
-          this.diffCommitInfo = commitToView;
-          this.loadingService.setLoading(false);
-          this.changeDetectorRef.detectChanges();
-        })
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'viewCommitDiff',
-          'getting file differences for the commit',
-          err)));
+
+    this.jobSchedulerService
+      .scheduleSimpleOperation(this.gitService.getCommitDiff(commit))
+      .result.then((diff) => {
+        this.commitDiff = diff;
+        this.showDiff = true;
+        this.diffCommitInfo = commitToView;
+
+        this.changeDetectorRef.detectChanges();
+      })
+      .catch((err) =>
+        this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + 'viewCommitDiff',
+            'getting file differences for the commit',
+            err,
+          ),
+        ),
+      );
   }
 
   getBranchPremerge(branch: BranchModel) {
-    this.loadingService.setLoading(true);
-    this.gitService.getBranchPremerge(branch.currentHash)
-        .then(diff => {
-          this.diffHeaders = diff;
-          this.showDiff = true;
-          this.diffCommitInfo = new CommitSummaryModel();
-          const currentBranch = this.tabDataService.getCurrentBranch();
-          this.diffCommitInfo.hash = branch.currentHash + ' <--> ' + currentBranch.currentHash;
-          this.diffCommitInfo.message = 'Diff of all changes since last common ancestor between \'' +
-            branch.name +
-            '\' and \'' +
-            currentBranch.name +
-            '\'';
-          this.loadingService.setLoading(false);
-          this.changeDetectorRef.detectChanges();
-        })
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'branchPremerge',
-          'getting changes since branch created',
-          err)));
+    this.jobSchedulerService
+      .scheduleSimpleOperation(
+        this.gitService.getBranchPremerge(branch.currentHash),
+      )
+      .result.then((diff) => {
+        this.commitDiff = diff;
+        this.showDiff = true;
+        this.diffCommitInfo = new CommitSummaryModel();
+        const currentBranch = this.tabDataService.getCurrentBranch();
+        this.diffCommitInfo.hash =
+          branch.currentHash + ' <--> ' + currentBranch.currentHash;
+        this.diffCommitInfo.message =
+          "Diff of all changes since last common ancestor between '" +
+          branch.name +
+          "' and '" +
+          currentBranch.name +
+          "'";
+
+        this.changeDetectorRef.detectChanges();
+      })
+      .catch((err) =>
+        this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + 'branchPremerge',
+            'getting changes since branch created',
+            err,
+          ),
+        ),
+      );
   }
 
   applyStash(index: number) {
-    this.simpleOperation(this.gitService.applyStash(index), 'applyStash', 'applying the stash');
+    this.simpleOperation(
+      this.gitService.applyStash(index),
+      'applyStash',
+      'applying the stash',
+    );
     this.clearSelectedChanges();
   }
 
   viewStash(index: number) {
-    this.gitService.getStashDiff(index)
-        .then(diff => {
-          this.diffHeaders = diff;
-          this.showDiff = true;
-          let commitInfo = new CommitSummaryModel();
-          commitInfo.message = this.repo.stashes[index].message;
-          this.diffCommitInfo = commitInfo;
-          this.loadingService.setLoading(false);
-          this.changeDetectorRef.detectChanges();
-        })
-        .catch(err => this.handleErrorMessage(new ErrorModel(
-          this._errorClassLocation + 'viewStashDiff',
-          'getting file differences for the stash',
-          err)));
+    this.jobSchedulerService
+      .scheduleSimpleOperation(this.gitService.getStashDiff(index))
+      .result.then((diff) => {
+        this.commitDiff = diff;
+        this.showDiff = true;
+        let commitInfo = new CommitSummaryModel();
+        commitInfo.message = this.getRepo().stashes[index].message;
+        this.diffCommitInfo = commitInfo;
+
+        this.changeDetectorRef.detectChanges();
+      })
+      .catch((err) =>
+        this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + 'viewStashDiff',
+            'getting file differences for the stash',
+            err,
+          ),
+        ),
+      );
   }
 
   deleteStash(index: number) {
-    this.repo.stashes.splice(index, 1);
-    this.repo.stashes.forEach((stash, i) => stash.index = i);
-    this.simpleOperation(this.gitService.deleteStash(index), 'deleteStash', 'deleting the stash');
+    this.getRepo().stashes.splice(index, 1);
+    this.getRepo().stashes.forEach((stash, i) => (stash.index = i));
+    this.simpleOperation(
+      this.gitService.deleteStash(index),
+      'deleteStash',
+      'deleting the stash',
+    );
     this.clearSelectedChanges();
   }
 
   createBranch(branchName: string) {
-    this.simpleOperation(this.gitService.createBranch(branchName), 'createBranch', 'creating the branch');
+    this.simpleOperation(
+      this.gitService.createBranch(branchName),
+      'createBranch',
+      'creating the branch',
+    );
   }
 
   getCreateStashDefaultText() {
@@ -682,13 +862,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   getCommitSuggestions() {
-    let partial = this.changes.description;
+    let partial = this.getRepo().changes.description;
     if (!partial || !this.settingsService.settings.commitMessageAutocomplete) {
       this.suggestions = [];
       return [];
     }
 
-    let lastWord, index = 0;
+    let lastWord,
+      index = 0;
     let arr = partial.split(/[\s,]/);
     for (let i = 0; i < arr.length; i++) {
       if (index >= this.currentCommitCursorPosition) {
@@ -704,30 +885,45 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       return [];
     }
     let optionsSet: { [key: string]: number } = {};
-    this.changes.stagedChanges.forEach(x =>
-      this.getFilenameChunks(x.file)
-          .forEach(filenameChunk => {
-            let suggestion = filenameChunk.trim().replace(/\.[^\.]*$/, '');
-            return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
-          }));
-    this.changes.unstagedChanges.forEach(x =>
-      this.getFilenameChunks(x.file)
-          .forEach(filenameChunk => {
-            let suggestion = filenameChunk.trim().replace(/\.[^\.]*$/, '');
-            return optionsSet[suggestion] = this.levenshtein(suggestion.toLowerCase(), lastWord.toLowerCase());
-          }));
+    this.getRepo().changes.stagedChanges.forEach((x) =>
+      this.getFilenameChunks(x.file).forEach((filenameChunk) => {
+        let suggestion = filenameChunk.trim().replace(/\.[^\.]*$/, '');
+        return (optionsSet[suggestion] = this.levenshtein(
+          suggestion.toLowerCase(),
+          lastWord.toLowerCase(),
+        ));
+      }),
+    );
+    this.getRepo().changes.unstagedChanges.forEach((x) =>
+      this.getFilenameChunks(x.file).forEach((filenameChunk) => {
+        let suggestion = filenameChunk.trim().replace(/\.[^\.]*$/, '');
+        return (optionsSet[suggestion] = this.levenshtein(
+          suggestion.toLowerCase(),
+          lastWord.toLowerCase(),
+        ));
+      }),
+    );
 
     if (this.tabDataService.getCurrentBranch()) {
       const currentBranchName = this.tabDataService.getCurrentBranch().name;
-      this.getFilenameChunks(currentBranchName)
-          .forEach(y => optionsSet[y.trim()] = this.levenshtein(currentBranchName, lastWord));
+      this.getFilenameChunks(currentBranchName).forEach(
+        (y) =>
+          (optionsSet[y.trim()] = this.levenshtein(
+            currentBranchName,
+            lastWord,
+          )),
+      );
     }
     const result = Object.keys(optionsSet)
       // .sort((a, b) => optionsSet[a] - optionsSet[b])
-                         .filter(x => FilterPipe.fuzzyFilter(
-                           lastWord.toLowerCase(),
-                           x.toLocaleLowerCase()) || optionsSet[x] < lastWord.length / 3)
-                         .slice(0, 5);
+      .filter(
+        (x) =>
+          FilterPipe.fuzzyFilter(
+            lastWord.toLowerCase(),
+            x.toLocaleLowerCase(),
+          ) || optionsSet[x] < lastWord.length / 3,
+      )
+      .slice(0, 5);
     this.suggestions = result;
     return result;
   }
@@ -736,10 +932,16 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     if (this.commitMessageDebounce) {
       clearTimeout(this.commitMessageDebounce);
     }
+    if (!this.settingsService.settings.commitMessageAutocomplete) {
+      return false;
+    }
     this.commitMessageDebounce = window.setTimeout(() => {
       this.currentCommitCursorPosition = $event.target.selectionStart;
 
-      if (['Enter', 'ArrowUp', 'ArrowDown', 'Escape', 'Tab'].indexOf($event.key) < 0) {
+      if (
+        ['Enter', 'ArrowUp', 'ArrowDown', 'Escape', 'Tab'].indexOf($event.key) <
+        0
+      ) {
         this.getCommitSuggestions();
       }
       if (this.suggestions.length == 0) {
@@ -753,9 +955,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
         $event.preventDefault();
         this.chooseAutocomleteItem(true);
       } else if ($event.key == 'ArrowUp') {
-        this.selectedAutocompleteItem = Math.max(0, this.selectedAutocompleteItem - 1);
+        this.selectedAutocompleteItem = Math.max(
+          0,
+          this.selectedAutocompleteItem - 1,
+        );
       } else if ($event.key == 'ArrowDown') {
-        this.selectedAutocompleteItem = Math.min(this.suggestions.length, this.selectedAutocompleteItem + 1);
+        this.selectedAutocompleteItem = Math.min(
+          this.suggestions.length,
+          this.selectedAutocompleteItem + 1,
+        );
       } else if ($event.key == 'Escape') {
         this.suggestions = [];
       }
@@ -764,12 +972,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
 
   chooseAutocomleteItem(removeEnter: boolean, item?: number) {
     this.selectedAutocompleteItem = item || this.selectedAutocompleteItem;
-    this.changes.description = this.changes.description.substring(
-      0,
-      this.currentCommitCursorPosition - this.positionInAutoComplete) +
+    this.getRepo().changes.description =
+      this.getRepo().changes.description.substring(
+        0,
+        this.currentCommitCursorPosition - this.positionInAutoComplete,
+      ) +
       this.suggestions[this.selectedAutocompleteItem] +
-      this.changes.description.substring(this.currentCommitCursorPosition +
-        (removeEnter ? 1 : 0));
+      this.getRepo().changes.description.substring(
+        this.currentCommitCursorPosition + (removeEnter ? 1 : 0),
+      );
     this.selectedAutocompleteItem = 0;
     this.suggestions = [];
   }
@@ -782,27 +993,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     return command.name + command.command;
   }
 
-  handleFileChanges(changes: CommitModel, keepDiffCommitSelection: boolean = true) {
-    this.changes = Object.assign(
-      new CommitModel(),
-      changes,
-      {description: this.changes ? this.changes.description : ''});
-    if (!keepDiffCommitSelection) {
-      this.getFileDiff();
-      this.diffCommitInfo = undefined;
-    }
-    this.changeDetectorRef.detectChanges();
-    this.loadingService.setLoading(false);
-  }
-
   handleErrorMessage(error: ErrorModel) {
     this.errorService.receiveError(error);
-    this.loadingService.setLoading(false);
   }
 
   hunkChangeError($event: any) {
     this.handleErrorMessage(
-      new ErrorModel('', 'saving changes to the hunk', $event));
+      new ErrorModel('', 'saving changes to the hunk', $event),
+    );
   }
 
   viewSubmodule(submodule: SubmoduleModel) {
@@ -811,10 +1009,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   cancelSuggestions() {
-    setTimeout(() => {
-      this.suggestions = [];
-      this.changeDetectorRef.detectChanges();
-    }, 300);
+    if (this.settingsService.settings.commitMessageAutocomplete) {
+      setTimeout(() => {
+        this.suggestions = [];
+        this.changeDetectorRef.detectChanges();
+      }, 300);
+    }
   }
 
   setFilenameSplit(val: boolean) {
@@ -823,13 +1023,15 @@ export class RepoViewComponent implements OnInit, OnDestroy {
   }
 
   handleActiveBranchUpdate(branch: BranchModel) {
-    this.activeCommitHistoryBranch = branch;
+    this.setRepoMetadata({
+      commitHistoryActiveBranch: branch,
+    });
     this.getCommitHistory();
   }
 
   startCommit(amend: boolean) {
     this._shouldAmendCommit = amend;
-    if (this.changes.stagedChanges.length > 0) {
+    if (this.getRepo().changes.stagedChanges.length > 0) {
       this.codeWatcherService.showWatchers();
     }
   }
@@ -856,13 +1058,14 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     this.simpleOperation(
       this.gitService.resolveConflictsUsing(file, theirs),
       'resolveConflictsUsing',
-      'resolving conflicts');
+      'resolving conflicts',
+    );
   }
 
   getCommitDisabledTooltip() {
     if (this.loadingService.isLoading) {
       return 'Refreshing repo info, please wait';
-    } else if (this.changes.stagedChanges.length === 0) {
+    } else if (this.getRepo().changes.stagedChanges.length === 0) {
       return 'No staged changes';
     } else if (!this.tabDataService.getCurrentBranch()) {
       return 'No branch checked out';
@@ -871,28 +1074,33 @@ export class RepoViewComponent implements OnInit, OnDestroy {
     }
   }
 
-  private simpleOperation(op: Promise<void>,
-                          functionName: string,
-                          occurredWhile: string,
-                          clearCommitInfo: boolean = false,
-                          fullRefresh: boolean = true,
-                          rethrowException: boolean = false): Promise<void> {
-    this.loadingService.setLoading(true);
+  private setRepoMetadata(metadata: Partial<RepoMetadata>) {
+    this.tabDataService.setMetadataForPath(this.getRepo().path, metadata);
+  }
+
+  private simpleOperation(
+    op: Job<void>,
+    functionName: string,
+    occurredWhile: string,
+    clearCommitInfo: boolean = false,
+    fullRefresh: boolean = true,
+    rethrowException: boolean = false,
+  ): Promise<void> {
     clearTimeout(this.debounceRefreshTimer);
-    return op.then(() => {
-      if (fullRefresh) {
-        this.getFullRefresh(clearCommitInfo);
-      }
-      return Promise.resolve();
-    }).catch(err => {
-      this.handleErrorMessage(new ErrorModel(
-        this._errorClassLocation + functionName,
-        occurredWhile,
-        err));
-      if (rethrowException) {
-        throw err;
-      }
-    });
+    return this.jobSchedulerService
+      .scheduleSimpleOperation(op)
+      .result.catch((err) => {
+        this.handleErrorMessage(
+          new ErrorModel(
+            this._errorClassLocation + functionName,
+            occurredWhile,
+            err,
+          ),
+        );
+        if (rethrowException) {
+          throw err;
+        }
+      });
   }
 
   private levenshtein(a: string, b: string): number {
@@ -909,7 +1117,12 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       b = tmp;
     }
 
-    let i, j, res, alen = a.length, blen = b.length, row = Array(alen);
+    let i,
+      j,
+      res,
+      alen = a.length,
+      blen = b.length,
+      row = Array(alen);
     for (i = 0; i <= alen; i++) {
       row[i] = i;
     }
@@ -919,59 +1132,45 @@ export class RepoViewComponent implements OnInit, OnDestroy {
       for (j = 1; j <= alen; j++) {
         tmp = row[j - 1];
         row[j - 1] = res;
-        res = b[i - 1] === a[j - 1] ? tmp : Math.min(tmp + 1, Math.min(res + 1, row[j] + 1));
+        res =
+          b[i - 1] === a[j - 1]
+            ? tmp
+            : Math.min(tmp + 1, Math.min(res + 1, row[j] + 1));
       }
     }
     return res;
   }
 
   private loadRepo(path: string = '') {
-    this._repoPath = path || (this.isNested ?
-                              this._repoPath :
-                              this.tabDataService.activeRepoCache.path || this._repoPath);
-    this.repo = this.tabDataService.activeRepoCache;
-    this.loadingService.setLoading(true);
-    this.gitService.loadRepo(this._repoPath)
-        .then(repo => {
-          if (repo.path !== this.tabDataService.activeRepoCache.path && this.tabDataService.activeRepoCache.path) {
-            this.loadingService.setLoading(false);
-            return;
-          }
-          this.repo = repo;
-          if (!this.isNested) {
-            Object.assign(this.tabDataService.activeRepoCache, this.repo);
-          }
-          this.getCommandHistory();
-          this.getFullRefresh(false, false);
-          this.changeDetectorRef.detectChanges();
-          this.periodicRefreshTimer = setInterval(() => this.getFullRefresh(false), 1000 * 60 * 5);
-        }).catch(err => {
-      this.loadingService.setLoading(false);
-      this.onLoadRepoFailed.emit(new ErrorModel(this._errorClassLocation + 'loadRepo', 'loading the repo', err));
-    });
+    this._repoPath =
+      path ||
+      (this.isNested
+        ? this._repoPath
+        : this.tabDataService.activeRepoCache.path || this._repoPath);
+
+    this.jobSchedulerService
+      .scheduleSimpleOperation(this.gitService.loadRepo(this._repoPath))
+      .result.then(() => {
+        this.periodicRefreshTimer = setInterval(
+          () => this.getFullRefresh(),
+          1000 * 60 * 5,
+        );
+      })
+      .catch((err) => {
+        this.onLoadRepoFailed.emit(
+          new ErrorModel(
+            this._errorClassLocation + 'loadRepo',
+            'loading the repo',
+            err,
+          ),
+        );
+      });
   }
 
   private clearSelectedChanges() {
-    this.selectedUnstagedChanges = {};
-    this.selectedStagedChanges = {};
-  }
-
-  private handleBranchChanges(changes: RepositoryModel) {
-    if (changes.path !== this.tabDataService.activeRepoCache.path) {
-      this.loadingService.setLoading(false);
-      return;
-    }
-    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches)) {
-      this.repo.localBranches = changes.localBranches.map(b => Object.assign(new BranchModel(), b));
-    }
-    if (!EqualityUtil.listsEqual(this.repo.localBranches, changes.localBranches)) {
-      this.repo.remoteBranches = changes.remoteBranches.map(b => Object.assign(new BranchModel(), b));
-    }
-    this.repo.worktrees = changes.worktrees.map(w => Object.assign(new WorktreeModel(), w));
-    this.repo.stashes = changes.stashes.map(s => Object.assign(new StashModel(), s));
-    this.repo.submodules = changes.submodules.map(s => Object.assign(new SubmoduleModel(), s));
-    this.tabDataService.updateTabData(this.repo);
-    this.changeDetectorRef.detectChanges();
-    this.loadingService.setLoading(false);
+    this.setRepoMetadata({
+      selectedUnstagedChanges: {},
+      selectedStagedChanges: {},
+    });
   }
 }

@@ -1,23 +1,30 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {CommitSummaryModel} from '../../../../shared/git/CommitSummary.model';
-import {DiffHeaderModel} from '../../../../shared/git/diff.header.model';
-import {SettingsService} from '../../services/settings.service';
-import {GitService} from '../../services/git.service';
-import {CommitModel} from '../../../../shared/git/Commit.model';
-import {ErrorService} from '../../common/services/error.service';
-import {ErrorModel} from '../../../../shared/common/error.model';
-import {DiffHunkModel} from '../../../../shared/git/diff.hunk.model';
-import {DiffLineModel, LineState} from '../../../../shared/git/diff.line.model';
-import {CodeWatcherService, ShowWatchersRequest} from '../../services/code-watcher.service';
-import {FilterPipe} from '../../common/pipes/filter.pipe';
-import {ClipboardService} from '../../services/clipboard.service';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { CommitSummaryModel } from '../../../../shared/git/CommitSummary.model';
+import { DiffHeaderModel } from '../../../../shared/git/diff.header.model';
+import { SettingsService } from '../../services/settings.service';
+import { GitService } from '../../services/git.service';
+import { CommitModel } from '../../../../shared/git/Commit.model';
+import { ErrorService } from '../../common/services/error.service';
+import { ErrorModel } from '../../../../shared/common/error.model';
+import { DiffHunkModel } from '../../../../shared/git/diff.hunk.model';
+import {
+  DiffLineModel,
+  LineState,
+} from '../../../../shared/git/diff.line.model';
+import {
+  CodeWatcherService,
+  ShowWatchersRequest,
+} from '../../services/code-watcher.service';
+import { FilterPipe } from '../../common/pipes/filter.pipe';
+import { ClipboardService } from '../../services/clipboard.service';
+import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
 
 @Component({
   selector: 'app-diff-viewer',
   templateUrl: './diff-viewer.component.html',
   styleUrls: ['./diff-viewer.component.scss'],
 })
-export class DiffViewerComponent implements OnInit {
+export class DiffViewerComponent {
   @Input() diffCommitInfo: CommitSummaryModel;
   editingHunk: DiffHunkModel;
   editingHeader: DiffHeaderModel;
@@ -31,14 +38,20 @@ export class DiffViewerComponent implements OnInit {
   numPerPage = 3;
   diffFilter: string;
   maxFileDiffSize = 500;
-  reducedHeaders: { header: DiffHeaderModel, reducedHunks: DiffHunkModel[], tooLong: boolean }[];
+  reducedHeaders: {
+    header: DiffHeaderModel;
+    reducedHunks: DiffHunkModel[];
+    tooLong: boolean;
+  }[];
 
-  constructor(public settingsService: SettingsService,
-              private errorService: ErrorService,
-              private codeWatcherService: CodeWatcherService,
-              private gitService: GitService,
-              public clipboardService: ClipboardService) {
-  }
+  constructor(
+    public settingsService: SettingsService,
+    private errorService: ErrorService,
+    private codeWatcherService: CodeWatcherService,
+    private gitService: GitService,
+    private jobSchedulerService: JobSchedulerService,
+    public clipboardService: ClipboardService,
+  ) {}
 
   private _diffHeaders: DiffHeaderModel[];
 
@@ -49,7 +62,7 @@ export class DiffViewerComponent implements OnInit {
   @Input()
   set diffHeaders(value: DiffHeaderModel[]) {
     this._diffHeaders = value;
-    this.reducedHeaders = value.map(h => {
+    this.reducedHeaders = value.map((h) => {
       let tooLong = this.getHeaderLines(h) > this.maxFileDiffSize;
       let reduced = [];
       if (tooLong) {
@@ -63,15 +76,12 @@ export class DiffViewerComponent implements OnInit {
           }
         }
       }
-      return {header: h, reducedHunks: tooLong ? reduced : h.hunks, tooLong};
+      return { header: h, reducedHunks: tooLong ? reduced : h.hunks, tooLong };
     });
   }
 
-  ngOnInit() {
-  }
-
   getHunkCode(hunk: DiffHunkModel) {
-    return hunk.lines.map(x => x.text).join('\n') + '\t';
+    return hunk.lines.map((x) => x.text).join('\n') + '\t';
   }
 
   getAddition(line: DiffLineModel) {
@@ -88,12 +98,17 @@ export class DiffViewerComponent implements OnInit {
       if (this.diffCommitInfo) {
         this.onExitCommitClicked.emit();
       }
-      this.onIngoreWhitespaceClicked.emit(this.settingsService.settings.diffIgnoreWhitespace);
+      this.onIngoreWhitespaceClicked.emit(
+        this.settingsService.settings.diffIgnoreWhitespace,
+      );
     }, 100);
   }
 
   getEditableCode(hunk: DiffHunkModel) {
-    return hunk.lines.filter(x => x.state != LineState.REMOVED).map(x => x.text).join('\n');
+    return hunk.lines
+      .filter((x) => x.state != LineState.REMOVED)
+      .map((x) => x.text)
+      .join('\n');
   }
 
   cancelEdit() {
@@ -102,21 +117,37 @@ export class DiffViewerComponent implements OnInit {
   }
 
   saveEditedHunk() {
-    if (!this.editingHunk || !this.editingHeader || this.editedText == this.getEditableCode(this.editingHunk)) {
+    if (
+      !this.editingHunk ||
+      !this.editingHeader ||
+      this.editedText == this.getEditableCode(this.editingHunk)
+    ) {
       this.editingHeader = undefined;
       this.editingHunk = undefined;
       return;
     }
-    this.gitService.changeHunk(this.editingHeader.toFilename, this.editingHunk, this.editedText)
-        .then(() => {
-          this.onHunkChanged.emit();
-          this.editingHeader = undefined;
-          this.editingHunk = undefined;
-        })
-        .catch(error => this.onHunkChangeError.emit(new ErrorModel(
-          'Diff viewer component, changeHunk',
-          'saving hunk changes',
-          error)));
+    this.jobSchedulerService
+      .scheduleSimpleOperation(
+        this.gitService.changeHunk(
+          this.editingHeader.toFilename,
+          this.editingHunk,
+          this.editedText,
+        ),
+      )
+      .result.then(() => {
+        this.onHunkChanged.emit();
+        this.editingHeader = undefined;
+        this.editingHunk = undefined;
+      })
+      .catch((error) =>
+        this.onHunkChangeError.emit(
+          new ErrorModel(
+            'Diff viewer component, changeHunk',
+            'saving hunk changes',
+            error,
+          ),
+        ),
+      );
   }
 
   startEdit(hunk: DiffHunkModel, header: DiffHeaderModel) {
@@ -126,22 +157,29 @@ export class DiffViewerComponent implements OnInit {
   }
 
   isEditingHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
-    return this.editingHunk &&
+    return (
+      this.editingHunk &&
       this.editingHeader &&
-      this.editingHunk.fromStartLine ==
-      hunk.fromStartLine &&
-      this.editingHeader.fromFilename ==
-      header.fromFilename;
+      this.editingHunk.fromStartLine == hunk.fromStartLine &&
+      this.editingHeader.fromFilename == header.fromFilename
+    );
   }
 
   undoHunk(hunk: DiffHunkModel, header: DiffHeaderModel) {
     this.startEdit(hunk, header);
-    this.editedText = hunk.lines.filter(x => x.state != LineState.ADDED).map(x => x.text).join('\n');
+    this.editedText = hunk.lines
+      .filter((x) => x.state != LineState.ADDED)
+      .map((x) => x.text)
+      .join('\n');
     this.saveEditedHunk();
   }
 
   hasConflictingWatcher(hunk: DiffHunkModel, header: DiffHeaderModel) {
-    return this.codeWatcherService.getWatcherAlerts([this.getTemporaryHunk(header, hunk)]).length > 0;
+    return (
+      this.codeWatcherService.getWatcherAlerts([
+        this.getTemporaryHunk(header, hunk),
+      ]).length > 0
+    );
   }
 
   watcherClick(hunk: DiffHunkModel, header: DiffHeaderModel) {
@@ -156,29 +194,46 @@ export class DiffViewerComponent implements OnInit {
     if (!down) {
       this.scrollOffset = this.numPerPage * 3;
     }
-    this.scrollOffset = Math.round(Math.max(
-      this.numPerPage * 3,
-      Math.min(this.scrollOffset, this.diffHeaders.length - this.numPerPage)));
+    this.scrollOffset = Math.round(
+      Math.max(
+        this.numPerPage * 3,
+        Math.min(this.scrollOffset, this.diffHeaders.length - this.numPerPage),
+      ),
+    );
   }
 
   getFilteredDiffHeaders() {
     if (!this.diffFilter) {
       return this.reducedHeaders.slice(0, this.scrollOffset);
     } else {
-      return this.reducedHeaders.filter(header => {
-        let needle = this.diffFilter.toLowerCase();
-        return FilterPipe.fuzzyFilter(needle, header.header.fromFilename.toLowerCase()) ||
-          FilterPipe.fuzzyFilter(needle, header.header.toFilename.toLowerCase());
-      }).slice(0, this.scrollOffset);
+      return this.reducedHeaders
+        .filter((header) => {
+          let needle = this.diffFilter.toLowerCase();
+          return (
+            FilterPipe.fuzzyFilter(
+              needle,
+              header.header.fromFilename.toLowerCase(),
+            ) ||
+            FilterPipe.fuzzyFilter(
+              needle,
+              header.header.toFilename.toLowerCase(),
+            )
+          );
+        })
+        .slice(0, this.scrollOffset);
     }
   }
 
   getHeaderLines(header: DiffHeaderModel) {
-    return header.hunks.map(x => x.lines.length).reduce((a, b) => a + b, 0);
+    return header.hunks.map((x) => x.lines.length).reduce((a, b) => a + b, 0);
   }
 
   getLocalExpandedDefault(header: DiffHeaderModel) {
-    return header.action != 'Deleted' && this.getHeaderLines(header) < this.maxFileDiffSize && header.hunks.length > 0;
+    return (
+      header.action != 'Deleted' &&
+      this.getHeaderLines(header) < this.maxFileDiffSize &&
+      header.hunks.length > 0
+    );
   }
 
   private getTemporaryHunk(header: DiffHeaderModel, hunk: DiffHunkModel) {

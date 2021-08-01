@@ -1,10 +1,10 @@
-@import "../../../styles";
+@import '../../../styles';
 
 .change {
-  transition: background-color .5s;
+  transition: background-color 0.5s;
 
   &:hover {
-    background-color: rgba(128, 128, 128, .2);
+    background-color: rgba(128, 128, 128, 0.2);
 
     .btn-group .btn {
       opacity: 1;
@@ -12,24 +12,24 @@
   }
 
   &:active {
-    background-color: rgba(100, 100, 190, .2);
+    background-color: rgba(100, 100, 190, 0.2);
   }
 
   .btn-group .btn {
     opacity: 0;
-    transition: opacity .3s ease-in-out;
+    transition: opacity 0.3s ease-in-out;
 
-    &:active, &:focus {
+    &:active,
+    &:focus {
       opacity: 1;
     }
   }
-
 }
 
 .change-filename {
   max-height: 1.5em;
   overflow-y: hidden;
-  transition: max-height .5s;
+  transition: max-height 0.5s;
 
   &:hover {
     max-height: 10em;
@@ -38,7 +38,7 @@
 }
 
 .table td {
-  padding: .2rem;
+  padding: 0.2rem;
   vertical-align: middle;
 
   &:first-child {
@@ -64,4 +64,12 @@ th:first-child {
 
 .fa-minus {
   color: $status-deleted;
+}
+
+.change-list-header {
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+  }
 }

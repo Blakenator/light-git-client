@@ -1,3 +1,11 @@
+export type TCommitGraphBlockTarget = {
+  target: number;
+  source: number;
+  isCommit: boolean;
+  branchIndex: number;
+  isMerge: boolean;
+};
+
 export class CommitSummaryModel {
   public hash: string;
   public authorName: string;
@@ -7,10 +15,10 @@ export class CommitSummaryModel {
   public message: string;
   public currentTags: string[];
   public parentHashes: string[];
-  public graphBlockTargets: { target: number, source: number, isCommit: boolean, branchIndex: number, isMerge: boolean }[];
+  public graphBlockTargets: TCommitGraphBlockTarget[];
 
   static getCommitBranchColor(index: number) {
-    let rgb = CommitSummaryModel.HSVtoRGB((index * .27) % 1, .8, .8);
+    let rgb = CommitSummaryModel.HSVtoRGB((index * 0.27) % 1, 0.8, 0.8);
     let r = (rgb.r.toString(16).length == 1 ? '0' : '') + rgb.r.toString(16);
     let g = (rgb.g.toString(16).length == 1 ? '0' : '') + rgb.g.toString(16);
     let b = (rgb.b.toString(16).length == 1 ? '0' : '') + rgb.b.toString(16);
@@ -20,7 +28,7 @@ export class CommitSummaryModel {
   static HSVtoRGB(h, s, v) {
     let r, g, b, i, f, p, q, t;
     if (arguments.length === 1) {
-      s = h.s, v = h.v, h = h.h;
+      (s = h.s), (v = h.v), (h = h.h);
     }
     i = Math.floor(h * 6);
     f = h * 6 - i;
@@ -29,22 +37,22 @@ export class CommitSummaryModel {
     t = v * (1 - (1 - f) * s);
     switch (i % 6) {
       case 0:
-        r = v, g = t, b = p;
+        (r = v), (g = t), (b = p);
         break;
       case 1:
-        r = q, g = v, b = p;
+        (r = q), (g = v), (b = p);
         break;
       case 2:
-        r = p, g = v, b = t;
+        (r = p), (g = v), (b = t);
         break;
       case 3:
-        r = p, g = q, b = v;
+        (r = p), (g = q), (b = v);
         break;
       case 4:
-        r = t, g = p, b = v;
+        (r = t), (g = p), (b = v);
         break;
       case 5:
-        r = v, g = p, b = q;
+        (r = v), (g = p), (b = q);
         break;
     }
     return {
@@ -53,10 +61,4 @@ export class CommitSummaryModel {
       b: Math.round(b * 255),
     };
   }
-}
-
-export class CommitGraphNode {
-  public children: CommitGraphNode[] = [];
-  public hash = '';
-  public parents: CommitGraphNode[] = [];
 }

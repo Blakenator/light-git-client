@@ -1,16 +1,16 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {ModalService} from '../../services/modal.service';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { ModalService } from '../../services/modal.service';
 
 @Component({
   selector: 'app-input-modal',
   templateUrl: './input-modal.component.html',
   styleUrls: ['./input-modal.component.scss'],
 })
-export class InputModalComponent implements OnInit {
+export class InputModalComponent {
   @Input() modalTitle = '';
   @Input() modalId;
   @Input() message = '';
-  @Input() replaceChars: { match: RegExp, with: string };
+  @Input() replaceChars: { match: RegExp; with: string };
   @Input() uidSalt = '';
   @Input() inputPlaceholder = '';
   @Input() validPattern = '';
@@ -25,9 +25,6 @@ export class InputModalComponent implements OnInit {
     this.value = this.defaultText;
   }
 
-  ngOnInit() {
-  }
-
   okClicked() {
     if (this.value.match(this.validPattern)) {
       this.onClickOk.emit(this.value);
@@ -40,7 +37,10 @@ export class InputModalComponent implements OnInit {
 
   checkValid() {
     if (this.replaceChars) {
-      this.value = this.value.replace(this.replaceChars.match, this.replaceChars.with);
+      this.value = this.value.replace(
+        this.replaceChars.match,
+        this.replaceChars.with,
+      );
     }
     if (!this.value.match(this.validPattern)) {
       this.errorMessage = this.invalidMessage;
@@ -50,5 +50,4 @@ export class InputModalComponent implements OnInit {
       return true;
     }
   }
-
 }

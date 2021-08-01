@@ -1,15 +1,22 @@
-import {ApplicationRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {GitService} from '../../services/git.service';
-import {BranchModel} from '../../../../shared/git/Branch.model';
-import {ModalService} from '../../common/services/modal.service';
-import {WorktreeModel} from '../../../../shared/git/worktree.model';
+import {
+  ApplicationRef,
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+} from '@angular/core';
+import { GitService } from '../../services/git.service';
+import { BranchModel } from '../../../../shared/git/Branch.model';
+import { ModalService } from '../../common/services/modal.service';
+import { WorktreeModel } from '../../../../shared/git/worktree.model';
 
 @Component({
   selector: 'app-add-worktree',
   templateUrl: './add-worktree.component.html',
   styleUrls: ['./add-worktree.component.scss'],
 })
-export class AddWorktreeComponent implements OnInit {
+export class AddWorktreeComponent {
   filter = '';
   path = '';
   selectedBranch: BranchModel;
@@ -17,31 +24,34 @@ export class AddWorktreeComponent implements OnInit {
   @Input() worktrees: WorktreeModel[];
   @Input() uidSalt = '';
   @Output() onAddWorktree = new EventEmitter();
-  output: { err: string, out: string, done: boolean }[] = [];
+  output: { err: string; out: string; done: boolean }[] = [];
   isLoading = false;
   pathError: string;
   branchError: string;
 
-  constructor(private gitService: GitService,
-              private applicationRef: ApplicationRef,
-              public modalService: ModalService) {
-  }
-
-  ngOnInit() {
-  }
+  constructor(
+    private gitService: GitService,
+    private applicationRef: ApplicationRef,
+    public modalService: ModalService,
+  ) {}
 
   chooseBranch(b: BranchModel) {
     this.selectedBranch = b;
     if (!this.path || !this.path.trim()) {
-      this.path = '../' + this.selectedBranch.name.substring(this.selectedBranch.name.lastIndexOf('/') + 1);
+      this.path =
+        '../' +
+        this.selectedBranch.name.substring(
+          this.selectedBranch.name.lastIndexOf('/') + 1,
+        );
     }
   }
 
   add() {
     if (!this.path || !this.path.trim() || !this.selectedBranch) {
-      this.pathError = !this.path || !this.path.trim() ?
-                       'Please enter a path. If the current directory is desired, enter \'./\'' :
-                       '';
+      this.pathError =
+        !this.path || !this.path.trim()
+          ? "Please enter a path. If the current directory is desired, enter './'"
+          : '';
       this.branchError = !this.selectedBranch ? 'Please select a branch' : '';
       return;
     } else {
@@ -49,18 +59,25 @@ export class AddWorktreeComponent implements OnInit {
       this.branchError = '';
     }
     this.isLoading = true;
-    this.gitService.addWorktree(this.path, this.selectedBranch.name, (out, err, done) => {
-      this.output.push({out, err, done});
-      if (done && this.output.filter(x => !!x.err).length == 0) {
-        this.modalService.setModalVisible('addWorktree' + this.uidSalt, false);
-        this.onAddWorktree.emit();
-        this.clearModal();
-      }
-      if (done) {
-        this.isLoading = false;
-      }
-      this.applicationRef.tick();
-    });
+    this.gitService.addWorktree(
+      this.path,
+      this.selectedBranch.name,
+      (out, err, done) => {
+        this.output.push({ out, err, done });
+        if (done && this.output.filter((x) => !!x.err).length == 0) {
+          this.modalService.setModalVisible(
+            'addWorktree' + this.uidSalt,
+            false,
+          );
+          this.onAddWorktree.emit();
+          this.clearModal();
+        }
+        if (done) {
+          this.isLoading = false;
+        }
+        this.applicationRef.tick();
+      },
+    );
   }
 
   cancel() {
@@ -69,7 +86,9 @@ export class AddWorktreeComponent implements OnInit {
   }
 
   branchLockedOtherWorktree(b: BranchModel) {
-    return this.worktrees.find(x => x.currentBranch == b.name.replace('origin/', ''));
+    return this.worktrees.find(
+      (x) => x.currentBranch == b.name.replace('origin/', ''),
+    );
   }
 
   private clearModal() {
