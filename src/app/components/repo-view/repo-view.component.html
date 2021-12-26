@@ -4,11 +4,7 @@
     Light Git
   </title>
 </head>
-<div
-  *ngIf="this.getRepo()"
-  (focus)="getFullRefresh()"
-  class="row full-width bg-light-mode"
->
+<div *ngIf="this.getRepo()" class="row full-width bg-light-mode">
   <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
     <h1>
       {{ this.tabDataService.getActiveTab().name }}
@@ -458,7 +454,7 @@
           <button
             class="btn btn-sm btn-warning mx-1"
             ngbTooltip="Undo changes for selected staged files"
-            (click)="undoFileChanges(getSelectedStagedFiles(), true)"
+            (click)="confirmUndo(getSelectedStagedFiles())"
           >
             <i class="fa fa-undo"></i>
           </button>
@@ -473,7 +469,7 @@
         <app-change-list
           [changes]="this.getRepo().changes.stagedChanges"
           (onSelectChanged)="selectionChanged($event, true)"
-          (onUndoFileClicked)="confirmUndo($event)"
+          (onUndoFileClicked)="confirmUndo([$event])"
           (onMergeClicked)="merge($event)"
           (onResolveClicked)="resolveConflictsUsing($event.file, $event.theirs)"
           (onDeleteClicked)="deleteFiles($event)"
@@ -695,7 +691,7 @@
         (onScrollDown)="getCommitHistory(this.getRepo().commitHistory.length)"
         [localBranches]="this.getRepo().localBranches"
         [remoteBranches]="this.getRepo().remoteBranches"
-        [activeBranch]="activeCommitHistoryBranch"
+        [activeBranch]="this.getRepo().commitHistoryActiveBranch"
         (onChooseBranch)="handleActiveBranchUpdate($event)"
         (onClickCheckout)="
           checkout({ branch: $event.hash, andPull: false }, false)
@@ -767,7 +763,7 @@
   </app-modal>
   <app-confirm-modal
     modalTitle="Confirm Undo Changes"
-    (onConfirm)="undoFileChanges([activeUndo], true)"
+    (onConfirm)="undoFileChanges(activeUndo, true)"
     [modalId]="'undoFileModal' + repoViewUid"
   >
     Are you sure you want to undo both <i>unstaged and staged</i> changes?<br />

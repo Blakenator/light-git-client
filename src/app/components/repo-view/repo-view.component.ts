@@ -31,7 +31,7 @@ import { SubmoduleModel } from '../../../../shared/git/submodule.model';
 import { LoadingService } from '../../services/loading.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { TabDataService } from '../../services/tab-data.service';
+import { RepoMetadata, TabDataService } from '../../services/tab-data.service';
 import { EqualityUtil } from '../../common/equality.util';
 import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
 import { Job, RepoAreaDefaults } from '../../services/job-system/models';
@@ -42,8 +42,6 @@ import { Job, RepoAreaDefaults } from '../../services/job-system/models';
   styleUrls: ['./repo-view.component.scss'],
 })
 export class RepoViewComponent implements OnDestroy {
-  selectedUnstagedChanges: { [key: string]: boolean } = {};
-  selectedStagedChanges: { [key: string]: boolean } = {};
   commitDiff: DiffHeaderModel[];
   showDiff = false;
   @Input() isNested = false;
@@ -72,8 +70,7 @@ export class RepoViewComponent implements OnDestroy {
   hasWatcherAlerts = false;
   crlfError: { start: string; end: string };
   crlfErrorToastTimeout: number;
-  activeUndo: string;
-  activeCommitHistoryBranch: BranchModel;
+  activeUndo: string[];
   readonly branchReplaceChars = { match: /[\s]/g, with: '-' };
   activeDeleteBranch: BranchModel;
   activeMergeInfo: {
@@ -187,13 +184,13 @@ export class RepoViewComponent implements OnDestroy {
       'stageAllChanges',
       'staging all changes',
     );
-    this.selectedUnstagedChanges = {};
+    this.setRepoMetadata({ selectedUnstagedChanges: {} });
   }
 
   stageSelected() {
     if (
-      Object.keys(this.selectedUnstagedChanges).filter(
-        (x) => this.selectedUnstagedChanges[x],
+      Object.keys(this.getRepo().selectedUnstagedChanges).filter(
+        (x) => this.getRepo().selectedUnstagedChanges[x],
       ).length == 0
     ) {
       return;
@@ -204,12 +201,12 @@ export class RepoViewComponent implements OnDestroy {
       'stageSelectedChanges',
       'staging selected changes',
     );
-    this.selectedUnstagedChanges = {};
+    this.setRepoMetadata({ selectedUnstagedChanges: {} });
   }
 
   getSelectedUnstagedFiles() {
-    return Object.keys(this.selectedUnstagedChanges)
-      .filter((x) => this.selectedUnstagedChanges[x])
+    return Object.keys(this.getRepo().selectedUnstagedChanges)
+      .filter((x) => this.getRepo().selectedUnstagedChanges[x])
       .map((f) => f.replace(/.*?->\s*/, ''));
   }
 
@@ -219,13 +216,15 @@ export class RepoViewComponent implements OnDestroy {
       'unstageAllChanges',
       'unstaging all changes',
     );
-    this.selectedStagedChanges = {};
+    this.setRepoMetadata({
+      selectedStagedChanges: {},
+    });
   }
 
   unstageSelected() {
     if (
-      Object.keys(this.selectedStagedChanges).filter(
-        (x) => this.selectedStagedChanges[x],
+      Object.keys(this.getRepo().selectedStagedChanges).filter(
+        (x) => this.getRepo().selectedStagedChanges[x],
       ).length == 0
     ) {
       return;
@@ -236,12 +235,12 @@ export class RepoViewComponent implements OnDestroy {
       'unstageSelectedChanges',
       'unstaging selected changes',
     );
-    this.selectedStagedChanges = {};
+    this.setRepoMetadata({ selectedStagedChanges: {} });
   }
 
   getSelectedStagedFiles() {
-    return Object.keys(this.selectedStagedChanges)
-      .filter((x) => this.selectedStagedChanges[x])
+    return Object.keys(this.getRepo().selectedStagedChanges)
+      .filter((x) => this.getRepo().selectedStagedChanges[x])
       .map((f) => f.replace(/.*?->\s*/, ''));
   }
 
@@ -365,11 +364,11 @@ export class RepoViewComponent implements OnDestroy {
 
   getFileDiff() {
     // todo: move this to tab data service
-    let unstaged = Object.keys(this.selectedUnstagedChanges)
-      .filter((x) => this.selectedUnstagedChanges[x])
+    let unstaged = Object.keys(this.getRepo().selectedUnstagedChanges)
+      .filter((x) => this.getRepo().selectedUnstagedChanges[x])
       .map((x) => x.replace(/.*->\s*/, ''));
-    let staged = Object.keys(this.selectedStagedChanges)
-      .filter((x) => this.selectedStagedChanges[x])
+    let staged = Object.keys(this.getRepo().selectedStagedChanges)
+      .filter((x) => this.getRepo().selectedStagedChanges[x])
       .map((x) => x.replace(/.*->\s*/, ''));
     if (staged.length == 0 && unstaged.length == 0) {
       unstaged = ['.'];
@@ -411,9 +410,7 @@ export class RepoViewComponent implements OnDestroy {
       .scheduleSimpleOperation(
         this.gitService.getCommitHistory(
           skip,
-          this.activeCommitHistoryBranch
-            ? this.activeCommitHistoryBranch.name
-            : undefined,
+          this.getRepo().commitHistoryActiveBranch?.name,
         ),
       )
       .result.then((commits) => {
@@ -625,7 +622,7 @@ export class RepoViewComponent implements OnDestroy {
     this.clearSelectedChanges();
   }
 
-  confirmUndo(file: string) {
+  confirmUndo(file: string[]) {
     this.activeUndo = file;
     this.showModal('undoFileModal');
   }
@@ -731,9 +728,9 @@ export class RepoViewComponent implements OnDestroy {
     isStaged: boolean,
   ) {
     if (isStaged) {
-      this.selectedStagedChanges = selectedChanges;
+      this.setRepoMetadata({ selectedStagedChanges: selectedChanges });
     } else {
-      this.selectedUnstagedChanges = selectedChanges;
+      this.setRepoMetadata({ selectedUnstagedChanges: selectedChanges });
     }
     this.getFileDiff();
     this.diffCommitInfo = undefined;
@@ -1026,7 +1023,9 @@ export class RepoViewComponent implements OnDestroy {
   }
 
   handleActiveBranchUpdate(branch: BranchModel) {
-    this.activeCommitHistoryBranch = branch;
+    this.setRepoMetadata({
+      commitHistoryActiveBranch: branch,
+    });
     this.getCommitHistory();
   }
 
@@ -1073,6 +1072,10 @@ export class RepoViewComponent implements OnDestroy {
     } else {
       return '';
     }
+  }
+
+  private setRepoMetadata(metadata: Partial<RepoMetadata>) {
+    this.tabDataService.setMetadataForPath(this.getRepo().path, metadata);
   }
 
   private simpleOperation(
@@ -1165,7 +1168,9 @@ export class RepoViewComponent implements OnDestroy {
   }
 
   private clearSelectedChanges() {
-    this.selectedUnstagedChanges = {};
-    this.selectedStagedChanges = {};
+    this.setRepoMetadata({
+      selectedUnstagedChanges: {},
+      selectedStagedChanges: {},
+    });
   }
 }

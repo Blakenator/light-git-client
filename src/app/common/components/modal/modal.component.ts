@@ -1,5 +1,13 @@
-import {ApplicationRef, Component, EventEmitter, HostListener, Input, OnInit, Output} from '@angular/core';
-import {ModalService} from '../../services/modal.service';
+import {
+  ApplicationRef,
+  Component,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnInit,
+  Output,
+} from '@angular/core';
+import { ModalService } from '../../services/modal.service';
 
 @Component({
   selector: 'app-modal',
@@ -26,17 +34,20 @@ export class ModalComponent implements OnInit {
   @Input() affirmativeButtonClass = 'primary';
   @Input() negativeButtonText = 'Cancel';
 
-  constructor(private modalService: ModalService, private applicationRef: ApplicationRef) {
-  }
+  constructor(
+    private modalService: ModalService,
+    private applicationRef: ApplicationRef,
+  ) {}
 
   ngOnInit() {
-    this.modalService.registerModal(this.modalId).subscribe(visible => {
+    this.modalService.registerModal(this.modalId).subscribe((visible) => {
       this.setVisible(visible);
     });
   }
 
   setVisible(val: boolean) {
     if (val) {
+      this.onOpen.emit();
       setTimeout(() => {
         this.show = true;
         this.applicationRef.tick();
