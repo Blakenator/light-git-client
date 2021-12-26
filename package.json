@@ -86,7 +86,7 @@
     "core-js": "2.5.7",
     "cpx": "^1.5.0",
     "del-cli": "^1.1.0",
-    "electron": "^11.2.1",
+    "electron": "^11.5.0",
     "electron-builder": "^22.9.1",
     "electron-packager": "^15.2.0",
     "jasmine": "^3.6.4",
