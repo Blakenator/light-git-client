@@ -1,31 +1,48 @@
-<div class="modal fade d-block text-body"
-     [ngClass]="{show:show}"
-     *ngIf="render"
-     (click)="setVisible(false)"
-     (keyup.escape)="cancelOrAccept()">
-  <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
-    <div class="modal-content {{modalClass}}" *ngIf="!customModal">
+<div
+  class="modal fade d-block text-body"
+  [ngClass]="{ show: show }"
+  *ngIf="render"
+  (click)="cancelOrAccept()"
+  (keyup.escape)="cancelOrAccept()"
+>
+  <div
+    class="modal-dialog modal-dialog-centered"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="modal-content {{ modalClass }}" *ngIf="!customModal">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fa {{modalTitleIcon}}" *ngIf="modalTitleIcon"></i> {{modalTitle}}</h5>
+        <h5 class="modal-title">
+          <i class="fa {{ modalTitleIcon }}" *ngIf="modalTitleIcon"></i>
+          {{ modalTitle }}
+        </h5>
       </div>
       <div class="modal-body">
         <ng-container *ngTemplateOutlet="elseTpl"></ng-container>
       </div>
       <div class="modal-footer">
-        <button type="button"
-                class="btn btn-secondary"
-                (click)="cancel()"
-                [disabled]="negativeButtonDisabled"
-                *ngIf="hasNegative">{{negativeButtonText}}</button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="cancel()"
+          [disabled]="negativeButtonDisabled"
+          *ngIf="hasNegative"
+        >
+          {{ negativeButtonText }}
+        </button>
         <span [ngbTooltip]="affirmativeButtonDisabled">
-        <button type="button"
-                class="btn btn-{{ affirmativeButtonClass }}"
-                [disabled]="affirmativeButtonDisabled"
-                (click)="accept()"
-                *ngIf="hasAffirmative">{{affirmativeButtonText}}</button></span>
+          <button
+            type="button"
+            class="btn btn-{{ affirmativeButtonClass }}"
+            [disabled]="affirmativeButtonDisabled"
+            (click)="accept()"
+            *ngIf="hasAffirmative"
+          >
+            {{ affirmativeButtonText }}
+          </button></span
+        >
       </div>
     </div>
-    <div class="modal-content {{modalClass}}" *ngIf="customModal">
+    <div class="modal-content {{ modalClass }}" *ngIf="customModal">
       <ng-container *ngTemplateOutlet="elseTpl"></ng-container>
     </div>
   </div>
