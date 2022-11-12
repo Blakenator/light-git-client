@@ -9,7 +9,6 @@ import { ElectronResponse } from './shared/common/electron-response';
 import { autoUpdater } from 'electron-updater';
 import { Channels } from './shared/Channels';
 import { GenericApplication } from './genericApplication';
-import * as ua from 'universal-analytics';
 import { CodeWatcherModel } from './shared/code-watcher.model';
 
 const opn = require('opn');
@@ -80,9 +79,6 @@ export class MainApplication extends GenericApplication {
         }
         Object.assign(this.settings, res);
         GitClient.settings = this.settings;
-        if (this.settings.allowStats) {
-          this.analytics = ua('UA-83786273-2', this.settings.statsId);
-        }
         this.sendEvent(
           MainApplication.STATS_GENERAL,
           'tabs-open',
