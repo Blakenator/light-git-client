@@ -22,8 +22,6 @@ import { Job, JobConfig, RepoArea } from './job-system/models';
 import { WorktreeModel } from '../../../shared/git/worktree.model';
 import { StashModel } from '../../../shared/git/stash.model';
 import { TabDataService } from './tab-data.service';
-import { PreCommitStatusModel } from '../../../shared/PreCommitStatus.model';
-import { PreCommitStatusListener } from './warning-listeners/pre-commit-status.listener';
 
 @Injectable({
   providedIn: 'root',
@@ -34,16 +32,11 @@ export class GitService {
   private _onCrlfError = new Subject<{ start: string; end: string }>();
   public readonly onCrlfError = this._onCrlfError.asObservable();
   private _onRemoteMessage = new Subject<NotificationModel>();
-  private _onPreCommitStatus = new Subject<PreCommitStatusModel>();
-  public readonly onPreCommitStatus = this._onPreCommitStatus.asObservable();
   private _crlfListener = new CrlfListener(this._onCrlfError);
   private _remoteMessageListener = new RemoteMessageListener(
     this._onRemoteMessage,
   );
   private _submoduleCheckoutListener = new SubmoduleCheckoutListener();
-  private _precommitStatusListener = new PreCommitStatusListener(
-    this._onPreCommitStatus,
-  );
 
   constructor(
     private electronService: ElectronService,
@@ -141,11 +134,11 @@ export class GitService {
     branch: string,
     callback: (out: string, err: string, done: boolean) => any,
   ) {
-    this.electronService.trigger(Channels.ADDWORKTREE, [
-      this.getRepo().path,
-      location,
-      branch,
-    ]);
+    this.electronService.rpc(
+      Channels.ADDWORKTREE,
+      [this.getRepo().path, location, branch],
+      false,
+    );
     this.electronService.listen(
       Channels.ADDWORKTREE,
       (result: { out: string; err: string; done: boolean }) => {
@@ -165,7 +158,7 @@ export class GitService {
     if (this.isAirplaneMode()) {
       return;
     }
-    this.electronService.trigger(Channels.CLONE, ['./', location, url]);
+    this.electronService.rpc(Channels.CLONE, ['./', location, url], false);
     this.electronService.listen(
       Channels.CLONE,
       (result: { out: string; err: string; done: boolean }) => {
@@ -704,17 +697,14 @@ export class GitService {
       ],
       command: Channels.COMMIT,
       execute: () =>
-        this._precommitStatusListener.detect(
-          this._remoteMessageListener.detect(
-            this.electronService.rpc(Channels.COMMIT, [
-              this.getRepo().path,
-              description,
-              commitAndPush,
-              currentBranch,
-              amend,
-            ]),
-            true,
-          ),
+        this._remoteMessageListener.detect(
+          this.electronService.rpc(Channels.COMMIT, [
+            this.getRepo().path,
+            description,
+            commitAndPush,
+            currentBranch,
+            amend,
+          ]),
           true,
         ),
     });

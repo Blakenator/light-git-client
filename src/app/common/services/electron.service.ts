@@ -1,35 +1,38 @@
-import { Injectable } from '@angular/core';
-import { ElectronResponse } from '../../../../shared/common/electron-response';
+import {Injectable} from '@angular/core';
+import {ElectronResponse} from '../../../../shared/common/electron-response';
 
-const electronApi = (window as any).electronApi;
+const {ipcRenderer} = (window as any).require('electron');
 
 @Injectable()
 export class ElectronService {
-  constructor() {}
+  constructor() {
+  }
 
-  rpc(channelName: string, functionParams: any[] = []): Promise<any> {
-    return electronApi
-      .invoke(channelName, [channelName].concat(functionParams))
-      .then((args) => {
+  rpc(functionName: string, functionParams: any[] = [], cleanup: boolean = true): Promise<any> {
+          let replyChannel = functionName+'reply';
+    return new Promise<any>((resolve, reject) => {
+      ipcRenderer.send(functionName, [functionName].concat(functionParams));
+      ipcRenderer.on(replyChannel, (event, args: ElectronResponse) => {
         if (args.success) {
-          return args.content;
+          resolve(args.content);
         } else {
-          throw args.content;
+          reject(args.content);
+        }
+        if (cleanup) {
+          this.cleanupChannel(functionName);
+          this.cleanupChannel(replyChannel);
         }
       });
+    });
   }
 
-  trigger(channelName: string, functionParams: any[] = []) {
-    electronApi.send(channelName, [channelName].concat(functionParams));
-  }
-
-  listen(channelName: string, callback: (result: any) => any) {
-    electronApi.on(channelName + 'reply', (event, args: ElectronResponse) => {
+  listen(functionName: string, callback: (result: any) => any) {
+    ipcRenderer.on(functionName + 'reply', (event, args: ElectronResponse) => {
       callback(args.content);
     });
   }
 
   cleanupChannel(channelName: string) {
-    electronApi.removeAllListeners(channelName + 'reply');
+    ipcRenderer.removeAllListeners(channelName + 'reply');
   }
 }

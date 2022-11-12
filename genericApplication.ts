@@ -68,10 +68,7 @@ export abstract class GenericApplication {
       height:
         this.windowHeight ||
         screen.getPrimaryDisplay().workAreaSize.height * 0.8,
-      webPreferences: {
-        nodeIntegration: true,
-        preload: path.join(__dirname, 'preload.js'),
-      },
+      webPreferences: { nodeIntegration: true, enableRemoteModule: true },
     });
 
     if (this.startMaximized) {

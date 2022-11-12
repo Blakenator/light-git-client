@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain, shell } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 import { SettingsModel } from './shared/SettingsModel';
 import * as fs from 'fs-extra';
 import { mkdirpSync } from 'fs-extra';
@@ -97,18 +97,18 @@ export class MainApplication extends GenericApplication {
             this.loadWatchers(p, (watcherPath, watchers) => {
               done[watcherPath] = watchers;
               if (Object.values(done).every((w) => !!w)) {
-                this.settings.loadedCodeWatchers = Object.values(done).reduce(
-                  (acc: CodeWatcherModel[], b: CodeWatcherModel[]) =>
-                    acc.concat(b),
+                this.settings.loadedCodeWatchers = Object.values(
+                  done,
+                ).reduce((acc: CodeWatcherModel[], b: CodeWatcherModel[]) =>
+                  acc.concat(b),
                 );
                 if (!!this.settings.codeWatchers) {
                   this.settings.codeWatchers.forEach(
                     (w) => (w.path = this.getDefaultWatcherPath()),
                   );
-                  this.settings.loadedCodeWatchers =
-                    this.settings.loadedCodeWatchers.concat(
-                      this.settings.codeWatchers,
-                    );
+                  this.settings.loadedCodeWatchers = this.settings.loadedCodeWatchers.concat(
+                    this.settings.codeWatchers,
+                  );
                   delete this.settings.codeWatchers;
                 }
                 callback(this.settings);
@@ -125,10 +125,9 @@ export class MainApplication extends GenericApplication {
             this.settings.codeWatchers.forEach(
               (w) => (w.path = this.getDefaultWatcherPath()),
             );
-            this.settings.loadedCodeWatchers =
-              this.settings.loadedCodeWatchers.concat(
-                this.settings.codeWatchers,
-              );
+            this.settings.loadedCodeWatchers = this.settings.loadedCodeWatchers.concat(
+              this.settings.codeWatchers,
+            );
             delete this.settings.codeWatchers;
           }
           callback(this.settings);
@@ -220,10 +219,14 @@ export class MainApplication extends GenericApplication {
     return this.loadedRepos[repoPath];
   }
 
-  handleGitPromise(p: Promise<any>) {
-    return p
-      .then((content) => new ElectronResponse(content))
-      .catch((content) => new ElectronResponse(content, false));
+  handleGitPromise(
+    p: Promise<any>,
+    event: { sender: { send: (channel: string, content: any) => any } },
+    args: any[],
+  ) {
+    p.then((content) =>
+      this.defaultReply(event, args, content),
+    ).catch((content) => this.defaultReply(event, args, content, false));
   }
 
   start() {
@@ -238,19 +241,17 @@ export class MainApplication extends GenericApplication {
   }
 
   checkForUpdates() {
-    if (app.isPackaged) {
-      autoUpdater.allowPrerelease = this.settings.allowPrerelease;
-      autoUpdater.checkForUpdates().catch((error) => {
-        this.notifier.notify({
-          title: this.notificationTitle,
-          message:
-            'An error occurred while updating, no changes were made. Check error log for more details',
-          icon: this.iconFile,
-        });
-        this.userInitiatedUpdate = false;
-        this.logger.error(error);
+    autoUpdater.allowPrerelease = this.settings.allowPrerelease;
+    autoUpdater.checkForUpdates().catch((error) => {
+      this.notifier.notify({
+        title: this.notificationTitle,
+        message:
+          'An error occurred while updating, no changes were made. Check error log for more details',
+        icon: this.iconFile,
       });
-    }
+      this.userInitiatedUpdate = false;
+      this.logger.error(error);
+    });
   }
 
   configureApp() {
@@ -328,18 +329,16 @@ export class MainApplication extends GenericApplication {
       this.defaultReply(event, args);
     });
 
-    ipcMain.handle(Channels.OPENFOLDER, (event, args) => {
+    ipcMain.on(Channels.OPENFOLDER, (event, args) => {
       let url = args[2] || args[1];
       shell.openPath(url);
-      return new ElectronResponse();
+      this.defaultReply(event, args);
     });
 
-    ipcMain.handle(Channels.LOADSETTINGS, (event, args) => {
-      const res = new Promise((resolve, reject) =>
-        this.loadSettings((settings) => {
-          resolve(new ElectronResponse(settings));
-        }),
-      );
+    ipcMain.on(Channels.LOADSETTINGS, (event, args) => {
+      this.loadSettings((settings) => {
+        this.defaultReply(event, args, settings);
+      });
 
       if (!this.isWatchingSettingsDir) {
         this.isWatchingSettingsDir = fs.watch(
@@ -354,263 +353,345 @@ export class MainApplication extends GenericApplication {
           },
         );
       }
-      return res;
     });
 
-    ipcMain.handle(Channels.CHECKFORUPDATES, (event, args) => {
+    ipcMain.on(Channels.CHECKFORUPDATES, (event, args) => {
       this.userInitiatedUpdate = true;
       this.checkForUpdates();
-      return new ElectronResponse();
+      this.defaultReply(event, args);
     });
 
-    ipcMain.handle(Channels.GETVERSION, () => {
-      return new ElectronResponse(this.version);
+    ipcMain.on(Channels.GETVERSION, (event, args) => {
+      this.defaultReply(event, args, this.version);
     });
 
-    ipcMain.handle(Channels.ISUPDATEDOWNLOADED, () => {
-      return new ElectronResponse({
+    ipcMain.on(Channels.ISUPDATEDOWNLOADED, (event, args) => {
+      this.defaultReply(event, args, {
         downloaded: this.updateDownloaded,
         version: this.updateDownloadedVersion,
       });
     });
 
-    ipcMain.handle(Channels.RESTARTANDINSTALLUPDATE, (event, args) => {
+    ipcMain.on(Channels.RESTARTANDINSTALLUPDATE, (event, args) => {
       autoUpdater.quitAndInstall();
-      return new ElectronResponse();
     });
 
-    ipcMain.handle(Channels.SAVESETTINGS, (event, args) => {
+    ipcMain.on(Channels.SAVESETTINGS, (event, args) => {
       this.saveSettings(args[1]);
-      return new ElectronResponse();
+      this.defaultReply(event, args);
     });
 
-    ipcMain.handle(Channels.LOADREPO, (event, args) => {
-      return this.handleGitPromise(this.loadRepoInfo(args[1]));
+    ipcMain.on(Channels.LOADREPO, (event, args) => {
+      this.handleGitPromise(this.loadRepoInfo(args[1]), event, args);
     });
 
-    ipcMain.handle(Channels.GETFILECHANGES, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getChanges());
+    ipcMain.on(Channels.GETFILECHANGES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getChanges(), event, args);
     });
 
-    ipcMain.handle(Channels.GITSTAGE, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].stage(args[2]));
+    ipcMain.on(Channels.GITSTAGE, (event, args) => {
+      this.handleGitPromise(
+        this.gitClients[args[1]].stage(args[2]),
+        event,
+        args,
+      );
     });
 
-    ipcMain.handle(Channels.GITUNSTAGE, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].unstage(args[2]));
+    ipcMain.on(Channels.GITUNSTAGE, (event, args) => {
+      this.handleGitPromise(
+        this.gitClients[args[1]].unstage(args[2]),
+        event,
+        args,
+      );
     });
 
-    ipcMain.handle(Channels.OPENTERMINAL, (event, args) => {
+    ipcMain.on(Channels.OPENTERMINAL, (event, args) => {
       this.gitClients[args[1]].openTerminal();
-      return new ElectronResponse();
+      this.defaultReply(event, args);
     });
 
-    ipcMain.handle(Channels.GETFILEDIFF, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.GETFILEDIFF, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].getDiff(args[2], args[3]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.COMMIT, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.COMMIT, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].commit(args[2], args[3], args[4], args[5]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.CHERRYPICKCOMMIT, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.CHERRYPICKCOMMIT, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].cherryPickCommit(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.GETCOMMITHISTORY, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.GETCOMMITHISTORY, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].getCommitHistory(args[2], args[3], args[4]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.GETDELETEDSTASHES, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.GETDELETEDSTASHES, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].getDeletedStashes(),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.RESTOREDELETEDSTASH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.RESTOREDELETEDSTASH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].restoreDeletedStash(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.CHECKOUT, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.CHECKOUT, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].checkout(args[2], args[3], '', args[4]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.UNDOFILECHANGES, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.UNDOFILECHANGES, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].undoFileChanges(args[2], args[3], args[4]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.UNDOSUBMODULECHANGES, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.UNDOSUBMODULECHANGES, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].undoSubmoduleChanges(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.RESOLVECONFLICTUSING, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.RESOLVECONFLICTUSING, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].resolveConflictUsing(args[2], args[3]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.OPENDEVTOOLS, (event, args) => {
+    ipcMain.on(Channels.OPENDEVTOOLS, (event, args) => {
       this.window.webContents.openDevTools();
-      return new ElectronResponse();
+      this.defaultReply(event, args);
     });
 
-    ipcMain.handle(Channels.PUSH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.PUSH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].pushBranch(args[2], args[3]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.PULL, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].pull(args[2]));
+    ipcMain.on(Channels.PULL, (event, args) => {
+      this.handleGitPromise(
+        this.gitClients[args[1]].pull(args[2]),
+        event,
+        args,
+      );
     });
 
-    ipcMain.handle(Channels.GETSTASHES, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getStashes());
+    ipcMain.on(Channels.GETSTASHES, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].getStashes(), event, args);
     });
 
-    ipcMain.handle(Channels.GETWORKTREES, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getWorktrees());
+    ipcMain.on(Channels.GETWORKTREES, (event, args) => {
+      this.handleGitPromise(
+        this.gitClients[args[1]].getWorktrees(),
+        event,
+        args,
+      );
     });
 
-    ipcMain.handle(Channels.GETLOCALBRANCHES, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getLocalBranches());
+    ipcMain.on(Channels.GETLOCALBRANCHES, (event, args) => {
+      this.handleGitPromise(
+        this.gitClients[args[1]].getLocalBranches(),
+        event,
+        args,
+      );
     });
 
-    ipcMain.handle(Channels.GETREMOTEBRANCHES, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.GETREMOTEBRANCHES, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].getRemoteBranches(),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.GETSUBMODULES, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getSubmodules());
+    ipcMain.on(Channels.GETSUBMODULES, (event, args) => {
+      this.handleGitPromise(
+        this.gitClients[args[1]].getSubmodules(),
+        event,
+        args,
+      );
     });
 
-    ipcMain.handle(Channels.MERGE, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.MERGE, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].merge(args[2], args[3]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.HARDRESET, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].hardReset());
+    ipcMain.on(Channels.HARDRESET, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].hardReset(), event, args);
     });
 
-    ipcMain.handle(Channels.DELETEBRANCH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.DELETEBRANCH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].deleteBranch(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.FASTFORWARDBRANCH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.FASTFORWARDBRANCH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].fastForward(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.DELETEWORKTREE, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.DELETEWORKTREE, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].deleteWorktree(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.COMMITDIFF, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.COMMITDIFF, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].getCommitDiff(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.STASHDIFF, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.STASHDIFF, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].getStashDiff(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.GETBRANCHPREMERGE, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.GETBRANCHPREMERGE, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].getBranchPremerge(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.STASH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.STASH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].stash(args[2], args[3] || ''),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.SETGITSETTINGS, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.SETGITSETTINGS, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].setBulkGitSettings(args[2], args[3]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.UPDATESUBMODULES, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.UPDATESUBMODULES, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].updateSubmodules(args[2], args[3]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.ADDSUBMODULE, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.ADDSUBMODULE, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].addSubmodule(args[2], args[3]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.FETCH, (event, args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].fetch());
+    ipcMain.on(Channels.FETCH, (event, args) => {
+      this.handleGitPromise(this.gitClients[args[1]].fetch(), event, args);
     });
 
-    ipcMain.handle(Channels.GETCONFIGITEMS, (event, args) => {
+    ipcMain.on(Channels.GETCONFIGITEMS, (event, args) => {
       if (this.gitClients[args[1]]) {
-        return this.handleGitPromise(this.gitClients[args[1]].getConfigItems());
+        this.handleGitPromise(
+          this.gitClients[args[1]].getConfigItems(),
+          event,
+          args,
+        );
       } else {
-        return new ElectronResponse([]);
+        this.defaultReply(event, args, []);
       }
     });
 
-    ipcMain.handle(Channels.SETCONFIGITEM, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.SETCONFIGITEM, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].setConfigItem(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.MERGEBRANCH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.MERGEBRANCH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].mergeBranch(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.APPLYSTASH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.APPLYSTASH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].applyStash(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.DELETESTASH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.DELETESTASH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].deleteStash(args[2]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.CHECKGITBASHVERSIONS, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.CHECKGITBASHVERSIONS, (event, args) => {
+      this.handleGitPromise(
         new GitClient(args[1]).checkGitBashVersions(),
+        event,
+        args,
       );
     });
 
@@ -636,31 +717,39 @@ export class MainApplication extends GenericApplication {
       });
     });
 
-    ipcMain.handle(Channels.CHANGEHUNK, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.CHANGEHUNK, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].changeHunk(
           path.join(args[1], args[2]),
           args[3],
           args[4],
         ),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.GETCOMMANDHISTORY, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.GETCOMMANDHISTORY, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].getCommandHistory(),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.RENAMEBRANCH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.RENAMEBRANCH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].renameBranch(args[2], args[3]),
+        event,
+        args,
       );
     });
 
-    ipcMain.handle(Channels.CREATEBRANCH, (event, args) => {
-      return this.handleGitPromise(
+    ipcMain.on(Channels.CREATEBRANCH, (event, args) => {
+      this.handleGitPromise(
         this.gitClients[args[1]].createBranch(args[2]),
+        event,
+        args,
       );
     });
 
@@ -680,20 +769,16 @@ export class MainApplication extends GenericApplication {
       }
     });
 
-    ipcMain.handle(Channels.LOG, (event, args) => {
+    ipcMain.on(Channels.LOG, (event, args) => {
       this.logger.error(
         new Date().toLocaleString() +
           ' ------------------------------------------------',
       );
       this.logger.error(args[1]);
-      return new ElectronResponse();
+      this.defaultReply(event, args);
     });
 
-    ipcMain.handle(Channels.OPENFILEDIALOG, async (event, args) => {
-      return new ElectronResponse(dialog.showOpenDialogSync(args[1]));
-    });
-
-    ipcMain.handle(Channels.DELETEFILES, (event, args) => {
+    ipcMain.on(Channels.DELETEFILES, (event, args) => {
       let promises = [];
       let files: string[] = args[2];
       files = files.map((f) => f.replace(/["']/g, ''));
@@ -711,7 +796,7 @@ export class MainApplication extends GenericApplication {
           }),
         );
       }
-      return this.handleGitPromise(Promise.all(promises));
+      this.handleGitPromise(Promise.all(promises), event, args);
     });
   }
 }
