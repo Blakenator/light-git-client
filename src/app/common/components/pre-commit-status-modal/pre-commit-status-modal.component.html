@@ -1,0 +1,31 @@
+<app-modal [customModal]="true" [modalId]="modalId" (onCancel)="close()">
+  <div class="modal-header">
+    <h5 class="modal-title center-text-vertical">
+      <i class="material-icons">error</i>
+      <span class="mx-2">A Pre-commit Error Occurred</span>
+    </h5>
+  </div>
+  <div class="modal-body" *ngIf="status">
+    <pre *ngIf="status.note" class="mb-2 error-block">{{ status.note }}</pre>
+    <div
+      *ngFor="let rule of status.rules"
+      class="d-flex flex-column mb-2 p-2 rule-block"
+    >
+      <div class="d-flex flex-row align-items-center">
+        <i
+          class="fas mr-2"
+          [ngClass]="
+            rule.passed
+              ? 'text-success fa-check-circle'
+              : 'text-danger fa-times-circle'
+          "
+        ></i>
+        <div>{{ rule.name }}</div>
+      </div>
+      <pre *ngIf="rule.error" class="error-block m-0">{{ rule.error }}</pre>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" (click)="close()" [autofocus]>Ok</button>
+  </div>
+</app-modal>

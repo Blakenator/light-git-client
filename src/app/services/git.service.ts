@@ -22,6 +22,8 @@ import { Job, JobConfig, RepoArea } from './job-system/models';
 import { WorktreeModel } from '../../../shared/git/worktree.model';
 import { StashModel } from '../../../shared/git/stash.model';
 import { TabDataService } from './tab-data.service';
+import { PreCommitStatusModel } from '../../../shared/PreCommitStatus.model';
+import { PreCommitStatusListener } from './warning-listeners/pre-commit-status.listener';
 
 @Injectable({
   providedIn: 'root',
@@ -32,11 +34,16 @@ export class GitService {
   private _onCrlfError = new Subject<{ start: string; end: string }>();
   public readonly onCrlfError = this._onCrlfError.asObservable();
   private _onRemoteMessage = new Subject<NotificationModel>();
+  private _onPreCommitStatus = new Subject<PreCommitStatusModel>();
+  public readonly onPreCommitStatus = this._onPreCommitStatus.asObservable();
   private _crlfListener = new CrlfListener(this._onCrlfError);
   private _remoteMessageListener = new RemoteMessageListener(
     this._onRemoteMessage,
   );
   private _submoduleCheckoutListener = new SubmoduleCheckoutListener();
+  private _precommitStatusListener = new PreCommitStatusListener(
+    this._onPreCommitStatus,
+  );
 
   constructor(
     private electronService: ElectronService,
@@ -697,14 +704,17 @@ export class GitService {
       ],
       command: Channels.COMMIT,
       execute: () =>
-        this._remoteMessageListener.detect(
-          this.electronService.rpc(Channels.COMMIT, [
-            this.getRepo().path,
-            description,
-            commitAndPush,
-            currentBranch,
-            amend,
-          ]),
+        this._precommitStatusListener.detect(
+          this._remoteMessageListener.detect(
+            this.electronService.rpc(Channels.COMMIT, [
+              this.getRepo().path,
+              description,
+              commitAndPush,
+              currentBranch,
+              amend,
+            ]),
+            true,
+          ),
           true,
         ),
     });
