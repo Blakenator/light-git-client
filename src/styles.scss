@@ -92,8 +92,15 @@ body {
   background-color: rgba(255, 255, 255, 0.7);
 }
 
-*:not(.material-icons, .fa, .fas, .far, .fal, .fab) {
+* {
   font-family: Roboto, sans-serif;
+}
+.fa,
+.fas,
+.far,
+.fal,
+.fab {
+  font-family: 'Font Awesome 5 Free';
 }
 
 ::-webkit-scrollbar {

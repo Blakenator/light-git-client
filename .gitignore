@@ -29,6 +29,7 @@ main.js
 !.vscode/extensions.json
 
 # misc
+/.angular/cache
 /.sass-cache
 /connect.lock
 /coverage
@@ -52,3 +53,4 @@ git/**/*.js
 **/*.js.map
 .nyc_output/
 !**/*.config.js
+!preload.js
