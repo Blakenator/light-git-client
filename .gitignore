@@ -53,3 +53,4 @@ git/**/*.js
 **/*.js.map
 .nyc_output/
 !**/*.config.js
+!preload.js
