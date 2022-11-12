@@ -58,7 +58,6 @@ import { PruneBranchComponent } from './components/dialogs/prune-branch/prune-br
 import { RestoreStashComponent } from './components/dialogs/restore-stash/restore-stash.component';
 import { AgeInfoComponent } from './common/components/age-info/age-info.component';
 import { MergeBranchDropdownComponent } from './components/merge-branch/merge-branch-dropdown/merge-branch-dropdown.component';
-import { PreCommitStatusModalComponent } from './common/components/pre-commit-status-modal/pre-commit-status-modal.component';
 
 @NgModule({
   declarations: [
@@ -74,7 +73,6 @@ import { PreCommitStatusModalComponent } from './common/components/pre-commit-st
     CommitHistoryComponent,
     ModalComponent,
     ErrorMessageComponent,
-    PreCommitStatusModalComponent,
     NewTabPageComponent,
     FilterPipe,
     FilterObjectPipe,

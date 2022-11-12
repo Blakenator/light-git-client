@@ -1,8 +1,5 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { ElectronService } from '../../services/electron.service';
-import { Channels } from '../../../../../shared/Channels';
-
-const electronApi = (window as any).electronApi;
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+const electron = (window as any).require('electron');
 
 interface TFilePath {
   path: string;
@@ -25,7 +22,7 @@ export class FileInputComponent {
   @Output() onEnterKeyPressed = new EventEmitter<string>();
   @Output() filePathChange = new EventEmitter<string>();
 
-  constructor(private electronService: ElectronService) {}
+  constructor() {}
 
   changeFilePath($event?: any) {
     let files: Record<number, TFilePath> & {
@@ -38,13 +35,11 @@ export class FileInputComponent {
     this.onEnterKeyPressed.emit(this.getFormattedFile());
   }
 
-  async openClicked() {
+  openClicked() {
     this._setPaths(
-      await this.electronService.rpc(Channels.OPENFILEDIALOG, [
-        {
-          properties: ['openDirectory'],
-        },
-      ]),
+      electron.remote.dialog.showOpenDialogSync({
+        properties: ['openDirectory'],
+      }),
     );
   }
 

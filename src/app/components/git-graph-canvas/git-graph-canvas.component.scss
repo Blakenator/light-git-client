@@ -1,11 +1,12 @@
 svg {
   top: 0;
-  left: 0.75em;
+  left: .75em;
 }
 
 .commit-marker {
-  text-shadow: 0 3px 1px rgba(0, 0, 0, 0.2), 0 2px 2px rgba(0, 0, 0, 0.14),
-    0 1px 5px rgba(0, 0, 0, 0.12);
+  text-shadow: 0 3px 1px rgba(0, 0, 0, .2),
+  0 2px 2px rgba(0, 0, 0, .14),
+  0 1px 5px rgba(0, 0, 0, .12);
   pointer-events: none;
   user-select: none;
 }

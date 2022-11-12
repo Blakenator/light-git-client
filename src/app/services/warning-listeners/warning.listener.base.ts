@@ -32,18 +32,16 @@ export abstract class WarningListenerBase<U> {
     output: string | CommandOutputModel,
     resolve: Function,
     reject: Function,
-  ): void {
+  ): Promise<T> {
     if (output == undefined) {
       resolve();
       return;
     }
     if (typeof output == 'string') {
-      const processed = this.preprocess(output);
-      let crlfMatch = processed.match(this._regexMatch);
+      let crlfMatch = output.match(this._regexMatch);
       if (crlfMatch) {
-        const { result } = this._transform(processed);
         if (this.onDetect) {
-          this.onDetect.next(result);
+          this.onDetect.next(this._transform(output));
         }
         resolve();
       } else {
@@ -54,12 +52,10 @@ export abstract class WarningListenerBase<U> {
         resolve(output.content);
         return;
       }
-      const processed = this.preprocess(output.errorOutput);
-      let crlfMatch = processed.match(this._regexMatch);
+      let crlfMatch = output.errorOutput.match(this._regexMatch);
       if (crlfMatch) {
-        const { result } = this._transform(processed);
         if (this.onDetect) {
-          this.onDetect.next(result);
+          this.onDetect.next(this._transform(output.errorOutput));
         }
         resolve(output.content);
       } else {
@@ -68,10 +64,7 @@ export abstract class WarningListenerBase<U> {
     }
   }
 
-  protected abstract _transform(output: string): {
-    result: U;
-    isError: boolean;
-  };
+  protected abstract _transform(output: string): U;
 
   protected preprocess(message: string) {
     return message;
