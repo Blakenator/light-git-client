@@ -1,4 +1,4 @@
-import { app, ipcMain, shell } from 'electron';
+import { app, dialog, ipcMain, shell } from 'electron';
 import { SettingsModel } from './shared/SettingsModel';
 import * as fs from 'fs-extra';
 import { mkdirpSync } from 'fs-extra';
@@ -97,18 +97,18 @@ export class MainApplication extends GenericApplication {
             this.loadWatchers(p, (watcherPath, watchers) => {
               done[watcherPath] = watchers;
               if (Object.values(done).every((w) => !!w)) {
-                this.settings.loadedCodeWatchers = Object.values(
-                  done,
-                ).reduce((acc: CodeWatcherModel[], b: CodeWatcherModel[]) =>
-                  acc.concat(b),
+                this.settings.loadedCodeWatchers = Object.values(done).reduce(
+                  (acc: CodeWatcherModel[], b: CodeWatcherModel[]) =>
+                    acc.concat(b),
                 );
                 if (!!this.settings.codeWatchers) {
                   this.settings.codeWatchers.forEach(
                     (w) => (w.path = this.getDefaultWatcherPath()),
                   );
-                  this.settings.loadedCodeWatchers = this.settings.loadedCodeWatchers.concat(
-                    this.settings.codeWatchers,
-                  );
+                  this.settings.loadedCodeWatchers =
+                    this.settings.loadedCodeWatchers.concat(
+                      this.settings.codeWatchers,
+                    );
                   delete this.settings.codeWatchers;
                 }
                 callback(this.settings);
@@ -125,9 +125,10 @@ export class MainApplication extends GenericApplication {
             this.settings.codeWatchers.forEach(
               (w) => (w.path = this.getDefaultWatcherPath()),
             );
-            this.settings.loadedCodeWatchers = this.settings.loadedCodeWatchers.concat(
-              this.settings.codeWatchers,
-            );
+            this.settings.loadedCodeWatchers =
+              this.settings.loadedCodeWatchers.concat(
+                this.settings.codeWatchers,
+              );
             delete this.settings.codeWatchers;
           }
           callback(this.settings);
@@ -224,9 +225,9 @@ export class MainApplication extends GenericApplication {
     event: { sender: { send: (channel: string, content: any) => any } },
     args: any[],
   ) {
-    p.then((content) =>
-      this.defaultReply(event, args, content),
-    ).catch((content) => this.defaultReply(event, args, content, false));
+    p.then((content) => this.defaultReply(event, args, content)).catch(
+      (content) => this.defaultReply(event, args, content, false),
+    );
   }
 
   start() {
@@ -241,17 +242,19 @@ export class MainApplication extends GenericApplication {
   }
 
   checkForUpdates() {
-    autoUpdater.allowPrerelease = this.settings.allowPrerelease;
-    autoUpdater.checkForUpdates().catch((error) => {
-      this.notifier.notify({
-        title: this.notificationTitle,
-        message:
-          'An error occurred while updating, no changes were made. Check error log for more details',
-        icon: this.iconFile,
+    if (app.isPackaged) {
+      autoUpdater.allowPrerelease = this.settings.allowPrerelease;
+      autoUpdater.checkForUpdates().catch((error) => {
+        this.notifier.notify({
+          title: this.notificationTitle,
+          message:
+            'An error occurred while updating, no changes were made. Check error log for more details',
+          icon: this.iconFile,
+        });
+        this.userInitiatedUpdate = false;
+        this.logger.error(error);
       });
-      this.userInitiatedUpdate = false;
-      this.logger.error(error);
-    });
+    }
   }
 
   configureApp() {
@@ -776,6 +779,10 @@ export class MainApplication extends GenericApplication {
       );
       this.logger.error(args[1]);
       this.defaultReply(event, args);
+    });
+
+    ipcMain.on(Channels.OPENFILEDIALOG, async (event, args) => {
+      this.defaultReply(event, args, dialog.showOpenDialogSync(args[1]));
     });
 
     ipcMain.on(Channels.DELETEFILES, (event, args) => {
