@@ -134,11 +134,11 @@ export class GitService {
     branch: string,
     callback: (out: string, err: string, done: boolean) => any,
   ) {
-    this.electronService.rpc(
-      Channels.ADDWORKTREE,
-      [this.getRepo().path, location, branch],
-      false,
-    );
+    this.electronService.trigger(Channels.ADDWORKTREE, [
+      this.getRepo().path,
+      location,
+      branch,
+    ]);
     this.electronService.listen(
       Channels.ADDWORKTREE,
       (result: { out: string; err: string; done: boolean }) => {
@@ -158,7 +158,7 @@ export class GitService {
     if (this.isAirplaneMode()) {
       return;
     }
-    this.electronService.rpc(Channels.CLONE, ['./', location, url], false);
+    this.electronService.trigger(Channels.CLONE, ['./', location, url]);
     this.electronService.listen(
       Channels.CLONE,
       (result: { out: string; err: string; done: boolean }) => {
