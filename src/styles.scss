@@ -93,8 +93,16 @@ body {
 }
 
 * {
-  font-family: Roboto, sans-serif;
+  font-family: 'Product Sans', Roboto, sans-serif;
 }
+
+pre,
+code,
+code * {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
 .fa,
 .fas,
 .far,

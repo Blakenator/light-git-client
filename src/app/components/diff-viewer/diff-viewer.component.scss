@@ -1,7 +1,7 @@
-@import "../../../styles";
+@import '../../../styles';
 
 .card-body {
-  border-bottom: .1em solid rgba(128, 128, 128, .3);
+  border-bottom: 0.1em solid rgba(128, 128, 128, 0.3);
   padding: 1em;
 }
 
@@ -17,8 +17,8 @@
 .linenumber-block {
   line-height: 1.6;
   font-size: 87.5%;
-  padding: .5em;
-  margin-bottom: .5em;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
   display: flex;
   flex-direction: column;
 
@@ -29,7 +29,7 @@
   .linenumber {
     text-align: right;
     flex-grow: 1;
-    margin-bottom: -.005em;
+    margin-bottom: -0.005em;
     padding-left: 1em;
     min-width: 3em;
     -webkit-user-select: none;
@@ -40,15 +40,15 @@
 }
 
 .addition {
-  background-color: rgba(0, 255, 0, .4);
+  background-color: rgba(0, 255, 0, 0.4);
 }
 
 .deletion {
-  background-color: rgba(255, 0, 0, .3);
+  background-color: rgba(255, 0, 0, 0.3);
 }
 
 .hunk {
-  margin-top: .5em;
+  margin-top: 0.5em;
   position: relative;
 
   &:hover .float-btn-container {
@@ -57,10 +57,10 @@
 
   .float-btn-container {
     opacity: 0;
-    transition: opacity .5s;
+    transition: opacity 0.5s;
     position: absolute;
-    top: .5em;
-    right: .5em;
+    top: 0.5em;
+    right: 0.5em;
 
     .btn {
       width: 3em;
@@ -74,14 +74,14 @@
   left: 0;
   right: 0;
   height: 1.55em;
-  margin-top: -.1em;
+  margin-top: -0.1em;
   pointer-events: none;
   mix-blend-mode: multiply;
 }
 
 .tag {
   color: white;
-  padding: .7em;
+  padding: 0.7em;
   border-radius: $border-radius;
 }
 
@@ -110,16 +110,16 @@
 }
 
 .tag-container {
-  margin: -.5em 0;
+  margin: -0.5em 0;
   height: 2.8em;
 }
 
 .code-line-block textarea {
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
   font-size: 87.5%;
   line-height: 1.3;
   width: 100%;
-  background-color: rgba(240, 240, 240, .9);
+  background-color: rgba(240, 240, 240, 0.9);
 }
 
 .btn-circle {
@@ -137,8 +137,8 @@
 
     code {
       line-height: 1.6;
-      background: rgba(255, 255, 255, .85);
-      color: rgba(0,0,0,.7);
+      background: rgba(255, 255, 255, 0.85);
+      color: rgba(0, 0, 0, 0.7);
     }
   }
 }
@@ -149,12 +149,12 @@
 
 .filename {
   .copy-filename {
-    font-size: .7em;
-    transition: opacity .3s;
+    font-size: 0.7em;
+    transition: opacity 0.3s;
     opacity: 0;
   }
 
   &:hover .copy-filename {
-    opacity: .8;
+    opacity: 0.8;
   }
 }

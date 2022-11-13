@@ -1,7 +1,12 @@
 import { Component } from '@angular/core';
 import { ModalService } from '../../services/modal.service';
 import { GitService } from '../../../services/git.service';
-import { PreCommitStatusModel } from '../../../../../shared/PreCommitStatus.model';
+import {
+  PreCommitStatus,
+  PreCommitStatusModel,
+  PreCommitStatusRule,
+} from '../../../../../shared/PreCommitStatus.model';
+import { groupBy } from 'lodash';
 
 @Component({
   selector: 'app-pre-commit-status-modal',
@@ -17,8 +22,20 @@ export class PreCommitStatusModalComponent {
     private modalService: ModalService,
   ) {
     this.gitService.onPreCommitStatus.subscribe((status) => {
-      if (status.rules.some((rule) => !rule.passed)) {
-        this.status = status;
+      if (status.rules.some((rule) => rule.status === PreCommitStatus.Failed)) {
+        const sortedRules = groupBy(status.rules, 'status') as Record<
+          PreCommitStatus,
+          PreCommitStatusRule[]
+        >;
+
+        this.status = new PreCommitStatusModel(
+          [
+            ...sortedRules[PreCommitStatus.Failed],
+            ...sortedRules[PreCommitStatus.Passed],
+            ...sortedRules[PreCommitStatus.Skipped],
+          ],
+          status.note,
+        );
         this.modalService.setModalVisible(this.modalId, true);
       }
     });
@@ -27,5 +44,13 @@ export class PreCommitStatusModalComponent {
   close() {
     this.status = undefined;
     this.modalService.setModalVisible(this.modalId, false);
+  }
+
+  getStatusIconClasses(rule: PreCommitStatusRule) {
+    return rule.status === PreCommitStatus.Passed
+      ? 'text-success fa-check'
+      : rule.status === PreCommitStatus.Failed
+      ? 'text-danger fa-times-circle'
+      : 'fa-forward';
   }
 }
