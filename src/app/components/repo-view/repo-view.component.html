@@ -53,6 +53,7 @@
           placeholder="Filter..."
           [(ngModel)]="localBranchFilter"
         />
+        <div class="flex-grow-1"></div>
         <button
           class="btn btn-primary btn-sm mx-1"
           (click)="showModal('createBranch')"
@@ -127,6 +128,7 @@
           placeholder="Filter..."
           [(ngModel)]="worktreeFilter"
         />
+        <div class="flex-grow-1"></div>
         <button
           class="btn btn-sm btn-primary mx-1"
           ngbTooltip="Add Worktree"
@@ -197,6 +199,7 @@
           placeholder="Filter..."
           [(ngModel)]="submoduleFilter"
         />
+        <div class="flex-grow-1"></div>
         <button
           class="btn btn-sm btn-primary mx-1"
           ngbTooltip="Add Submodule"
@@ -280,6 +283,7 @@
           placeholder="Filter..."
           [(ngModel)]="stashFilter"
         />
+        <div class="flex-grow-1"></div>
         <div class="btn-group btn-group-sm mx-1" ngbDropdown>
           <button
             class="btn btn-secondary"
@@ -416,6 +420,7 @@
             placeholder="Filter..."
             [(ngModel)]="stagedChangesFilter"
           />
+          <div class="flex-grow-1"></div>
           <div class="btn-group-sm btn-group mx-2">
             <button
               class="btn btn-secondary"
@@ -495,6 +500,7 @@
             placeholder="Filter..."
             [(ngModel)]="unstagedChangesFilter"
           />
+          <div class="flex-grow-1"></div>
           <div class="btn-group-sm btn-group mx-2">
             <button
               class="btn btn-secondary"
