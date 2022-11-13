@@ -35,9 +35,9 @@ jobs:
           # If the commit is tagged with a version (e.g. "v1.0.0"),
           # release the app after building
           release: true
-          mac_certs: ${{ secrets.certs }}
+#          mac_certs: ${{ secrets.certs }}
           windows_certs: ${{ secrets.certs }}
-          linux_certs: ${{ secrets.certs }}
-          mac_certs_password: ${{ secrets.certs_password }}
+#          linux_certs: ${{ secrets.certs }}
+#          mac_certs_password: ${{ secrets.certs_password }}
           windows_certs_password: ${{ secrets.certs_password }}
-          linux_certs_password: ${{ secrets.certs_password }}
+#          linux_certs_password: ${{ secrets.certs_password }}
