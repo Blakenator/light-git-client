@@ -53,7 +53,9 @@ export class CodeWatcherAlertsComponent {
       this.parseDiffInformation([request.forHeader]);
     } else {
       this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getFileDiff(['.'], ['.']))
+        .scheduleSimpleOperation(
+          this.gitService.getFileDiff(request.isCommit ? [] : ['.'], ['.']),
+        )
         .result.then((diff: DiffHeaderModel[]) => {
           this.parseDiffInformation(diff);
         })
