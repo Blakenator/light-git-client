@@ -1,9 +1,12 @@
-<app-modal [affirmativeButtonText]="confirmText"
-           (onFinish)="onConfirm.emit()"
-           [modalTitle]="modalTitle"
-           [modalId]="modalId"
-           [affirmativeButtonDisabled]="confirmDisabled"
-           modalTitleIcon="fa-exclamation-triangle"
-           negativeButtonText="Cancel">
+<app-modal
+  [affirmativeButtonText]="confirmText"
+  (onFinish)="onConfirm.emit()"
+  [modalTitle]="modalTitle"
+  [modalId]="modalId"
+  [affirmativeButtonDisabled]="confirmDisabled"
+  modalTitleIcon="fa-exclamation-triangle"
+  negativeButtonText="Cancel"
+  [modalClass]="modalClass"
+>
   <ng-content></ng-content>
 </app-modal>

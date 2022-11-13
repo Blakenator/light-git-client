@@ -4,8 +4,8 @@
     Light Git
   </title>
 </head>
-<div *ngIf="this.getRepo()" class="row full-width bg-light-mode">
-  <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column">
+<div *ngIf="this.getRepo()" class="row px-2 full-width bg-light-mode">
+  <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column px-1">
     <h1>
       {{ this.tabDataService.getActiveTab().name }}
       <span class="d-inline-block btn-group">
@@ -53,6 +53,7 @@
           placeholder="Filter..."
           [(ngModel)]="localBranchFilter"
         />
+        <div class="flex-grow-1"></div>
         <button
           class="btn btn-primary btn-sm mx-1"
           (click)="showModal('createBranch')"
@@ -127,6 +128,7 @@
           placeholder="Filter..."
           [(ngModel)]="worktreeFilter"
         />
+        <div class="flex-grow-1"></div>
         <button
           class="btn btn-sm btn-primary mx-1"
           ngbTooltip="Add Worktree"
@@ -197,6 +199,7 @@
           placeholder="Filter..."
           [(ngModel)]="submoduleFilter"
         />
+        <div class="flex-grow-1"></div>
         <button
           class="btn btn-sm btn-primary mx-1"
           ngbTooltip="Add Submodule"
@@ -280,6 +283,7 @@
           placeholder="Filter..."
           [(ngModel)]="stashFilter"
         />
+        <div class="flex-grow-1"></div>
         <div class="btn-group btn-group-sm mx-1" ngbDropdown>
           <button
             class="btn btn-secondary"
@@ -397,8 +401,11 @@
       </div>
     </app-layout-card>
   </div>
-  <div class="col-sm col-md-4 d-flex flex-column mb-1 repo-column">
-    <div *ngIf="this.getRepo().changes" class="flex-grow-1 d-flex flex-column">
+  <div class="col-sm col-md-4 d-flex flex-column mb-1 repo-column px-1">
+    <div
+      *ngIf="this.getRepo().changes"
+      class="flex-grow-1 d-flex flex-column g-2"
+    >
       <app-layout-card
         [headerContent]="stagedChangesHeader"
         expandKey="staged"
@@ -413,6 +420,7 @@
             placeholder="Filter..."
             [(ngModel)]="stagedChangesFilter"
           />
+          <div class="flex-grow-1"></div>
           <div class="btn-group-sm btn-group mx-2">
             <button
               class="btn btn-secondary"
@@ -492,6 +500,7 @@
             placeholder="Filter..."
             [(ngModel)]="unstagedChangesFilter"
           />
+          <div class="flex-grow-1"></div>
           <div class="btn-group-sm btn-group mx-2">
             <button
               class="btn btn-secondary"
@@ -558,7 +567,7 @@
         ></app-change-list>
       </app-layout-card>
     </div>
-    <div class="card flex-shrink-0">
+    <div class="card flex-shrink-0 m-0">
       <div class="card-body p-3">
         <app-pretty-checkbox
           class="d-inline-block"
@@ -651,7 +660,7 @@
       </div>
     </div>
   </div>
-  <div class="col-sm-12 col-md-5 d-flex flex-column mb-1 repo-column">
+  <div class="col-sm-12 col-md-5 d-flex flex-column mb-1 repo-column px-1">
     <app-layout-card
       [headerContent]="commitHistoryHeader"
       expandKey="commit-history"

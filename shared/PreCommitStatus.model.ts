@@ -1,6 +1,12 @@
-interface PreCommitStatusRule {
+export enum PreCommitStatus {
+  Passed = 'Passed',
+  Skipped = 'Skipped',
+  Failed = 'Failed',
+}
+
+export interface PreCommitStatusRule {
   name: string;
-  passed: boolean;
+  status: PreCommitStatus;
   error?: string;
 }
 

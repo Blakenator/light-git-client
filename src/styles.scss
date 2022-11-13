@@ -93,8 +93,16 @@ body {
 }
 
 * {
-  font-family: Roboto, sans-serif;
+  font-family: 'Product Sans', Roboto, sans-serif;
 }
+
+pre,
+code,
+code * {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
 .fa,
 .fas,
 .far,
@@ -389,4 +397,24 @@ $status-deleted: rgba(222, 35, 14, 0.6);
     background-color: hsl(0, 0%, 15%);
     box-shadow: $material-shadow;
   }
+}
+
+.g-1 {
+  gap: 0.25rem;
+}
+
+.g-2 {
+  gap: 0.5rem;
+}
+
+.g-3 {
+  gap: 1rem;
+}
+
+.g-4 {
+  gap: 1.5rem;
+}
+
+.g-5 {
+  gap: 3rem;
 }

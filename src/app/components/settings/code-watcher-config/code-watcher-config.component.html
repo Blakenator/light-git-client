@@ -43,120 +43,122 @@
   </button>
 </div>
 <h5>Code Watchers</h5>
-<app-layout-card
-  *ngFor="let g of getFilenames()"
-  [headerContent]="watcherHeader"
-  [persistExpand]="false"
-  [preventOverflow]="false"
->
-  <ng-template #watcherHeader>
-    <input
-      type="text"
-      placeholder="All Files"
-      class="form-control expanded"
-      (change)="changeFilename(g, $event.target.value)"
-      [ngModel]="g"
-    />
-  </ng-template>
-  <table class="table table-striped mb-0">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Regex</th>
-        <th>Flags</th>
-        <th>Filename Filter</th>
-        <th>Enabled</th>
-        <th style="width: 1%;"></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let w of getWatchersInGroup(g)">
-        <td>
-          <input
-            class="form-control"
-            [(ngModel)]="w.name"
-            placeholder="Watcher Name..."
-          />
-        </td>
-        <td>
-          <div class="d-flex flex-column">
+<div class="d-flex flex-column g-2">
+  <app-layout-card
+    *ngFor="let g of getFilenames()"
+    [headerContent]="watcherHeader"
+    [persistExpand]="false"
+    [preventOverflow]="false"
+  >
+    <ng-template #watcherHeader>
+      <input
+        type="text"
+        placeholder="All Files"
+        class="form-control expanded"
+        (change)="changeFilename(g, $event.target.value)"
+        [ngModel]="g"
+      />
+    </ng-template>
+    <table class="table table-striped mb-0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Regex</th>
+          <th>Flags</th>
+          <th>Filename Filter</th>
+          <th>Enabled</th>
+          <th style="width: 1%"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let w of getWatchersInGroup(g)">
+          <td>
             <input
               class="form-control"
-              [(ngModel)]="w.regex"
-              placeholder="Regex..."
+              [(ngModel)]="w.name"
+              placeholder="Watcher Name..."
             />
-            <div
-              *ngIf="!isValidRegex(w.regex)"
-              class="d-flex align-items-center error-message"
-            >
-              <i class="fa fa-exclamation-circle mr-2"></i>Invalid Regex
-            </div>
-          </div>
-        </td>
-        <td>
-          <input
-            class="form-control small-input"
-            [(ngModel)]="w.regexFlags"
-            placeholder="Flags..."
-            [pattern]="'^[gmisuy]*$'"
-          />
-        </td>
-
-        <td>
-          <div class="d-flex flex-column">
-            <input
-              class="form-control"
-              [ngModel]="w.activeFilter"
-              (change)="w.activeFilter = $event.target.value"
-              placeholder="Filename Regex..."
-            />
-            <div
-              *ngIf="!isValidRegex(w.activeFilter)"
-              class="d-flex align-items-center error-message"
-            >
-              <i class="fa fa-exclamation-circle mr-2"></i>Invalid Regex
-            </div>
-          </div>
-        </td>
-
-        <td>
-          <app-pretty-checkbox [(value)]="w.enabled"></app-pretty-checkbox>
-        </td>
-        <td>
-          <div class="d-flex btn-group">
-            <div ngbDropdown class="btn-group btn-group-sm" container="body">
-              <button
-                class="btn btn-primary d-inline-flex align-items-center"
-                ngbDropdownToggle
+          </td>
+          <td>
+            <div class="d-flex flex-column">
+              <input
+                class="form-control"
+                [(ngModel)]="w.regex"
+                placeholder="Regex..."
+              />
+              <div
+                *ngIf="!isValidRegex(w.regex)"
+                class="d-flex align-items-center error-message"
               >
-                {{ getDropdownLabelText(w) }}
-              </button>
-              <div ngbDropdownMenu class="dropdown-menu">
-                <button
-                  ngbDropdownItem
-                  class="dropdown-item"
-                  *ngFor="let p of tempSettings.codeWatcherPaths"
-                  (click)="w.path = p"
-                >
-                  {{ p }}
-                </button>
+                <i class="fa fa-exclamation-circle mr-2"></i>Invalid Regex
               </div>
             </div>
-            <button class="btn btn-light td-btn" (click)="copyWatcher(w)">
-              <i class="fa fa-copy"></i>
-            </button>
-            <button class="btn btn-light td-btn" (click)="deleteWatcher(w)">
-              <i class="fa fa-trash"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="card-footer py-1">
-    <button class="btn btn-info" (click)="addWatcher(g)">Add Watcher</button>
-  </div>
-</app-layout-card>
+          </td>
+          <td>
+            <input
+              class="form-control small-input"
+              [(ngModel)]="w.regexFlags"
+              placeholder="Flags..."
+              [pattern]="'^[gmisuy]*$'"
+            />
+          </td>
+
+          <td>
+            <div class="d-flex flex-column">
+              <input
+                class="form-control"
+                [ngModel]="w.activeFilter"
+                (change)="w.activeFilter = $event.target.value"
+                placeholder="Filename Regex..."
+              />
+              <div
+                *ngIf="!isValidRegex(w.activeFilter)"
+                class="d-flex align-items-center error-message"
+              >
+                <i class="fa fa-exclamation-circle mr-2"></i>Invalid Regex
+              </div>
+            </div>
+          </td>
+
+          <td>
+            <app-pretty-checkbox [(value)]="w.enabled"></app-pretty-checkbox>
+          </td>
+          <td>
+            <div class="d-flex btn-group">
+              <div ngbDropdown class="btn-group btn-group-sm" container="body">
+                <button
+                  class="btn btn-primary d-inline-flex align-items-center"
+                  ngbDropdownToggle
+                >
+                  {{ getDropdownLabelText(w) }}
+                </button>
+                <div ngbDropdownMenu class="dropdown-menu">
+                  <button
+                    ngbDropdownItem
+                    class="dropdown-item"
+                    *ngFor="let p of tempSettings.codeWatcherPaths"
+                    (click)="w.path = p"
+                  >
+                    {{ p }}
+                  </button>
+                </div>
+              </div>
+              <button class="btn btn-light td-btn" (click)="copyWatcher(w)">
+                <i class="fa fa-copy"></i>
+              </button>
+              <button class="btn btn-light td-btn" (click)="deleteWatcher(w)">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="card-footer py-1">
+      <button class="btn btn-info" (click)="addWatcher(g)">Add Watcher</button>
+    </div>
+  </app-layout-card>
+</div>
 <app-confirm-modal
   modalTitle="Confirm Remove Watcher File"
   (onConfirm)="doDeleteWatcherFile(confirmDeletePath)"

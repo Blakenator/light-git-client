@@ -1,6 +1,5 @@
 import {
   Component,
-  ElementRef,
   EventEmitter,
   HostBinding,
   Input,
@@ -28,8 +27,8 @@ export class LayoutCardComponent implements OnInit {
   @Input() iconClass: string;
   @Input() persistExpand = true;
   @Input() localExpandedDefault = true;
-  @Input() spaced = true;
-  @Input() preventOverflow = true;
+  @Input() spaced = false;
+  @Input() preventOverflow = false;
   @Input() headerContent: TemplateRef<any>;
   @Input() infiniteScrollDisabled = true;
   @Output() scrolled = new EventEmitter();
