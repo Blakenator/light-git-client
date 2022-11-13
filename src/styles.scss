@@ -398,3 +398,23 @@ $status-deleted: rgba(222, 35, 14, 0.6);
     box-shadow: $material-shadow;
   }
 }
+
+.g-1 {
+  gap: 0.25rem;
+}
+
+.g-2 {
+  gap: 0.5rem;
+}
+
+.g-3 {
+  gap: 1rem;
+}
+
+.g-4 {
+  gap: 1.5rem;
+}
+
+.g-5 {
+  gap: 3rem;
+}
