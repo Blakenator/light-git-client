@@ -31,7 +31,11 @@ import { SubmoduleModel } from '../../../../shared/git/submodule.model';
 import { LoadingService } from '../../services/loading.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { RepoMetadata, TabDataService } from '../../services/tab-data.service';
+import {
+  ITabInfo,
+  RepoMetadata,
+  TabDataService,
+} from '../../services/tab-data.service';
 import { EqualityUtil } from '../../common/equality.util';
 import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
 import { Job, RepoAreaDefaults } from '../../services/job-system/models';
@@ -49,7 +53,7 @@ export class RepoViewComponent implements OnDestroy {
   remoteBranchFilter = '';
   globalErrorHandlerService: GlobalErrorHandlerService;
   @Output() onLoadRepoFailed = new EventEmitter<ErrorModel>();
-  @Output() onOpenRepoNewTab = new EventEmitter<string>();
+  @Output() onOpenRepoNewTab = new EventEmitter<Partial<ITabInfo>>();
   worktreeFilter: string;
   diffCommitInfo: CommitSummaryModel;
   stashFilter: string;
@@ -420,9 +424,8 @@ export class RepoViewComponent implements OnDestroy {
         if (!skip || skip == 0) {
           this.getRepo().commitHistory = commits;
         } else {
-          this.getRepo().commitHistory = this.getRepo().commitHistory.concat(
-            commits,
-          );
+          this.getRepo().commitHistory =
+            this.getRepo().commitHistory.concat(commits);
         }
         this.changeDetectorRef.detectChanges();
       })
@@ -462,13 +465,15 @@ export class RepoViewComponent implements OnDestroy {
         this.showDiff = false;
       })
       .catch((err) => {
-        return this.handleErrorMessage(
-          new ErrorModel(
-            this._errorClassLocation + 'commit',
-            'committing',
-            err,
-          ),
-        );
+        if (err) {
+          this.handleErrorMessage(
+            new ErrorModel(
+              this._errorClassLocation + 'commit',
+              'committing',
+              err,
+            ),
+          );
+        }
       });
     this.clearSelectedChanges();
   }
@@ -566,9 +571,10 @@ export class RepoViewComponent implements OnDestroy {
       return;
     }
     const fileSet = new Set(files);
-    const changes = (staged
-      ? this.getRepo().changes.stagedChanges
-      : this.getRepo().changes.unstagedChanges
+    const changes = (
+      staged
+        ? this.getRepo().changes.stagedChanges
+        : this.getRepo().changes.unstagedChanges
     ).filter((change) => fileSet.has(change.file));
     const changeSet = new Set(changes.map((change) => change.file));
     const submoduleSet = new Set(
@@ -714,8 +720,8 @@ export class RepoViewComponent implements OnDestroy {
   }
 
   toggleExpandState(key: string) {
-    this.settingsService.settings.expandStates[key] = !this.settingsService
-      .settings.expandStates[key];
+    this.settingsService.settings.expandStates[key] =
+      !this.settingsService.settings.expandStates[key];
     this.settingsService.saveSettings();
   }
 
@@ -1072,6 +1078,17 @@ export class RepoViewComponent implements OnDestroy {
     } else {
       return '';
     }
+  }
+
+  openSubmoduleNewTab(w: SubmoduleModel) {
+    const newPath = this.getRepo().path + '/' + w.path;
+    this.onOpenRepoNewTab.emit({
+      path: newPath,
+      name:
+        this.tabDataService.getActiveTab().name +
+        '/' +
+        TabDataService.basename(newPath),
+    });
   }
 
   private setRepoMetadata(metadata: Partial<RepoMetadata>) {

@@ -8,7 +8,7 @@ import { GitService } from './git.service';
 import { ErrorService } from '../common/services/error.service';
 import { Subject } from 'rxjs';
 
-interface ITabInfo {
+export interface ITabInfo {
   name: string;
   path: string;
 }

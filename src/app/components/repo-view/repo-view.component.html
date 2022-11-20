@@ -165,7 +165,7 @@
               class="btn btn-primary btn-sm"
               ngbTooltip="Open in New Tab"
               *ngIf="w.currentHash != 'bare' && !w.isCurrent"
-              (click)="onOpenRepoNewTab.emit(w.path)"
+              (click)="onOpenRepoNewTab.emit({ path: w.path })"
             >
               <i class="fa fa-external-link-square-alt"></i>
             </button>
@@ -254,9 +254,7 @@
             <button
               class="btn btn-primary btn-sm"
               ngbTooltip="Open in New Tab"
-              (click)="
-                onOpenRepoNewTab.emit(this.getRepo().path + '/' + w.path)
-              "
+              (click)="openSubmoduleNewTab(w)"
             >
               <i class="fa fa-external-link-square-alt"></i>
             </button>
@@ -392,7 +390,7 @@
           <pre>$ {{ c.command }}</pre>
           <pre class="p-2 bg-light command-output">
     Output Characters 0-1000:
-                            {{
+                        {{
               (c.errorOutput || c.output).substring(0, 3000)
             }}</pre
           >

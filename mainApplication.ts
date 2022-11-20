@@ -237,12 +237,14 @@ export class MainApplication extends GenericApplication {
     if (app.isPackaged) {
       autoUpdater.allowPrerelease = this.settings.allowPrerelease;
       autoUpdater.checkForUpdates().catch((error) => {
-        this.notifier.notify({
-          title: this.notificationTitle,
-          message:
-            'An error occurred while updating, no changes were made. Check error log for more details',
-          icon: this.iconFile,
-        });
+        if (this.userInitiatedUpdate) {
+          this.notifier.notify({
+            title: this.notificationTitle,
+            message:
+              'An error occurred while updating, no changes were made. Check error log for more details',
+            icon: this.iconFile,
+          });
+        }
         this.userInitiatedUpdate = false;
         this.logger.error(error);
       });
@@ -267,7 +269,7 @@ export class MainApplication extends GenericApplication {
       this.userInitiatedUpdate = false;
     });
     autoUpdater.on('update-available', (info) => {
-      if (!this.updateDownloaded) {
+      if (!this.updateDownloaded && !this.updateDownloadedVersion) {
         this.notifier.notify({
           title: this.notificationTitle,
           message:
@@ -281,12 +283,14 @@ export class MainApplication extends GenericApplication {
       }
     });
     autoUpdater.on('error', (error) => {
-      this.notifier.notify({
-        title: this.notificationTitle,
-        message:
-          'An error occurred while updating, no changes were made. Check error log for more details',
-        icon: this.iconFile,
-      });
+      if (this.userInitiatedUpdate) {
+        this.notifier.notify({
+          title: this.notificationTitle,
+          message:
+            'An error occurred while updating, no changes were made. Check error log for more details',
+          icon: this.iconFile,
+        });
+      }
       this.userInitiatedUpdate = false;
       this.logger.error(error);
     });
