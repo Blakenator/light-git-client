@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.10.0-beta",
+  "version": "0.10.0",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",

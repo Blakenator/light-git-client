@@ -8,21 +8,20 @@
   <div class="modal-body" *ngIf="status">
     <pre *ngIf="status.note" class="mb-2 error-block">{{ status.note }}</pre>
     <div
-      *ngFor="let rule of status.rules"
+      *ngFor="let rule of status.rules; let i = index"
       class="d-flex flex-column mb-2 p-2 rule-block"
+      [ngClass]="rule.status !== status.rules[i - 1]?.status ? 'mt-4' : ''"
     >
       <div class="d-flex flex-row align-items-center">
-        <i
-          class="fas mr-2"
-          [ngClass]="
-            rule.passed
-              ? 'text-success fa-check-circle'
-              : 'text-danger fa-times-circle'
-          "
-        ></i>
-        <div>{{ rule.name }}</div>
+        <i class="fas mr-2" [ngClass]="getStatusIconClasses(rule)"></i>
+        <div class="flex-grow-1">{{ rule.name }}</div>
+        <div *ngIf="rule.status === 'Skipped'">{{ rule.error }}</div>
       </div>
-      <pre *ngIf="rule.error" class="error-block m-0">{{ rule.error }}</pre>
+      <pre
+        *ngIf="rule.error && rule.status === 'Failed'"
+        class="error-block m-0"
+        >{{ rule.error }}</pre
+      >
     </div>
   </div>
   <div class="modal-footer">

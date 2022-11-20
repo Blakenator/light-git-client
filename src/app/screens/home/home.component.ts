@@ -7,10 +7,9 @@ import { ErrorModel } from '../../../../shared/common/error.model';
 import { ErrorService } from '../../common/services/error.service';
 import { LoadingService } from '../../services/loading.service';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { TabDataService } from '../../services/tab-data.service';
+import { ITabInfo, TabDataService } from '../../services/tab-data.service';
 import { NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap';
 import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
-import { RepoAreaDefaults } from '../../services/job-system/models';
 
 @Component({
   selector: 'app-home',
@@ -63,8 +62,11 @@ export class HomeComponent implements OnInit {
     this.saveOpenRepos();
   }
 
-  addTab(path: string = '') {
-    this.tabService.tabData.push({ path, name: TabDataService.basename(path) });
+  addTab({ path = '', name = '' }: Partial<ITabInfo> = {}) {
+    this.tabService.tabData.push({
+      path,
+      name: name || TabDataService.basename(path),
+    });
     this.activeTabIndex = this.tabService.tabCount() - 1;
     this.saveOpenRepos();
   }
