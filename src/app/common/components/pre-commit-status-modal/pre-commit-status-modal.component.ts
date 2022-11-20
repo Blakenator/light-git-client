@@ -30,9 +30,9 @@ export class PreCommitStatusModalComponent {
 
         this.status = new PreCommitStatusModel(
           [
-            ...sortedRules[PreCommitStatus.Failed],
-            ...sortedRules[PreCommitStatus.Passed],
-            ...sortedRules[PreCommitStatus.Skipped],
+            ...(sortedRules[PreCommitStatus.Failed] ?? []),
+            ...(sortedRules[PreCommitStatus.Passed] ?? []),
+            ...(sortedRules[PreCommitStatus.Skipped] ?? []),
           ],
           status.note,
         );

@@ -28,7 +28,7 @@ export class LayoutCardComponent implements OnInit {
   @Input() persistExpand = true;
   @Input() localExpandedDefault = true;
   @Input() spaced = false;
-  @Input() preventOverflow = false;
+  @Input() preventOverflow = true;
   @Input() headerContent: TemplateRef<any>;
   @Input() infiniteScrollDisabled = true;
   @Output() scrolled = new EventEmitter();

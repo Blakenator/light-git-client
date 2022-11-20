@@ -39,13 +39,17 @@ export abstract class WarningListenerBase<U> {
     }
     if (typeof output == 'string') {
       const processed = this.preprocess(output);
-      let crlfMatch = processed.match(this._regexMatch);
-      if (crlfMatch) {
-        const { result } = this._transform(processed);
+      let listenerMatch = processed.match(this._regexMatch);
+      if (listenerMatch) {
+        const { result, isError } = this._transform(processed);
         if (this.onDetect) {
           this.onDetect.next(result);
         }
-        resolve();
+        if (isError) {
+          reject();
+        } else {
+          resolve();
+        }
       } else {
         reject(output);
       }
@@ -55,13 +59,17 @@ export abstract class WarningListenerBase<U> {
         return;
       }
       const processed = this.preprocess(output.errorOutput);
-      let crlfMatch = processed.match(this._regexMatch);
-      if (crlfMatch) {
-        const { result } = this._transform(processed);
+      let listenerMatch = processed.match(this._regexMatch);
+      if (listenerMatch) {
+        const { result, isError } = this._transform(processed);
         if (this.onDetect) {
           this.onDetect.next(result);
         }
-        resolve(output.content);
+        if (isError) {
+          reject();
+        } else {
+          resolve(output.content);
+        }
       } else {
         reject(output.errorOutput);
       }

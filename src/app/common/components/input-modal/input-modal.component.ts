@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ModalService } from '../../services/modal.service';
 
 @Component({
@@ -11,7 +11,7 @@ export class InputModalComponent {
   @Input() modalId;
   @Input() message = '';
   @Input() replaceChars: { match: RegExp; with: string };
-  @Input() uidSalt = '';
+  @Input() uidSalt: string | number = '';
   @Input() inputPlaceholder = '';
   @Input() validPattern = '';
   @Input() invalidMessage = '';
