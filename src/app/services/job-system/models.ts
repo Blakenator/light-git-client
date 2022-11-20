@@ -120,7 +120,10 @@ export class Operation<T = void> extends Deferrable<T> {
   }
 
   registerJobs(jobs: Job<T>[]) {
-    jobs.forEach((job) => (job.operation = this));
+    jobs.forEach((job) => {
+      job.operation = this;
+      job.result.catch((res) => this.fail(res));
+    });
     this.jobs = this.jobs.concat(jobs);
   }
 }
