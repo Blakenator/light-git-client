@@ -4,7 +4,6 @@ import { FilterPipe } from '../../common/pipes/filter.pipe';
 import { BranchModel } from '../../../../shared/git/Branch.model';
 import { EqualityUtil } from '../../common/equality.util';
 import { TabDataService } from '../../services/tab-data.service';
-import * as _ from 'lodash';
 
 @Component({
   selector: 'app-commit-history',

@@ -18,4 +18,8 @@ export class PreCommitStatusModel {
     this.rules = rules;
     this.note = note;
   }
+
+  isError(): boolean {
+    return this.rules.some((rule) => rule.status === PreCommitStatus.Failed);
+  }
 }
