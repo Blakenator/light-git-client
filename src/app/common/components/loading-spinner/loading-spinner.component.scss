@@ -1,3 +1,5 @@
+@use "sass:math";
+
 $size: 2em;
 $time: .8s;
 .loading-spinner-container {
@@ -15,7 +17,7 @@ $time: .8s;
 
   .load-center {
     background-color: rgba(128, 128, 128, .7);
-    animation: pulsate $time/2 alternate-reverse infinite ease-in;
+    animation: pulsate $time*0.5 alternate-reverse infinite ease-in;
   }
 
   .load-eminate {
@@ -26,19 +28,19 @@ $time: .8s;
 
 @keyframes pulsate {
   0% {
-    height: $size / 1.5;
-    width: $size / 1.5;
+    height: math.div($size, 1.5);
+    width: math.div($size, 1.5);
   }
   100% {
-    height: $size / 4;
-    width: $size / 4;
+    height: $size * 0.25;
+    width: $size * 0.25;
   }
 }
 
 @keyframes eminate {
   0% {
-    height: $size / 4;
-    width: $size / 4;
+    height: $size * 0.25;
+    width: $size * 0.25;
     opacity: 0;
   }
   50% {
