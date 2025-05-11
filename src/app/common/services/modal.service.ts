@@ -1,24 +1,23 @@
-import {Injectable} from '@angular/core';
-import {Subject} from 'rxjs';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ModalService {
-  modals: { [key: string]: Subject<boolean> } = {};
+  modals: { [key: string]: BehaviorSubject<boolean> } = {};
 
-  constructor() {
-  }
+  constructor() {}
 
   registerModal(key: string) {
     if (!this.modals[key]) {
-      this.modals[key] = new Subject<boolean>();
+      this.modals[key] = new BehaviorSubject<boolean>(false);
     }
     return this.modals[key];
   }
 
   getSetVisibleListener(key: string) {
-    return this.registerModal(key).asObservable();
+    return this.registerModal(key);
   }
 
   setModalVisible(key: string, val: boolean) {

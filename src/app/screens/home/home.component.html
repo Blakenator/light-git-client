@@ -15,11 +15,7 @@
     >
       <i class="fa fa-plane"></i>
     </div>
-    <app-loading-spinner
-      [show]="jobSchedulerService.isRunning(tabService.getActiveTab()?.path)"
-      class="nav-item mx-2"
-      [keepSpacing]="true"
-    ></app-loading-spinner>
+    <app-active-jobs class="nav-item mx-2"></app-active-jobs>
     <div
       class="tab-container btn-group nav-item flex-grow-1 pl"
       cdkDropListOrientation="horizontal"

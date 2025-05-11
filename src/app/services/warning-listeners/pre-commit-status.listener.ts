@@ -30,9 +30,7 @@ export class PreCommitStatusListener extends WarningListenerBase<PreCommitStatus
     );
     return {
       result: status,
-      isError: status.rules.some(
-        (rule) => rule.status === PreCommitStatus.Failed,
-      ),
+      isError: status.isError(),
     };
   }
 }

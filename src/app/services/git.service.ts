@@ -3,7 +3,7 @@ import { Channels } from '../../../shared/Channels';
 import { ElectronService } from '../common/services/electron.service';
 import { ConfigItemModel } from '../../../shared/git/config-item.model';
 import { DiffHeaderModel } from '../../../shared/git/diff.header.model';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { CommandHistoryModel } from '../../../shared/git/command-history.model';
 import { DiffHunkModel } from '../../../shared/git/diff.hunk.model';
 import { ErrorModel } from '../../../shared/common/error.model';
@@ -34,7 +34,9 @@ export class GitService {
   private _onCrlfError = new Subject<{ start: string; end: string }>();
   public readonly onCrlfError = this._onCrlfError.asObservable();
   private _onRemoteMessage = new Subject<NotificationModel>();
-  private _onPreCommitStatus = new Subject<PreCommitStatusModel>();
+  private _onPreCommitStatus = new BehaviorSubject<PreCommitStatusModel>(
+    undefined,
+  );
   public readonly onPreCommitStatus = this._onPreCommitStatus.asObservable();
   private _crlfListener = new CrlfListener(this._onCrlfError);
   private _remoteMessageListener = new RemoteMessageListener(
@@ -694,7 +696,7 @@ export class GitService {
     commitAndPush: boolean,
     amend: boolean,
     currentBranch: BranchModel,
-  ): Job<void> {
+  ): Job<{ needsNewPushJob: boolean }> {
     return this.getJob({
       affectedAreas: [
         RepoArea.LOCAL_CHANGES,
@@ -704,19 +706,31 @@ export class GitService {
       ],
       command: Channels.COMMIT,
       execute: () =>
-        this._precommitStatusListener.detect(
-          this._remoteMessageListener.detect(
-            this.electronService.rpc(Channels.COMMIT, [
-              this.getRepo().path,
-              description,
-              commitAndPush,
-              currentBranch,
-              amend,
-            ]),
+        this._precommitStatusListener
+          .detect(
+            this._remoteMessageListener.detect(
+              this.electronService.rpc(Channels.COMMIT, [
+                this.getRepo().path,
+                description,
+                commitAndPush,
+                currentBranch,
+                amend,
+              ]),
+              true,
+            ),
             true,
-          ),
-          true,
-        ),
+          )
+          .then(() => {
+            const lastValue = this._onPreCommitStatus.getValue();
+            // need to requeue a push operation because the precommit errors
+            return {
+              needsNewPushJob:
+                commitAndPush &&
+                lastValue &&
+                lastValue.rules.length > 0 &&
+                !lastValue.isError(),
+            };
+          }),
     });
   }
 

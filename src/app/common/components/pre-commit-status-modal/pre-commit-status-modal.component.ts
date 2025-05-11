@@ -22,7 +22,10 @@ export class PreCommitStatusModalComponent {
     private modalService: ModalService,
   ) {
     this.gitService.onPreCommitStatus.subscribe((status) => {
-      if (status.rules.some((rule) => rule.status === PreCommitStatus.Failed)) {
+      if (
+        status &&
+        status.rules.some((rule) => rule.status === PreCommitStatus.Failed)
+      ) {
         const sortedRules = groupBy(status.rules, 'status') as Record<
           PreCommitStatus,
           PreCommitStatusRule[]
