@@ -21,7 +21,7 @@ export class InputModalComponent {
   value: string;
   errorMessage: string;
 
-  constructor(private modalService: ModalService) {
+  constructor(public modalService: ModalService) {
     this.value = this.defaultText;
   }
 

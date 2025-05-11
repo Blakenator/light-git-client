@@ -1,14 +1,22 @@
-import {ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {BranchModel} from '../../../../shared/git/Branch.model';
-import {WorktreeModel} from '../../../../shared/git/worktree.model';
-import {SettingsService} from '../../services/settings.service';
-import {FilterPipe} from '../../common/pipes/filter.pipe';
-import {TabDataService} from '../../services/tab-data.service';
+import {
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+} from '@angular/core';
+import { BranchModel } from '../../../../shared/git/Branch.model';
+import { WorktreeModel } from '../../../../shared/git/worktree.model';
+import { SettingsService } from '../../services/settings.service';
+import { FilterPipe } from '../../common/pipes/filter.pipe';
+import { TabDataService } from '../../services/tab-data.service';
+import { ClipboardService } from '../../services/clipboard.service';
 
 enum TrackingMode {
   remote,
   local,
-  broken
+  broken,
 }
 
 @Component({
@@ -25,7 +33,10 @@ export class BranchTreeItemComponent implements OnInit {
   @Input() actionExpandedMap: Map<string, boolean> = new Map<string, boolean>();
   @Input() showChildrenMap: Map<string, boolean> = new Map<string, boolean>();
 
-  @Output() onCheckoutClicked = new EventEmitter<{ branch: string, andPull: boolean }>();
+  @Output() onCheckoutClicked = new EventEmitter<{
+    branch: string;
+    andPull: boolean;
+  }>();
   @Output() onPushClicked = new EventEmitter<BranchModel>();
   @Output() onForcePushClicked = new EventEmitter<BranchModel>();
   @Output() onDeleteClicked = new EventEmitter<BranchModel>();
@@ -34,15 +45,20 @@ export class BranchTreeItemComponent implements OnInit {
   @Output() onMergeClicked = new EventEmitter<BranchModel>();
   @Output() onPullClicked = new EventEmitter<void>();
   @Output() onForcePullClicked = new EventEmitter<void>();
-  @Output() onBranchRename = new EventEmitter<{ oldName: string, newName: string }>();
+  @Output() onBranchRename = new EventEmitter<{
+    oldName: string;
+    newName: string;
+  }>();
   leaves: BranchModel[];
-  children: { path: string, branches: BranchModel[] }[];
+  children: { path: string; branches: BranchModel[] }[];
 
   TrackingMode = TrackingMode;
 
-  constructor(public settingsService: SettingsService,
-              public tabDataService: TabDataService,) {
-  }
+  constructor(
+    public settingsService: SettingsService,
+    public tabDataService: TabDataService,
+    public clipboardService: ClipboardService,
+  ) {}
 
   _branches: BranchModel[];
 
@@ -62,23 +78,31 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   getLeaves() {
-    return this._branches.filter(x => x.name.substring((this.currentPath.length || -1) + 1).indexOf('/') < 0);
+    return this._branches.filter(
+      (x) =>
+        x.name.substring((this.currentPath.length || -1) + 1).indexOf('/') < 0,
+    );
   }
 
-  getChildren(): { path: string, branches: BranchModel[] }[] {
+  getChildren(): { path: string; branches: BranchModel[] }[] {
     let res: { [key: string]: BranchModel[] } = {};
-    this._branches.filter(x => x.name.substring((this.currentPath.length || -1) + 1).indexOf('/') > 0)
-        .forEach(x => {
-          let p = x.name.substring((this.currentPath.length || -1) + 1);
-          p = p.substring(0, p.indexOf('/'));
-          if (res[p]) {
-            res[p].push(x);
-          } else {
-            res[p] = [x];
-          }
-        });
-    return Object.keys(res).map(x => {
-      return {path: x, branches: res[x]};
+    this._branches
+      .filter(
+        (x) =>
+          x.name.substring((this.currentPath.length || -1) + 1).indexOf('/') >
+          0,
+      )
+      .forEach((x) => {
+        let p = x.name.substring((this.currentPath.length || -1) + 1);
+        p = p.substring(0, p.indexOf('/'));
+        if (res[p]) {
+          res[p].push(x);
+        } else {
+          res[p] = [x];
+        }
+      });
+    return Object.keys(res).map((x) => {
+      return { path: x, branches: res[x] };
     });
   }
 
@@ -111,17 +135,21 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   isRemoteAlreadyCheckedOut(name: string) {
-    return this.tabDataService.getLocalBranchMap().has(name.replace('origin/', ''));
+    return this.tabDataService
+      .getLocalBranchMap()
+      .has(name.replace('origin/', ''));
   }
 
   checkedOutOtherWorktree(b: BranchModel) {
-    return this.worktrees.find(w => w.currentBranch == b.name && !w.isCurrent);
+    return this.worktrees.find(
+      (w) => w.currentBranch == b.name && !w.isCurrent,
+    );
   }
 
   renameBranch(oldName: string) {
     let newName = this.activeRenames.get(oldName);
     if (newName) {
-      this.onBranchRename.emit({oldName, newName});
+      this.onBranchRename.emit({ oldName, newName });
     }
     this.cancelRename(oldName);
   }
@@ -138,11 +166,13 @@ export class BranchTreeItemComponent implements OnInit {
     if (this.filter === undefined) {
       return 1;
     }
-    return this.children.filter(c => FilterPipe.fuzzyFilter(this.filter, c.path || ''));
+    return this.children.filter((c) =>
+      FilterPipe.fuzzyFilter(this.filter, c.path || ''),
+    );
   }
 
   checkoutBranch(name: string, ff: boolean) {
-    this.onCheckoutClicked.emit({branch: name, andPull: ff});
+    this.onCheckoutClicked.emit({ branch: name, andPull: ff });
   }
 
   checkFastForward(b: BranchModel) {
@@ -154,7 +184,9 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   isBranchCurrent(name: string) {
-    return !!this.tabDataService.getLocalBranchMap().get( name.replace('origin/', ''))?.isCurrentBranch;
+    return !!this.tabDataService
+      .getLocalBranchMap()
+      .get(name.replace('origin/', ''))?.isCurrentBranch;
   }
 
   isRenamingBranch(branch: BranchModel) {

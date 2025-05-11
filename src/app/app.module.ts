@@ -59,6 +59,7 @@ import { RestoreStashComponent } from './components/dialogs/restore-stash/restor
 import { AgeInfoComponent } from './common/components/age-info/age-info.component';
 import { MergeBranchDropdownComponent } from './components/merge-branch/merge-branch-dropdown/merge-branch-dropdown.component';
 import { PreCommitStatusModalComponent } from './common/components/pre-commit-status-modal/pre-commit-status-modal.component';
+import { ActiveJobsComponent } from './components/active-jobs/active-jobs.component';
 
 @NgModule({
   declarations: [
@@ -101,6 +102,7 @@ import { PreCommitStatusModalComponent } from './common/components/pre-commit-st
     RestoreStashComponent,
     AgeInfoComponent,
     MergeBranchDropdownComponent,
+    ActiveJobsComponent,
   ],
   imports: [
     BrowserModule,

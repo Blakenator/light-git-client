@@ -460,7 +460,12 @@ export class RepoViewComponent implements OnDestroy {
           this.tabDataService.getCurrentBranch(),
         ),
       )
-      .result.then(() => {
+      .result.then(({ needsNewPushJob }) => {
+        if (needsNewPushJob) {
+          return this.push(this.tabDataService.getCurrentBranch(), false);
+        }
+      })
+      .then(() => {
         this.getRepo().changes.description = '';
         this.showDiff = false;
       })
@@ -488,13 +493,26 @@ export class RepoViewComponent implements OnDestroy {
   }
 
   checkout(event: { branch: string; andPull: boolean }, newBranch: boolean) {
-    let localBranchExists = this.tabDataService
+    const eventLocalBranchName = event.branch.replace('origin/', '');
+    const eventLocalBranch = this.tabDataService
       .getLocalBranchMap()
-      .has(event.branch.replace('origin/', ''));
+      .get(eventLocalBranchName);
+
+    // if changing branches
+    if (this.tabDataService.getCurrentBranch().name !== event.branch) {
+      const activeBranchIsCurrentBranch =
+        this.tabDataService.getCurrentBranch().name ===
+        this.getRepo().commitHistoryActiveBranch.name;
+      // if current branch is selected in the commit history view, then update
+      // the active branch, otherwise reset
+      this.handleActiveBranchUpdate(
+        activeBranchIsCurrentBranch ? eventLocalBranch : undefined,
+      );
+    }
     this.simpleOperation(
       this.gitService.checkout(
-        localBranchExists ? event.branch.replace('origin/', '') : event.branch,
-        newBranch && !localBranchExists,
+        eventLocalBranch ? eventLocalBranchName : event.branch,
+        newBranch && !eventLocalBranch,
         event.andPull,
       ),
       'checkout',
@@ -1028,7 +1046,7 @@ export class RepoViewComponent implements OnDestroy {
     this.settingsService.saveSettings();
   }
 
-  handleActiveBranchUpdate(branch: BranchModel) {
+  handleActiveBranchUpdate(branch?: BranchModel) {
     this.setRepoMetadata({
       commitHistoryActiveBranch: branch,
     });

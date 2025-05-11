@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Job, JobStatus, Operation, OperationConfig, RepoArea } from './models';
 import * as _ from 'lodash';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -19,6 +19,8 @@ export class JobSchedulerService {
   public onFinishQueue = this._onFinishQueue.asObservable();
   private _onStartQueue = new Subject<string>();
   public onStartQueue = this._onStartQueue.asObservable();
+  public _onStatusUpdate = new Subject<Map<string, Job[]>>();
+  public onStatusUpdate = this._onStatusUpdate.asObservable();
 
   scheduleSimpleOperation<T>(job: Job<T>) {
     let operation = new Operation<T>({ name: job.config.command, jobs: [job] });
@@ -68,14 +70,17 @@ export class JobSchedulerService {
   }
 
   executeNext(queue: Job[], path: string) {
-    const job = queue.shift();
+    const job = queue[0];
 
     if (job.operation.status === JobStatus.FAILED) {
       job.setStatus(JobStatus.SKIPPED);
+      this._onStatusUpdate.next(this._queueMap);
+      queue.shift();
       return Promise.resolve();
     }
 
     job.setStatus(JobStatus.IN_PROGRESS);
+    this._onStatusUpdate.next(this._queueMap);
 
     return job.config
       .execute()
@@ -96,6 +101,8 @@ export class JobSchedulerService {
         job.config.affectedAreas.forEach((area) => {
           this._affectedAreas.add(area);
         });
+        queue.shift();
+        this._onStatusUpdate.next(this._queueMap);
       });
   }
 
