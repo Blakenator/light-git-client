@@ -78,9 +78,16 @@
       </td>
       <td class="center-text-vertical text-right">
         <div
-          class="btn-group btn-group-sm"
+          class="d-flex g-1 align-items-center change-action-buttons"
           (click)="$event.preventDefault(); $event.stopPropagation()"
         >
+          <button
+            class="btn btn-light btn-sm"
+            ngbTooltip="Copy file path"
+            (click)="this.clipboardService.copy(c.file)"
+          >
+            <i class="fa fa-copy"></i>
+          </button>
           <button
             *ngIf="!isDeleted(c) && !isMergeConflict(c.change)"
             class="btn btn-warning btn-sm"

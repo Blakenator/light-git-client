@@ -6,7 +6,7 @@
   &:hover {
     background-color: rgba(128, 128, 128, 0.2);
 
-    .btn-group .btn {
+    .change-action-buttons .btn {
       opacity: 1;
     }
   }
@@ -15,7 +15,7 @@
     background-color: rgba(100, 100, 190, 0.2);
   }
 
-  .btn-group .btn {
+  .change-action-buttons .btn {
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
 

@@ -465,6 +465,12 @@ export class MainApplication extends GenericApplication {
       );
     });
 
+    ipcMain.handle(Channels.CHANGEACTIVEOPERATION, (event, args) => {
+      return this.handleGitPromise(
+        this.gitClients[args[1]].changeActiveOperation(args[2], args[3]),
+      );
+    });
+
     ipcMain.handle(Channels.OPENDEVTOOLS, (event, args) => {
       this.window.webContents.openDevTools();
       return new ElectronResponse();

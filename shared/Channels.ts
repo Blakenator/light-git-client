@@ -63,4 +63,5 @@ export namespace Channels {
   export const RESTARTANDINSTALLUPDATE = 'restartAndInstallUpdate';
   export const RESOLVECONFLICTUSING = 'resolveConflictUsing';
   export const OPENFILEDIALOG = 'openFileDialog';
+  export const CHANGEACTIVEOPERATION = 'changeActiveOperation';
 }

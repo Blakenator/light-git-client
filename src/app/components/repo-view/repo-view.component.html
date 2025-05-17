@@ -389,10 +389,8 @@
           >
           <pre>$ {{ c.command }}</pre>
           <pre class="p-2 bg-light command-output">
-    Output Characters 0-1000:
-                        {{
-              (c.errorOutput || c.output).substring(0, 3000)
-            }}</pre
+    Output Characters 0-6000:
+            {{ (c.errorOutput || c.output).substring(0, 6000) }}</pre
           >
           <hr />
         </div>
@@ -565,7 +563,37 @@
         ></app-change-list>
       </app-layout-card>
     </div>
-    <div class="card flex-shrink-0 m-0">
+
+    <div
+      class="d-flex g-2 alert align-items-center flex-shrink-0 m-0"
+      *ngIf="this.getActiveOperation() as op"
+      [ngClass]="!op ? '' : 'alert-' + ActiveOperationToPropMap[op].class"
+    >
+      <i
+        *ngIf="ActiveOperationToPropMap[op].fa"
+        [ngClass]="'fa fa-' + ActiveOperationToPropMap[op].icon"
+      ></i>
+      <i *ngIf="!ActiveOperationToPropMap[op].fa" class="material-icons">{{
+        ActiveOperationToPropMap[op].icon
+      }}</i>
+      <span>Active {{ ActiveOperationToPropMap[op].name }}</span>
+      <span class="flex-grow-1"></span>
+      <button
+        class="btn btn-sm btn-outline-light"
+        (click)="changeActiveOperation(op, true)"
+        [ngbTooltip]="'Abort the ' + ActiveOperationToPropMap[op].name"
+      >
+        <i class="fa fa-undo"></i>
+      </button>
+      <button
+        class="btn btn-sm btn-outline-light"
+        (click)="changeActiveOperation(op, false)"
+        [ngbTooltip]="'Continue the ' + ActiveOperationToPropMap[op].name"
+      >
+        <i class="fa fa-play"></i>
+      </button>
+    </div>
+    <div class="card flex-shrink-0 m-0" *ngIf="!this.getActiveOperation()">
       <div class="card-body p-3">
         <app-pretty-checkbox
           class="d-inline-block"
