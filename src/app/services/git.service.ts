@@ -8,7 +8,7 @@ import { CommandHistoryModel } from '../../../shared/git/command-history.model';
 import { DiffHunkModel } from '../../../shared/git/diff.hunk.model';
 import { ErrorModel } from '../../../shared/common/error.model';
 import { ErrorService } from '../common/services/error.service';
-import { CommitModel } from '../../../shared/git/Commit.model';
+import { ActiveOperation, CommitModel } from '../../../shared/git/Commit.model';
 import { CommitSummaryModel } from '../../../shared/git/CommitSummary.model';
 import { SettingsService } from './settings.service';
 import { AlertService } from '../common/services/alert.service';
@@ -129,12 +129,10 @@ export class GitService {
       ],
       command: Channels.MERGEBRANCH,
       execute: () =>
-        this.swallowError(
-          this.electronService.rpc(Channels.MERGEBRANCH, [
-            this.getRepo().path,
-            branch,
-          ]),
-        ),
+        this.electronService.rpc(Channels.MERGEBRANCH, [
+          this.getRepo().path,
+          branch,
+        ]),
     });
   }
 
@@ -790,6 +788,23 @@ export class GitService {
       execute: () =>
         this.electronService.rpc(Channels.GETFILECHANGES, [
           this.getRepo().path,
+        ]),
+    });
+  }
+
+  changeActiveOperation(op: ActiveOperation, abort: boolean): Job<void> {
+    return this.getJob({
+      affectedAreas: [
+        RepoArea.LOCAL_CHANGES,
+        RepoArea.LOCAL_BRANCHES,
+        RepoArea.LOCAL_BRANCHES,
+      ],
+      command: Channels.CHANGEACTIVEOPERATION,
+      execute: () =>
+        this.electronService.rpc(Channels.CHANGEACTIVEOPERATION, [
+          this.getRepo().path,
+          op,
+          abort,
         ]),
     });
   }

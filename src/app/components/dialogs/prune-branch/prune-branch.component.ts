@@ -29,6 +29,7 @@ export class PruneBranchComponent implements OnInit {
         .asObservable()
         .subscribe((val) => {
           if (val) {
+            this.selectedBranches = [];
             this.updateBranchesByMerge();
             this.updateBranchesByAge();
           }

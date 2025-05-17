@@ -10,7 +10,10 @@ import {
 } from '@angular/core';
 import { ElectronService } from '../../common/services/electron.service';
 import { SettingsService } from '../../services/settings.service';
-import { ChangeType } from '../../../../shared/git/Commit.model';
+import {
+  ActiveOperation,
+  ChangeType,
+} from '../../../../shared/git/Commit.model';
 import { Channels } from '../../../../shared/Channels';
 import { CommitSummaryModel } from '../../../../shared/git/CommitSummary.model';
 import { BranchModel } from '../../../../shared/git/Branch.model';
@@ -39,6 +42,7 @@ import {
 import { EqualityUtil } from '../../common/equality.util';
 import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
 import { Job, RepoAreaDefaults } from '../../services/job-system/models';
+import { ActiveOperationToPropMap } from './constants';
 
 @Component({
   selector: 'app-repo-view',
@@ -92,6 +96,8 @@ export class RepoViewComponent implements OnDestroy {
   private _shouldAmendCommit: boolean;
 
   private readonly ON_WINDOW_FOCUS_TIMEOUT = 500;
+  protected readonly ActiveOperation = ActiveOperation;
+  protected readonly ActiveOperationToPropMap = ActiveOperationToPropMap;
 
   constructor(
     private electronService: ElectronService,
@@ -102,7 +108,7 @@ export class RepoViewComponent implements OnDestroy {
     public modalService: ModalService,
     errorHandler: ErrorHandler,
     private _changeDetectorRef: ChangeDetectorRef,
-    private tabDataService: TabDataService,
+    public tabDataService: TabDataService,
     private jobSchedulerService: JobSchedulerService,
     private gitService: GitService,
   ) {
@@ -502,7 +508,7 @@ export class RepoViewComponent implements OnDestroy {
     if (this.tabDataService.getCurrentBranch().name !== event.branch) {
       const activeBranchIsCurrentBranch =
         this.tabDataService.getCurrentBranch().name ===
-        this.getRepo().commitHistoryActiveBranch.name;
+        this.getRepo().commitHistoryActiveBranch?.name;
       // if current branch is selected in the commit history view, then update
       // the active branch, otherwise reset
       this.handleActiveBranchUpdate(
@@ -1207,5 +1213,22 @@ export class RepoViewComponent implements OnDestroy {
       selectedUnstagedChanges: {},
       selectedStagedChanges: {},
     });
+  }
+
+  getActiveOperation() {
+    const [activeOp] =
+      Object.entries(this.getRepo().changes?.activeOperations ?? {}).find(
+        ([, val]) => val,
+      ) ?? [];
+    return activeOp as ActiveOperation | undefined;
+  }
+  changeActiveOperation(op: ActiveOperation, abort: boolean) {
+    this.simpleOperation(
+      this.gitService.changeActiveOperation(op, abort),
+      'changeActiveOperation',
+      `${abort ? 'aborting' : 'continuing'} ${
+        ActiveOperationToPropMap[op].name
+      }`,
+    );
   }
 }

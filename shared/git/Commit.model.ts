@@ -1,7 +1,20 @@
 export class CommitModel {
-  public description = "";
+  public description = '';
   public stagedChanges: LightChange[] = [];
   public unstagedChanges: LightChange[] = [];
+  public activeOperations: Record<ActiveOperation, boolean> = {
+    [ActiveOperation.Merge]: false,
+    [ActiveOperation.Rebase]: false,
+    [ActiveOperation.CherryPick]: false,
+    [ActiveOperation.Revert]: false,
+  };
+}
+
+export enum ActiveOperation {
+  Merge = 'MERGE',
+  Rebase = 'REBASE',
+  CherryPick = 'CHERRY_PICK',
+  Revert = 'REVERT',
 }
 
 export class LightChange {

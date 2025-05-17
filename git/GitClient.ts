@@ -1,6 +1,7 @@
 import { RepositoryModel } from '../shared/git/Repository.model';
 import { BranchModel } from '../shared/git/Branch.model';
 import {
+  ActiveOperation,
   ChangeType,
   CommitModel,
   LightChange,
@@ -189,6 +190,12 @@ export class GitClient {
     return new Promise<CommitModel>((resolve, reject) => {
       let result = new CommitModel();
       let changeList = /^(.)(.)\s*(.*)$/gm;
+      result.activeOperations = Object.fromEntries(
+        Object.values(ActiveOperation).map((op) => [
+          op,
+          fs.existsSync(path.join(this.workingDir, '.git', `${op}_HEAD`)),
+        ]),
+      );
       this.handleErrorDefault(
         this.execute(this.getGitPath(), ['status', '--porcelain'], 'Get Status')
           .then((output) => {
@@ -223,6 +230,38 @@ export class GitClient {
       ['add', '--', ...files],
       'Stage File',
     );
+  }
+
+  changeActiveOperation(op: ActiveOperation, abort: boolean) {
+    const opToCommandMap: Record<ActiveOperation, string> = {
+      [ActiveOperation.Merge]: 'merge',
+      [ActiveOperation.Rebase]: 'rebase',
+      [ActiveOperation.CherryPick]: 'cherry-pick',
+      [ActiveOperation.Revert]: 'revert',
+    };
+    const command = opToCommandMap[op];
+    return this.simpleOperation(
+      this.getGitPath(),
+      [command, `--${abort ? 'abort' : 'continue'}`],
+      `Abort ${command}`,
+    ).catch((reason: string | Error) => {
+      const err = typeof reason === 'string' ? reason : reason.message + '';
+      const headFilePath = path.join(this.workingDir, '.git', `${op}_HEAD`);
+      const wasSuccessful = err.toLowerCase().includes('successfully');
+      const noInProgressOp = err
+        .toLowerCase()
+        .includes(`no ${command} in progress`);
+      const headFileStillExists = fs.existsSync(headFilePath);
+
+      if ((noInProgressOp || wasSuccessful) && headFileStillExists) {
+        // delete leftover head file, otherwise git status will be weird
+        fs.rmSync(headFilePath);
+      }
+      const shouldIgnoreError = wasSuccessful || (noInProgressOp && abort);
+      if (!shouldIgnoreError) {
+        throw reason;
+      }
+    });
   }
 
   unstage(files: string[]) {
@@ -872,7 +911,8 @@ export class GitClient {
 
   public parseCommitString(text) {
     let result: CommitSummaryModel[] = [];
-    let commitList = /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
+    let commitList =
+      /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
     let match = commitList.exec(text);
 
     let currentBranch = 0;
@@ -1178,8 +1218,10 @@ export class GitClient {
     text: string,
     state: DiffHeaderStagedState,
   ): DiffHeaderModel[] {
-    let diffHeader = /^diff (--git a\/((\s*\S+)+?) b\/((\s*\S+)+?)|--cc ((\s*\S+)+?))((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
-    let hunk = /\s*@@@?( -(\d+)(,(\d+))?){1,2} \+(\d+)(,(\d+))? @@@?.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
+    let diffHeader =
+      /^diff (--git a\/((\s*\S+)+?) b\/((\s*\S+)+?)|--cc ((\s*\S+)+?))((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
+    let hunk =
+      /\s*@@@?( -(\d+)(,(\d+))?){1,2} \+(\d+)(,(\d+))? @@@?.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
     let line = /^([+\- ])(.*)$/gm;
     let headerMatch = diffHeader.exec(text);
     let result: DiffHeaderModel[] = [];

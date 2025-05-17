@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { ChangeType, LightChange } from '../../../../shared/git/Commit.model';
 import { SettingsService } from '../../services/settings.service';
 import { SubmoduleModel } from '../../../../shared/git/submodule.model';
+import { ClipboardService } from '../../services/clipboard.service';
 
 @Component({
   selector: 'app-change-list',
@@ -24,7 +25,10 @@ export class ChangeListComponent {
   selectAll = false;
   lastClicked: string;
 
-  constructor(public settingsService: SettingsService) {}
+  constructor(
+    public settingsService: SettingsService,
+    public clipboardService: ClipboardService,
+  ) {}
 
   _changes: LightChange[];
 
