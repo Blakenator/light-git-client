@@ -1,0 +1,44 @@
+.command-title {
+  &.fa-exclamation-triangle {
+    color: rgba(225, 128, 128, 0.5);
+  }
+
+  &.fa-check-circle {
+    color: rgba(128, 225, 128, 0.5);
+  }
+}
+
+.command-output {
+  max-height: 6em;
+  overflow-y: hidden;
+  transition: max-height 0.5s;
+  margin-bottom: 0;
+
+  &:hover {
+    max-height: 20em;
+    overflow-y: auto;
+  }
+}
+
+.card-body {
+  padding: 0.3em;
+  margin: 0;
+}
+
+:host::ng-deep.command-viewer {
+  max-height: 80vh;
+  width: 50vw;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+pre {
+  background-color: rgba(128, 128, 128, 0.2);
+  border-radius: 0.5em;
+  padding: 0.5em;
+  margin: 0;
+}

@@ -60,6 +60,7 @@ import { AgeInfoComponent } from './common/components/age-info/age-info.componen
 import { MergeBranchDropdownComponent } from './components/merge-branch/merge-branch-dropdown/merge-branch-dropdown.component';
 import { PreCommitStatusModalComponent } from './common/components/pre-commit-status-modal/pre-commit-status-modal.component';
 import { ActiveJobsComponent } from './components/active-jobs/active-jobs.component';
+import { CommandHistoryComponent } from './components/command-history/command-history.component';
 
 @NgModule({
   declarations: [
@@ -103,6 +104,7 @@ import { ActiveJobsComponent } from './components/active-jobs/active-jobs.compon
     AgeInfoComponent,
     MergeBranchDropdownComponent,
     ActiveJobsComponent,
+    CommandHistoryComponent,
   ],
   imports: [
     BrowserModule,

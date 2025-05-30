@@ -69,7 +69,6 @@ export class RepoViewComponent implements OnDestroy {
   selectedAutocompleteItem = 0;
   suggestions: string[] = [];
   positionInAutoComplete: number;
-  commandHistory: CommandHistoryModel[];
   maxCommandsVisible = 10;
   commandsPerPage = 10;
   debounceRefreshTimer: number;
@@ -101,7 +100,7 @@ export class RepoViewComponent implements OnDestroy {
 
   constructor(
     private electronService: ElectronService,
-    private settingsService: SettingsService,
+    public settingsService: SettingsService,
     private errorService: ErrorService,
     public loadingService: LoadingService,
     public codeWatcherService: CodeWatcherService,
@@ -113,13 +112,6 @@ export class RepoViewComponent implements OnDestroy {
     private gitService: GitService,
   ) {
     this.globalErrorHandlerService = <GlobalErrorHandlerService>errorHandler;
-    this.gitService.onCommandHistoryUpdated
-      .asObservable()
-      .pipe(takeUntil(this.$destroy))
-      .subscribe((history) => {
-        this.commandHistory = history;
-        this.changeDetectorRef.detectChanges();
-      });
     this.gitService.onCrlfError
       .pipe(takeUntil(this.$destroy))
       .subscribe((status) => {
@@ -725,24 +717,6 @@ export class RepoViewComponent implements OnDestroy {
       });
   }
 
-  getCommandHistory() {
-    this.jobSchedulerService
-      .scheduleSimpleOperation(this.gitService.getCommandHistory())
-      .result.then((history) => {
-        this.commandHistory = history;
-        this.changeDetectorRef.detectChanges();
-      })
-      .catch((err) =>
-        this.handleErrorMessage(
-          new ErrorModel(
-            this._errorClassLocation + 'getCommandHistory',
-            'fetching git command history',
-            err,
-          ),
-        ),
-      );
-  }
-
   toggleExpandState(key: string) {
     this.settingsService.settings.expandStates[key] =
       !this.settingsService.settings.expandStates[key];
@@ -877,7 +851,9 @@ export class RepoViewComponent implements OnDestroy {
 
   createBranch(branchName: string) {
     this.simpleOperation(
-      this.gitService.createBranch(branchName),
+      this.gitService.createBranch(
+        (this.settingsService.settings.branchNamePrefix || '') + branchName,
+      ),
       'createBranch',
       'creating the branch',
     );
@@ -1017,10 +993,6 @@ export class RepoViewComponent implements OnDestroy {
 
   setAddWorktreeVisible(val: boolean) {
     this.showModal('addWorktree', val);
-  }
-
-  getCommandHistoryFilterableText(command: CommandHistoryModel) {
-    return command.name + command.command;
   }
 
   handleErrorMessage(error: ErrorModel) {

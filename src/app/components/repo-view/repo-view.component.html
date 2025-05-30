@@ -368,33 +368,10 @@
           [(ngModel)]="commandHistoryFilter"
         />
       </ng-template>
-      <div class="card-body" *ngIf="commandHistory">
-        <div
-          *ngFor="
-            let c of commandHistory.slice().reverse()
-              | filterObject
-                : getCommandHistoryFilterableText
-                : commandHistoryFilter
-              | slice: 0:maxCommandsVisible
-          "
-        >
-          <span class="command-title"
-            ><i
-              class="fa {{
-                c.isError ? 'fa-exclamation-triangle' : 'fa-check-circle'
-              }}"
-            ></i>
-            <i>{{ c.name }}</i> ({{ c.durationMs }} ms @
-            {{ c.executedAt | date: 'mediumTime' }})</span
-          >
-          <pre>$ {{ c.command }}</pre>
-          <pre class="p-2 bg-light command-output">
-    Output Characters 0-6000:
-            {{ (c.errorOutput || c.output).substring(0, 6000) }}</pre
-          >
-          <hr />
-        </div>
-      </div>
+      <app-command-history
+        [commandHistoryFilter]="commandHistoryFilter"
+        [uidSalt]="repoViewUid"
+      ></app-command-history>
     </app-layout-card>
   </div>
   <div class="col-sm col-md-4 d-flex flex-column mb-1 repo-column px-1">
@@ -743,6 +720,7 @@
     validPattern="[a-zA-Z0-9/-]*[a-zA-Z0-9-]"
     invalidMessage="Please enter a valid branch name"
     inputPlaceholder="Branch name..."
+    [inputPrepend]="settingsService.settings.branchNamePrefix"
     [replaceChars]="branchReplaceChars"
     (onClickOk)="createBranch($event)"
   ></app-input-modal>
