@@ -13,6 +13,7 @@ export class InputModalComponent {
   @Input() replaceChars: { match: RegExp; with: string };
   @Input() uidSalt: string | number = '';
   @Input() inputPlaceholder = '';
+  @Input() inputPrepend = '';
   @Input() validPattern = '';
   @Input() invalidMessage = '';
   @Input() defaultText = '';

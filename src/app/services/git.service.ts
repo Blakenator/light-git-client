@@ -801,11 +801,14 @@ export class GitService {
       ],
       command: Channels.CHANGEACTIVEOPERATION,
       execute: () =>
-        this.electronService.rpc(Channels.CHANGEACTIVEOPERATION, [
-          this.getRepo().path,
-          op,
-          abort,
-        ]),
+        this._precommitStatusListener.detect(
+          this.electronService.rpc(Channels.CHANGEACTIVEOPERATION, [
+            this.getRepo().path,
+            op,
+            abort,
+          ]),
+          true,
+        ),
     });
   }
 

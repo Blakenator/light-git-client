@@ -1,221 +1,299 @@
-<button class="btn btn-secondary center-text-vertical mx-2" ngbTooltip="App Settings"
-        (click)="copyTempSettings()">
-    <i class="material-icons">settings</i>
-    <span class="ml-1">Settings</span>
+<button
+  class="btn btn-secondary center-text-vertical mx-2"
+  ngbTooltip="App Settings"
+  (click)="copyTempSettings()"
+>
+  <i class="material-icons">settings</i>
+  <span class="ml-1">Settings</span>
 </button>
-<app-modal modalTitle="Settings"
-           modalTitleIcon="fa-cog"
-           modalId="settings"
-           affirmativeButtonText="Save"
-           (onFinish)="saveSettings()"
-           (onCancel)="cancelChanges()"
-           modalClass="dialog-wide"
-           [affirmativeButtonDisabled]="saveDisabledReason()">
-    <div *ngIf="tempSettings">
-        <div class="btn-group">
-            <div *ngFor="let tab of tabs;let i = index"
-                 class="btn btn-secondary"
-                 [ngClass]="{'settings-tab':true,active:currentTab==i}"
-                 (click)="currentTab=i">{{tab}}</div>
-        </div>
-        <div *ngIf="currentTab==0">
-            <div>
-                Light Git <span class="badge badge-pill badge-info mx-1">v{{version}}</span>
-                <button class="btn btn-sm btn-primary ml-4 d-inline-flex align-items-center"
-                        *ngIf="!isUpdateDownloaded"
-                        (click)="checkForUpdates()">
-                    Check for Updates
-                    <i class="fa fa-sync"></i>
-                </button>
-                <div class="d-inline-block ml-4" *ngIf="isUpdateDownloaded">
-                    New update available!
-                    <button class="btn btn-sm btn-warning ml-2 d-inline-flex align-items-center">
-                        <i class="fa fa-arrow-circle-up"></i>
-                        Update to
-                        <span class="badge badge-pill badge-info mx-1">v{{downloadedUpdateVersion}}</span>
-                    </button>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-6">
-                    <div class="my-2">
-                        <app-pretty-checkbox [(value)]="tempSettings.allowPrerelease">
-                            Bleeding Edge Builds
-                        </app-pretty-checkbox>
-                    </div>
-                    <div class="my-2">
-                        <app-pretty-checkbox [(value)]="tempSettings.darkMode" (valueChange)="setThemeTemp()">
-                            {{tempSettings.darkMode ? 'Dark' : 'Light'}} Mode
-                        </app-pretty-checkbox>
-                    </div>
-                    <div class="my-2">
-                        <app-pretty-checkbox [(value)]="tempSettings.showTrackingPath">
-                            Show branch tracking path
-                        </app-pretty-checkbox>
-                    </div>
-                    <div class="my-2">
-                        <app-pretty-checkbox [(value)]="tempSettings.rebasePull">
-                            Pull with rebase
-                        </app-pretty-checkbox>
-                    </div>
-                    <div class="my-2">
-                        <app-pretty-checkbox [(value)]="tempSettings.commitMessageAutocomplete">
-                            Show autocomplete when typing commit message
-                        </app-pretty-checkbox>
-                    </div>
-                    <div class="my-2">
-                        <app-pretty-checkbox [(value)]="tempSettings.allowStats">
-                            Send anonymized statistics to help improve Light-Git
-                        </app-pretty-checkbox>
-                    </div>
-                    <div class="my-2">
-                        <app-pretty-checkbox [(value)]="tempSettings.airplaneMode">
-                            <i class="fa fa-plane d-inline"></i> Airplane Mode
-                        </app-pretty-checkbox>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <app-file-input [(filePath)]="tempSettings.gitPath"
-                                    [label]="'Git Path (required if not in PATH)'"></app-file-input>
-                    <app-file-input [(filePath)]="tempSettings.bashPath"
-                                    [label]="'Bash Path (required if not in PATH)'"></app-file-input>
-                </div>
-            </div>
-            <app-pretty-checkbox [(value)]="advanced">Advanced</app-pretty-checkbox>
-            <div *ngIf="advanced">
-                <label>Command timeout</label>
-                <div class="input-group">
-                    <input class="form-control form-control-sm" [(ngModel)]="tempSettings.commandTimeoutSeconds">
-                    <div class="input-group-append">
-                        <span class="input-group-text">s</span>
-                    </div>
-                </div>
-                <button class="btn btn-light" (click)="openDevTools()"><i class="fa fa-bug"></i> Debugger</button>
-            </div>
-        </div>
-        <div *ngIf="currentTab==1">
-            <app-code-watcher-config [tempSettings]="tempSettings"></app-code-watcher-config>
-        </div>
-        <div *ngIf="currentTab==2">
-            <div class="row">
-                <div class="col-6">
-                    <div class="form-group">
-                        <label>Display Name</label>
-                        <input class="form-control" [(ngModel)]="tempSettings.username">
-                    </div>
-                    <div class="form-group">
-                        <label>Display Email</label>
-                        <input class="form-control" [(ngModel)]="tempSettings.email">
-                    </div>
-                    <app-pretty-checkbox [(value)]="setGlobalDefaultUserConfig">
-                        Set as Global Defaults
-                    </app-pretty-checkbox>
-                    <hr/>
-                    <div class="form-group">
-                        <div>Credential Helper</div>
-                        <small class="error-message"
-                               *ngIf="credentialHelper=='osxkeychain'||credentialHelper=='wincred'">
-                            <span *ngIf="credentialHelper=='osxkeychain'">Warning: This only works on Mac</span>
-                            <span *ngIf="credentialHelper=='wincred'">Warning: This only works on Windows</span>
-                        </small>
-                        <select class="form-control" [(ngModel)]="credentialHelper">
-                            <option value="cache">Cache</option>
-                            <option value="store">Unencrypted</option>
-                            <option value="osxkeychain">OSX Keychain</option>
-                            <option value="wincred">Windows Credential Manager</option>
-                        </select>
-                    </div>
-                    <div class="form-group" *ngIf="credentialHelper=='cache'">
-                        <label>Cache Timeout</label>
-                        <div class="input-group">
-                            <input class="form-control" [(ngModel)]="cacheHelperSeconds" pattern="^\d+$">
-                            <div class="input-group-append">
-                                <span class="input-group-text">seconds</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="form-group">
-                        <label>Mergetool Name</label>
-                        <input class="form-control" [(ngModel)]="mergetoolName">
-                    </div>
-                    <div class="form-group">
-                        <div>Mergetool Command</div>
-                        <small>Supports <code>$BASE $LOCAL $MERGED $REMOTE</code></small>
-                        <input class="form-control" [(ngModel)]="mergetoolCommand">
-                    </div>
-                    <app-pretty-checkbox [(value)]="setGlobalDefaultMergetoolConfig">
-                        Set as Global Default
-                    </app-pretty-checkbox>
-                </div>
-            </div>
-        </div>
-        <div *ngIf="currentTab==3">
-            <input class="form-control" [(ngModel)]="filter" placeholder="Filter...">
-            <table class="table table-striped">
-                <thead>
-                <tr>
-                    <th>Key</th>
-                    <th>Value</th>
-                    <th>Location</th>
-                    <th width="1%"></th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr *ngFor="let item of configItems | filterObject : 'key' : filter">
-                    <td class="editable-item" (click)="startEdit(item,true)">
-                        <div *ngIf="!isEditing(item) || !clickedKey"
-                             class="d-flex align-items-center justify-content-between">
-                            {{item.key}}
-                            <i class="material-icons">edit</i>
-                        </div>
-                        <input class="form-control"
-                               *ngIf="isEditing(item) && clickedKey"
-                               (keyup.enter)="saveConfigItem(item,item)"
-                               (blur)="saveConfigItem(item,item)"
-                               (keydown.tab)="clickedKey=false"
-                               (keydown.escape)="cancelEdit()"
-                               [(ngModel)]="editedItem.key"
-                               [autofocus]>
-                    </td>
-                    <td class="editable-item" (click)="startEdit(item,false)">
-                        <div *ngIf="!isEditing(item)|| clickedKey"
-                             class="d-flex align-items-center justify-content-between">
-                            {{item.value}}
-                            <i class="material-icons">edit</i>
-                        </div>
-                        <input class="form-control"
-                               *ngIf="isEditing(item) && !clickedKey"
-                               (keyup.enter)="saveConfigItem(item)"
-                               (blur)="saveConfigItem(item)"
-                               (keydown.shift.tab)="clickedKey=true"
-                               (keydown.tab)="nextTabRow(item)"
-                               (keydown.escape)="cancelEdit()"
-                               [(ngModel)]="editedItem.value"
-                               [autofocus]>
-                    </td>
-                    <td>{{getConfigFileDisplay(item.sourceFile)}}</td>
-                    <td>
-                        <button class="table-btn btn btn-outline-danger" (click)="deleteConfigItem(item)">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-                <tr class="editable-item" (click)="newItem()">
-                    <td class="text-muted" colspan="4">New Item...</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+<app-modal
+  modalTitle="Settings"
+  modalTitleIcon="fa-cog"
+  modalId="settings"
+  affirmativeButtonText="Save"
+  (onFinish)="saveSettings()"
+  (onCancel)="cancelChanges()"
+  modalClass="dialog-wide"
+  [affirmativeButtonDisabled]="saveDisabledReason()"
+>
+  <div *ngIf="tempSettings">
+    <div class="btn-group">
+      <div
+        *ngFor="let tab of tabs; let i = index"
+        class="btn btn-secondary"
+        [ngClass]="{ 'settings-tab': true, active: currentTab == i }"
+        (click)="currentTab = i"
+      >
+        {{ tab }}
+      </div>
     </div>
+    <div *ngIf="currentTab == 0">
+      <div>
+        Light Git
+        <span class="badge badge-pill badge-info mx-1">v{{ version }}</span>
+        <button
+          class="btn btn-sm btn-primary ml-4 d-inline-flex align-items-center"
+          *ngIf="!isUpdateDownloaded"
+          (click)="checkForUpdates()"
+        >
+          Check for Updates
+          <i class="fa fa-sync"></i>
+        </button>
+        <div class="d-inline-block ml-4" *ngIf="isUpdateDownloaded">
+          New update available!
+          <button
+            class="btn btn-sm btn-warning ml-2 d-inline-flex align-items-center"
+          >
+            <i class="fa fa-arrow-circle-up"></i>
+            Update to
+            <span class="badge badge-pill badge-info mx-1"
+              >v{{ downloadedUpdateVersion }}</span
+            >
+          </button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.allowPrerelease">
+              Bleeding Edge Builds
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
+            <app-pretty-checkbox
+              [(value)]="tempSettings.darkMode"
+              (valueChange)="setThemeTemp()"
+            >
+              {{ tempSettings.darkMode ? 'Dark' : 'Light' }} Mode
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.showTrackingPath">
+              Show branch tracking path
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.rebasePull">
+              Pull with rebase
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
+            <app-pretty-checkbox
+              [(value)]="tempSettings.commitMessageAutocomplete"
+            >
+              Show autocomplete when typing commit message
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.allowStats">
+              Send anonymized statistics to help improve Light-Git
+            </app-pretty-checkbox>
+          </div>
+          <div class="my-2">
+            <app-pretty-checkbox [(value)]="tempSettings.airplaneMode">
+              <i class="fa fa-plane d-inline"></i> Airplane Mode
+            </app-pretty-checkbox>
+          </div>
+        </div>
+        <div class="col-6 d-flex flex-column g-3">
+          <app-file-input
+            [(filePath)]="tempSettings.gitPath"
+            [label]="'Git Path (required if not in PATH)'"
+          ></app-file-input>
+          <app-file-input
+            [(filePath)]="tempSettings.bashPath"
+            [label]="'Bash Path (required if not in PATH)'"
+          ></app-file-input>
+          <div class="form-group">
+            <label for="branch-prefix">Branch Name Prefix</label>
+            <input
+              class="form-control"
+              id="branch-prefix"
+              placeholder="No prefix"
+              [(ngModel)]="tempSettings.branchNamePrefix"
+            />
+          </div>
+        </div>
+      </div>
+      <app-pretty-checkbox [(value)]="advanced">Advanced</app-pretty-checkbox>
+      <div *ngIf="advanced">
+        <label>Command timeout</label>
+        <div class="input-group">
+          <input
+            class="form-control form-control-sm"
+            [(ngModel)]="tempSettings.commandTimeoutSeconds"
+          />
+          <div class="input-group-append">
+            <span class="input-group-text">s</span>
+          </div>
+        </div>
+        <button class="btn btn-light" (click)="openDevTools()">
+          <i class="fa fa-bug"></i> Debugger
+        </button>
+      </div>
+    </div>
+    <div *ngIf="currentTab == 1">
+      <app-code-watcher-config
+        [tempSettings]="tempSettings"
+      ></app-code-watcher-config>
+    </div>
+    <div *ngIf="currentTab == 2">
+      <div class="row">
+        <div class="col-6">
+          <div class="form-group">
+            <label>Display Name</label>
+            <input class="form-control" [(ngModel)]="tempSettings.username" />
+          </div>
+          <div class="form-group">
+            <label>Display Email</label>
+            <input class="form-control" [(ngModel)]="tempSettings.email" />
+          </div>
+          <app-pretty-checkbox [(value)]="setGlobalDefaultUserConfig">
+            Set as Global Defaults
+          </app-pretty-checkbox>
+          <hr />
+          <div class="form-group">
+            <div>Credential Helper</div>
+            <small
+              class="error-message"
+              *ngIf="
+                credentialHelper == 'osxkeychain' ||
+                credentialHelper == 'wincred'
+              "
+            >
+              <span *ngIf="credentialHelper == 'osxkeychain'"
+                >Warning: This only works on Mac</span
+              >
+              <span *ngIf="credentialHelper == 'wincred'"
+                >Warning: This only works on Windows</span
+              >
+            </small>
+            <select class="form-control" [(ngModel)]="credentialHelper">
+              <option value="cache">Cache</option>
+              <option value="store">Unencrypted</option>
+              <option value="osxkeychain">OSX Keychain</option>
+              <option value="wincred">Windows Credential Manager</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="credentialHelper == 'cache'">
+            <label>Cache Timeout</label>
+            <div class="input-group">
+              <input
+                class="form-control"
+                [(ngModel)]="cacheHelperSeconds"
+                pattern="^\d+$"
+              />
+              <div class="input-group-append">
+                <span class="input-group-text">seconds</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label>Mergetool Name</label>
+            <input class="form-control" [(ngModel)]="mergetoolName" />
+          </div>
+          <div class="form-group">
+            <div>Mergetool Command</div>
+            <small>Supports <code>$BASE $LOCAL $MERGED $REMOTE</code></small>
+            <input class="form-control" [(ngModel)]="mergetoolCommand" />
+          </div>
+          <app-pretty-checkbox [(value)]="setGlobalDefaultMergetoolConfig">
+            Set as Global Default
+          </app-pretty-checkbox>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="currentTab == 3">
+      <input
+        class="form-control"
+        [(ngModel)]="filter"
+        placeholder="Filter..."
+      />
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Value</th>
+            <th>Location</th>
+            <th width="1%"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of configItems | filterObject: 'key':filter">
+            <td class="editable-item" (click)="startEdit(item, true)">
+              <div
+                *ngIf="!isEditing(item) || !clickedKey"
+                class="d-flex align-items-center justify-content-between"
+              >
+                {{ item.key }}
+                <i class="material-icons">edit</i>
+              </div>
+              <input
+                class="form-control"
+                *ngIf="isEditing(item) && clickedKey"
+                (keyup.enter)="saveConfigItem(item, item)"
+                (blur)="saveConfigItem(item, item)"
+                (keydown.tab)="clickedKey = false"
+                (keydown.escape)="cancelEdit()"
+                [(ngModel)]="editedItem.key"
+                [autofocus]
+              />
+            </td>
+            <td class="editable-item" (click)="startEdit(item, false)">
+              <div
+                *ngIf="!isEditing(item) || clickedKey"
+                class="d-flex align-items-center justify-content-between"
+              >
+                {{ item.value }}
+                <i class="material-icons">edit</i>
+              </div>
+              <input
+                class="form-control"
+                *ngIf="isEditing(item) && !clickedKey"
+                (keyup.enter)="saveConfigItem(item)"
+                (blur)="saveConfigItem(item)"
+                (keydown.shift.tab)="clickedKey = true"
+                (keydown.tab)="nextTabRow(item)"
+                (keydown.escape)="cancelEdit()"
+                [(ngModel)]="editedItem.value"
+                [autofocus]
+              />
+            </td>
+            <td>{{ getConfigFileDisplay(item.sourceFile) }}</td>
+            <td>
+              <button
+                class="table-btn btn btn-outline-danger"
+                (click)="deleteConfigItem(item)"
+              >
+                <i class="fa fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          <tr class="editable-item" (click)="newItem()">
+            <td class="text-muted" colspan="4">New Item...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </app-modal>
-<app-modal modalId="stats"
-           modalTitle="Send Anonymized Usage Data"
-           affirmativeButtonText="Yes"
-           negativeButtonText="No"
-           modalTitleIcon="fa-chart-line"
-           (onCancel)="settingsService.settings.allowStats=false;settingsService.saveSettings()"
-           (onFinish)="settingsService.settings.allowStats=true;settingsService.saveSettings()">
-    <div>Can we automatically collect anonymized usage data and errors to help improve Light-Git?</div>
+<app-modal
+  modalId="stats"
+  modalTitle="Send Anonymized Usage Data"
+  affirmativeButtonText="Yes"
+  negativeButtonText="No"
+  modalTitleIcon="fa-chart-line"
+  (onCancel)="
+    settingsService.settings.allowStats = false; settingsService.saveSettings()
+  "
+  (onFinish)="
+    settingsService.settings.allowStats = true; settingsService.saveSettings()
+  "
+>
+  <div>
+    Can we automatically collect anonymized usage data and errors to help
+    improve Light-Git?
+  </div>
 </app-modal>
