@@ -7,18 +7,24 @@
   (onOpen)="value = ''"
 >
   <p>{{ message }}</p>
-  <input
-    class="form-control"
-    *ngIf="modalService.getSetVisibleListener(modalId + uidSalt).getValue()"
-    [(ngModel)]="value"
-    [placeholder]="inputPlaceholder"
-    [pattern]="validPattern"
-    (keyup)="checkValid()"
-    [autofocus]
-    (keyup.enter)="okClicked()"
-    (keyup.control.enter)="okClicked()"
-    (keyup.meta.enter)="okClicked()"
-  />
+
+  <div class="input-group">
+    <div class="input-group-prepend" *ngIf="inputPrepend">
+      <span class="input-group-text">{{ inputPrepend }}</span>
+    </div>
+    <input
+      class="form-control"
+      *ngIf="modalService.getSetVisibleListener(modalId + uidSalt).getValue()"
+      [(ngModel)]="value"
+      [placeholder]="inputPlaceholder"
+      [pattern]="validPattern"
+      (keyup)="checkValid()"
+      [autofocus]
+      (keyup.enter)="okClicked()"
+      (keyup.control.enter)="okClicked()"
+      (keyup.meta.enter)="okClicked()"
+    />
+  </div>
   <p *ngIf="errorMessage" class="error-message">
     <i class="fa fa-exclamation-circle mr-2"></i>{{ errorMessage }}
   </p>

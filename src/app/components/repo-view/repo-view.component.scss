@@ -44,28 +44,6 @@
   }
 }
 
-.command-output {
-  max-height: 6em;
-  overflow-y: hidden;
-  transition: max-height 0.5s;
-  margin-bottom: 0;
-
-  &:hover {
-    max-height: 20em;
-    overflow-y: auto;
-  }
-}
-
-.command-title {
-  .fa-exclamation-triangle {
-    color: rgba(225, 128, 128, 0.5);
-  }
-
-  .fa-check-circle {
-    color: rgba(128, 225, 128, 0.5);
-  }
-}
-
 .crlf-warning {
   position: absolute;
   bottom: 100%;
