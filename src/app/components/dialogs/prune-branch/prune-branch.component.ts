@@ -41,7 +41,7 @@ export class PruneBranchComponent implements OnInit {
     this.branchesByMerge = this.localBranches
       .filter(
         (branch) =>
-          !branch.trackingPath &&
+          (!branch.trackingPath || branch.isTrackingPathGone) &&
           !branch.isCurrentBranch &&
           branch.name !== 'master' &&
           (!this.searchText ||
@@ -111,5 +111,10 @@ export class PruneBranchComponent implements OnInit {
       this.selectedBranchesSet.add(branch.name);
       this.selectedBranches.push(branch);
     }
+  }
+
+  selectAll(allBranches: BranchModel[]) {
+    this.selectedBranchesSet = new Set(allBranches.map(({ name }) => name));
+    this.selectedBranches = allBranches.slice();
   }
 }

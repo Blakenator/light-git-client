@@ -194,7 +194,10 @@ export class BranchTreeItemComponent implements OnInit {
   }
 
   getTrackingMode(branch: BranchModel) {
-    if (branch.trackingPath.indexOf('origin/') === 0) {
+    if (
+      branch.trackingPath.indexOf('origin/') === 0 &&
+      !branch.isTrackingPathGone
+    ) {
       return TrackingMode.remote;
     } else if (branch.isTrackingPathGone) {
       return TrackingMode.broken;
