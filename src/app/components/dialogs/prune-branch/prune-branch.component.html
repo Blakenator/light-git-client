@@ -45,19 +45,31 @@
           </select>
         </div>
       </div>
-      <input
-        class="form-control flex-grow-1"
-        [(ngModel)]="searchText"
-        placeholder="Search..."
-        (ngModelChange)="updateBranchesByAge(); updateBranchesByMerge()"
-      />
       <div *ngIf="getActiveBranchList() as branches">
+        <div class="d-flex g-2">
+          <input
+            class="form-control flex-grow-1"
+            [(ngModel)]="searchText"
+            placeholder="Search..."
+            (ngModelChange)="updateBranchesByAge(); updateBranchesByMerge()"
+          />
+          <button class="btn btn-primary" (click)="selectAll(branches)">
+            Select All
+          </button>
+        </div>
         <div class="list-group my-2" *ngIf="branches.length > 0">
           <div
             *ngFor="let b of branches; let i = index"
             class="list-group-item d-flex align-items-center py-1 pr-1"
           >
-            <span class="flex-grow-1">{{ b.name }}</span>
+            <div class="d-flex align-items-center g-2 flex-grow-1">
+              <span>{{ b.name }}</span>
+              <i
+                class="fa fa-unlink text-warning"
+                *ngIf="b.isTrackingPathGone"
+                ngbTooltip="Remote branch no longer exists"
+              ></i>
+            </div>
             <div class="ml-2 mr-3">
               {{ getAgeString(b) }}
               <i class="fa fa-stopwatch"></i>

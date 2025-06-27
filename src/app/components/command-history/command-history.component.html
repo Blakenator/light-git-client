@@ -80,6 +80,14 @@
       <div class="card-header">
         <i class="fa fa-check-circle"></i>
         <span>Standard Output</span>
+        <span class="flex-grow-1"></span>
+        <button
+          class="btn btn-light btn-sm"
+          *ngIf="activeCommand.output?.trim()"
+          (click)="clipboardService.copy(activeCommand.output)"
+        >
+          <i class="fa fa-copy"></i>
+        </button>
       </div>
       <div class="card-body p-3">
         <i class="p-2" *ngIf="!activeCommand.output?.trim()"
@@ -94,6 +102,14 @@
       <div class="card-header">
         <i class="fa fa-exclamation-triangle"></i>
         <span>Error Output</span>
+        <span class="flex-grow-1"></span>
+        <button
+          class="btn btn-light btn-sm"
+          *ngIf="activeCommand.errorOutput?.trim()"
+          (click)="clipboardService.copy(activeCommand.errorOutput)"
+        >
+          <i class="fa fa-copy"></i>
+        </button>
       </div>
       <div class="card-body p-3">
         <i class="p-2" *ngIf="!activeCommand.errorOutput?.trim()"
