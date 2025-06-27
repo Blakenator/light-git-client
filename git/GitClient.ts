@@ -912,7 +912,7 @@ export class GitClient {
   public parseCommitString(text) {
     let result: CommitSummaryModel[] = [];
     let commitList =
-      /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.+?)\|(.+?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
+      /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.*?)\|(.*?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
     let match = commitList.exec(text);
 
     let currentBranch = 0;
