@@ -74,13 +74,15 @@ export class MarkdownEditorComponent
   private configureQuillModules(): void {
     this.quillModules = {
       toolbar: false,
-      syntax: false, // Disable syntax highlighting
+      syntax: false, // Disable syntax highlighting bc highlight is required somehow
+      clipboard: {
+        matchVisual: true,
+      },
     };
   }
 
   // Handle editor content changes
   onEditorContentChanged(event: any): void {
-    const text = event.text || '';
     const html = event.html || '';
 
     this.content = this.markdownConverter.makeMarkdown(html);
