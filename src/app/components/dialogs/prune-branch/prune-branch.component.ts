@@ -4,9 +4,10 @@ import { ModalService } from '../../../common/services/modal.service';
 import { FilterPipe } from '../../../common/pipes/filter.pipe';
 
 @Component({
-  selector: 'app-prune-branch',
-  templateUrl: './prune-branch.component.html',
-  styleUrls: ['./prune-branch.component.scss'],
+    selector: 'app-prune-branch',
+    templateUrl: './prune-branch.component.html',
+    styleUrls: ['./prune-branch.component.scss'],
+    standalone: false
 })
 export class PruneBranchComponent implements OnInit {
   @Input() localBranches: BranchModel[];

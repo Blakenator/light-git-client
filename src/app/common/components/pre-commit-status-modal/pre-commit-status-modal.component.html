@@ -5,26 +5,34 @@
       <span class="mx-2">A Pre-commit Error Occurred</span>
     </h5>
   </div>
-  <div class="modal-body" *ngIf="status">
-    <pre *ngIf="status.note" class="mb-2 error-block">{{ status.note }}</pre>
-    <div
-      *ngFor="let rule of status.rules; let i = index"
-      class="d-flex flex-column mb-2 p-2 rule-block"
-      [ngClass]="rule.status !== status.rules[i - 1]?.status ? 'mt-4' : ''"
-    >
-      <div class="d-flex flex-row align-items-center">
-        <i class="fas mr-2" [ngClass]="getStatusIconClasses(rule)"></i>
-        <div class="flex-grow-1">{{ rule.name }}</div>
-        <div *ngIf="rule.status === 'Skipped'">{{ rule.error }}</div>
+  @if (status) {
+    <div class="modal-body">
+      @if (status.note) {
+        <pre class="mb-2 error-block">{{ status.note }}</pre>
+      }
+      @for (rule of status.rules; track rule; let i = $index) {
+        <div
+          class="d-flex flex-column mb-2 p-2 rule-block"
+          [ngClass]="rule.status !== status.rules[i - 1]?.status ? 'mt-4' : ''"
+          >
+          <div class="d-flex flex-row align-items-center">
+            <i class="fas mr-2" [ngClass]="getStatusIconClasses(rule)"></i>
+            <div class="flex-grow-1">{{ rule.name }}</div>
+            @if (rule.status === 'Skipped') {
+              <div>{{ rule.error }}</div>
+            }
+          </div>
+          @if (rule.error && rule.status === 'Failed') {
+            <pre
+              class="error-block m-0"
+              >{{ rule.error }}</pre
+              >
+            }
+          </div>
+        }
       </div>
-      <pre
-        *ngIf="rule.error && rule.status === 'Failed'"
-        class="error-block m-0"
-        >{{ rule.error }}</pre
-      >
+    }
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="close()" [autofocus]>Ok</button>
     </div>
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-secondary" (click)="close()" [autofocus]>Ok</button>
-  </div>
-</app-modal>
+  </app-modal>

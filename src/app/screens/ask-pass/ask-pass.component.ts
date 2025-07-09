@@ -2,9 +2,10 @@ import {ApplicationRef, Component, OnInit} from '@angular/core';
 import {ElectronService} from '../../common/services/electron.service';
 
 @Component({
-  selector: 'app-ask-pass',
-  templateUrl: './ask-pass.component.html',
-  styleUrls: ['./ask-pass.component.scss'],
+    selector: 'app-ask-pass',
+    templateUrl: './ask-pass.component.html',
+    styleUrls: ['./ask-pass.component.scss'],
+    standalone: false
 })
 export class AskPassComponent implements OnInit {
   username = '';

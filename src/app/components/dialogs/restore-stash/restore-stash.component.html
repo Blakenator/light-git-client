@@ -1,48 +1,64 @@
 <app-modal [modalId]="modalId"
-           (onFinish)="restoreStash()"
-           modalTitle="Restore Deleted Stash"
-           [affirmativeButtonDisabled]="!selectedStash"
-           affirmativeButtonText="Restore">
-    <app-loading-spinner class="m-5" [show]="!availableStashes"></app-loading-spinner>
-    <div *ngIf="availableStashes">
-        <div class="alert alert-secondary mb-2 mt-0">
-            <div *ngIf="!selectedStash">Select a stash to restore</div>
-            <div *ngIf="selectedStash" class="d-flex">
-                <div class="flex-grow-1">
-                    <div class="d-flex">
-                        <div class="flex-grow-1">Selected Stash:</div>
-                        <app-age-info [date]="selectedStash.authorDate"></app-age-info>
-                    </div>
-                    <pre class="mt-2 mb-1">{{selectedStash.hash}}</pre>
-                    <pre>{{selectedStash.message}}</pre>
-                </div>
-                <div>
-                    <button class="btn btn-primary" (click)="selectedStash=undefined">Change</button>
-                </div>
+  (onFinish)="restoreStash()"
+  modalTitle="Restore Deleted Stash"
+  [affirmativeButtonDisabled]="!selectedStash"
+  affirmativeButtonText="Restore">
+  <app-loading-spinner class="m-5" [show]="!availableStashes"></app-loading-spinner>
+  @if (availableStashes) {
+    <div>
+      <div class="alert alert-secondary mb-2 mt-0">
+        @if (!selectedStash) {
+          <div>Select a stash to restore</div>
+        }
+        @if (selectedStash) {
+          <div class="d-flex">
+            <div class="flex-grow-1">
+              <div class="d-flex">
+                <div class="flex-grow-1">Selected Stash:</div>
+                <app-age-info [date]="selectedStash.authorDate"></app-age-info>
+              </div>
+              <pre class="mt-2 mb-1">{{selectedStash.hash}}</pre>
+              <pre>{{selectedStash.message}}</pre>
             </div>
+            <div>
+              <button class="btn btn-primary" (click)="selectedStash=undefined">Change</button>
+            </div>
+          </div>
+        }
+      </div>
+      @if (selectedStash) {
+        <div class="d-flex alert alert-warning align-items-center">
+          <i class="fa fa-exclamation-triangle"></i>
+          <div class="d-flex flex-column justify-content-center flex-grow-1">
+            <div>This will create the branch</div>
+            <div class="badge badge-info">restored-stash/{{selectedStash.hash}}</div>
+          </div>
         </div>
-        <div *ngIf="selectedStash" class="d-flex alert alert-warning align-items-center">
-            <i class="fa fa-exclamation-triangle"></i>
-            <div class="d-flex flex-column justify-content-center flex-grow-1">
-                <div>This will create the branch</div>
-                <div class="badge badge-info">restored-stash/{{selectedStash.hash}}</div>
-            </div>
+      }
+      @if (!selectedStash) {
+        <div>
+          <div class="form-group">
+            <input class="form-control" [(ngModel)]="stashFilter">
+          </div>
+          <div class="list-group">
+            @for (stash of availableStashes | filterObject : getStashMessage : stashFilter; track stash) {
+              <div class="list-group-item"
+                >
+                @if (stash.hash!=selectedStash?.hash) {
+                  <div class="d-flex align-items-center">
+                    <div class="flex-grow-1" [ngbTooltip]="stash.message">{{stash.message}}</div>
+                    <app-age-info [date]="stash.authorDate"></app-age-info>
+                    <button class="btn btn-primary" (click)="selectedStash=stash">Select</button>
+                  </div>
+                }
+                @if (stash.hash===selectedStash?.hash) {
+                  <div class="text-muted">Stash Selected</div>
+                }
+              </div>
+            }
+          </div>
         </div>
-        <div *ngIf="!selectedStash">
-            <div class="form-group">
-                <input class="form-control" [(ngModel)]="stashFilter">
-            </div>
-            <div class="list-group">
-                <div class="list-group-item"
-                     *ngFor="let stash of availableStashes | filterObject : getStashMessage : stashFilter">
-                    <div *ngIf="stash.hash!=selectedStash?.hash" class="d-flex align-items-center">
-                        <div class="flex-grow-1" [ngbTooltip]="stash.message">{{stash.message}}</div>
-                        <app-age-info [date]="stash.authorDate"></app-age-info>
-                        <button class="btn btn-primary" (click)="selectedStash=stash">Select</button>
-                    </div>
-                    <div *ngIf="stash.hash===selectedStash?.hash" class="text-muted">Stash Selected</div>
-                </div>
-            </div>
-        </div>
+      }
     </div>
+  }
 </app-modal>

@@ -13,26 +13,30 @@
   (scrolledUp)="scrolled(false)"
 >
   <div>
-    <div *ngIf="diffCommitInfo" class="card-body">
+    @if (diffCommitInfo) {
+    <div class="card-body">
       <div class="d-flex justify-content-between">
         <div>
           <p class="text-muted">{{ diffCommitInfo.hash }}</p>
-          <p *ngIf="diffCommitInfo.authorName">
+          @if (diffCommitInfo.authorName) {
+          <p>
             {{ diffCommitInfo.authorName }} &lt;{{
               diffCommitInfo.authorEmail
-            }}&gt; @ {{ diffCommitInfo.authorDate | date: 'short' }}
+            }}&gt; &#64; {{ diffCommitInfo.authorDate | date: 'short' }}
           </p>
+          }
           <div>{{ diffCommitInfo.message }}</div>
           <div class="mt-2">
             <span>Parents:</span>
+            @for (p of diffCommitInfo.parentHashes; track p) {
             <button
-              *ngFor="let p of diffCommitInfo.parentHashes"
               class="btn mx-1 btn-sm btn-outline-warning"
               (click)="onNavigateToHash.emit(p)"
             >
               {{ p.substring(0, 8) }}
               <span class="fa fa-eye"></span>
             </button>
+            }
           </div>
         </div>
         <div>
@@ -45,6 +49,7 @@
         </div>
       </div>
     </div>
+    }
     <div class="form-inline">
       <app-pretty-checkbox
         [(value)]="settingsService.settings.diffIgnoreWhitespace"
@@ -52,15 +57,18 @@
       >
         Ignore Whitespace
       </app-pretty-checkbox>
-      <div class="m-1 badge badge-pill badge-info" *ngIf="diffFilter">
+      @if (diffFilter) {
+      <div class="m-1 badge badge-pill badge-info">
         <i class="fa fa-filter"></i> Filtered Results
       </div>
+      }
     </div>
-    <div *ngIf="diffHeaders.length == 0" class="text-muted">
-      No differences detected...
-    </div>
+    @if (diffHeaders.length == 0) {
+    <div class="text-muted">No differences detected...</div>
+    }
   </div>
-  <div *ngIf="diffHeaders" class="p-2 d-flex flex-column g-2">
+  @if (diffHeaders) {
+  <div class="p-2 d-flex flex-column g-2">
     <div
       class="d-flex flex-column"
       *ngFor="
@@ -68,25 +76,24 @@
         index as i
       "
     >
+      @if (i === 0 && reducedHeader.header.stagedState === 'Staged') {
       <div
         class="alert alert-info d-flex g-2 justify-content-between align-items-center"
-        *ngIf="i === 0 && reducedHeader.header.stagedState === 'Staged'"
       >
         <i class="fa fa-arrow-down"></i>
         <span>Staged Changes</span>
         <i class="fa fa-arrow-down"></i>
       </div>
+      } @if (allHeaders[i - 1]?.header.stagedState === 'Staged' &&
+      reducedHeader.header.stagedState === 'Unstaged') {
       <div
         class="alert alert-primary d-flex g-2 justify-content-between align-items-center"
-        *ngIf="
-          allHeaders[i - 1]?.header.stagedState === 'Staged' &&
-          reducedHeader.header.stagedState === 'Unstaged'
-        "
       >
         <i class="fa fa-arrow-down"></i>
         <span>Unstaged Changes</span>
         <i class="fa fa-arrow-down"></i>
       </div>
+      }
       <app-layout-card
         [headerContent]="diffHeader"
         [persistExpand]="false"
@@ -96,23 +103,15 @@
       >
         <ng-template #diffHeader>
           <div class="flex-grow-1 normal-font-size filename clickable">
-            <div
-              class="d-inline-block clickable"
-              *ngFor="
-                let part of reducedHeader.header.toFilename
-                  .replace('->', '/->/')
-                  .split('/');
-                let i = index
-              "
-            >
+            @for (part of reducedHeader.header.toFilename.replace('->',
+            '/->/').split('/'); track part; let i = $index) {
+            <div class="d-inline-block clickable">
               <span class="badge badge-light clickable">{{ part }}</span>
-              <span
-                *ngIf="
-                  i < reducedHeader.header.toFilename.split('/').length - 1
-                "
-                >/</span
-              >
+              @if (i < reducedHeader.header.toFilename.split('/').length - 1) {
+              <span>/</span>
+              }
             </div>
+            }
             <button
               class="copy-filename mx-1 p-1 btn btn-light"
               ngbTooltip="Copy"
@@ -122,48 +121,38 @@
             </button>
           </div>
           <div class="flex-grow-0 center-text-vertical tag-container">
-            <span
-              class="text-muted mx-3 normal-font-size"
-              *ngIf="reducedHeader.header.stagedState"
+            @if (reducedHeader.header.stagedState) {
+            <span class="text-muted mx-3 normal-font-size"
               ><i>{{ reducedHeader.header.stagedState }}</i></span
             >
+            }
             <span [class]="'tag ' + reducedHeader.header.action">{{
               reducedHeader.header.action
             }}</span>
           </div>
         </ng-template>
         <div class="diff-header">
-          <div
-            *ngIf="reducedHeader.header.hunks.length == 0"
-            class="text-muted p-3"
-          >
-            No differences detected...
-          </div>
-          <div
-            *ngFor="
-              let hunk of reducedHeader.tooLong
-                ? reducedHeader.reducedHunks
-                : reducedHeader.header.hunks
-            "
-          >
+          @if (reducedHeader.header.hunks.length == 0) {
+          <div class="text-muted p-3">No differences detected...</div>
+          } @for (hunk of reducedHeader.tooLong ? reducedHeader.reducedHunks :
+          reducedHeader.header.hunks; track hunk) {
+          <div>
+            @if (!isEditingHunk(hunk, reducedHeader.header) &&
+            hasConflictingWatcher(hunk, reducedHeader.header)) {
             <div
               class="btn btn-block btn-warning mt-3 d-flex justify-content-between"
-              *ngIf="
-                !isEditingHunk(hunk, reducedHeader.header) &&
-                hasConflictingWatcher(hunk, reducedHeader.header)
-              "
               (click)="watcherClick(hunk, reducedHeader.header)"
             >
               <i class="fa fa-exclamation-triangle"></i>
               Code watcher warnings
               <i class="fa fa-arrow-down"></i>
             </div>
+            }
             <div class="d-flex hunk">
-              <div
-                class="linenumber-block"
-                *ngIf="!isEditingHunk(hunk, reducedHeader.header)"
-              >
-                <div *ngFor="let line of hunk.lines" class="d-flex">
+              @if (!isEditingHunk(hunk, reducedHeader.header)) {
+              <div class="linenumber-block">
+                @for (line of hunk.lines; track line) {
+                <div class="d-flex">
                   <div class="linenumber">
                     {{ !getAddition(line) ? line.fromLineNumber : '-' }}
                   </div>
@@ -179,11 +168,13 @@
                     }"
                   ></div>
                 </div>
+                }
               </div>
+              }
               <div class="code-line-block flex-grow-1 flex-shrink-1">
-                <pre
-                  *ngIf="!isEditingHunk(hunk, reducedHeader.header)"
-                ><code [highlight]="getHunkCode(hunk)"></code></pre>
+                @if (!isEditingHunk(hunk, reducedHeader.header)) {
+                <pre><code [highlightAuto]="getHunkCode(hunk)"></code></pre>
+                } @if (isEditingHunk(hunk, reducedHeader.header)) {
                 <textarea
                   oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
                   onfocus='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'
@@ -191,12 +182,13 @@
                   (keyup.escape)="cancelEdit()"
                   [autofocus]
                   wrap="soft"
-                  *ngIf="isEditingHunk(hunk, reducedHeader.header)"
                   [(ngModel)]="editedText"
                 ></textarea>
+                }
               </div>
               <div class="float-btn-container">
-                <div *ngIf="!isEditingHunk(hunk, reducedHeader.header)">
+                @if (!isEditingHunk(hunk, reducedHeader.header)) {
+                <div>
                   <button
                     class="btn btn-warning btn-sm m-1"
                     ngbTooltip="Undo hunk"
@@ -212,7 +204,8 @@
                     <i class="material-icons">edit</i>
                   </button>
                 </div>
-                <div *ngIf="isEditingHunk(hunk, reducedHeader.header)">
+                } @if (isEditingHunk(hunk, reducedHeader.header)) {
+                <div>
                   <button
                     class="btn btn-success btn-sm m-1"
                     ngbTooltip="Save Changes"
@@ -228,10 +221,12 @@
                     <i class="fa fa-times"></i>
                   </button>
                 </div>
+                }
               </div>
             </div>
           </div>
-          <div *ngIf="reducedHeader.tooLong" class="p-2">
+          } @if (reducedHeader.tooLong) {
+          <div class="p-2">
             <p>Too many changed lines, remaining hunks hidden...</p>
             <button
               class="btn btn-sm btn-warning"
@@ -240,8 +235,10 @@
               Show Hidden
             </button>
           </div>
+          }
         </div>
       </app-layout-card>
     </div>
   </div>
+  }
 </div>

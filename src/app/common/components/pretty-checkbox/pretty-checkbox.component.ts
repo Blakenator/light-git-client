@@ -1,9 +1,10 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 
 @Component({
-  selector: 'app-pretty-checkbox',
-  templateUrl: './pretty-checkbox.component.html',
-  styleUrls: ['./pretty-checkbox.component.scss'],
+    selector: 'app-pretty-checkbox',
+    templateUrl: './pretty-checkbox.component.html',
+    styleUrls: ['./pretty-checkbox.component.scss'],
+    standalone: false
 })
 export class PrettyCheckboxComponent {
   @Input() value: boolean;

@@ -5,9 +5,10 @@ import { ModalService } from '../../../common/services/modal.service';
 import { TabDataService } from '../../../services/tab-data.service';
 
 @Component({
-  selector: 'app-code-watcher-config',
-  templateUrl: './code-watcher-config.component.html',
-  styleUrls: ['./code-watcher-config.component.scss'],
+    selector: 'app-code-watcher-config',
+    templateUrl: './code-watcher-config.component.html',
+    styleUrls: ['./code-watcher-config.component.scss'],
+    standalone: false
 })
 export class CodeWatcherConfigComponent {
   @Input() tempSettings: SettingsModel;

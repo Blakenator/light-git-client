@@ -11,160 +11,178 @@
       <th width="1%" class="bg-light"></th>
       <th class="pl-1 bg-light">
         File
-        <i
-          class="fa fa-filter"
-          *ngIf="changeFilter"
-          ngbTooltip="Filtered Results"
-        ></i>
+        @if (changeFilter) {
+          <i
+            class="fa fa-filter"
+            ngbTooltip="Filtered Results"
+          ></i>
+        }
       </th>
-      <th
-        class="pl-1 bg-light"
-        *ngIf="settingsService.settings.splitFilenameDisplay"
-      >
-        Path
-        <i
-          class="fa fa-filter"
-          *ngIf="changeFilter"
-          ngbTooltip="Filtered Results"
-        ></i>
-      </th>
+      @if (settingsService.settings.splitFilenameDisplay) {
+        <th
+          class="pl-1 bg-light"
+          >
+          Path
+          @if (changeFilter) {
+            <i
+              class="fa fa-filter"
+              ngbTooltip="Filtered Results"
+            ></i>
+          }
+        </th>
+      }
       <th width="1%" class="bg-light"></th>
     </tr>
   </thead>
   <tbody>
-    <tr
-      *ngFor="let c of _changes | filterObject: 'file':changeFilter"
-      (click)="toggleSelect(c.file, $event)"
-      class="change"
-    >
-      <td width="1%">
-        <i
+    @for (c of _changes | filterObject: 'file':changeFilter; track c) {
+      <tr
+        (click)="toggleSelect(c.file, $event)"
+        class="change"
+        >
+        <td width="1%">
+          <i
           [ngClass]="{
             far: true,
             'fa-check-square': selectedChanges[c.file],
             'fa-square': !selectedChanges[c.file]
           }"
-        ></i>
-      </td>
-      <td>
-        <i
-          class="fas fa-{{ getChangeType(c) }}"
-          [ngbTooltip]="getChangeTypeDescription(c)"
-        ></i>
-      </td>
-      <td
-        *ngIf="settingsService.settings.splitFilenameDisplay"
-        class="text-nowrap"
-      >
-        <small>{{
-          c.file.substring(c.file.lastIndexOf('/') + 1).replace('"', '')
-        }}</small>
-      </td>
-      <td>
-        <div class="change-filename" [ngbTooltip]="c.file">
-          <div
-            class="d-inline-block"
-            *ngFor="let part of getSplitFilepath(c.file); let i = index"
-          >
-            <span class="badge badge-light" *ngIf="part != '->'">{{
-              part
-            }}</span>
-            <small *ngIf="part == '->'"
-              ><i class="fa fa-arrow-right"></i
-            ></small>
-            <span *ngIf="shouldShowTrailingSlash(c, i, part)">/</span>
+          ></i>
+        </td>
+        <td>
+          <i
+            class="fas fa-{{ getChangeType(c) }}"
+            [ngbTooltip]="getChangeTypeDescription(c)"
+          ></i>
+        </td>
+        @if (settingsService.settings.splitFilenameDisplay) {
+          <td
+            class="text-nowrap"
+            >
+            <small>{{
+              c.file.substring(c.file.lastIndexOf('/') + 1).replace('"', '')
+            }}</small>
+          </td>
+        }
+        <td>
+          <div class="change-filename" [ngbTooltip]="c.file">
+            @for (part of getSplitFilepath(c.file); track part; let i = $index) {
+              <div
+                class="d-inline-block"
+                >
+                @if (part != '->') {
+                  <span class="badge badge-light">{{
+                    part
+                  }}</span>
+                }
+                @if (part == '->') {
+                  <small
+                    ><i class="fa fa-arrow-right"></i
+                  ></small>
+                }
+                @if (shouldShowTrailingSlash(c, i, part)) {
+                  <span>/</span>
+                }
+              </div>
+            }
           </div>
-        </div>
-      </td>
-      <td class="center-text-vertical text-right">
-        <div
-          class="d-flex g-1 align-items-center change-action-buttons"
-          (click)="$event.preventDefault(); $event.stopPropagation()"
-        >
-          <button
-            class="btn btn-light btn-sm"
-            ngbTooltip="Copy file path"
-            (click)="this.clipboardService.copy(c.file)"
-          >
-            <i class="fa fa-copy"></i>
-          </button>
-          <button
-            *ngIf="!isDeleted(c) && !isMergeConflict(c.change)"
-            class="btn btn-warning btn-sm"
-            ngbTooltip="Undo changes to this file"
-            (click)="undoFileClicked(c.file)"
-          >
-            <i class="fa fa-undo"></i>
-          </button>
-          <div class="btn-group btn-group-sm" *ngIf="isMergeConflict(c.change)">
+        </td>
+        <td class="center-text-vertical text-right">
+          <div
+            class="d-flex g-1 align-items-center change-action-buttons"
+            (click)="$event.preventDefault(); $event.stopPropagation()"
+            >
             <button
-              class="btn btn-success btn-sm"
-              ngbTooltip="Open configured merge tool"
-              (click)="mergeClicked(c.file)"
-            >
-              <i class="material-icons">merge_type</i>
+              class="btn btn-light btn-sm"
+              ngbTooltip="Copy file path"
+              (click)="this.clipboardService.copy(c.file)"
+              >
+              <i class="fa fa-copy"></i>
             </button>
-            <div
-              class="btn-group btn-group-sm"
-              ngbDropdown
-              placement="bottom-right"
-              autoClose="outside"
-              container="body"
-            >
+            @if (!isDeleted(c) && !isMergeConflict(c.change)) {
               <button
-                class="btn btn-success dropdown-toggle-split"
-                ngbDropdownToggle
-              ></button>
-              <div ngbDropdownMenu>
+                class="btn btn-warning btn-sm"
+                ngbTooltip="Undo changes to this file"
+                (click)="undoFileClicked(c.file)"
+                >
+                <i class="fa fa-undo"></i>
+              </button>
+            }
+            @if (isMergeConflict(c.change)) {
+              <div class="btn-group btn-group-sm">
                 <button
-                  class="btn btn-light mx-1"
+                  class="btn btn-success btn-sm"
+                  ngbTooltip="Open configured merge tool"
+                  (click)="mergeClicked(c.file)"
+                  >
+                  <i class="material-icons">merge_type</i>
+                </button>
+                <div
+                  class="btn-group btn-group-sm"
+                  ngbDropdown
+                  placement="bottom-right"
+                  autoClose="outside"
+                  container="body"
+                  >
+                  <button
+                    class="btn btn-success dropdown-toggle-split"
+                    ngbDropdownToggle
+                  ></button>
+                  <div ngbDropdownMenu>
+                    <button
+                      class="btn btn-light mx-1"
                   (click)="
                     onResolveClicked.emit({ file: c.file, theirs: false })
                   "
-                  ngbTooltip="Resolve using Mine"
-                >
-                  <i class="fa fa-user"></i>
-                </button>
-                <button
-                  class="btn btn-light mx-1"
+                      ngbTooltip="Resolve using Mine"
+                      >
+                      <i class="fa fa-user"></i>
+                    </button>
+                    <button
+                      class="btn btn-light mx-1"
                   (click)="
                     onResolveClicked.emit({ file: c.file, theirs: true })
                   "
-                  ngbTooltip="Resolve using Theirs"
-                >
-                  <i class="fa fa-users"></i>
-                </button>
+                      ngbTooltip="Resolve using Theirs"
+                      >
+                      <i class="fa fa-users"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            }
+            @if (isDeleted(c)) {
+              <div class="btn-group btn-group-sm">
+                <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
+              </div>
+            }
+            <ng-template #deleteButton>
+              <button
+                class="btn btn-danger btn-sm"
+                ngbTooltip="Delete file"
+                (click)="deleteClicked(c.file)"
+                >
+                <i class="fa fa-trash"></i>
+              </button>
+            </ng-template>
+            @if (!isDeleted(c)) {
+              <div
+                class="btn-group btn-group-sm"
+                ngbDropdown
+                placement="bottom-right"
+                container="body"
+                >
+                <button class="btn btn-light action-expand" ngbDropdownToggle>
+                  <i class="fa fa-ellipsis-h"></i>
+                </button>
+                <div ngbDropdownMenu class="px-1">
+                  <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
+                </div>
+              </div>
+            }
           </div>
-          <div class="btn-group btn-group-sm" *ngIf="isDeleted(c)">
-            <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
-          </div>
-          <ng-template #deleteButton>
-            <button
-              class="btn btn-danger btn-sm"
-              ngbTooltip="Delete file"
-              (click)="deleteClicked(c.file)"
-            >
-              <i class="fa fa-trash"></i>
-            </button>
-          </ng-template>
-          <div
-            class="btn-group btn-group-sm"
-            ngbDropdown
-            *ngIf="!isDeleted(c)"
-            placement="bottom-right"
-            container="body"
-          >
-            <button class="btn btn-light action-expand" ngbDropdownToggle>
-              <i class="fa fa-ellipsis-h"></i>
-            </button>
-            <div ngbDropdownMenu class="px-1">
-              <ng-container *ngTemplateOutlet="deleteButton"></ng-container>
-            </div>
-          </div>
-        </div>
-      </td>
-    </tr>
+        </td>
+      </tr>
+    }
   </tbody>
 </table>

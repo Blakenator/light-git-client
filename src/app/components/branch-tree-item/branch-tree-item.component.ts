@@ -20,9 +20,10 @@ enum TrackingMode {
 }
 
 @Component({
-  selector: 'app-branch-tree-item',
-  templateUrl: './branch-tree-item.component.html',
-  styleUrls: ['./branch-tree-item.component.scss'],
+    selector: 'app-branch-tree-item',
+    templateUrl: './branch-tree-item.component.html',
+    styleUrls: ['./branch-tree-item.component.scss'],
+    standalone: false
 })
 export class BranchTreeItemComponent implements OnInit {
   @Input() worktrees: WorktreeModel[];

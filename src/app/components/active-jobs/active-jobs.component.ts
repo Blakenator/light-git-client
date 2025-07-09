@@ -4,9 +4,10 @@ import { TabDataService } from '../../services/tab-data.service';
 import { Job, JobStatus } from '../../services/job-system/models';
 
 @Component({
-  selector: 'app-active-jobs',
-  templateUrl: './active-jobs.component.html',
-  styleUrls: ['./active-jobs.component.scss'],
+    selector: 'app-active-jobs',
+    templateUrl: './active-jobs.component.html',
+    styleUrls: ['./active-jobs.component.scss'],
+    standalone: false
 })
 export class ActiveJobsComponent implements OnInit {
   public queue: Job[] = [];

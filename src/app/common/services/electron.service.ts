@@ -7,7 +7,7 @@ const electronApi = (window as any).electronApi;
 export class ElectronService {
   constructor() {}
 
-  rpc(channelName: string, functionParams: any[] = []): Promise<any> {
+  rpc<T = any>(channelName: string, functionParams: any[] = []): Promise<T> {
     return electronApi
       .invoke(channelName, [channelName].concat(functionParams))
       .then((args) => {

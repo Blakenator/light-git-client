@@ -2,9 +2,10 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { BranchModel } from '../../../../shared/git/Branch.model';
 
 @Component({
-  selector: 'app-merge-branch',
-  templateUrl: './merge-branch.component.html',
-  styleUrls: ['./merge-branch.component.scss'],
+    selector: 'app-merge-branch',
+    templateUrl: './merge-branch.component.html',
+    styleUrls: ['./merge-branch.component.scss'],
+    standalone: false
 })
 export class MergeBranchComponent {
   @Input() uidSalt: number;

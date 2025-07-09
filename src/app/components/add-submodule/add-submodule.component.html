@@ -1,19 +1,23 @@
 <app-modal [modalId]="'addSubmodule'+this.uidSalt"
-           modalTitle="Add Submodule"
-           modalTitleIcon="fa-plug"
-           modalClass="dialog-wide"
-           affirmativeButtonText="Add"
-           (onOpen)="resetFields()"
-           [leaveOpen]="true"
-           (onFinish)="addSubmodule()">
+  modalTitle="Add Submodule"
+  modalTitleIcon="fa-plug"
+  modalClass="dialog-wide"
+  affirmativeButtonText="Add"
+  (onOpen)="resetFields()"
+  [leaveOpen]="true"
+  (onFinish)="addSubmodule()">
   <div class="form-group">
     <label>Repository URL</label>
     <input [(ngModel)]="url" class="form-control" type="url" placeholder="https://...">
-    <small class="error-message" *ngIf="urlError">{{urlError}}</small>
+    @if (urlError) {
+      <small class="error-message">{{urlError}}</small>
+    }
   </div>
   <div class="form-group">
     <label>Relative Path</label>
     <input [(ngModel)]="path" class="form-control" placeholder="./">
-    <small class="error-message" *ngIf="pathError">{{pathError}}</small>
+    @if (pathError) {
+      <small class="error-message">{{pathError}}</small>
+    }
   </div>
 </app-modal>

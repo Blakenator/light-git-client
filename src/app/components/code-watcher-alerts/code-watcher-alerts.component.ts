@@ -20,9 +20,10 @@ import { ModalService } from '../../common/services/modal.service';
 import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
 
 @Component({
-  selector: 'app-code-watcher-alerts',
-  templateUrl: './code-watcher-alerts.component.html',
-  styleUrls: ['./code-watcher-alerts.component.scss'],
+    selector: 'app-code-watcher-alerts',
+    templateUrl: './code-watcher-alerts.component.html',
+    styleUrls: ['./code-watcher-alerts.component.scss'],
+    standalone: false
 })
 export class CodeWatcherAlertsComponent {
   @Output() onCommitClicked = new EventEmitter<any>();

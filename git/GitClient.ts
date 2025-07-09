@@ -134,9 +134,9 @@ export class GitClient {
           ['config', '--list', '--show-origin'],
           'Get Config Items',
         ).then((output) => {
-          let configItem = /^\s*(.*?)\s+(\S+)=(.*)$/gm;
+          const configItem = /^\s*(.*?)\s+(\S+)=(.*)$/gm;
           let match = configItem.exec(output.standardOutput);
-          let result: ConfigItemModel[] = [];
+          const result: ConfigItemModel[] = [];
           while (match) {
             result.push(new ConfigItemModel(match[2], match[3], match[1]));
             match = configItem.exec(output.standardOutput);
@@ -150,7 +150,7 @@ export class GitClient {
 
   setConfigItem(item: ConfigItemModel): Promise<ConfigItemModel[]> {
     return new Promise<ConfigItemModel[]>((resolve, reject) => {
-      let commandArgs = ['config', item.value ? '--replace-all' : ''];
+      const commandArgs = ['config', item.value ? '--replace-all' : ''];
       if (item.sourceFile.trim()) {
         commandArgs.push('--file');
         commandArgs.push(item.sourceFile.replace(/^.*?:/, ''));
@@ -188,8 +188,8 @@ export class GitClient {
 
   getChanges(): Promise<CommitModel> {
     return new Promise<CommitModel>((resolve, reject) => {
-      let result = new CommitModel();
-      let changeList = /^(.)(.)\s*(.*)$/gm;
+      const result = new CommitModel();
+      const changeList = /^(.)(.)\s*(.*)$/gm;
       result.activeOperations = Object.fromEntries(
         Object.values(ActiveOperation).map((op) => [
           op,
@@ -202,14 +202,14 @@ export class GitClient {
             let match = changeList.exec(output.standardOutput);
             while (match) {
               if (match[1] !== ChangeType.Untracked && match[1] !== ' ') {
-                let change = new LightChange();
+                const change = new LightChange();
                 change.staged = false;
                 change.file = match[3];
                 change.change = match[1];
                 result.stagedChanges.push(change);
               }
               if (match[2] !== ' ') {
-                let change = new LightChange();
+                const change = new LightChange();
                 change.staged = false;
                 change.file = match[3];
                 change.change = match[2];
@@ -273,7 +273,7 @@ export class GitClient {
   }
 
   setBulkGitSettings(
-    config: { [key: string]: string | number },
+    config: Record<string, string | number>,
     useGlobal: boolean,
   ) {
     return new Promise<any>((resolve, reject) => {
@@ -303,9 +303,9 @@ export class GitClient {
   }
 
   deleteBranch(branches: BranchModel[]) {
-    let locals = branches.filter((b) => !b.isRemote);
-    let remotes = branches.filter((b) => b.isRemote);
-    let promises: Promise<void>[] = [];
+    const locals = branches.filter((b) => !b.isRemote);
+    const remotes = branches.filter((b) => b.isRemote);
+    const promises: Promise<void>[] = [];
     if (locals.length > 0) {
       promises.push(
         this.simpleOperation(
@@ -341,11 +341,13 @@ export class GitClient {
     );
   }
 
-  rebaseBranch(branch: string, interactive: boolean = false) {
+  rebaseBranch(branch: string, interactive = false) {
     return this.simpleOperation(
       this.getGitPath(),
       ['rebase', interactive ? '-i' : '-q', branch],
-      interactive ? 'Interactive Rebase Current Branch onto Target Branch' : 'Rebase Current Branch onto Target Branch',
+      interactive
+        ? 'Interactive Rebase Current Branch onto Target Branch'
+        : 'Rebase Current Branch onto Target Branch',
     );
   }
 
@@ -358,8 +360,8 @@ export class GitClient {
               reject(serializeError(err));
               return;
             }
-            let text = data.toString();
-            let eol = /\r?\n/g;
+            const text = data.toString();
+            const eol = /\r?\n/g;
             let match = null;
             let start = 0,
               end = 0,
@@ -381,7 +383,7 @@ export class GitClient {
             if (end == 0) {
               end = text.length;
             }
-            let modified =
+            const modified =
               text.substring(0, start) + changedText + text.substring(end);
             fs.writeFile(filename, modified, (err) => {
               if (err) {
@@ -456,10 +458,10 @@ export class GitClient {
   ): Promise<CommandOutputModel<DiffHeaderModel[]>> {
     return new Promise<CommandOutputModel<DiffHeaderModel[]>>(
       (resolve, reject) => {
-        let promises = [];
-        let result = new CommandOutputModel<DiffHeaderModel[]>([]);
+        const promises = [];
+        const result = new CommandOutputModel<DiffHeaderModel[]>([]);
         if (unstaged && unstaged.length > 0) {
-          let command: string = this.getGitPath();
+          const command: string = this.getGitPath();
           promises.push(
             this.execute(
               command,
@@ -481,7 +483,7 @@ export class GitClient {
           );
         }
         if (staged && staged.length > 0) {
-          let command: string = this.getGitPath();
+          const command: string = this.getGitPath();
           promises.push(
             this.execute(
               command,
@@ -518,7 +520,7 @@ export class GitClient {
 
   commit(message: string, push: boolean, branch: BranchModel, amend: boolean) {
     return new Promise<void>((resolve, reject) => {
-      let commitFilePath = path.join(app.getPath('userData'), 'commit.msg');
+      const commitFilePath = path.join(app.getPath('userData'), 'commit.msg');
       fs.writeFileSync(commitFilePath, message, { encoding: 'utf8' });
       this.handleErrorDefault(
         this.execute(
@@ -551,10 +553,10 @@ export class GitClient {
   checkout(
     tag: string,
     toNewBranch: boolean,
-    branchName: string = '',
+    branchName = '',
     andPull: boolean,
   ) {
-    let checkoutOp = this.simpleOperation(
+    const checkoutOp = this.simpleOperation(
       this.getGitPath(),
       [
         'checkout',
@@ -616,7 +618,7 @@ export class GitClient {
       );
     } else {
       return new Promise<void>((resolve, reject) => {
-        let args = ['stash', 'push', '--keep-index', '--', ...files];
+        const args = ['stash', 'push', '--keep-index', '--', ...files];
         this.simpleOperation(
           this.getGitPath(),
           args,
@@ -690,7 +692,7 @@ export class GitClient {
   }
 
   stash(unstagedOnly: boolean, stashName: string) {
-    let commandArgs = ['stash', 'push'];
+    const commandArgs = ['stash', 'push'];
     if (unstagedOnly) {
       commandArgs.push('-k');
       commandArgs.push('-u');
@@ -780,8 +782,8 @@ export class GitClient {
 
   checkGitBashVersions(): Promise<{ bash: boolean; git: boolean }> {
     return new Promise<{ bash: boolean; git: boolean }>((resolve, reject) => {
-      let result = { git: false, bash: false };
-      let promises = [];
+      const result = { git: false, bash: false };
+      const promises = [];
       promises.push(
         new Promise<void>((resolve1) => {
           try {
@@ -875,7 +877,7 @@ export class GitClient {
               ],
               'Get Dangling Commit Info',
             ).then((logOutput) => {
-              let models = this.parseCommitString(logOutput.standardOutput);
+              const models = this.parseCommitString(logOutput.standardOutput);
               resolve(models);
             }),
             reject,
@@ -906,8 +908,8 @@ export class GitClient {
       this.handleErrorDefault(
         this.execute(this.getGitPath(), args, 'Get Commit History').then(
           (output) => {
-            let text = output.standardOutput;
-            let result = this.parseCommitString(text);
+            const text = output.standardOutput;
+            const result = this.parseCommitString(text);
 
             resolve(result);
           },
@@ -918,8 +920,8 @@ export class GitClient {
   }
 
   public parseCommitString(text) {
-    let result: CommitSummaryModel[] = [];
-    let commitList =
+    const result: CommitSummaryModel[] = [];
+    const commitList =
       /commit\s+\S+\s*\r?\n\s*\|\|\|\|(\S+?)\|(.*?)\|(.*?)\|(.+?)\|(.+?)\|(.*?)\|(.+?)\|(.*?(?=(commit\s+\S+\s*\r?\n\s*\|\|\|\||$)))/gs;
     let match = commitList.exec(text);
 
@@ -927,7 +929,7 @@ export class GitClient {
     let stack: { seeking: string; from: number; branchIndex: number }[] = [];
 
     while (match) {
-      let commitSummary = new CommitSummaryModel();
+      const commitSummary = new CommitSummaryModel();
       commitSummary.hash = match[1];
       commitSummary.authorName = match[2];
       commitSummary.authorEmail = match[3];
@@ -946,9 +948,9 @@ export class GitClient {
       commitSummary.parentHashes = match[7].split(/\s/);
 
       let newIndex = 0;
-      let encounteredSeeking: string[] = [];
+      const encounteredSeeking: string[] = [];
       let added = false;
-      let newStack: {
+      const newStack: {
         seeking: string;
         from: number;
         branchIndex: number;
@@ -985,7 +987,7 @@ export class GitClient {
           encounteredSeeking.push(stack[j].seeking);
           added = true;
           let useCurrentBranch = true;
-          for (let p of commitSummary.parentHashes) {
+          for (const p of commitSummary.parentHashes) {
             if (useCurrentBranch) {
               newStack.push({
                 seeking: p,
@@ -1005,7 +1007,7 @@ export class GitClient {
         }
       }
       if (!added) {
-        let fromIndex = commitSummary.graphBlockTargets.length;
+        const fromIndex = commitSummary.graphBlockTargets.length;
         commitSummary.graphBlockTargets.push({
           target: -1,
           source: fromIndex,
@@ -1013,7 +1015,7 @@ export class GitClient {
           branchIndex: currentBranch,
           isMerge: commitSummary.parentHashes.length > 1,
         });
-        for (let p of commitSummary.parentHashes) {
+        for (const p of commitSummary.parentHashes) {
           newStack.push({
             seeking: p,
             from: fromIndex,
@@ -1054,11 +1056,11 @@ export class GitClient {
       'Get Local Branches',
     )
       .then((output) => {
-        let text = output.standardOutput;
+        const text = output.standardOutput;
         let match = BRANCH_REGEX.exec(text);
         const localBranches: BranchModel[] = [];
         while (match) {
-          let branchModel = new BranchModel();
+          const branchModel = new BranchModel();
           branchModel.isCurrentBranch = match[1] == '*';
           branchModel.name = match[2];
           branchModel.currentHash = match[3];
@@ -1097,11 +1099,11 @@ export class GitClient {
       'Get Remote Branches',
     )
       .then((output) => {
-        let text = output.standardOutput;
+        const text = output.standardOutput;
         let match = BRANCH_REGEX.exec(text);
         const remoteBranches: BranchModel[] = [];
         while (match) {
-          let branchModel = new BranchModel();
+          const branchModel = new BranchModel();
           branchModel.name = match[2];
           branchModel.currentHash = match[3];
           branchModel.lastCommitDate = match[13];
@@ -1129,11 +1131,11 @@ export class GitClient {
       'Get Worktrees',
     )
       .then((output) => {
-        let text = output.standardOutput;
+        const text = output.standardOutput;
         let match = WORKTREE_REGEX.exec(text);
         const worktrees: WorktreeModel[] = [];
         while (match) {
-          let worktreeModel = new WorktreeModel();
+          const worktreeModel = new WorktreeModel();
           worktreeModel.name = path.basename(match[1]);
           worktreeModel.path = match[1];
           worktreeModel.currentBranch =
@@ -1165,12 +1167,12 @@ export class GitClient {
       'Get Submodules',
     )
       .then((output) => {
-        let text = output.standardOutput;
-        let submoduleList = /^\s*(\S+)\s+(\S+)\s+\((\S+)\)\s*$/gim;
+        const text = output.standardOutput;
+        const submoduleList = /^\s*(\S+)\s+(\S+)\s+\((\S+)\)\s*$/gim;
         let match = submoduleList.exec(text);
         const submodules: SubmoduleModel[] = [];
         while (match) {
-          let submoduleModel = new SubmoduleModel();
+          const submoduleModel = new SubmoduleModel();
           submoduleModel.hash = match[1];
           submoduleModel.path = match[2];
           submoduleModel.currentBranch = match[3];
@@ -1192,12 +1194,12 @@ export class GitClient {
   getStashes(): Promise<StashModel[]> {
     return this.execute(this.getGitPath(), ['stash', 'list'], 'Get Stashes')
       .then((output) => {
-        let text = output.standardOutput;
-        let stashList = /^stash@{(\d+)}:\s+(WIP on|On)\s+(.+):\s+(.*)$/gim;
+        const text = output.standardOutput;
+        const stashList = /^stash@{(\d+)}:\s+(WIP on|On)\s+(.+):\s+(.*)$/gim;
         let match = stashList.exec(text);
         const stashes: StashModel[] = [];
         while (match) {
-          let stashModel = new StashModel();
+          const stashModel = new StashModel();
           stashModel.index = +match[1];
           stashModel.branchName = match[3];
           stashModel.message = match[4];
@@ -1214,9 +1216,9 @@ export class GitClient {
 
   getBranches(repoPath: string): Promise<RepositoryModel> {
     return new Promise<RepositoryModel>((resolve, reject) => {
-      let result = new RepositoryModel();
+      const result = new RepositoryModel();
       result.path = repoPath;
-      let promises = [];
+      const promises = [];
 
       promises.push();
     });
@@ -1226,15 +1228,15 @@ export class GitClient {
     text: string,
     state: DiffHeaderStagedState,
   ): DiffHeaderModel[] {
-    let diffHeader =
+    const diffHeader =
       /^diff (--git a\/((\s*\S+)+?) b\/((\s*\S+)+?)|--cc ((\s*\S+)+?))((\r?\n(?!@@|diff).*)+)((\r?\n(?!diff).*)*)/gm;
-    let hunk =
+    const hunk =
       /\s*@@@?( -(\d+)(,(\d+))?){1,2} \+(\d+)(,(\d+))? @@@?.*\r?\n(((\r?\n)?(?!@@).*)*)/gm;
-    let line = /^([+\- ])(.*)$/gm;
+    const line = /^([+\- ])(.*)$/gm;
     let headerMatch = diffHeader.exec(text);
-    let result: DiffHeaderModel[] = [];
+    const result: DiffHeaderModel[] = [];
     while (headerMatch) {
-      let header = new DiffHeaderModel();
+      const header = new DiffHeaderModel();
       if (headerMatch[7]) {
         header.fromFilename = headerMatch[7];
         header.toFilename = headerMatch[7];
@@ -1243,7 +1245,7 @@ export class GitClient {
         header.toFilename = headerMatch[5];
       }
       header.stagedState = state;
-      let extraHeaders = headerMatch[8];
+      const extraHeaders = headerMatch[8];
       if (extraHeaders.indexOf('\nrename') >= 0) {
         header.action = DiffHeaderAction.RENAMED;
       } else if (extraHeaders.indexOf('\ncopy') >= 0) {
@@ -1257,7 +1259,7 @@ export class GitClient {
       }
       let hunkMatch = hunk.exec(headerMatch[10]);
       while (hunkMatch) {
-        let h = new DiffHunkModel();
+        const h = new DiffHunkModel();
         let startFrom = +hunkMatch[2];
         let startTo = +hunkMatch[5];
         h.fromStartLine = startFrom;
@@ -1267,7 +1269,7 @@ export class GitClient {
         let lineMatch = line.exec(hunkMatch[8]);
 
         while (lineMatch) {
-          let l = new DiffLineModel();
+          const l = new DiffLineModel();
           if (lineMatch[1] == ' ') {
             l.state = LineState.SAME;
             l.fromLineNumber = startFrom++;
@@ -1309,10 +1311,10 @@ export class GitClient {
     command: string,
     args: string[],
     name: string,
-    ignoreError: boolean = false,
+    ignoreError = false,
     workingDir?: string,
   ): Promise<CommandOutputModel<void>> {
-    let timeoutErrorMessage =
+    const timeoutErrorMessage =
       'command timed out (>' +
       GitClient.settings.commandTimeoutSeconds +
       's): ' +
@@ -1372,14 +1374,14 @@ export class GitClient {
     commandName: string,
     command: string,
     args: string[],
-    includeCommand: boolean = true,
+    includeCommand = true,
     workingDir?: string,
   ): Observable<CommandEvent> {
-    let subject = new Subject<CommandEvent>();
-    let start = new Date();
+    const subject = new Subject<CommandEvent>();
+    const start = new Date();
     let stderr = '',
       stdout = '';
-    let safeArgs = args
+    const safeArgs = args
       .filter((x) => !!x && !!x.toString().trim())
       .map((x) => x.toString().trim());
     if (includeCommand) {
@@ -1388,19 +1390,19 @@ export class GitClient {
       );
     }
 
-    let progress = spawn(command, safeArgs, {
+    const progress = spawn(command, safeArgs, {
       cwd: workingDir || this.workingDir,
       env: Object.assign({}, process.env, {
         GIT_ASKPASS: process.env['GIT_ASKPASS'] || process.argv[0],
       }),
     });
     progress.stdout.on('data', (data) => {
-      let text = data.toString();
+      const text = data.toString();
       stdout += text;
       subject.next(new CommandEvent(text, undefined, false));
     });
     progress.stderr.on('data', (data) => {
-      let text = data.toString();
+      const text = data.toString();
       stderr += text;
       subject.next(new CommandEvent(undefined, text, false));
     });
@@ -1413,7 +1415,7 @@ export class GitClient {
           code,
         ),
       );
-      let commandHistoryModel = new CommandHistoryModel(
+      const commandHistoryModel = new CommandHistoryModel(
         commandName,
         command + ' ' + safeArgs.join(' '),
         stderr,
@@ -1472,7 +1474,7 @@ class CommandEvent {
   done: boolean;
   exit: number;
 
-  constructor(out: string, error: string, done: boolean, exit: number = 0) {
+  constructor(out: string, error: string, done: boolean, exit = 0) {
     this.out = out;
     this.error = error;
     this.done = done;

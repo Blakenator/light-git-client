@@ -1,40 +1,45 @@
-<div
-  ngbDropdown
-  placement="bottom-right"
-  class="btn-group btn-group-sm align-items-center"
-  *ngIf="queue.length > 0"
->
-  <button
-    class="btn btn-light"
-    ngbDropdownToggle
-    ngbTooltip="Backround jobs are running"
-  >
-    <app-loading-spinner [keepSpacing]="true" [show]="true">
-    </app-loading-spinner>
-  </button>
-  <div ngbDropdownMenu>
-    <div class="d-flex flex-column g-2 px-3 job-list-container">
-      <div class="text-muted mb-2">Background Jobs ({{ queue.length }})</div>
-      <div *ngFor="let item of queue" class="d-flex g-1 align-items-center">
-        <i
+@if (queue.length > 0) {
+  <div
+    ngbDropdown
+    placement="bottom-right"
+    class="btn-group btn-group-sm align-items-center"
+    >
+    <button
+      class="btn btn-light"
+      ngbDropdownToggle
+      ngbTooltip="Backround jobs are running"
+      >
+      <app-loading-spinner [keepSpacing]="true" [show]="true">
+      </app-loading-spinner>
+    </button>
+    <div ngbDropdownMenu>
+      <div class="d-flex flex-column g-2 px-3 job-list-container">
+        <div class="text-muted mb-2">Background Jobs ({{ queue.length }})</div>
+        @for (item of queue; track item) {
+          <div class="d-flex g-1 align-items-center">
+            @if (item.status !== 'IN_PROGRESS') {
+              <i
           [class]="
             'fa fa-' + iconMap[item.status] + ' ' + colorMap[item.status]
           "
-          *ngIf="item.status !== 'IN_PROGRESS'"
-        ></i>
-        <app-loading-spinner
-          [show]="item.status == 'IN_PROGRESS'"
-        ></app-loading-spinner>
-        <div>{{ item.operation?.name }}</div>
+              ></i>
+            }
+            <app-loading-spinner
+              [show]="item.status == 'IN_PROGRESS'"
+            ></app-loading-spinner>
+            <div>{{ item.operation?.name }}</div>
+          </div>
+        }
       </div>
     </div>
   </div>
-</div>
+}
 
-<div
-  class="d-flex align-items-center px-2"
-  *ngIf="queue.length === 0"
-  ngbTooltip="No active background jobs"
->
-  <i class="fa fa-check-circle"></i>
-</div>
+@if (queue.length === 0) {
+  <div
+    class="d-flex align-items-center px-2"
+    ngbTooltip="No active background jobs"
+    >
+    <i class="fa fa-check-circle"></i>
+  </div>
+}

@@ -4,7 +4,10 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ErrorHandler, NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { HttpClientModule } from '@angular/common/http';
+import {
+  provideHttpClient,
+  withInterceptorsFromDi,
+} from '@angular/common/http';
 
 import { AppRoutingModule } from './app-routing.module';
 
@@ -29,7 +32,11 @@ import { FileInputComponent } from './common/components/file-input/file-input.co
 import { GlobalErrorHandlerService } from './common/services/global-error-handler.service';
 import { InfiniteScrollModule } from 'ngx-infinite-scroll';
 import { InputModalComponent } from './common/components/input-modal/input-modal.component';
-import { HIGHLIGHT_OPTIONS, HighlightModule } from 'ngx-highlightjs';
+import {
+  HIGHLIGHT_OPTIONS,
+  HighlightModule,
+  provideHighlightOptions,
+} from 'ngx-highlightjs';
 import { AutofocusDirective } from './common/directives/autofocus.directive';
 import { CodeWatcherAlertsComponent } from './components/code-watcher-alerts/code-watcher-alerts.component';
 import { AddWorktreeComponent } from './components/add-worktree/add-worktree.component';
@@ -106,10 +113,10 @@ import { CommandHistoryComponent } from './components/command-history/command-hi
     ActiveJobsComponent,
     CommandHistoryComponent,
   ],
+  bootstrap: [AppComponent],
   imports: [
     BrowserModule,
     FormsModule,
-    HttpClientModule,
     InfiniteScrollModule,
     AppRoutingModule,
     NgbModule,
@@ -126,13 +133,16 @@ import { CommandHistoryComponent } from './components/command-history/command-hi
       provide: ErrorHandler,
       useClass: GlobalErrorHandlerService,
     },
+    provideHighlightOptions({
+      fullLibraryLoader: () => import('highlight.js'),
+    }),
     {
       provide: HIGHLIGHT_OPTIONS,
       useValue: {
         fullLibraryLoader: () => import('highlight.js'),
       },
     },
+    provideHttpClient(withInterceptorsFromDi()),
   ],
-  bootstrap: [AppComponent],
 })
 export class AppModule {}

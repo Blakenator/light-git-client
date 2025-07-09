@@ -1,34 +1,42 @@
 <app-modal modalTitle="Clone Repository"
-           modalTitleIcon="cloud-download"
-           modalClass="dialog-wide"
-           modalId="cloneRepositoryModal"
-           affirmativeButtonText="Clone"
-           [affirmativeButtonDisabled]="isLoading"
-           [negativeButtonDisabled]="isLoading"
-           (onFinish)="doClone()"
-           (onCancel)="cancel()">
+  modalTitleIcon="cloud-download"
+  modalClass="dialog-wide"
+  modalId="cloneRepositoryModal"
+  affirmativeButtonText="Clone"
+  [affirmativeButtonDisabled]="isLoading"
+  [negativeButtonDisabled]="isLoading"
+  (onFinish)="doClone()"
+  (onCancel)="cancel()">
   <div class="form-group">
     <label>Repository URL</label>
     <input class="form-control"
-           [(ngModel)]="url"
-           placeholder="http://..." [disabled]="isLoading">
-  </div>
-  <app-file-input [allowMultiple]="false"
-                  [isFolder]="true"
-                  label="Destination Path"
-                  [(filePath)]="path"
-                  [disabled]="isLoading"></app-file-input>
-
-  <div class="card">
-    <div class="card-header">Output
-      <app-loading-spinner class="d-inline-block" [show]="isLoading"></app-loading-spinner>
+      [(ngModel)]="url"
+      placeholder="http://..." [disabled]="isLoading">
     </div>
-    <div class="card-body">
-      <div *ngFor="let o of output">
-        <pre *ngIf="o.err" style="color:rgba(250,150,150,.5)">{{o.err}}</pre>
-        <pre *ngIf="o.out">{{o.out}}</pre>
-        <pre *ngIf="o.done" class="text-muted">command execution finished -------------</pre>
+    <app-file-input [allowMultiple]="false"
+      [isFolder]="true"
+      label="Destination Path"
+      [(filePath)]="path"
+    [disabled]="isLoading"></app-file-input>
+
+    <div class="card">
+      <div class="card-header">Output
+        <app-loading-spinner class="d-inline-block" [show]="isLoading"></app-loading-spinner>
+      </div>
+      <div class="card-body">
+        @for (o of output; track o) {
+          <div>
+            @if (o.err) {
+              <pre style="color:rgba(250,150,150,.5)">{{o.err}}</pre>
+            }
+            @if (o.out) {
+              <pre>{{o.out}}</pre>
+            }
+            @if (o.done) {
+              <pre class="text-muted">command execution finished -------------</pre>
+            }
+          </div>
+        }
       </div>
     </div>
-  </div>
-</app-modal>
+  </app-modal>

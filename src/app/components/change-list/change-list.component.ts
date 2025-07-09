@@ -5,9 +5,10 @@ import { SubmoduleModel } from '../../../../shared/git/submodule.model';
 import { ClipboardService } from '../../services/clipboard.service';
 
 @Component({
-  selector: 'app-change-list',
-  templateUrl: './change-list.component.html',
-  styleUrls: ['./change-list.component.scss'],
+    selector: 'app-change-list',
+    templateUrl: './change-list.component.html',
+    styleUrls: ['./change-list.component.scss'],
+    standalone: false
 })
 export class ChangeListComponent {
   @Input() changeFilter = '';

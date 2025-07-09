@@ -45,9 +45,10 @@ import { Job, RepoAreaDefaults } from '../../services/job-system/models';
 import { ActiveOperationToPropMap } from './constants';
 
 @Component({
-  selector: 'app-repo-view',
-  templateUrl: './repo-view.component.html',
-  styleUrls: ['./repo-view.component.scss'],
+    selector: 'app-repo-view',
+    templateUrl: './repo-view.component.html',
+    styleUrls: ['./repo-view.component.scss'],
+    standalone: false
 })
 export class RepoViewComponent implements OnDestroy {
   commitDiff: DiffHeaderModel[];

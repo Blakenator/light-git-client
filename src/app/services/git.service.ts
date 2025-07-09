@@ -24,6 +24,7 @@ import { StashModel } from '../../../shared/git/stash.model';
 import { TabDataService } from './tab-data.service';
 import { PreCommitStatusModel } from '../../../shared/PreCommitStatus.model';
 import { PreCommitStatusListener } from './warning-listeners/pre-commit-status.listener';
+import { CommandOutputModel } from '../../../shared/common/command.output.model';
 
 @Injectable({
   providedIn: 'root',
@@ -724,7 +725,7 @@ export class GitService {
         this._precommitStatusListener
           .detect(
             this._remoteMessageListener.detect(
-              this.electronService.rpc(Channels.COMMIT, [
+              this.electronService.rpc<CommandOutputModel>(Channels.COMMIT, [
                 this.getRepo().path,
                 description,
                 commitAndPush,

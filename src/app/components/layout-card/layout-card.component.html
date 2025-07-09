@@ -5,7 +5,7 @@
     'flex-grow-1 expanded': header.getExpandState(),
     'prevent-overflow': preventOverflow
   }"
->
+  >
   <app-layout-card-header
     [cardTitle]="cardTitle"
     [persistExpand]="persistExpand"
@@ -16,15 +16,16 @@
     [customHeaderClass]="customHeaderClass"
     (onToggleExpand)="updateFlexBindings($event)"
   ></app-layout-card-header>
-  <div
-    class="repo-section-container {{ customBodyClass }} flex-grow-1"
-    *ngIf="header.getExpandState()"
-    infinite-scroll
-    (scrolled)="scrolled.emit($event)"
-    (scrolledUp)="scrolledUp.emit($event)"
-    [scrollWindow]="false"
-    [infiniteScrollDisabled]="infiniteScrollDisabled"
-  >
-    <ng-content></ng-content>
-  </div>
+  @if (header.getExpandState()) {
+    <div
+      class="repo-section-container {{ customBodyClass }} flex-grow-1"
+      infinite-scroll
+      (scrolled)="scrolled.emit($event)"
+      (scrolledUp)="scrolledUp.emit($event)"
+      [scrollWindow]="false"
+      [infiniteScrollDisabled]="infiniteScrollDisabled"
+      >
+      <ng-content></ng-content>
+    </div>
+  }
 </div>

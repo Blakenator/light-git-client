@@ -6,9 +6,10 @@ import {
 import { SettingsService } from '../../services/settings.service';
 
 @Component({
-  selector: 'app-git-graph-canvas',
-  templateUrl: './git-graph-canvas.component.html',
-  styleUrls: ['./git-graph-canvas.component.scss'],
+    selector: 'app-git-graph-canvas',
+    templateUrl: './git-graph-canvas.component.html',
+    styleUrls: ['./git-graph-canvas.component.scss'],
+    standalone: false
 })
 export class GitGraphCanvasComponent {
   spacerList: TCommitGraphBlockTarget[];

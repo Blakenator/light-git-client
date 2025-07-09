@@ -6,7 +6,7 @@ describe('RepoCacheService', () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
   it('should be created', () => {
-    const service: TabDataService = TestBed.get(TabDataService);
+    const service: TabDataService = TestBed.inject(TabDataService);
     expect(service).toBeTruthy();
   });
 });
