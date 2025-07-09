@@ -14,6 +14,8 @@ export class MergeBranchComponent {
     into: BranchModel;
     target: BranchModel;
     currentBranch: BranchModel;
+    isRebase?: boolean;
+    isInteractive?: boolean;
   };
   @Output() onCancel = new EventEmitter();
   @Output() onFinish = new EventEmitter();

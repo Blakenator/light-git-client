@@ -277,14 +277,45 @@
               </button>
             </div>
           </div>
-          <button
-            class="btn btn-success btn-sm mx-1"
-            (click)="onMergeClicked.emit(b)"
+          <div
+            class="btn-group btn-group-sm mx-1"
+            ngbDropdown
+            placement="left"
+            (click)="$event.stopPropagation()"
             *ngIf="!b.isCurrentBranch"
-            ngbTooltip="Merge Branch into Current Branch"
           >
-            <i class="material-icons">merge_type</i>
-          </button>
+            <button
+              class="btn btn-success btn-sm"
+              (click)="onMergeClicked.emit(b)"
+              ngbTooltip="Merge Branch into Current Branch"
+            >
+              <i class="material-icons">merge_type</i>
+            </button>
+            <button
+              class="btn btn-success dropdown-toggle dropdown-toggle-split"
+              ngbDropdownToggle
+            ></button>
+            <div ngbDropdownMenu>
+              <div class="d-flex flex-row g-2 p-2">
+                <button
+                  class="btn btn-success btn-sm"
+                  (click)="onRebaseClicked.emit(b)"
+                  ngbTooltip="Rebase onto Branch"
+                >
+                  <i class="fa fa-code-branch"></i>
+                  Rebase
+                </button>
+                <button
+                  class="btn btn-success btn-sm"
+                  (click)="onInteractiveRebaseClicked.emit(b)"
+                  ngbTooltip="Interactive Rebase onto Branch"
+                >
+                  <i class="fa fa-code-branch"></i>
+                  Interactive Rebase
+                </button>
+              </div>
+            </div>
+          </div>
           <button
             class="btn btn-danger btn-sm"
             (click)="onDeleteClicked.emit(b)"
@@ -381,6 +412,8 @@
         (onBranchPremergeClicked)="onBranchPremergeClicked.emit($event)"
         (onFastForwardClicked)="onFastForwardClicked.emit($event)"
         (onMergeClicked)="onMergeClicked.emit($event)"
+        (onRebaseClicked)="onRebaseClicked.emit($event)"
+        (onInteractiveRebaseClicked)="onInteractiveRebaseClicked.emit($event)"
         [worktrees]="worktrees"
         (onBranchRename)="onBranchRename.emit($event)"
         [showChildrenMap]="showChildrenMap"

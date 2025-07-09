@@ -43,6 +43,8 @@ export class BranchTreeItemComponent implements OnInit {
   @Output() onFastForwardClicked = new EventEmitter<BranchModel>();
   @Output() onBranchPremergeClicked = new EventEmitter<BranchModel>();
   @Output() onMergeClicked = new EventEmitter<BranchModel>();
+  @Output() onRebaseClicked = new EventEmitter<BranchModel>();
+  @Output() onInteractiveRebaseClicked = new EventEmitter<BranchModel>();
   @Output() onPullClicked = new EventEmitter<void>();
   @Output() onForcePullClicked = new EventEmitter<void>();
   @Output() onBranchRename = new EventEmitter<{

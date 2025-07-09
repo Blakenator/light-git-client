@@ -136,6 +136,23 @@ export class GitService {
     });
   }
 
+  rebaseBranch(branch: string, interactive: boolean = false): Job<void> {
+    return this.getJob({
+      affectedAreas: [
+        RepoArea.LOCAL_BRANCHES,
+        RepoArea.LOCAL_CHANGES,
+        RepoArea.COMMIT_HISTORY,
+      ],
+      command: Channels.REBASEBRANCH,
+      execute: () =>
+        this.electronService.rpc(Channels.REBASEBRANCH, [
+          this.getRepo().path,
+          branch,
+          interactive,
+        ]),
+    });
+  }
+
   addWorktree(
     location: string,
     branch: string,

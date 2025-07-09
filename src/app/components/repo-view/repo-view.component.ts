@@ -84,6 +84,8 @@ export class RepoViewComponent implements OnDestroy {
     into: BranchModel;
     target: BranchModel;
     currentBranch: BranchModel;
+    isRebase?: boolean;
+    isInteractive?: boolean;
   };
   private $destroy = new Subject<void>();
   private destroyed = false;
@@ -284,6 +286,11 @@ export class RepoViewComponent implements OnDestroy {
   }
 
   mergeBranch() {
+    if (this.activeMergeInfo.isRebase) {
+      this.rebaseBranch();
+      return;
+    }
+
     const doMerge = () => {
       let updateMessage = () => {
         if (
@@ -325,6 +332,43 @@ export class RepoViewComponent implements OnDestroy {
       )
         .then(() => {
           doMerge();
+        })
+        .catch(() => {});
+    }
+  }
+
+  rebaseBranch() {
+    const doRebase = () => {
+      this.simpleOperation(
+        this.gitService.rebaseBranch(
+          this.activeMergeInfo.target.name,
+          this.activeMergeInfo.isInteractive || false
+        ),
+        'rebaseBranch',
+        this.activeMergeInfo.isInteractive ? 'interactively rebasing onto the branch' : 'rebasing onto the branch',
+        false,
+        true,
+        true,
+      );
+    };
+
+    if (
+      this.tabDataService.getCurrentBranch() &&
+      this.tabDataService.getCurrentBranch().name ==
+        this.activeMergeInfo.into.name
+    ) {
+      doRebase();
+    } else {
+      this.simpleOperation(
+        this.gitService.checkout(this.activeMergeInfo.into.name, false),
+        'rebaseBranch',
+        'checking out the base branch',
+        false,
+        true,
+        true,
+      )
+        .then(() => {
+          doRebase();
         })
         .catch(() => {});
     }
@@ -849,14 +893,24 @@ export class RepoViewComponent implements OnDestroy {
     this.clearSelectedChanges();
   }
 
+  private _usePrefixForBranch = true;
+
   createBranch(branchName: string) {
     this.simpleOperation(
       this.gitService.createBranch(
-        (this.settingsService.settings.branchNamePrefix || '') + branchName,
+        this._usePrefixForBranch 
+          ? (this.settingsService.settings.branchNamePrefix || '') + branchName 
+          : branchName,
       ),
       'createBranch',
       'creating the branch',
     );
+    // Reset to default behavior for next time
+    this._usePrefixForBranch = true;
+  }
+  
+  clearBranchPrefix() {
+    this._usePrefixForBranch = false;
   }
 
   getCreateStashDefaultText() {
@@ -1042,12 +1096,14 @@ export class RepoViewComponent implements OnDestroy {
     this.activeMergeInfo = undefined;
   }
 
-  startMerge(target?: BranchModel) {
+  startMerge(target?: BranchModel, isRebase: boolean = false, isInteractive: boolean = false) {
     let currentBranch = this.tabDataService.getCurrentBranch();
     this.activeMergeInfo = {
       into: currentBranch,
       currentBranch,
       target,
+      isRebase,
+      isInteractive,
     };
     this.showModal('mergeBranchModal');
   }

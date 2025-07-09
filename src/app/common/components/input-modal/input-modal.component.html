@@ -9,8 +9,17 @@
   <p>{{ message }}</p>
 
   <div class="input-group">
-    <div class="input-group-prepend" *ngIf="inputPrepend">
-      <span class="input-group-text">{{ inputPrepend }}</span>
+    <div class="input-group-prepend" *ngIf="showInputPrepend">
+      <span class="input-group-text">
+        {{ inputPrepend }}
+        <button *ngIf="showPrependClearButton" 
+                class="btn btn-sm btn-light ml-2 p-0" 
+                type="button" 
+                (click)="clearInputPrepend()"
+                title="Remove prefix">
+          <i class="fa fa-times"></i>
+        </button>
+      </span>
     </div>
     <input
       class="form-control"

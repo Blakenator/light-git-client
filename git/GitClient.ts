@@ -341,6 +341,14 @@ export class GitClient {
     );
   }
 
+  rebaseBranch(branch: string, interactive: boolean = false) {
+    return this.simpleOperation(
+      this.getGitPath(),
+      ['rebase', interactive ? '-i' : '-q', branch],
+      interactive ? 'Interactive Rebase Current Branch onto Target Branch' : 'Rebase Current Branch onto Target Branch',
+    );
+  }
+
   changeHunk(filename: string, hunk: DiffHunkModel, changedText: string) {
     return new Promise<void>((resolve, reject) => {
       try {

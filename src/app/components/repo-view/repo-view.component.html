@@ -68,13 +68,39 @@
         >
           <i class="fas fa-cut"></i>
         </button>
-        <button
-          class="btn btn-success btn-sm mx-1"
-          (click)="startMerge()"
-          ngbTooltip="Merge two branches"
-        >
-          <i class="material-icons">merge_type</i>
-        </button>
+        <div class="btn-group btn-group-sm mx-1" ngbDropdown>
+          <button
+            class="btn btn-success"
+            (click)="startMerge()"
+            ngbTooltip="Merge two branches"
+          >
+            <i class="material-icons">merge_type</i>
+          </button>
+          <button
+            class="btn btn-success dropdown-toggle dropdown-toggle-split"
+            ngbDropdownToggle
+          ></button>
+          <div ngbDropdownMenu>
+            <div class="d-flex flex-row g-2 p-2">
+              <button
+                class="btn btn-success btn-sm"
+                (click)="startMerge(undefined, true, false)"
+                ngbTooltip="Rebase one branch onto another"
+              >
+                <i class="fa fa-code-branch"></i>
+                Rebase
+              </button>
+              <button
+                class="btn btn-success btn-sm"
+                (click)="startMerge(undefined, true, true)"
+                ngbTooltip="Interactive rebase one branch onto another"
+              >
+                <i class="fa fa-code-branch"></i>
+                Interactive Rebase
+              </button>
+            </div>
+          </div>
+        </div>
       </ng-template>
       <app-branch-tree-item
         [isLocal]="true"
@@ -86,7 +112,9 @@
         (onPullClicked)="pull(false)"
         (onForcePullClicked)="pull(true)"
         (onDeleteClicked)="markDeleteBranch($event)"
-        (onMergeClicked)="startMerge($event)"
+        (onMergeClicked)="startMerge($event, false)"
+        (onRebaseClicked)="startMerge($event, true, false)"
+        (onInteractiveRebaseClicked)="startMerge($event, true, true)"
         (onFastForwardClicked)="fastForwardBranch($event)"
         (onBranchPremergeClicked)="getBranchPremerge($event)"
         [worktrees]="this.getRepo().worktrees"
@@ -721,8 +749,10 @@
     invalidMessage="Please enter a valid branch name"
     inputPlaceholder="Branch name..."
     [inputPrepend]="settingsService.settings.branchNamePrefix"
+    [showPrependClearButton]="!!settingsService.settings.branchNamePrefix"
     [replaceChars]="branchReplaceChars"
     (onClickOk)="createBranch($event)"
+    (onPrependClear)="clearBranchPrefix()"
   ></app-input-modal>
   <app-input-modal
     modalId="createStash"

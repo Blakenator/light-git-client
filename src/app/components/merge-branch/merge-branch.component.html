@@ -1,11 +1,11 @@
 <app-modal
   [modalId]="'mergeBranchModal' + uidSalt"
-  modalTitle="Merge branches"
+  [modalTitle]="activeMergeInfo?.isRebase ? 'Rebase branches' : 'Merge branches'"
   (onCancel)="onCancel.emit()"
   (onFinish)="onFinish.emit()"
   [affirmativeButtonDisabled]="getDisabledReason()"
   modalClass="dialog-expand"
-  affirmativeButtonText="Merge"
+  [affirmativeButtonText]="activeMergeInfo?.isRebase ? (activeMergeInfo?.isInteractive ? 'Interactive Rebase' : 'Rebase') : 'Merge'"
 >
   <div
     *ngIf="activeMergeInfo"
@@ -23,8 +23,11 @@
       [(selection)]="activeMergeInfo.target"
     ></app-merge-branch-dropdown>
   </div>
-  <div class="d-flex justify-content-center" *ngIf="activeMergeInfo">
-    <button class="btn btn-secondary m-2" (click)="swapTargets()">Swap</button>
+  <div class="d-flex justify-content-center align-items-center g-3 mt-2" *ngIf="activeMergeInfo">
+    <button class="btn btn-secondary" (click)="swapTargets()">Swap</button>
+    <app-pretty-checkbox *ngIf="activeMergeInfo.isRebase" [(value)]="activeMergeInfo.isInteractive">
+      Interactive
+    </app-pretty-checkbox>
   </div>
   <div
     class="alert alert-warning d-flex align-items-center mt-3 mb-0"
