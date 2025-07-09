@@ -89,7 +89,6 @@ export class MarkdownEditorComponent
 
   // Handler for Quill editor creation
   onEditorCreated(editor: any): void {
-    console.log('Quill editor created', editor);
     // Initialize quilljs-markdown with the editor instance
     this.quillMarkdown = new QuillMarkdown(editor, {});
   }
@@ -101,7 +100,6 @@ export class MarkdownEditorComponent
 
   // Update editor content
   private updateEditorContent(markdown: string): void {
-    console.log('update editor', { markdown });
     // Update the editor content directly
     this.editorContent = markdown || '';
   }

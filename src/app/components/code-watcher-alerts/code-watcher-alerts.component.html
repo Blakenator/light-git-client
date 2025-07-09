@@ -10,52 +10,47 @@
     showWatchersRequest?.isCommit ? 'Cancel Commit' : 'Close'
   "
   (onFinish)="commitAnyway()"
-  >
+>
   <p>The following hunks have watcher alerts:</p>
   @if (!showWatchersRequest?.forHeader) {
-    <input
-      class="form-control"
-      [(ngModel)]="filter"
-      placeholder="Filename filter..."
-      />
-  }
-  @for (f of watcherAlerts | filterObject: 'file':filter; track f) {
-    <div
-      class="card"
-      >
-      <div class="card-header">{{ f.file }}</div>
-      <div>
-        <table class="table">
-          <thead>
-            <tr>
-              <th width="1%">Code</th>
-              <th>Watcher</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (h of f.hunks; track h) {
-              <tr>
-                <td width="1%">
-                  <pre
-                    class="code-block"
-                    ><code [highlight]="getHunkCode(h.hunk)"></code></pre>
-                  </td>
-                  <td style="vertical-align: top;">
-                    @for (w of h.watchers; track w) {
-                      <div>
-                        @for (line of getLinesFromMatch(h.hunk, w); track line) {
-                          <p>
-                            {{ w.name }} (line {{ line }})
-                          </p>
-                        }
-                      </div>
-                    }
-                  </td>
-                </tr>
+  <input
+    class="form-control"
+    [(ngModel)]="filter"
+    placeholder="Filename filter..."
+  />
+  } @for (f of watcherAlerts | filterObject: 'file':filter; track f) {
+  <div class="card">
+    <div class="card-header">{{ f.file }}</div>
+    <div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th width="1%">Code</th>
+            <th>Watcher</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (h of f.hunks; track h) {
+          <tr>
+            <td width="1%">
+              <pre
+                class="code-block"
+              ><code [highlightAuto]="getHunkCode(h.hunk)"></code></pre>
+            </td>
+            <td style="vertical-align: top">
+              @for (w of h.watchers; track w) {
+              <div>
+                @for (line of getLinesFromMatch(h.hunk, w); track line) {
+                <p>{{ w.name }} (line {{ line }})</p>
+                }
+              </div>
               }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    }
-  </app-modal>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+  }
+</app-modal>
