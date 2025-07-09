@@ -632,9 +632,9 @@
             </app-pretty-checkbox>
             <div class="d-flex flex-row">
               <div class="dropup flex-grow-1 mt-1 position-relative">
-                <div class="input-group">
-                  <textarea
-                    class="form-control"
+                <div class="mb-3">
+                  <app-markdown-editor
+                    class="w-100"
                     [(ngModel)]="this.getRepo().changes.description"
                     placeholder="Commit message"
                     (blur)="cancelSuggestions()"
@@ -642,16 +642,20 @@
                     (keydown.meta.enter)="startCommit(false)"
                     (keyup)="setCurrentCursorPosition($event)"
                     (keydown.tab)="setCurrentCursorPosition($event)"
-                  ></textarea>
-                  <div
-                    class="input-group-append"
-                    [ngbTooltip]="getCommitDisabledTooltip()"
-                    ngbDropdown
-                    >
+                  ></app-markdown-editor>
+                </div>
+                <div class="d-flex justify-content-end">
+                  @if (hasWatcherAlerts) {
+                    <button class="btn btn-warning" (click)="codeWatcherService.showWatchers({ isCommit: false })">
+                      <span class="fa fa-glasses"></span>
+                    </button>
+                  }
+                  <div class="btn-group mr-2" ngbDropdown>
                     <button
-                      class="btn btn-success d-flex align-items-center"
+                      class="btn btn-success"
                       (click)="startCommit(false)"
                       [disabled]="getCommitDisabledTooltip()"
+                      [ngbTooltip]="getCommitDisabledTooltip()"
                       >
                       Commit
                     </button>
@@ -671,16 +675,6 @@
                       </div>
                     </div>
                   </div>
-                  @if (hasWatcherAlerts) {
-                    <div class="input-group-append">
-                      <button
-                        class="btn btn-warning"
-                        (click)="codeWatcherService.showWatchers({ isCommit: false })"
-                        >
-                        <span class="fa fa-glasses"></span>
-                      </button>
-                    </div>
-                  }
                 </div>
                 <div
                   class="crlf-warning alert alert-warning d-flex justify-content-between p-0"

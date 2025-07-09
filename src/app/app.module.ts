@@ -68,6 +68,8 @@ import { MergeBranchDropdownComponent } from './components/merge-branch/merge-br
 import { PreCommitStatusModalComponent } from './common/components/pre-commit-status-modal/pre-commit-status-modal.component';
 import { ActiveJobsComponent } from './components/active-jobs/active-jobs.component';
 import { CommandHistoryComponent } from './components/command-history/command-history.component';
+import { MarkdownEditorComponent } from './common/components/markdown-editor/markdown-editor.component';
+import { QuillModule } from 'ngx-quill';
 
 @NgModule({
   declarations: [
@@ -112,6 +114,7 @@ import { CommandHistoryComponent } from './components/command-history/command-hi
     MergeBranchDropdownComponent,
     ActiveJobsComponent,
     CommandHistoryComponent,
+    MarkdownEditorComponent,
   ],
   bootstrap: [AppComponent],
   imports: [
@@ -125,6 +128,7 @@ import { CommandHistoryComponent } from './components/command-history/command-hi
     BrowserAnimationsModule,
     ScrollingModule,
     DragDropModule,
+    QuillModule.forRoot(),
   ],
   providers: [
     ElectronService,

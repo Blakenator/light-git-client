@@ -1,0 +1,9 @@
+<quill-editor
+  class="markdown-editor"
+  [modules]="quillModules"
+  [placeholder]="placeholder"
+  [(ngModel)]="editorContent"
+  (onContentChanged)="onEditorContentChanged($event)"
+  (onBlur)="onEditorBlurred()"
+  (onEditorCreated)="onEditorCreated($event)">
+</quill-editor>
