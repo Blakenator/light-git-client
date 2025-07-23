@@ -637,8 +637,7 @@
               placeholder="Commit message"
               (onBlur)="cancelSuggestions()"
               (onSubmit)="startCommit(false)"
-              (keyup)="setCurrentCursorPosition($event)"
-              (keydown.tab)="setCurrentCursorPosition($event)"
+              (onUpdateSelection)="setCurrentCursorPosition($event)"
             ></app-markdown-editor>
             <div
               class="crlf-warning alert alert-warning d-flex justify-content-between p-0"

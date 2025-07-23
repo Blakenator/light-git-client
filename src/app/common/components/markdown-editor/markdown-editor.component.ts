@@ -90,7 +90,10 @@ export class MarkdownEditorComponent
   onEditorContentChanged(event: any): void {
     const html = event.html || '';
 
-    this.content = this.markdownConverter.makeMarkdown(html);
+    this.content = this.markdownConverter
+      .makeMarkdown(html)
+      // strip md comments
+      .replace(/<!--.*?-->\n?\n?/g, '');
     this.onChange(this.content);
   }
 
