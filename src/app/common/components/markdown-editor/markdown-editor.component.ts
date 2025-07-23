@@ -5,6 +5,8 @@ import {
   OnDestroy,
   OnInit,
   AfterViewInit,
+  EventEmitter,
+  Output,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -30,6 +32,9 @@ export class MarkdownEditorComponent
   implements OnInit, OnDestroy, AfterViewInit, ControlValueAccessor
 {
   @Input() placeholder = 'Enter markdown text...';
+  @Output() onBlur = new EventEmitter<void>();
+  @Output() onSubmit = new EventEmitter<void>();
+  @Output() onUpdateSelection = new EventEmitter<KeyboardEvent | Event>();
 
   quillModules: QuillModules;
   editorContent: string = '';
@@ -98,6 +103,7 @@ export class MarkdownEditorComponent
   // Handle editor blur event
   onEditorBlurred(): void {
     this.onTouched();
+    this.onBlur.emit();
   }
 
   // Update editor content

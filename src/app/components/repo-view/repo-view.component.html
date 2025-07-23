@@ -635,9 +635,8 @@
               class="w-100"
               [(ngModel)]="this.getRepo().changes.description"
               placeholder="Commit message"
-              (blur)="cancelSuggestions()"
-              (keyup.control.enter)="startCommit(false)"
-              (keydown.meta.enter)="startCommit(false)"
+              (onBlur)="cancelSuggestions()"
+              (onSubmit)="startCommit(false)"
               (keyup)="setCurrentCursorPosition($event)"
               (keydown.tab)="setCurrentCursorPosition($event)"
             ></app-markdown-editor>
