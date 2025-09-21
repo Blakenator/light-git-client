@@ -15,37 +15,50 @@
   <div>
     @if (diffCommitInfo) {
     <div class="card-body">
-      <div class="d-flex justify-content-between">
-        <div>
+      <div class="d-flex flex-column g-2">
+        <div class="d-flex justify-content-between">
           <p class="text-muted">{{ diffCommitInfo.hash }}</p>
-          @if (diffCommitInfo.authorName) {
-          <p>
-            {{ diffCommitInfo.authorName }} &lt;{{
-              diffCommitInfo.authorEmail
-            }}&gt; &#64; {{ diffCommitInfo.authorDate | date: 'short' }}
-          </p>
-          }
-          <div>{{ diffCommitInfo.message }}</div>
-          <div class="mt-2">
-            <span>Parents:</span>
-            @for (p of diffCommitInfo.parentHashes; track p) {
+          <div>
             <button
-              class="btn mx-1 btn-sm btn-outline-warning"
-              (click)="onNavigateToHash.emit(p)"
+              class="btn btn-primary btn-circle justify-content-center rounded-circle align-items-center"
+              (click)="onExitCommitClicked.emit()"
             >
-              {{ p.substring(0, 8) }}
-              <span class="fa fa-eye"></span>
+              <span class="fa fa-times"></span>
             </button>
+          </div>
+        </div>
+        @if (diffCommitInfo.authorName) {
+        <p>
+          {{ diffCommitInfo.authorName }} &lt;{{
+            diffCommitInfo.authorEmail
+          }}&gt; &#64; {{ diffCommitInfo.authorDate | date: 'short' }}
+        </p>
+        }
+        <div class="d-flex flex-column">
+          <div>Commit Message:</div>
+          <pre class="commit-message-body">{{ diffCommitInfo.message }}</pre>
+        </div>
+        <div class="d-flex g-1 align-items-center">
+          <span>Tags:</span>
+          <div class="d-inline-flex g-1">
+            @for (t of diffCommitInfo.currentTags; track t) {
+            <div class="badge badge-primary">
+              {{ t }}
+            </div>
             }
           </div>
         </div>
         <div>
+          <span>Parents:</span>
+          @for (p of diffCommitInfo.parentHashes; track p) {
           <button
-            class="btn btn-primary btn-circle justify-content-center rounded-circle align-items-center"
-            (click)="onExitCommitClicked.emit()"
+            class="btn mx-1 btn-sm btn-outline-warning"
+            (click)="onNavigateToHash.emit(p)"
           >
-            <span class="fa fa-times"></span>
+            {{ p.substring(0, 8) }}
+            <span class="fa fa-eye"></span>
           </button>
+          }
         </div>
       </div>
     </div>

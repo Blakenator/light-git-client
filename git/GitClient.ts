@@ -1192,17 +1192,39 @@ export class GitClient {
   }
 
   getStashes(): Promise<StashModel[]> {
-    return this.execute(this.getGitPath(), ['stash', 'list'], 'Get Stashes')
+    return this.execute(
+      this.getGitPath(),
+      [
+        'stash',
+        'list',
+        `--format=||||${[
+          '%gd', // stash reflog (stash@{1})
+          '%H', // hash
+          '%P', // parent hashes
+          '%an', // author name
+          '%ae', // author email
+          '%aI', // author date (ISO)
+          '%s', // subject (with branch name prefix, stashes only support one-line subjects)
+        ].join('|')}`,
+      ],
+      'Get Stashes',
+    )
       .then((output) => {
         const text = output.standardOutput;
-        const stashList = /^stash@{(\d+)}:\s+(WIP on|On)\s+(.+):\s+(.*)$/gim;
+        const stashList =
+          /^\|\|\|\|stash@{(\d+)}\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(WIP on|On)\s+(.+):\s+(.*)$/gim;
         let match = stashList.exec(text);
         const stashes: StashModel[] = [];
         while (match) {
           const stashModel = new StashModel();
           stashModel.index = +match[1];
-          stashModel.branchName = match[3];
-          stashModel.message = match[4];
+          stashModel.hash = match[2];
+          stashModel.parentHashes = match[3]?.split(/s+/);
+          stashModel.authorName = match[4];
+          stashModel.authorEmail = match[5];
+          stashModel.authorDate = match[6];
+          stashModel.branchName = match[8];
+          stashModel.message = match[9];
 
           stashes.push(stashModel);
           match = stashList.exec(text);

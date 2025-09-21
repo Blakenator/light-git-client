@@ -331,42 +331,13 @@
           <i class="fas fa-history"></i>
         </button>
       </ng-template>
-      <div class="card-body">
-        @for (s of this.getRepo().stashes | filterObject:
-        getStashFilterText:stashFilter; track s) {
-        <div class="d-flex">
-          <div class="stash-message flex-grow-1">
-            <span class="badge badge-info">{{ s.index }}</span>
-            : {{ s.message }}
-          </div>
-          <div class="d-inline-block ml-3 flex-shrink-0">
-            <div class="d-flex">
-              <button
-                class="btn btn-warning btn-sm mx-1"
-                (click)="viewStash(s.index)"
-                ngbTooltip="View Stash Diff"
-              >
-                <i class="fa fa-eye"></i>
-              </button>
-              <button
-                class="btn btn-light btn-sm mx-1"
-                (click)="applyStash(s.index)"
-                ngbTooltip="Apply Stash"
-              >
-                <i class="fa fa-box-open"></i>
-              </button>
-              <button
-                class="btn btn-danger btn-sm mx-1"
-                (click)="deleteStash(s.index)"
-                ngbTooltip="Delete Stash"
-              >
-                <i class="fa fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-        }
-      </div>
+      <app-stash-list
+        [stashes]="this.getRepo().stashes"
+        (onApplyStash)="this.applyStash($event)"
+        (onDeleteStash)="this.deleteStash($event)"
+        (onViewStash)="this.viewStash($event)"
+        [stashFilter]="this.stashFilter"
+      ></app-stash-list>
     </app-layout-card>
     <app-layout-card
       [headerContent]="commandHistoryHeader"

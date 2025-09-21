@@ -45,10 +45,10 @@ import { Job, RepoAreaDefaults } from '../../services/job-system/models';
 import { ActiveOperationToPropMap } from './constants';
 
 @Component({
-    selector: 'app-repo-view',
-    templateUrl: './repo-view.component.html',
-    styleUrls: ['./repo-view.component.scss'],
-    standalone: false
+  selector: 'app-repo-view',
+  templateUrl: './repo-view.component.html',
+  styleUrls: ['./repo-view.component.scss'],
+  standalone: false,
 })
 export class RepoViewComponent implements OnDestroy {
   commitDiff: DiffHeaderModel[];
@@ -159,10 +159,6 @@ export class RepoViewComponent implements OnDestroy {
 
   public getRepo() {
     return this.tabDataService.getCacheFor(this._repoPath);
-  }
-
-  getStashFilterText(stash: StashModel) {
-    return stash.branchName + stash.message + stash.branchName;
   }
 
   ngOnDestroy() {
@@ -343,10 +339,12 @@ export class RepoViewComponent implements OnDestroy {
       this.simpleOperation(
         this.gitService.rebaseBranch(
           this.activeMergeInfo.target.name,
-          this.activeMergeInfo.isInteractive || false
+          this.activeMergeInfo.isInteractive || false,
         ),
         'rebaseBranch',
-        this.activeMergeInfo.isInteractive ? 'interactively rebasing onto the branch' : 'rebasing onto the branch',
+        this.activeMergeInfo.isInteractive
+          ? 'interactively rebasing onto the branch'
+          : 'rebasing onto the branch',
         false,
         true,
         true,
@@ -851,23 +849,29 @@ export class RepoViewComponent implements OnDestroy {
       );
   }
 
-  applyStash(index: number) {
+  applyStash(stash: StashModel) {
     this.simpleOperation(
-      this.gitService.applyStash(index),
+      this.gitService.applyStash(stash.index),
       'applyStash',
       'applying the stash',
     );
     this.clearSelectedChanges();
   }
 
-  viewStash(index: number) {
+  viewStash(stash: StashModel) {
     this.jobSchedulerService
-      .scheduleSimpleOperation(this.gitService.getStashDiff(index))
+      .scheduleSimpleOperation(this.gitService.getStashDiff(stash.index))
       .result.then((diff) => {
         this.commitDiff = diff;
         this.showDiff = true;
         let commitInfo = new CommitSummaryModel();
-        commitInfo.message = this.getRepo().stashes[index].message;
+        commitInfo.message = stash.message;
+        commitInfo.hash = stash.hash;
+        commitInfo.authorDate = new Date(stash.authorDate);
+        commitInfo.parentHashes = stash.parentHashes;
+        commitInfo.authorName = stash.authorName;
+        commitInfo.authorEmail = stash.authorEmail;
+        commitInfo.currentTags = [stash.branchName];
         this.diffCommitInfo = commitInfo;
 
         this.changeDetectorRef.detectChanges();
@@ -883,11 +887,14 @@ export class RepoViewComponent implements OnDestroy {
       );
   }
 
-  deleteStash(index: number) {
-    this.getRepo().stashes.splice(index, 1);
+  deleteStash(stash: StashModel) {
+    this.getRepo().stashes.splice(
+      this.getRepo().stashes.findIndex((s) => s.hash === stash.hash),
+      1,
+    );
     this.getRepo().stashes.forEach((stash, i) => (stash.index = i));
     this.simpleOperation(
-      this.gitService.deleteStash(index),
+      this.gitService.deleteStash(stash.index),
       'deleteStash',
       'deleting the stash',
     );
@@ -899,8 +906,8 @@ export class RepoViewComponent implements OnDestroy {
   createBranch(branchName: string) {
     this.simpleOperation(
       this.gitService.createBranch(
-        this._usePrefixForBranch 
-          ? (this.settingsService.settings.branchNamePrefix || '') + branchName 
+        this._usePrefixForBranch
+          ? (this.settingsService.settings.branchNamePrefix || '') + branchName
           : branchName,
       ),
       'createBranch',
@@ -909,7 +916,7 @@ export class RepoViewComponent implements OnDestroy {
     // Reset to default behavior for next time
     this._usePrefixForBranch = true;
   }
-  
+
   clearBranchPrefix() {
     this._usePrefixForBranch = false;
   }
@@ -1097,7 +1104,11 @@ export class RepoViewComponent implements OnDestroy {
     this.activeMergeInfo = undefined;
   }
 
-  startMerge(target?: BranchModel, isRebase: boolean = false, isInteractive: boolean = false) {
+  startMerge(
+    target?: BranchModel,
+    isRebase: boolean = false,
+    isInteractive: boolean = false,
+  ) {
     let currentBranch = this.tabDataService.getCurrentBranch();
     this.activeMergeInfo = {
       into: currentBranch,

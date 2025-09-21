@@ -70,6 +70,7 @@ import { ActiveJobsComponent } from './components/active-jobs/active-jobs.compon
 import { CommandHistoryComponent } from './components/command-history/command-history.component';
 import { MarkdownEditorComponent } from './common/components/markdown-editor/markdown-editor.component';
 import { QuillModule } from 'ngx-quill';
+import { StashListComponent } from './components/stash-list/stash-list.component';
 
 @NgModule({
   declarations: [
@@ -115,6 +116,7 @@ import { QuillModule } from 'ngx-quill';
     ActiveJobsComponent,
     CommandHistoryComponent,
     MarkdownEditorComponent,
+    StashListComponent,
   ],
   bootstrap: [AppComponent],
   imports: [
