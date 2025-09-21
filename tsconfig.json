@@ -1,15 +1,17 @@
 {
   "compileOnSave": true,
   "compilerOptions": {
-    "downlevelIteration": true,
     "module": "es2020",
+    "esModuleInterop": true,
     "outDir": "./dist/out-tsc",
     "inlineSourceMap": true,
     "declaration": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "experimentalDecorators": true,
-    "target": "es2020",
-    "typeRoots": ["node_modules/@types"],
+    "target": "ES2022",
+    "typeRoots": [
+      "node_modules/@types"
+    ],
     "lib": [
       "esnext",
       "es2018",
@@ -21,6 +23,9 @@
       "es7",
       "dom"
     ],
-    "types": ["./index.d.ts"]
+    "types": [
+      "./index.d.ts"
+    ],
+    "useDefineForClassFields": false
   }
 }

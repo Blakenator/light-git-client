@@ -9,7 +9,7 @@
     "typeRoots": [
       "node_modules/@types"
     ],
-    "moduleResolution": "node"
+    "moduleResolution": "bundler"
   },
   "files": [
     "test.ts",

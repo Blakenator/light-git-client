@@ -6,6 +6,7 @@ export namespace Channels {
   export const GETWORKTREES = 'getWorktrees';
   export const GETSTASHES = 'getStashes';
   export const MERGEBRANCH = 'mergeBranch';
+  export const REBASEBRANCH = 'rebaseBranch';
   export const CHANGEHUNK = 'changeHunk';
   export const OPENDEVTOOLS = 'openDevTools';
   export const GETCONFIGITEMS = 'getConfigItems';

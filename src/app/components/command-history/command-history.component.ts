@@ -16,9 +16,10 @@ import { ModalService } from '../../common/services/modal.service';
 import { ClipboardService } from '../../services/clipboard.service';
 
 @Component({
-  selector: 'app-command-history',
-  templateUrl: './command-history.component.html',
-  styleUrls: ['./command-history.component.scss'],
+    selector: 'app-command-history',
+    templateUrl: './command-history.component.html',
+    styleUrls: ['./command-history.component.scss'],
+    standalone: false
 })
 export class CommandHistoryComponent implements OnInit, OnDestroy {
   @Input() commandHistoryFilter: string;

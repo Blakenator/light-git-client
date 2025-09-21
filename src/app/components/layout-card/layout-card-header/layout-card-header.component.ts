@@ -2,9 +2,10 @@ import {Component, EventEmitter, Input, OnInit, Output, TemplateRef} from '@angu
 import {SettingsService} from '../../../services/settings.service';
 
 @Component({
-  selector: 'app-layout-card-header',
-  templateUrl: './layout-card-header.component.html',
-  styleUrls: ['./layout-card-header.component.scss'],
+    selector: 'app-layout-card-header',
+    templateUrl: './layout-card-header.component.html',
+    styleUrls: ['./layout-card-header.component.scss'],
+    standalone: false
 })
 export class LayoutCardHeaderComponent implements OnInit {
   @Input() cardTitle: string;

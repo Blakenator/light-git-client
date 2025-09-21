@@ -5,9 +5,10 @@ import {ModalService} from '../../../common/services/modal.service';
 import {JobSchedulerService} from '../../../services/job-system/job-scheduler.service';
 
 @Component({
-  selector: 'app-restore-stash',
-  templateUrl: './restore-stash.component.html',
-  styleUrls: ['./restore-stash.component.scss'],
+    selector: 'app-restore-stash',
+    templateUrl: './restore-stash.component.html',
+    styleUrls: ['./restore-stash.component.scss'],
+    standalone: false
 })
 export class RestoreStashComponent implements OnInit {
   @Input() repoViewUid: number;

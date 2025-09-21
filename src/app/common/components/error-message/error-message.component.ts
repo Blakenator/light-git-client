@@ -5,9 +5,10 @@ import { ModalService } from '../../services/modal.service';
 import { ClipboardService } from '../../../services/clipboard.service';
 
 @Component({
-  selector: 'app-error-message',
-  templateUrl: './error-message.component.html',
-  styleUrls: ['./error-message.component.scss'],
+    selector: 'app-error-message',
+    templateUrl: './error-message.component.html',
+    styleUrls: ['./error-message.component.scss'],
+    standalone: false
 })
 export class ErrorMessageComponent {
   errors: ErrorModel[] = [];

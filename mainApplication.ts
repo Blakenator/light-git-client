@@ -602,6 +602,12 @@ export class MainApplication extends GenericApplication {
       );
     });
 
+    ipcMain.handle(Channels.REBASEBRANCH, (event, args) => {
+      return this.handleGitPromise(
+        this.gitClients[args[1]].rebaseBranch(args[2], args[3]),
+      );
+    });
+
     ipcMain.handle(Channels.APPLYSTASH, (event, args) => {
       return this.handleGitPromise(
         this.gitClients[args[1]].applyStash(args[2]),

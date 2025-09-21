@@ -1,0 +1,39 @@
+<div class="card-body">
+  @for (s of this.stashes | filterObject: getStashFilterText:stashFilter; track
+  s) {
+  <div class="d-flex align-items-center g-2 stash-row">
+    <span class="badge badge-info">{{ s.index }}</span>
+    <div class="stash-message flex-grow-1">
+      {{ s.message }}
+    </div>
+    <div class="badge badge-primary branch-badge" [ngbTooltip]="s.branchName">
+      {{ s.branchName }}
+    </div>
+    <div class="d-inline-block flex-shrink-0">
+      <div class="d-flex g-2">
+        <button
+          class="btn btn-warning btn-sm"
+          (click)="this.onViewStash.emit(s)"
+          ngbTooltip="View Stash Diff"
+        >
+          <i class="fa fa-eye"></i>
+        </button>
+        <button
+          class="btn btn-light btn-sm"
+          (click)="this.onApplyStash.emit(s)"
+          ngbTooltip="Apply Stash"
+        >
+          <i class="fa fa-box-open"></i>
+        </button>
+        <button
+          class="btn btn-danger btn-sm"
+          (click)="this.onDeleteStash.emit(s)"
+          ngbTooltip="Delete Stash"
+        >
+          <i class="fa fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+</div>

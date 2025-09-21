@@ -12,9 +12,10 @@ import { NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap';
 import { JobSchedulerService } from '../../services/job-system/job-scheduler.service';
 
 @Component({
-  selector: 'app-home',
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss'],
+    selector: 'app-home',
+    templateUrl: './home.component.html',
+    styleUrls: ['./home.component.scss'],
+    standalone: false
 })
 export class HomeComponent implements OnInit {
   editingTab = -1;

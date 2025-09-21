@@ -1,7 +1,17 @@
-<div class="mx-2" (click)="value=!value; valueChange.emit(value)">
-  <label class="check-state d-inline-flex align-items-center cursor-pointer">
-    <div class="d-inline-block position-relative check-indicator mr-2" [ngClass]="{show:value}">
-      <div class="d-inline-block position-absolute check-handle bg-primary"></div>
+<div
+  class="mx-2 d-flex align-items-center"
+  (click)="value = !value; valueChange.emit(value)"
+>
+  <label
+    class="check-state d-inline-flex align-items-center cursor-pointer m-0"
+  >
+    <div
+      class="d-inline-block position-relative check-indicator mr-2"
+      [ngClass]="{ show: value }"
+    >
+      <div
+        class="d-inline-block position-absolute check-handle bg-primary"
+      ></div>
     </div>
     <div>
       <ng-content></ng-content>

@@ -8,7 +8,7 @@
 
 <div
   class="commit-wrapper"
-  infinite-scroll
+  infiniteScroll
   [scrollWindow]="false"
   (scrolled)="scrolled(true)"
   (scrolledUp)="scrolled(false)"
@@ -16,7 +16,8 @@
   <table class="table table-striped">
     <thead>
       <tr>
-        <th *ngIf="!commitFilter" class="py-1 px-2">
+        @if (!commitFilter) {
+        <th class="py-1 px-2">
           <div
             class="btn-group btn-group-sm flex-shrink-0"
             ngbDropdown
@@ -56,35 +57,40 @@
             </div>
           </div>
         </th>
+        }
         <th>
-          Message
-          <i
-            class="fa fa-filter"
-            *ngIf="commitFilter"
-            ngbTooltip="Filtered Results"
-          ></i>
+          Message @if (commitFilter) {
+          <i class="fa fa-filter" ngbTooltip="Filtered Results"></i>
+          }
         </th>
         <th>Author</th>
-        <th class="d-none d-sm-table-cell" *ngIf="commitFilter">Email</th>
+        @if (commitFilter) {
+        <th class="d-none d-sm-table-cell">Email</th>
+        }
         <th>Date</th>
         <th>Hash</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let c of getFilteredCommitHistory()" class="commit-row">
-        <td class="position-relative p-0" *ngIf="!commitFilter">
+      @for (c of getFilteredCommitHistory(); track c) {
+      <tr class="commit-row">
+        @if (!commitFilter) {
+        <td class="position-relative p-0">
           <app-git-graph-canvas [commit]="c"></app-git-graph-canvas>
         </td>
+        }
         <td class="commit-message-cell p-0">
           <div class="d-flex" (click)="expandMessage(c)">
-            <div
-              class="pr-2 m-0 cursor-pointer d-flex align-items-center"
-              *ngIf="messageExpanded[c.hash] !== undefined || checkOverflow(c)"
-            >
-              <i class="fa fa-caret-down" *ngIf="messageExpanded[c.hash]"></i>
-              <i class="fa fa-caret-right" *ngIf="!messageExpanded[c.hash]"></i>
+            @if (messageExpanded[c.hash] !== undefined || checkOverflow(c)) {
+            <div class="pr-2 m-0 cursor-pointer d-flex align-items-center">
+              @if (messageExpanded[c.hash]) {
+              <i class="fa fa-caret-down"></i>
+              } @if (!messageExpanded[c.hash]) {
+              <i class="fa fa-caret-right"></i>
+              }
             </div>
+            }
             <div
               class="flex-grow-1 message"
               [ngClass]="{
@@ -92,37 +98,41 @@
                 'cursor-pointer': messageExpanded[c.hash] != undefined
               }"
             >
-              <div class="d-inline-block" *ngFor="let tag of c.currentTags">
+              @for (tag of c.currentTags; track tag) {
+              <div class="d-inline-block">
                 <div
                   [ngClass]="getTagClasses(tag)"
                   class="badge d-flex align-items-center mx-1"
                 >
-                  <small *ngIf="isRemoteBranch(tag)"
-                    ><i class="fa fa-cloud"></i
-                  ></small>
-                  <small *ngIf="isPlainTag(tag)"
-                    ><i class="fa fa-tag"></i
-                  ></small>
+                  @if (isRemoteBranch(tag)) {
+                  <small><i class="fa fa-cloud"></i></small>
+                  } @if (isPlainTag(tag)) {
+                  <small><i class="fa fa-tag"></i></small>
+                  }
                   {{ tag.replace('tag: ', '') }}
                 </div>
               </div>
+              }
               <span>{{ getSplitCommitMessage(c)[0] }}</span>
-              <p *ngFor="let line of getSplitCommitMessage(c).slice(1)">
+              @for (line of getSplitCommitMessage(c).slice(1); track line) {
+              <p>
                 {{ line }}
               </p>
+              }
             </div>
           </div>
         </td>
         <td class="hidden-until-hover" [ngbTooltip]="c.authorName">
           {{ c.authorName }}
         </td>
+        @if (commitFilter) {
         <td
           class="hidden-until-hover d-none d-sm-table-cell"
           [ngbTooltip]="c.authorEmail"
-          *ngIf="commitFilter"
         >
           {{ c.authorEmail }}
         </td>
+        }
         <td class="hidden-until-hover" [ngbTooltip]="dateTooltip">
           {{ c.commitDate | date: 'short' }}
           <ng-template #dateTooltip>
@@ -174,6 +184,7 @@
           </div>
         </td>
       </tr>
+      }
     </tbody>
   </table>
 </div>

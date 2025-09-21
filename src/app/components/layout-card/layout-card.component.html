@@ -16,10 +16,10 @@
     [customHeaderClass]="customHeaderClass"
     (onToggleExpand)="updateFlexBindings($event)"
   ></app-layout-card-header>
+  @if (header.getExpandState()) {
   <div
     class="repo-section-container {{ customBodyClass }} flex-grow-1"
-    *ngIf="header.getExpandState()"
-    infinite-scroll
+    infiniteScroll
     (scrolled)="scrolled.emit($event)"
     (scrolledUp)="scrolledUp.emit($event)"
     [scrollWindow]="false"
@@ -27,4 +27,5 @@
   >
     <ng-content></ng-content>
   </div>
+  }
 </div>

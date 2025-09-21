@@ -1,10 +1,12 @@
-<head *ngIf="this.getRepo()">
+@if (this.getRepo()) {
+<head>
   <title>
     {{ tabDataService.getActiveTab().name }} - {{ getCurrentBranch()?.name }} -
     Light Git
   </title>
 </head>
-<div *ngIf="this.getRepo()" class="row px-2 full-width bg-light-mode">
+} @if (this.getRepo()) {
+<div class="row px-2 full-width bg-light-mode">
   <div class="col-sm col-md-3 d-flex flex-column mb-1 repo-column px-1">
     <h1>
       {{ this.tabDataService.getActiveTab().name }}
@@ -68,13 +70,39 @@
         >
           <i class="fas fa-cut"></i>
         </button>
-        <button
-          class="btn btn-success btn-sm mx-1"
-          (click)="startMerge()"
-          ngbTooltip="Merge two branches"
-        >
-          <i class="material-icons">merge_type</i>
-        </button>
+        <div class="btn-group btn-group-sm mx-1" ngbDropdown>
+          <button
+            class="btn btn-success"
+            (click)="startMerge()"
+            ngbTooltip="Merge two branches"
+          >
+            <i class="material-icons">merge_type</i>
+          </button>
+          <button
+            class="btn btn-success dropdown-toggle dropdown-toggle-split"
+            ngbDropdownToggle
+          ></button>
+          <div ngbDropdownMenu>
+            <div class="d-flex flex-row g-2 p-2">
+              <button
+                class="btn btn-success btn-sm"
+                (click)="startMerge(undefined, true, false)"
+                ngbTooltip="Rebase one branch onto another"
+              >
+                <i class="fa fa-code-branch"></i>
+                Rebase
+              </button>
+              <button
+                class="btn btn-success btn-sm"
+                (click)="startMerge(undefined, true, true)"
+                ngbTooltip="Interactive rebase one branch onto another"
+              >
+                <i class="fa fa-code-branch"></i>
+                Interactive Rebase
+              </button>
+            </div>
+          </div>
+        </div>
       </ng-template>
       <app-branch-tree-item
         [isLocal]="true"
@@ -86,7 +114,9 @@
         (onPullClicked)="pull(false)"
         (onForcePullClicked)="pull(true)"
         (onDeleteClicked)="markDeleteBranch($event)"
-        (onMergeClicked)="startMerge($event)"
+        (onMergeClicked)="startMerge($event, false)"
+        (onRebaseClicked)="startMerge($event, true, false)"
+        (onInteractiveRebaseClicked)="startMerge($event, true, true)"
         (onFastForwardClicked)="fastForwardBranch($event)"
         (onBranchPremergeClicked)="getBranchPremerge($event)"
         [worktrees]="this.getRepo().worktrees"
@@ -138,20 +168,18 @@
         </button>
       </ng-template>
       <div class="card-body">
-        <div
-          *ngFor="
-            let w of this.getRepo().worktrees
-              | filterObject: 'name':worktreeFilter
-          "
-          class="d-flex"
-        >
+        @for (w of this.getRepo().worktrees | filterObject:
+        'name':worktreeFilter; track w) {
+        <div class="d-flex">
           <span
             [ngbTooltip]="w.path"
             [ngClass]="{ bold: w.isCurrent }"
             class="flex-grow-1"
           >
             {{ w.name }}
-            <small *ngIf="w.currentBranch == 'detached'">(detached)</small>
+            @if (w.currentBranch == 'detached') {
+            <small>(detached)</small>
+            }
           </span>
           <div class="flex-grow-0 ml-3">
             <button
@@ -161,30 +189,26 @@
             >
               <i class="fas fa-folder-open"></i>
             </button>
+            @if (w.currentHash != 'bare' && !w.isCurrent) {
             <button
               class="btn btn-primary btn-sm"
               ngbTooltip="Open in New Tab"
-              *ngIf="w.currentHash != 'bare' && !w.isCurrent"
               (click)="onOpenRepoNewTab.emit({ path: w.path })"
             >
               <i class="fa fa-external-link-square-alt"></i>
             </button>
-            <button
-              *ngIf="w.currentHash != 'bare' && !w.isCurrent"
-              class="btn btn-light btn-sm"
-              (click)="loadRepo(w.path)"
-            >
+            } @if (w.currentHash != 'bare' && !w.isCurrent) {
+            <button class="btn btn-light btn-sm" (click)="loadRepo(w.path)">
               <i class="fa fa-exchange-alt"></i>
             </button>
-            <button
-              *ngIf="w.currentHash != 'bare' && !w.isCurrent"
-              class="btn btn-danger btn-sm"
-              (click)="deleteWorktree(w)"
-            >
+            } @if (w.currentHash != 'bare' && !w.isCurrent) {
+            <button class="btn btn-danger btn-sm" (click)="deleteWorktree(w)">
               <i class="fa fa-trash"></i>
             </button>
+            }
           </div>
         </div>
+        }
       </div>
     </app-layout-card>
     <app-layout-card
@@ -231,24 +255,18 @@
         </div>
       </ng-template>
       <div class="card-body">
-        <div
-          *ngFor="
-            let w of this.getRepo().submodules
-              | filterObject: 'path':submoduleFilter
-          "
-          class="d-flex"
-        >
+        @for (w of this.getRepo().submodules | filterObject:
+        'path':submoduleFilter; track w) {
+        <div class="d-flex">
           <span [ngbTooltip]="w.path" class="flex-grow-1">
-            <span
-              class="badge badge-light badge-pill"
-              *ngFor="let r of w.path.split('/'); let i = index"
-            >
+            @for (r of w.path.split('/'); track r; let i = $index) {
+            <span class="badge badge-light badge-pill">
               {{ r }}
-              <i
-                class="mx-1 fa fa-arrow-right"
-                *ngIf="i < w.path.split('/').length - 1"
-              ></i>
+              @if (i < w.path.split('/').length - 1) {
+              <i class="mx-1 fa fa-arrow-right"></i>
+              }
             </span>
+            }
           </span>
           <div class="flex-grow-0 d-flex">
             <button
@@ -267,6 +285,7 @@
             </button>
           </div>
         </div>
+        }
       </div>
     </app-layout-card>
     <app-layout-card
@@ -312,45 +331,13 @@
           <i class="fas fa-history"></i>
         </button>
       </ng-template>
-      <div class="card-body">
-        <div
-          *ngFor="
-            let s of this.getRepo().stashes
-              | filterObject: getStashFilterText:stashFilter
-          "
-          class="d-flex"
-        >
-          <div class="stash-message flex-grow-1">
-            <span class="badge badge-info">{{ s.index }}</span>
-            : {{ s.message }}
-          </div>
-          <div class="d-inline-block ml-3 flex-shrink-0">
-            <div class="d-flex">
-              <button
-                class="btn btn-warning btn-sm mx-1"
-                (click)="viewStash(s.index)"
-                ngbTooltip="View Stash Diff"
-              >
-                <i class="fa fa-eye"></i>
-              </button>
-              <button
-                class="btn btn-light btn-sm mx-1"
-                (click)="applyStash(s.index)"
-                ngbTooltip="Apply Stash"
-              >
-                <i class="fa fa-box-open"></i>
-              </button>
-              <button
-                class="btn btn-danger btn-sm mx-1"
-                (click)="deleteStash(s.index)"
-                ngbTooltip="Delete Stash"
-              >
-                <i class="fa fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <app-stash-list
+        [stashes]="this.getRepo().stashes"
+        (onApplyStash)="this.applyStash($event)"
+        (onDeleteStash)="this.deleteStash($event)"
+        (onViewStash)="this.viewStash($event)"
+        [stashFilter]="this.stashFilter"
+      ></app-stash-list>
     </app-layout-card>
     <app-layout-card
       [headerContent]="commandHistoryHeader"
@@ -375,10 +362,8 @@
     </app-layout-card>
   </div>
   <div class="col-sm col-md-4 d-flex flex-column mb-1 repo-column px-1">
-    <div
-      *ngIf="this.getRepo().changes"
-      class="flex-grow-1 d-flex flex-column g-2"
-    >
+    @if (this.getRepo().changes) {
+    <div class="flex-grow-1 d-flex flex-column g-2">
       <app-layout-card
         [headerContent]="stagedChangesHeader"
         expandKey="staged"
@@ -540,19 +525,16 @@
         ></app-change-list>
       </app-layout-card>
     </div>
-
+    } @if (this.getActiveOperation(); as op) {
     <div
       class="d-flex g-2 alert align-items-center flex-shrink-0 m-0"
-      *ngIf="this.getActiveOperation() as op"
       [ngClass]="!op ? '' : 'alert-' + ActiveOperationToPropMap[op].class"
     >
-      <i
-        *ngIf="ActiveOperationToPropMap[op].fa"
-        [ngClass]="'fa fa-' + ActiveOperationToPropMap[op].icon"
-      ></i>
-      <i *ngIf="!ActiveOperationToPropMap[op].fa" class="material-icons">{{
-        ActiveOperationToPropMap[op].icon
-      }}</i>
+      @if (ActiveOperationToPropMap[op].fa) {
+      <i [ngClass]="'fa fa-' + ActiveOperationToPropMap[op].icon"></i>
+      } @if (!ActiveOperationToPropMap[op].fa) {
+      <i class="material-icons">{{ ActiveOperationToPropMap[op].icon }}</i>
+      }
       <span>Active {{ ActiveOperationToPropMap[op].name }}</span>
       <span class="flex-grow-1"></span>
       <button
@@ -570,98 +552,101 @@
         <i class="fa fa-play"></i>
       </button>
     </div>
-    <div class="card flex-shrink-0 m-0" *ngIf="!this.getActiveOperation()">
-      <div class="card-body p-3">
-        <app-pretty-checkbox
-          class="d-inline-block"
-          [(value)]="settingsService.settings.commitAndPush"
-          (valueChange)="
-            changeDetectorRef.detectChanges(); settingsService.saveSettings()
-          "
-        >
-          Commit and Push
-        </app-pretty-checkbox>
-        <div class="d-flex flex-row">
-          <div class="dropup flex-grow-1 mt-1 position-relative">
-            <div class="input-group">
-              <textarea
-                class="form-control"
-                [(ngModel)]="this.getRepo().changes.description"
-                placeholder="Commit message"
-                (blur)="cancelSuggestions()"
-                (keyup.control.enter)="startCommit(false)"
-                (keydown.meta.enter)="startCommit(false)"
-                (keyup)="setCurrentCursorPosition($event)"
-                (keydown.tab)="setCurrentCursorPosition($event)"
-              ></textarea>
-              <div
-                class="input-group-append"
-                [ngbTooltip]="getCommitDisabledTooltip()"
-                ngbDropdown
-              >
+    } @if (!this.getActiveOperation()) {
+    <div class="card flex-shrink-0 m-0">
+      <div class="card-body p-3 d-flex flex-column g-2">
+        <div class="d-flex flex-row align-items-center g-2">
+          <app-pretty-checkbox
+            class="d-inline-block"
+            [(value)]="settingsService.settings.commitAndPush"
+            (valueChange)="
+              changeDetectorRef.detectChanges(); settingsService.saveSettings()
+            "
+          >
+            Commit and Push
+          </app-pretty-checkbox>
+          <div class="flex-grow-1"></div>
+          @if (hasWatcherAlerts) {
+          <button
+            class="btn btn-warning"
+            (click)="codeWatcherService.showWatchers({ isCommit: false })"
+          >
+            <span class="fa fa-glasses"></span>
+          </button>
+          }
+          <div class="btn-group mr-2" ngbDropdown>
+            <button
+              class="btn btn-success"
+              (click)="startCommit(false)"
+              [disabled]="getCommitDisabledTooltip()"
+              [ngbTooltip]="getCommitDisabledTooltip()"
+            >
+              Commit
+            </button>
+            <button
+              class="btn btn-success dropdown-toggle dropdown-toggle-split"
+              ngbDropdownToggle
+            ></button>
+            <div ngbDropdownMenu class="px-2">
+              <div [ngbTooltip]="getCommitDisabledTooltip()">
                 <button
-                  class="btn btn-success d-flex align-items-center"
-                  (click)="startCommit(false)"
+                  class="btn btn-success"
+                  (click)="startCommit(true)"
                   [disabled]="getCommitDisabledTooltip()"
                 >
-                  Commit
-                </button>
-                <button
-                  class="btn btn-success dropdown-toggle dropdown-toggle-split"
-                  ngbDropdownToggle
-                ></button>
-                <div ngbDropdownMenu class="px-2">
-                  <div [ngbTooltip]="getCommitDisabledTooltip()">
-                    <button
-                      class="btn btn-success"
-                      (click)="startCommit(true)"
-                      [disabled]="getCommitDisabledTooltip()"
-                    >
-                      Amend
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="input-group-append" *ngIf="hasWatcherAlerts">
-                <button
-                  class="btn btn-warning"
-                  (click)="codeWatcherService.showWatchers({ isCommit: false })"
-                >
-                  <span class="fa fa-glasses"></span>
+                  Amend
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+        <div class="d-flex flex-row">
+          <div class="dropup flex-grow-1 mt-1 position-relative g-3">
+            <app-markdown-editor
+              class="w-100"
+              [(ngModel)]="this.getRepo().changes.description"
+              placeholder="Commit message"
+              (onBlur)="cancelSuggestions()"
+              (onSubmit)="startCommit(false)"
+              (onUpdateSelection)="setCurrentCursorPosition($event)"
+            ></app-markdown-editor>
             <div
               class="crlf-warning alert alert-warning d-flex justify-content-between p-0"
               [ngClass]="{ 'crlf-warning-show': crlfError }"
             >
-              <div *ngIf="crlfError" class="pl-4 py-2">
+              @if (crlfError) {
+              <div class="pl-4 py-2">
                 {{ crlfError.start }} will be replaced by {{ crlfError.end }} on
                 commit
               </div>
+              }
               <button class="close px-2" (click)="crlfError = undefined">
                 <small><span class="fa fa-times"></span></small>
               </button>
             </div>
-            <div class="dropdown-menu show" *ngIf="suggestions.length > 0">
+            @if (suggestions.length > 0) {
+            <div class="dropdown-menu show">
+              @for (s of suggestions; track s; let i = $index) {
               <a
                 [ngClass]="{
                   'dropdown-item': true,
                   active: i == selectedAutocompleteItem
                 }"
-                *ngFor="let s of suggestions; let i = index"
                 (click)="chooseAutocomleteItem(false, i)"
                 >{{ s }}</a
               >
+              }
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" (click)="suggestions = []"
                 >Hide Suggestions</a
               >
             </div>
+            }
           </div>
         </div>
       </div>
     </div>
+    }
   </div>
   <div class="col-sm-12 col-md-5 d-flex flex-column mb-1 repo-column px-1">
     <app-layout-card
@@ -685,7 +670,8 @@
           </button>
         </div>
       </ng-template>
-      <div class="card-body" *ngIf="showDiff">
+      @if (showDiff) {
+      <div class="card-body">
         <app-diff-viewer
           [diffHeaders]="diffCommitInfo ? commitDiff : getRepo().diff"
           [diffCommitInfo]="diffCommitInfo"
@@ -695,9 +681,9 @@
           (onNavigateToHash)="viewCommitDiff($event)"
         ></app-diff-viewer>
       </div>
+      } @if (!showDiff) {
       <app-commit-history
         [commitHistory]="this.getRepo().commitHistory"
-        *ngIf="!showDiff"
         (onClickCommitDiff)="viewCommitDiff($event.hash)"
         (onClickCherryPick)="cherryPickCommit($event)"
         (onScrollDown)="getCommitHistory(this.getRepo().commitHistory.length)"
@@ -709,9 +695,9 @@
           checkout({ branch: $event.hash, andPull: false }, false)
         "
       ></app-commit-history>
+      }
     </app-layout-card>
   </div>
-
   <app-input-modal
     modalId="createBranch"
     [uidSalt]="repoViewUid"
@@ -721,8 +707,10 @@
     invalidMessage="Please enter a valid branch name"
     inputPlaceholder="Branch name..."
     [inputPrepend]="settingsService.settings.branchNamePrefix"
+    [showPrependClearButton]="!!settingsService.settings.branchNamePrefix"
     [replaceChars]="branchReplaceChars"
     (onClickOk)="createBranch($event)"
+    (onPrependClear)="clearBranchPrefix()"
   ></app-input-modal>
   <app-input-modal
     modalId="createStash"
@@ -765,7 +753,8 @@
     (onCancel)="activeSubmodule = null"
     (onFinish)="activeSubmodule = null"
   >
-    <div *ngIf="activeSubmodule">
+    @if (activeSubmodule) {
+    <div>
       <app-repo-view
         [repoPath]="this.getRepo().path + '/' + activeSubmodule.path"
         [isNested]="true"
@@ -773,6 +762,7 @@
         (onLoadRepoFailed)="onLoadRepoFailed.emit($event)"
       ></app-repo-view>
     </div>
+    }
   </app-modal>
   <app-confirm-modal
     modalTitle="Confirm Undo Changes"
@@ -800,9 +790,9 @@
     Are you sure you want to delete
     <i>{{ activeDeleteBranch && activeDeleteBranch.name }}</i
     >?<br />
-    <b *ngIf="activeDeleteBranch && activeDeleteBranch.isRemote"
-      >This will affect everyone and cannot be undone</b
-    >
+    @if (activeDeleteBranch && activeDeleteBranch.isRemote) {
+    <b>This will affect everyone and cannot be undone</b>
+    }
   </app-confirm-modal>
   <app-merge-branch
     [uidSalt]="repoViewUid"
@@ -814,3 +804,4 @@
   ></app-merge-branch>
   <app-restore-stash [repoViewUid]="repoViewUid"></app-restore-stash>
 </div>
+}

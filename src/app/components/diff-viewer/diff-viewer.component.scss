@@ -139,6 +139,7 @@
       line-height: 1.6;
       background: rgba(255, 255, 255, 0.85);
       color: rgba(0, 0, 0, 0.7);
+      padding: 0.5em;
     }
   }
 }
@@ -157,4 +158,11 @@
   &:hover .copy-filename {
     opacity: 0.8;
   }
+}
+
+.commit-message-body {
+  font-family: monospace;
+  padding: 0.5em;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 0.5em;
 }

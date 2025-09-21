@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommitSummaryModel } from '../../../../shared/git/CommitSummary.model';
 import { DiffHeaderModel } from '../../../../shared/git/diff.header.model';
 import { SettingsService } from '../../services/settings.service';
@@ -23,6 +23,7 @@ import { JobSchedulerService } from '../../services/job-system/job-scheduler.ser
   selector: 'app-diff-viewer',
   templateUrl: './diff-viewer.component.html',
   styleUrls: ['./diff-viewer.component.scss'],
+  standalone: false,
 })
 export class DiffViewerComponent {
   @Input() diffCommitInfo: CommitSummaryModel;
@@ -63,11 +64,11 @@ export class DiffViewerComponent {
   set diffHeaders(value: DiffHeaderModel[]) {
     this._diffHeaders = value;
     this.reducedHeaders = value.map((h) => {
-      let tooLong = this.getHeaderLines(h) > this.maxFileDiffSize;
-      let reduced = [];
+      const tooLong = this.getHeaderLines(h) > this.maxFileDiffSize;
+      const reduced = [];
       if (tooLong) {
         let lineCount = 0;
-        for (let hunk of h.hunks) {
+        for (const hunk of h.hunks) {
           if (lineCount + hunk.lines.length > this.maxFileDiffSize) {
             break;
           } else {
@@ -183,7 +184,7 @@ export class DiffViewerComponent {
   }
 
   watcherClick(hunk: DiffHunkModel, header: DiffHeaderModel) {
-    let temp = this.getTemporaryHunk(header, hunk);
+    const temp = this.getTemporaryHunk(header, hunk);
     this.codeWatcherService.showWatchers(new ShowWatchersRequest(false, temp));
   }
 
@@ -208,7 +209,7 @@ export class DiffViewerComponent {
     } else {
       return this.reducedHeaders
         .filter((header) => {
-          let needle = this.diffFilter.toLowerCase();
+          const needle = this.diffFilter.toLowerCase();
           return (
             FilterPipe.fuzzyFilter(
               needle,
@@ -237,7 +238,7 @@ export class DiffViewerComponent {
   }
 
   private getTemporaryHunk(header: DiffHeaderModel, hunk: DiffHunkModel) {
-    let temp = Object.assign(new DiffHeaderModel(), header);
+    const temp = Object.assign(new DiffHeaderModel(), header);
     temp.hunks = [hunk];
     return temp;
   }
