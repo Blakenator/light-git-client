@@ -24,6 +24,7 @@ import { StashModel } from '../../../shared/git/stash.model';
 import { TabDataService } from './tab-data.service';
 import { PreCommitStatusModel } from '../../../shared/PreCommitStatus.model';
 import { PreCommitStatusListener } from './warning-listeners/pre-commit-status.listener';
+import { CommandOutputModel } from '../../../shared/common/command.output.model';
 
 @Injectable({
   providedIn: 'root',
@@ -132,6 +133,23 @@ export class GitService {
         this.electronService.rpc(Channels.MERGEBRANCH, [
           this.getRepo().path,
           branch,
+        ]),
+    });
+  }
+
+  rebaseBranch(branch: string, interactive: boolean = false): Job<void> {
+    return this.getJob({
+      affectedAreas: [
+        RepoArea.LOCAL_BRANCHES,
+        RepoArea.LOCAL_CHANGES,
+        RepoArea.COMMIT_HISTORY,
+      ],
+      command: Channels.REBASEBRANCH,
+      execute: () =>
+        this.electronService.rpc(Channels.REBASEBRANCH, [
+          this.getRepo().path,
+          branch,
+          interactive,
         ]),
     });
   }
@@ -707,7 +725,7 @@ export class GitService {
         this._precommitStatusListener
           .detect(
             this._remoteMessageListener.detect(
-              this.electronService.rpc(Channels.COMMIT, [
+              this.electronService.rpc<CommandOutputModel>(Channels.COMMIT, [
                 this.getRepo().path,
                 description,
                 commitAndPush,

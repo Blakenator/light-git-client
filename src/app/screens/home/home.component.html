@@ -6,104 +6,116 @@
         ? 'bg-info'
         : 'bg-light'
     "
-  >
-    <div
-      class="d-inline-block"
-      *ngIf="settingsService.settings && settingsService.settings.airplaneMode"
-      ngbTooltip="Airplane Mode is Active"
-      placement="bottom-left"
     >
-      <i class="fa fa-plane"></i>
-    </div>
+    @if (settingsService.settings && settingsService.settings.airplaneMode) {
+      <div
+        class="d-inline-block"
+        ngbTooltip="Airplane Mode is Active"
+        placement="bottom-left"
+        >
+        <i class="fa fa-plane"></i>
+      </div>
+    }
     <app-active-jobs class="nav-item mx-2"></app-active-jobs>
     <div
       class="tab-container btn-group nav-item flex-grow-1 pl"
       cdkDropListOrientation="horizontal"
       cdkDropList
       (cdkDropListDropped)="moveTab($event)"
-    >
-      <button
-        *ngFor="let tab of tabService.tabData; let t = index"
-        (click)="changeTab(t)"
-        [ngbTooltip]="tab.path"
-        placement="bottom"
-        container="body"
-        cdkDrag
-        [cdkDragDisabled]="editingTab == t"
-        cdkDragLockAxis="x"
+      >
+      @for (tab of tabService.tabData; track tab; let t = $index) {
+        <button
+          (click)="changeTab(t)"
+          [ngbTooltip]="tab.path"
+          placement="bottom"
+          container="body"
+          cdkDrag
+          [cdkDragDisabled]="editingTab == t"
+          cdkDragLockAxis="x"
         [ngClass]="{
           'tab-btn btn center-text-vertical': true,
           'btn-primary': t == activeTabIndex,
           'btn-light': t != activeTabIndex
         }"
-      >
-        <div class="pr-1 center-text-vertical">
-          <span *ngIf="editingTab != t">{{ tab.name }}</span>
-          <div class="input-group" *ngIf="editingTab == t">
-            <input
-              class="form-control"
-              [autofocus]
-              [(ngModel)]="editedTabName"
-              (keyup.space)="$event.stopPropagation(); $event.preventDefault()"
-              (keyup.enter)="saveEditedName(t)"
-              (keyup.meta.enter)="saveEditedName(t)"
-              (keyup.control.enter)="saveEditedName(t)"
-              (click)="editClick($event, t)"
-            />
-            <div class="input-group-append">
-              <button
-                class="btn btn-light"
-                (click)="cancelEdit($event)"
-                ngbTooltip="Cancel Rename"
-              >
-                <i class="fa fa-times-circle"></i>
-              </button>
-            </div>
-            <div class="input-group-append">
-              <button
-                class="btn btn-success"
-                (click)="saveEditedName(t)"
-                ngbTooltip="Apply"
-              >
-                <i class="fa fa-check"></i>
-              </button>
-            </div>
+          >
+          <div class="pr-1 center-text-vertical">
+            @if (editingTab != t) {
+              <span>{{ tab.name }}</span>
+            }
+            @if (editingTab == t) {
+              <div class="input-group">
+                <input
+                  class="form-control"
+                  [autofocus]
+                  [(ngModel)]="editedTabName"
+                  (keyup.space)="$event.stopPropagation(); $event.preventDefault()"
+                  (keyup.enter)="saveEditedName(t)"
+                  (keyup.meta.enter)="saveEditedName(t)"
+                  (keyup.control.enter)="saveEditedName(t)"
+                  (click)="editClick($event, t)"
+                  />
+                <div class="input-group-append">
+                  <button
+                    class="btn btn-light"
+                    (click)="cancelEdit($event)"
+                    ngbTooltip="Cancel Rename"
+                    >
+                    <i class="fa fa-times-circle"></i>
+                  </button>
+                </div>
+                <div class="input-group-append">
+                  <button
+                    class="btn btn-success"
+                    (click)="saveEditedName(t)"
+                    ngbTooltip="Apply"
+                    >
+                    <i class="fa fa-check"></i>
+                  </button>
+                </div>
+              </div>
+            }
           </div>
+          @if (editingTab != t) {
+            <span
+              class="ml-2 pl-1 close-tab"
+              (click)="editClick($event, t)"
+              ><i class="material-icons">edit</i></span
+              >
+            }
+            @if (editingTab != t) {
+              <span
+                class="ml-2 pl-1 close-tab"
+                (click)="closeTab(t)"
+                ><i class="material-icons">close</i></span
+                >
+              }
+            </button>
+          }
+          <button class="btn btn-secondary" (click)="addTab()">
+            <i class="material-icons">add</i>
+          </button>
         </div>
-        <span
-          class="ml-2 pl-1 close-tab"
-          (click)="editClick($event, t)"
-          *ngIf="editingTab != t"
-          ><i class="material-icons">edit</i></span
-        >
-        <span
-          class="ml-2 pl-1 close-tab"
-          (click)="closeTab(t)"
-          *ngIf="editingTab != t"
-          ><i class="material-icons">close</i></span
-        >
-      </button>
-      <button class="btn btn-secondary" (click)="addTab()">
-        <i class="material-icons">add</i>
-      </button>
+        <app-settings class="nav-item"></app-settings>
+      </nav>
+      <div class="main-body flex-grow-1">
+        @if (activeTabIndex >= 0) {
+          <div>
+            @if (!getActiveTab()?.path) {
+              <app-new-tab-page
+                (onLoadClicked)="loadRepo($event)"
+              ></app-new-tab-page>
+            }
+            @if (getActiveTab()?.path) {
+              <app-repo-view
+                [repoPath]="getActiveTab()?.path"
+                (onLoadRepoFailed)="repoLoadFailed($event)"
+                (onOpenRepoNewTab)="addTab($event)"
+              ></app-repo-view>
+            }
+          </div>
+        }
+      </div>
     </div>
-    <app-settings class="nav-item"></app-settings>
-  </nav>
-  <div class="main-body flex-grow-1">
-    <div *ngIf="activeTabIndex >= 0">
-      <app-new-tab-page
-        *ngIf="!getActiveTab()?.path"
-        (onLoadClicked)="loadRepo($event)"
-      ></app-new-tab-page>
-      <app-repo-view
-        *ngIf="getActiveTab()?.path"
-        [repoPath]="getActiveTab()?.path"
-        (onLoadRepoFailed)="repoLoadFailed($event)"
-        (onOpenRepoNewTab)="addTab($event)"
-      ></app-repo-view>
-    </div>
-  </div>
-</div>
-<app-error-message></app-error-message>
-<app-alert></app-alert>
-<app-pre-commit-status-modal></app-pre-commit-status-modal>
+    <app-error-message></app-error-message>
+    <app-alert></app-alert>
+    <app-pre-commit-status-modal></app-pre-commit-status-modal>

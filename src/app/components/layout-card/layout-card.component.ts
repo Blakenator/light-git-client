@@ -12,10 +12,11 @@ import { LayoutCardHeaderComponent } from './layout-card-header/layout-card-head
 import { Animations } from '../../common/animations';
 
 @Component({
-  selector: 'app-layout-card',
-  templateUrl: './layout-card.component.html',
-  styleUrls: ['./layout-card.component.scss'],
-  animations: [Animations.growHeightIn, Animations.inOut],
+    selector: 'app-layout-card',
+    templateUrl: './layout-card.component.html',
+    styleUrls: ['./layout-card.component.scss'],
+    animations: [Animations.growHeightIn, Animations.inOut],
+    standalone: false
 })
 export class LayoutCardComponent implements OnInit {
   @ViewChild(LayoutCardHeaderComponent, { static: true })

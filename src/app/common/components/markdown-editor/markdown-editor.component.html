@@ -1,0 +1,14 @@
+<quill-editor
+  class="markdown-editor"
+  [modules]="quillModules"
+  [placeholder]="placeholder"
+  [(ngModel)]="editorContent"
+  (onContentChanged)="onEditorContentChanged($event)"
+  (onBlur)="onEditorBlurred()"
+  (onEditorCreated)="onEditorCreated($event)"
+  (keyup.control.enter)="this.onSubmit.emit()"
+  (keydown.meta.enter)="this.onSubmit.emit()"
+  (keyup)="this.onUpdateSelection.emit($event)"
+  (keydown.tab)="this.onUpdateSelection.emit($event)"
+>
+</quill-editor>

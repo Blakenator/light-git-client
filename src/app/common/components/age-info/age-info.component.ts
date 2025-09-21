@@ -1,9 +1,10 @@
 import { Component, Input, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'app-age-info',
-  templateUrl: './age-info.component.html',
-  styleUrls: ['./age-info.component.scss'],
+    selector: 'app-age-info',
+    templateUrl: './age-info.component.html',
+    styleUrls: ['./age-info.component.scss'],
+    standalone: false
 })
 export class AgeInfoComponent {
   @Input() date: Date | string;

@@ -6,9 +6,10 @@ import { EqualityUtil } from '../../common/equality.util';
 import { TabDataService } from '../../services/tab-data.service';
 
 @Component({
-  selector: 'app-commit-history',
-  templateUrl: './commit-history.component.html',
-  styleUrls: ['./commit-history.component.scss'],
+    selector: 'app-commit-history',
+    templateUrl: './commit-history.component.html',
+    styleUrls: ['./commit-history.component.scss'],
+    standalone: false
 })
 export class CommitHistoryComponent {
   @Input() localBranches: BranchModel[];

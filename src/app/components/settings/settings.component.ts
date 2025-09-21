@@ -11,9 +11,10 @@ import {ErrorService} from '../../common/services/error.service';
 import {JobSchedulerService} from '../../services/job-system/job-scheduler.service';
 
 @Component({
-  selector: 'app-settings',
-  templateUrl: './settings.component.html',
-  styleUrls: ['./settings.component.scss'],
+    selector: 'app-settings',
+    templateUrl: './settings.component.html',
+    styleUrls: ['./settings.component.scss'],
+    standalone: false
 })
 export class SettingsComponent implements OnInit {
   tempSettings: SettingsModel;

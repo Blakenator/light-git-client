@@ -1,46 +1,55 @@
 <app-modal
   [modalId]="'mergeBranchModal' + uidSalt"
-  modalTitle="Merge branches"
+  [modalTitle]="activeMergeInfo?.isRebase ? 'Rebase branches' : 'Merge branches'"
   (onCancel)="onCancel.emit()"
   (onFinish)="onFinish.emit()"
   [affirmativeButtonDisabled]="getDisabledReason()"
   modalClass="dialog-expand"
-  affirmativeButtonText="Merge"
->
-  <div
-    *ngIf="activeMergeInfo"
-    class="d-flex align-items-center justify-content-center"
+  [affirmativeButtonText]="activeMergeInfo?.isRebase ? (activeMergeInfo?.isInteractive ? 'Interactive Rebase' : 'Rebase') : 'Merge'"
   >
-    <app-merge-branch-dropdown
-      [locals]="locals"
-      [remotes]="remotes"
-      [(selection)]="activeMergeInfo.into"
-    ></app-merge-branch-dropdown>
-    <i class="fa fa-arrow-left mx-3"></i>
-    <app-merge-branch-dropdown
-      [locals]="locals"
-      [remotes]="remotes"
-      [(selection)]="activeMergeInfo.target"
-    ></app-merge-branch-dropdown>
-  </div>
-  <div class="d-flex justify-content-center" *ngIf="activeMergeInfo">
-    <button class="btn btn-secondary m-2" (click)="swapTargets()">Swap</button>
-  </div>
-  <div
-    class="alert alert-warning d-flex align-items-center mt-3 mb-0"
-    *ngIf="
-      activeMergeInfo &&
-      activeMergeInfo.into &&
-      activeMergeInfo.into.name != activeMergeInfo.currentBranch.name
-    "
-  >
-    <i class="fa fa-exclamation-triangle mr-3"></i>
-    <div class="flex-grow-1">
-      <span class="badge badge-secondary">{{ activeMergeInfo.into.name }}</span>
-      is not currently checked-out. This operation will check out
-      <span class="badge badge-secondary">{{ activeMergeInfo.into.name }}</span>
-      and then start the merge. Ensure there are no uncommitted changes before
-      proceeding!
+  @if (activeMergeInfo) {
+    <div
+      class="d-flex align-items-center justify-content-center"
+      >
+      <app-merge-branch-dropdown
+        [locals]="locals"
+        [remotes]="remotes"
+        [(selection)]="activeMergeInfo.into"
+      ></app-merge-branch-dropdown>
+      <i class="fa fa-arrow-left mx-3"></i>
+      <app-merge-branch-dropdown
+        [locals]="locals"
+        [remotes]="remotes"
+        [(selection)]="activeMergeInfo.target"
+      ></app-merge-branch-dropdown>
     </div>
-  </div>
+  }
+  @if (activeMergeInfo) {
+    <div class="d-flex justify-content-center align-items-center g-3 mt-2">
+      <button class="btn btn-secondary" (click)="swapTargets()">Swap</button>
+      @if (activeMergeInfo.isRebase) {
+        <app-pretty-checkbox [(value)]="activeMergeInfo.isInteractive">
+          Interactive
+        </app-pretty-checkbox>
+      }
+    </div>
+  }
+  @if (
+    activeMergeInfo &&
+    activeMergeInfo.into &&
+    activeMergeInfo.into.name != activeMergeInfo.currentBranch.name
+    ) {
+    <div
+      class="alert alert-warning d-flex align-items-center mt-3 mb-0"
+      >
+      <i class="fa fa-exclamation-triangle mr-3"></i>
+      <div class="flex-grow-1">
+        <span class="badge badge-secondary">{{ activeMergeInfo.into.name }}</span>
+        is not currently checked-out. This operation will check out
+        <span class="badge badge-secondary">{{ activeMergeInfo.into.name }}</span>
+        and then start the merge. Ensure there are no uncommitted changes before
+        proceeding!
+      </div>
+    </div>
+  }
 </app-modal>

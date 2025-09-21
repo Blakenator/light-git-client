@@ -1,43 +1,51 @@
-<div class="card-body" *ngIf="commandHistory">
-  <div
-    *ngFor="
-      let c of commandHistory.slice().reverse()
-        | filterObject: getCommandHistoryFilterableText:commandHistoryFilter
-        | slice: 0:maxCommandsVisible
-    "
-    class="d-flex flex-column g-2"
-  >
-    <div class="d-flex g-2 align-items-center">
-      <i
+@if (commandHistory) {
+  <div class="card-body">
+    @for (
+      c of commandHistory.slice().reverse()
+      | filterObject: getCommandHistoryFilterableText:commandHistoryFilter
+      | slice: 0:maxCommandsVisible
+      ; track
+      c) {
+      <div
+        class="d-flex flex-column g-2"
+        >
+        <div class="d-flex g-2 align-items-center">
+          <i
         class="command-title fa {{
           c.isError ? 'fa-exclamation-triangle' : 'fa-check-circle'
         }}"
-      ></i>
-      <span>
-        <span>
-          <i>{{ c.name }}</i> ({{ c.durationMs }} ms @
-        </span>
-        <span>{{ c.executedAt | date: 'mediumTime' }})</span>
-      </span>
-      <span class="flex-grow-1"></span>
-      <button
-        class="btn btn-outline-primary btn-sm"
-        ngbTooltip="View command in modal"
-        (click)="showCommandDetails(c)"
-      >
-        <i class="fa fa-eye"></i>
-      </button>
-    </div>
-    <pre>$ {{ c.command }}</pre>
-    <div *ngIf="(c.errorOutput || c.output).trim()">
-      Output Characters 0-1000:
-    </div>
-    <pre *ngIf="(c.errorOutput || c.output).trim()" class="command-output">{{
-      (c.errorOutput || c.output).substring(0, 1000)
-    }}</pre>
-    <hr />
+          ></i>
+          <span>
+            <span>
+              <i>{{ c.name }}</i> ({{ c.durationMs }} ms &#64;
+            </span>
+            <span>{{ c.executedAt | date: 'mediumTime' }})</span>
+          </span>
+          <span class="flex-grow-1"></span>
+          <button
+            class="btn btn-outline-primary btn-sm"
+            ngbTooltip="View command in modal"
+            (click)="showCommandDetails(c)"
+            >
+            <i class="fa fa-eye"></i>
+          </button>
+        </div>
+        <pre>$ {{ c.command }}</pre>
+        @if ((c.errorOutput || c.output).trim()) {
+          <div>
+            Output Characters 0-1000:
+          </div>
+        }
+        @if ((c.errorOutput || c.output).trim()) {
+          <pre class="command-output">{{
+            (c.errorOutput || c.output).substring(0, 1000)
+          }}</pre>
+        }
+        <hr />
+      </div>
+    }
   </div>
-</div>
+}
 
 <app-modal
   [modalId]="'commandViewer' + uidSalt"
@@ -45,80 +53,94 @@
   (onCancel)="activeCommand = null"
   (onFinish)="activeCommand = null"
   modalClass="command-viewer"
->
-  <div *ngIf="activeCommand">
-    <div class="card">
-      <div class="card-header">
-        <span>Command</span>
-        <span
-          *ngIf="activeCommand.isError"
-          class="badge badge-danger d-inline-flex g-2 align-items-center px-2"
-        >
-          <i class="fa fa-exclamation-triangle"></i>
-          <span>Error</span>
-        </span>
-        <span
-          *ngIf="!activeCommand.isError"
-          class="badge badge-success d-inline-flex g-2 align-items-center px-2"
-        >
+  >
+  @if (activeCommand) {
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <span>Command</span>
+          @if (activeCommand.isError) {
+            <span
+              class="badge badge-danger d-inline-flex g-2 align-items-center px-2"
+              >
+              <i class="fa fa-exclamation-triangle"></i>
+              <span>Error</span>
+            </span>
+          }
+          @if (!activeCommand.isError) {
+            <span
+              class="badge badge-success d-inline-flex g-2 align-items-center px-2"
+              >
+              <i class="fa fa-check-circle"></i>
+              <span>Success</span>
+            </span>
+          }
+          <span class="flex-grow-1"></span>
+          <button
+            class="btn btn-light btn-sm"
+            (click)="clipboardService.copy(activeCommand.command)"
+            >
+            <i class="fa fa-copy"></i>
+          </button>
+        </div>
+        <div class="card-body p-3">
+          <pre>$ {{ activeCommand.command }}</pre>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
           <i class="fa fa-check-circle"></i>
-          <span>Success</span>
-        </span>
-        <span class="flex-grow-1"></span>
-        <button
-          class="btn btn-light btn-sm"
-          (click)="clipboardService.copy(activeCommand.command)"
-        >
-          <i class="fa fa-copy"></i>
-        </button>
-      </div>
-      <div class="card-body p-3">
-        <pre>$ {{ activeCommand.command }}</pre>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <i class="fa fa-check-circle"></i>
-        <span>Standard Output</span>
-        <span class="flex-grow-1"></span>
-        <button
-          class="btn btn-light btn-sm"
-          *ngIf="activeCommand.output?.trim()"
-          (click)="clipboardService.copy(activeCommand.output)"
-        >
-          <i class="fa fa-copy"></i>
-        </button>
-      </div>
-      <div class="card-body p-3">
-        <i class="p-2" *ngIf="!activeCommand.output?.trim()"
-          >No standard output</i
-        >
-        <pre class="p-2" *ngIf="activeCommand.output?.trim()">{{
-          activeCommand.output?.trim()
-        }}</pre>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <i class="fa fa-exclamation-triangle"></i>
-        <span>Error Output</span>
-        <span class="flex-grow-1"></span>
-        <button
-          class="btn btn-light btn-sm"
-          *ngIf="activeCommand.errorOutput?.trim()"
-          (click)="clipboardService.copy(activeCommand.errorOutput)"
-        >
-          <i class="fa fa-copy"></i>
-        </button>
-      </div>
-      <div class="card-body p-3">
-        <i class="p-2" *ngIf="!activeCommand.errorOutput?.trim()"
-          >No error output</i
-        >
-        <pre class="p-2" *ngIf="activeCommand.errorOutput?.trim()">{{
-          activeCommand.errorOutput?.trim()
-        }}</pre>
-      </div>
-    </div>
-  </div>
-</app-modal>
+          <span>Standard Output</span>
+          <span class="flex-grow-1"></span>
+          @if (activeCommand.output?.trim()) {
+            <button
+              class="btn btn-light btn-sm"
+              (click)="clipboardService.copy(activeCommand.output)"
+              >
+              <i class="fa fa-copy"></i>
+            </button>
+          }
+        </div>
+        <div class="card-body p-3">
+          @if (!activeCommand.output?.trim()) {
+            <i class="p-2"
+              >No standard output</i
+              >
+            }
+            @if (activeCommand.output?.trim()) {
+              <pre class="p-2">{{
+                activeCommand.output?.trim()
+              }}</pre>
+            }
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span>Error Output</span>
+            <span class="flex-grow-1"></span>
+            @if (activeCommand.errorOutput?.trim()) {
+              <button
+                class="btn btn-light btn-sm"
+                (click)="clipboardService.copy(activeCommand.errorOutput)"
+                >
+                <i class="fa fa-copy"></i>
+              </button>
+            }
+          </div>
+          <div class="card-body p-3">
+            @if (!activeCommand.errorOutput?.trim()) {
+              <i class="p-2"
+                >No error output</i
+                >
+              }
+              @if (activeCommand.errorOutput?.trim()) {
+                <pre class="p-2">{{
+                  activeCommand.errorOutput?.trim()
+                }}</pre>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </app-modal>

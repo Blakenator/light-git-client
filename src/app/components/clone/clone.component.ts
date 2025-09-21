@@ -9,9 +9,10 @@ import { GitService } from '../../services/git.service';
 import { ModalService } from '../../common/services/modal.service';
 
 @Component({
-  selector: 'app-clone',
-  templateUrl: './clone.component.html',
-  styleUrls: ['./clone.component.scss'],
+    selector: 'app-clone',
+    templateUrl: './clone.component.html',
+    styleUrls: ['./clone.component.scss'],
+    standalone: false
 })
 export class CloneComponent {
   url = '';

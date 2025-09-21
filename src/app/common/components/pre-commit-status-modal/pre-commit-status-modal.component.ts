@@ -9,9 +9,10 @@ import {
 import { groupBy } from 'lodash';
 
 @Component({
-  selector: 'app-pre-commit-status-modal',
-  templateUrl: './pre-commit-status-modal.component.html',
-  styleUrls: ['./pre-commit-status-modal.component.scss'],
+    selector: 'app-pre-commit-status-modal',
+    templateUrl: './pre-commit-status-modal.component.html',
+    styleUrls: ['./pre-commit-status-modal.component.scss'],
+    standalone: false
 })
 export class PreCommitStatusModalComponent {
   status: PreCommitStatusModel;

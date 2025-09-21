@@ -5,27 +5,43 @@
   [affirmativeButtonDisabled]="!checkValid()"
   (onCancel)="this.onClickCancel.emit(this.value)"
   (onOpen)="value = ''"
->
+  >
   <p>{{ message }}</p>
 
   <div class="input-group">
-    <div class="input-group-prepend" *ngIf="inputPrepend">
-      <span class="input-group-text">{{ inputPrepend }}</span>
-    </div>
-    <input
-      class="form-control"
-      *ngIf="modalService.getSetVisibleListener(modalId + uidSalt).getValue()"
-      [(ngModel)]="value"
-      [placeholder]="inputPlaceholder"
-      [pattern]="validPattern"
-      (keyup)="checkValid()"
-      [autofocus]
-      (keyup.enter)="okClicked()"
-      (keyup.control.enter)="okClicked()"
-      (keyup.meta.enter)="okClicked()"
-    />
+    @if (showInputPrepend) {
+      <div class="input-group-prepend">
+        <span class="input-group-text">
+          {{ inputPrepend }}
+          @if (showPrependClearButton) {
+            <button
+              class="btn btn-sm btn-light ml-2 p-0"
+              type="button"
+              (click)="clearInputPrepend()"
+              title="Remove prefix">
+              <i class="fa fa-times"></i>
+            </button>
+          }
+        </span>
+      </div>
+    }
+    @if (modalService.getSetVisibleListener(modalId + uidSalt).getValue()) {
+      <input
+        class="form-control"
+        [(ngModel)]="value"
+        [placeholder]="inputPlaceholder"
+        [pattern]="validPattern"
+        (keyup)="checkValid()"
+        [autofocus]
+        (keyup.enter)="okClicked()"
+        (keyup.control.enter)="okClicked()"
+        (keyup.meta.enter)="okClicked()"
+        />
+    }
   </div>
-  <p *ngIf="errorMessage" class="error-message">
-    <i class="fa fa-exclamation-circle mr-2"></i>{{ errorMessage }}
-  </p>
+  @if (errorMessage) {
+    <p class="error-message">
+      <i class="fa fa-exclamation-circle mr-2"></i>{{ errorMessage }}
+    </p>
+  }
 </app-modal>

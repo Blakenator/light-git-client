@@ -1,0 +1,20 @@
+.card-body {
+  padding: 0;
+  margin: 0;
+}
+
+.stash-row {
+  padding: 0.25em 0.3em;
+
+  &:nth-child(even) {
+    background-color: rgba(128, 128, 128, 0.1);
+  }
+}
+
+.branch-badge {
+  min-width: 3em;
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

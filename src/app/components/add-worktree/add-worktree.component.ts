@@ -12,9 +12,10 @@ import { ModalService } from '../../common/services/modal.service';
 import { WorktreeModel } from '../../../../shared/git/worktree.model';
 
 @Component({
-  selector: 'app-add-worktree',
-  templateUrl: './add-worktree.component.html',
-  styleUrls: ['./add-worktree.component.scss'],
+    selector: 'app-add-worktree',
+    templateUrl: './add-worktree.component.html',
+    styleUrls: ['./add-worktree.component.scss'],
+    standalone: false
 })
 export class AddWorktreeComponent {
   filter = '';

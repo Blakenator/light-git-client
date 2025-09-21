@@ -9,9 +9,10 @@ import {
 import { ModalService } from '../../common/services/modal.service';
 
 @Component({
-  selector: 'app-add-submodule',
-  templateUrl: './add-submodule.component.html',
-  styleUrls: ['./add-submodule.component.scss'],
+    selector: 'app-add-submodule',
+    templateUrl: './add-submodule.component.html',
+    styleUrls: ['./add-submodule.component.scss'],
+    standalone: false
 })
 export class AddSubmoduleComponent {
   @Input() uidSalt = '';

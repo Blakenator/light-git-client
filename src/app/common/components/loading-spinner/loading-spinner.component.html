@@ -1,5 +1,9 @@
-<div class="loading-spinner-container" *ngIf="show">
-  <div class="load-center"></div>
-  <div class="load-eminate"></div>
-</div>
-<div *ngIf="keepSpacing && !show" class="loading-spinner-container"></div>
+@if (show) {
+  <div class="loading-spinner-container">
+    <div class="load-center"></div>
+    <div class="load-eminate"></div>
+  </div>
+}
+@if (keepSpacing && !show) {
+  <div class="loading-spinner-container"></div>
+}

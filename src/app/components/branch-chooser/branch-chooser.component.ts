@@ -2,9 +2,10 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { BranchModel } from '../../../../shared/git/Branch.model';
 
 @Component({
-  selector: 'app-branch-chooser',
-  templateUrl: './branch-chooser.component.html',
-  styleUrls: ['./branch-chooser.component.scss'],
+    selector: 'app-branch-chooser',
+    templateUrl: './branch-chooser.component.html',
+    styleUrls: ['./branch-chooser.component.scss'],
+    standalone: false
 })
 export class BranchChooserComponent {
   @Input() locals: BranchModel[];

@@ -3,9 +3,10 @@ import { ModalService } from '../../common/services/modal.service';
 import { dialog } from 'electron';
 
 @Component({
-  selector: 'app-new-tab-page',
-  templateUrl: './new-tab-page.component.html',
-  styleUrls: ['./new-tab-page.component.scss'],
+    selector: 'app-new-tab-page',
+    templateUrl: './new-tab-page.component.html',
+    styleUrls: ['./new-tab-page.component.scss'],
+    standalone: false
 })
 export class NewTabPageComponent {
   repoPath = '';

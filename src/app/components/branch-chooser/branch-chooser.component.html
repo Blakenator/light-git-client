@@ -3,36 +3,40 @@
     class="form-control"
     [(ngModel)]="branchFilter"
     placeholder="Filter..."
-  />
+    />
 </div>
 <div class="branch-filter-content">
   <h6 class="dropdown-header d-flex align-items-center">
     <i class="fa fa-code-branch"></i> Local Branches
   </h6>
-  <button
-    class="dropdown-item d-flex justify-content-between"
-    *ngFor="let b of locals | filterObject: getBranchName:branchFilter"
-    (click)="selectedBranchChange.emit(b)"
-  >
-    {{ b.name }}
-    <i
-      class="fa fa-check ml-2"
-      *ngIf="selectedBranch && b.name == selectedBranch.name"
-    ></i>
-  </button>
+  @for (b of locals | filterObject: getBranchName:branchFilter; track b) {
+    <button
+      class="dropdown-item d-flex justify-content-between"
+      (click)="selectedBranchChange.emit(b)"
+      >
+      {{ b.name }}
+      @if (selectedBranch && b.name == selectedBranch.name) {
+        <i
+          class="fa fa-check ml-2"
+        ></i>
+      }
+    </button>
+  }
   <hr />
   <h6 class="dropdown-header d-flex align-items-center">
     <i class="fa fa-cloud"></i> Remote Branches
   </h6>
-  <button
-    class="dropdown-item d-flex justify-content-between"
-    *ngFor="let b of remotes | filterObject: getBranchName:branchFilter"
-    (click)="selectedBranchChange.emit(b)"
-  >
-    {{ b.name }}
-    <i
-      class="fa fa-check ml-2"
-      *ngIf="selectedBranch && b.name == selectedBranch.name"
-    ></i>
-  </button>
+  @for (b of remotes | filterObject: getBranchName:branchFilter; track b) {
+    <button
+      class="dropdown-item d-flex justify-content-between"
+      (click)="selectedBranchChange.emit(b)"
+      >
+      {{ b.name }}
+      @if (selectedBranch && b.name == selectedBranch.name) {
+        <i
+          class="fa fa-check ml-2"
+        ></i>
+      }
+    </button>
+  }
 </div>
