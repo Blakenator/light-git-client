@@ -527,14 +527,29 @@ export class GitClient {
           this.getGitPath(),
           ['commit', '--file', commitFilePath, amend ? '--amend' : ''],
           'Commit',
-        ).then(() => {
+        ).then(async () => {
           fs.unlinkSync(commitFilePath);
           if (!push) {
             resolve();
           } else {
-            this.pushBranch(branch, false)
-              .then(resolve)
-              .catch((err) => reject(serializeError(err)));
+            try {
+              let pushBranch = branch;
+              if (!pushBranch) {
+                // No branch provided — resolve the current branch name so we
+                // can push (including the first push of a local-only branch).
+                const out = await this.execute(
+                  this.getGitPath(),
+                  ['rev-parse', '--abbrev-ref', 'HEAD'],
+                  'Get Current Branch',
+                );
+                const name = out.standardOutput.trim();
+                pushBranch = { name } as BranchModel;
+              }
+              await this.pushBranch(pushBranch, false);
+              resolve();
+            } catch (err) {
+              reject(serializeError(err));
+            }
           }
         }),
         reject,

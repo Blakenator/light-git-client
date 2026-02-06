@@ -371,7 +371,10 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   const handleCommit = useCallback(async (amend: boolean) => {
     try {
-      await gitService.commit(commitMessageRef.current, amend, commitAndPush);
+      const currentBranch = commitAndPush
+        ? repoRef.current?.localBranches?.find((b: any) => b.isCurrentBranch)
+        : undefined;
+      await gitService.commit(commitMessageRef.current, amend, commitAndPush, currentBranch);
       setCommitMessage('');
       await refreshRepo();
       addAlert(amend ? 'Commit amended' : 'Committed successfully', 'success');
