@@ -13,10 +13,7 @@ import {
 } from '@tanstack/react-table';
 import { Icon } from '@light-git/core';
 
-const ChangeListContainer = styled.div`
-  max-height: 300px;
-  overflow-y: auto;
-`;
+const ChangeListContainer = styled.div``;
 
 const StyledTable = styled(Table)`
   margin-bottom: 0;

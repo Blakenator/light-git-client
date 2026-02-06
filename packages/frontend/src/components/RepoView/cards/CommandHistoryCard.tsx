@@ -4,10 +4,7 @@ import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { AgeInfo, Icon } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput } from '../RepoView.styles';
 
-const CommandListContainer = styled.div`
-  max-height: 300px;
-  overflow-y: auto;
-`;
+const CommandListContainer = styled.div``;
 
 const CommandItem = styled.div<{ $success: boolean; $expanded?: boolean }>`
   padding: 0.5rem;
@@ -85,8 +82,14 @@ const LoadingIndicator = styled.div`
 interface CommandHistoryModel {
   command: string;
   output?: string;
-  success: boolean;
-  timestamp: Date | string | number;
+  errorOutput?: string;
+  // Backend field names
+  executedAt?: Date | string | number;
+  isError?: boolean;
+  durationMs?: number;
+  // Frontend field names (for compatibility)
+  success?: boolean;
+  timestamp?: Date | string | number;
   duration?: number;
 }
 
@@ -187,15 +190,19 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
       <CommandListContainer ref={containerRef} onScroll={handleScroll}>
         {filteredHistory.map((cmd, index) => {
           const isExpanded = expandedItems.has(index);
+          const date = cmd.executedAt ?? cmd.timestamp;
+          const isSuccess = cmd.isError !== undefined ? !cmd.isError : !!cmd.success;
+          const duration = cmd.durationMs ?? cmd.duration;
+          const hasOutput = !!(cmd.output || cmd.errorOutput);
           return (
             <CommandItem
-              key={`${cmd.timestamp}-${index}`}
-              $success={cmd.success}
+              key={`${date}-${index}`}
+              $success={isSuccess}
               $expanded={isExpanded}
-              onClick={() => cmd.output && toggleExpand(index)}
+              onClick={() => hasOutput && toggleExpand(index)}
             >
               <CommandText>
-                {cmd.output && (
+                {hasOutput && (
                   <Icon
                     name={isExpanded ? 'fa-chevron-down' : 'fa-chevron-right'}
                     size="sm"
@@ -204,17 +211,17 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
                 )}
                 $ {cmd.command}
               </CommandText>
-              {isExpanded && cmd.output && (
-                <CommandOutput>{cmd.output}</CommandOutput>
+              {isExpanded && hasOutput && (
+                <CommandOutput>{cmd.errorOutput || cmd.output}</CommandOutput>
               )}
               <CommandMeta>
-                <AgeInfo date={cmd.timestamp} />
+                <AgeInfo date={date} />
                 <div>
-                  <StatusBadge $success={cmd.success}>
-                    {cmd.success ? 'OK' : 'FAILED'}
+                  <StatusBadge $success={isSuccess}>
+                    {isSuccess ? 'OK' : 'FAILED'}
                   </StatusBadge>
-                  {cmd.duration !== undefined && (
-                    <span className="ms-2">{cmd.duration}ms</span>
+                  {duration !== undefined && (
+                    <span className="ms-2">{duration}ms</span>
                   )}
                 </div>
               </CommandMeta>

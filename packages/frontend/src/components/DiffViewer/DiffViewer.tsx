@@ -7,7 +7,6 @@ import hljs from 'highlight.js';
 const DiffContainer = styled.div`
   font-family: ${({ theme }) => theme.fonts.monospace};
   font-size: 0.85rem;
-  overflow-x: auto;
 `;
 
 const DiffToolbar = styled.div`
@@ -163,6 +162,7 @@ const Deletions = styled.span`
 const HunkContainer = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   position: relative;
+  overflow-x: auto;
 `;
 
 const HunkHeader = styled.div`
@@ -173,6 +173,22 @@ const HunkHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const HunkHeaderText = styled.span`
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+`;
+
+const HunkHeaderContext = styled.span`
+  font-style: italic;
+  opacity: 0.85;
+`;
+
+const HunkHeaderLines = styled.span`
+  font-weight: 500;
 `;
 
 const HunkActions = styled.div`
@@ -403,6 +419,30 @@ const getLanguageFromFilename = (filename: string): string => {
     dockerfile: 'dockerfile',
   };
   return langMap[ext] || 'plaintext';
+};
+
+// Parse raw @@ hunk header into a readable description
+const parseHunkHeader = (header: string): { lineInfo: string; context: string; raw: string } => {
+  const match = header.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)/);
+  if (!match) return { lineInfo: header, context: '', raw: header };
+
+  const oldStart = parseInt(match[1]);
+  const oldCount = parseInt(match[2] ?? '1');
+  const newStart = parseInt(match[3]);
+  const newCount = parseInt(match[4] ?? '1');
+  const context = match[5]?.trim() || '';
+
+  let lineInfo: string;
+  if (newCount === 0) {
+    lineInfo = `−${oldCount} line${oldCount !== 1 ? 's' : ''} at ${oldStart}`;
+  } else if (oldCount === 0) {
+    lineInfo = `+${newCount} line${newCount !== 1 ? 's' : ''} at ${newStart}`;
+  } else {
+    const newEnd = newStart + newCount - 1;
+    lineInfo = `Lines ${newStart}–${newEnd}`;
+  }
+
+  return { lineInfo, context, raw: header };
 };
 
 export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
@@ -649,7 +689,15 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
           return (
             <HunkContainer key={hunkIndex}>
               <HunkHeader>
-                <span>{hunk.header}</span>
+                {(() => {
+                  const parsed = parseHunkHeader(hunk.header);
+                  return (
+                    <HunkHeaderText title={parsed.raw}>
+                      <HunkHeaderLines>{parsed.lineInfo}</HunkHeaderLines>
+                      {parsed.context && <HunkHeaderContext>{parsed.context}</HunkHeaderContext>}
+                    </HunkHeaderText>
+                  );
+                })()}
                 {!isReadOnly && !commitInfo && onHunkChange && !isEditing && (
                   <HunkActions>
                     <Button

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Button, ButtonGroup, Dropdown, Form, Table, DropdownButton } from 'react-bootstrap';
+import { Button, ButtonGroup, Badge, Dropdown, Form, Table, DropdownButton } from 'react-bootstrap';
 import styled, { useTheme } from 'styled-components';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { AgeInfo, Icon, GitGraphCanvas } from '../../../common/components';
@@ -7,8 +7,6 @@ import { CardHeaderContent } from '../RepoView.styles';
 import { DiffViewer } from '../../DiffViewer/DiffViewer';
 
 const CommitListContainer = styled.div`
-  flex: 1;
-  overflow-y: auto;
   overflow-x: hidden;
 `;
 
@@ -21,7 +19,6 @@ const CommitTable = styled(Table)`
   
   tbody tr {
     cursor: pointer;
-    height: ${ROW_HEIGHT}px;
     
     &:hover {
       background-color: ${({ theme }) => theme.colors.light};
@@ -29,7 +26,7 @@ const CommitTable = styled(Table)`
   }
   
   td {
-    vertical-align: middle;
+    vertical-align: top;
     padding: 0.375rem 0.5rem;
     border: none;
     position: relative;
@@ -42,13 +39,39 @@ const GraphCell = styled.td`
   padding: 0 !important;
   overflow: visible;
   position: relative;
+  vertical-align: middle !important;
 `;
 
 const MessageCell = styled.td`
-  max-width: 300px;
+  max-width: 0;
+  width: 100%;
 `;
 
-const CommitMessage = styled.div<{ $expanded?: boolean }>`
+const MessageRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+`;
+
+const ExpandCaret = styled.span`
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0.125rem;
+  display: flex;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.secondary};
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
+const MessageContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const MessageFirstLine = styled.span<{ $expanded?: boolean }>`
   font-weight: 500;
   ${({ $expanded }) =>
     !$expanded &&
@@ -56,7 +79,58 @@ const CommitMessage = styled.div<{ $expanded?: boolean }>`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
   `}
+`;
+
+const MessageBody = styled.pre`
+  margin: 0.25rem 0 0 0;
+  font-family: inherit;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: ${({ theme }) => theme.colors.secondary};
+`;
+
+const TagBadge = styled(Badge)<{ $tagType: 'local' | 'remote' | 'tag' | 'head' }>`
+  font-size: 0.65rem;
+  font-weight: 500;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+  background-color: ${({ $tagType, theme }) => {
+    switch ($tagType) {
+      case 'head': return theme.colors.warning;
+      case 'remote': return theme.colors.primary;
+      case 'tag': return theme.colors.success;
+      default: return theme.colors.info;
+    }
+  }} !important;
+  color: ${({ $tagType, theme }) => {
+    switch ($tagType) {
+      case 'head': return theme.colors.black;
+      default: return theme.colors.white;
+    }
+  }} !important;
+`;
+
+const CopyMessageButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.125rem 0.25rem;
+  color: ${({ theme }) => theme.colors.secondary};
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+
+  tr:hover & {
+    opacity: 0.6;
+  }
+
+  &:hover {
+    opacity: 1 !important;
+    color: ${({ theme }) => theme.colors.primary};
+  }
 `;
 
 const CommitMeta = styled.div`
@@ -65,19 +139,11 @@ const CommitMeta = styled.div`
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+  margin-top: 0.125rem;
 `;
 
 const CommitHash = styled.span`
   font-family: ${({ theme }) => theme.fonts.monospace};
-`;
-
-const BranchBadge = styled.span`
-  background-color: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.white};
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  font-size: 0.7rem;
-  margin-right: 0.25rem;
 `;
 
 const BranchSelector = styled.div`
@@ -94,6 +160,7 @@ const SearchInput = styled(Form.Control)`
 const ActionsCell = styled.td`
   width: 1%;
   white-space: nowrap;
+  vertical-align: middle !important;
 `;
 
 interface BranchModel {
@@ -118,6 +185,7 @@ interface CommitSummary {
   parents?: string[];
   graphBlockTargets?: GraphBlockTarget[];
   branchEndings?: string[];
+  currentTags?: string[];
 }
 
 interface CommitInfo {
@@ -220,7 +288,8 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
     [onBranchChange]
   );
 
-  const toggleExpand = useCallback((hash: string) => {
+  const toggleExpand = useCallback((hash: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setExpandedCommits((prev) => {
       const next = new Set(prev);
       if (next.has(hash)) {
@@ -230,6 +299,38 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
       }
       return next;
     });
+  }, []);
+
+  const copyMessage = useCallback((message: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(message);
+  }, []);
+
+  // Classify a tag for badge coloring (matches Angular version)
+  const getTagType = useCallback((tag: string): 'local' | 'remote' | 'tag' | 'head' => {
+    if (tag.startsWith('HEAD')) return 'head';
+    if (tag.startsWith('tag: ')) return 'tag';
+    if (tag.startsWith('origin/')) return 'remote';
+    return 'local';
+  }, []);
+
+  const getTagIcon = useCallback((tag: string): string | null => {
+    if (tag.startsWith('origin/')) return 'fa-cloud';
+    if (tag.startsWith('tag: ')) return 'fa-tag';
+    return null;
+  }, []);
+
+  const getTagLabel = useCallback((tag: string): string => {
+    return tag.replace('tag: ', '');
+  }, []);
+
+  // Determine if a commit message should be expandable
+  const isExpandable = useCallback((commit: CommitSummary): boolean => {
+    const tags = commit.currentTags || commit.branchEndings || [];
+    const tagLen = tags.reduce((sum, t) => sum + t.length, 0) + tags.length * 3;
+    const firstLine = commit.message.split('\n')[0];
+    const hasMultipleLines = commit.message.includes('\n');
+    return hasMultipleLines || (tagLen + firstLine.length > 65);
   }, []);
 
   const headerContent = (
@@ -345,7 +446,11 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
             <tbody>
               {filteredCommits.map((commit, index) => {
                 const isExpanded = expandedCommits.has(commit.hash);
-                const hasMultipleLines = commit.message.includes('\n');
+                const expandable = isExpandable(commit);
+                const tags = commit.currentTags || commit.branchEndings || [];
+                const messageLines = commit.message.split('\n');
+                const firstLine = messageLines[0];
+                const restLines = messageLines.slice(1).join('\n').trim();
                 // prevCommit is newer (above in the list), nextCommit is older (below)
                 const prevCommit = index > 0 ? filteredCommits[index - 1] : null;
                 const nextCommit = index < filteredCommits.length - 1 ? filteredCommits[index + 1] : null;
@@ -380,32 +485,46 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                       )}
                     </GraphCell>
                     <MessageCell>
-                      <CommitMessage $expanded={isExpanded}>
-                        {commit.branchEndings?.map((branch) => (
-                          <BranchBadge key={branch}>{branch}</BranchBadge>
-                        ))}
-                        {isExpanded ? commit.message : commit.message.split('\n')[0]}
-                      </CommitMessage>
+                      <MessageRow>
+                        {expandable && (
+                          <ExpandCaret onClick={(e) => toggleExpand(commit.hash, e)}>
+                            <Icon
+                              name={isExpanded ? 'fa-caret-down' : 'fa-caret-right'}
+                              size="sm"
+                            />
+                          </ExpandCaret>
+                        )}
+                        <MessageContent>
+                          <MessageFirstLine $expanded={isExpanded}>
+                            {tags.map((tag) => {
+                              const tagType = getTagType(tag);
+                              const icon = getTagIcon(tag);
+                              return (
+                                <TagBadge key={tag} $tagType={tagType}>
+                                  {icon && <Icon name={icon} size="sm" className="me-1" />}
+                                  {getTagLabel(tag)}
+                                </TagBadge>
+                              );
+                            })}
+                            {firstLine}
+                          </MessageFirstLine>
+                          {isExpanded && restLines && (
+                            <MessageBody>{restLines}</MessageBody>
+                          )}
+                        </MessageContent>
+                        {expandable && (
+                          <CopyMessageButton
+                            onClick={(e) => copyMessage(commit.message, e)}
+                            title="Copy full message"
+                          >
+                            <Icon name="fa-copy" size="sm" />
+                          </CopyMessageButton>
+                        )}
+                      </MessageRow>
                       <CommitMeta>
                         <CommitHash>{commit.hash.substring(0, 7)}</CommitHash>
                         <span>{commit.author}</span>
                         <AgeInfo date={commit.date} />
-                        {hasMultipleLines && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleExpand(commit.hash);
-                            }}
-                          >
-                            <Icon
-                              name={isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}
-                              size="sm"
-                            />
-                          </Button>
-                        )}
                       </CommitMeta>
                     </MessageCell>
                     <ActionsCell onClick={(e) => e.stopPropagation()}>
@@ -479,7 +598,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
           )}
         </CommitListContainer>
       ) : (
-        <div style={{ flex: 1, overflow: 'auto' }}>
+        <div style={{ flex: 1 }}>
           {diffHeaders.length > 0 ? (
             <DiffViewer
               diffHeaders={diffHeaders}

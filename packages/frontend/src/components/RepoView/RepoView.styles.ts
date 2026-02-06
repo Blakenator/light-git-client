@@ -23,17 +23,7 @@ export const Column = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: ${({ theme }) => theme.colors.secondary};
-    border-radius: 3px;
-  }
+  overflow: hidden;
 `;
 
 export const RepoTitle = styled.h1`
@@ -43,6 +33,7 @@ export const RepoTitle = styled.h1`
   font-size: 1.5rem;
   margin: 0;
   padding: 0.5rem 0;
+  flex: 0 0 auto;
 `;
 
 export const TitleButtonGroup = styled.div`

@@ -14,8 +14,8 @@
 // Current: Use electron IPC client
 export { electronIpcClient as ipcClient } from './electronIpcClient';
 
-// Hook for easy IPC access
-export { useIpc } from './useIpc';
+// Hooks for easy IPC access
+export { useIpc, useIpcListener } from './useIpc';
 
 // Future: Swap to super-ipc
 // import { createSuperIpcClient } from '@superflag/super-ipc-react';

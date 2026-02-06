@@ -68,14 +68,16 @@ const getAgeType = (date: Date): 'recent' | 'recentSecondary' | 'old' | 'default
 
 export const AgeInfo: React.FC<AgeInfoProps> = ({ date, className }) => {
   const dateObj = useMemo(() => {
-    if (date instanceof Date) return date;
-    return new Date(date);
+    if (date instanceof Date) return isNaN(date.getTime()) ? null : date;
+    if (date == null || date === '') return null;
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? null : d;
   }, [date]);
 
-  const relativeTime = useMemo(() => getRelativeTime(dateObj), [dateObj]);
-  const ageType = useMemo(() => getAgeType(dateObj), [dateObj]);
+  const relativeTime = useMemo(() => (dateObj ? getRelativeTime(dateObj) : '—'), [dateObj]);
+  const ageType = useMemo(() => (dateObj ? getAgeType(dateObj) : 'default'), [dateObj]);
 
-  const fullDate = dateObj.toLocaleString();
+  const fullDate = dateObj ? dateObj.toLocaleString() : '';
 
   return (
     <AgeSpan className={className} $ageType={ageType} title={fullDate}>

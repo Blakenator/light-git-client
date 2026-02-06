@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ToastContainer, toast, TypeOptions, Id } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useUiStore, NotificationModel } from '../../../stores';
@@ -19,6 +19,35 @@ const getToastType = (type: NotificationModel['type']): TypeOptions => {
   }
 };
 
+// Custom content component for error toasts with a copy button
+const ErrorToastContent: React.FC<{ message: string }> = ({ message }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(message).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    },
+    [message],
+  );
+
+  return (
+    <div className="toast-error-content">
+      <span className="toast-error-message">{message}</span>
+      <button
+        className="toast-copy-btn"
+        onClick={handleCopy}
+        title="Copy error message"
+      >
+        {copied ? 'Copied!' : 'Copy'}
+      </button>
+    </div>
+  );
+};
+
 // Component that syncs our store alerts with react-toastify
 const AlertSync: React.FC = () => {
   const alerts = useUiStore((state) => state.alerts);
@@ -31,13 +60,20 @@ const AlertSync: React.FC = () => {
     alerts.forEach((alert) => {
       if (!shownAlertsRef.current.has(alert.id)) {
         shownAlertsRef.current.add(alert.id);
-        
-        toast(alert.message, {
+
+        const isError = alert.type === 'error';
+        const content = isError ? (
+          <ErrorToastContent message={alert.message} />
+        ) : (
+          alert.message
+        );
+
+        toast(content, {
           type: getToastType(alert.type),
           toastId: alert.id,
-          autoClose: alert.duration || 4000,
+          autoClose: isError ? false : alert.duration || 4000,
           pauseOnHover: true,
-          closeOnClick: true,
+          closeOnClick: !isError,
           onClose: () => {
             dismissAlert(alert.id);
             shownAlertsRef.current.delete(alert.id);
@@ -81,7 +117,11 @@ export const AlertToasts: React.FC = () => {
 // Export a helper function to show toasts directly without going through the store
 export const showToast = {
   success: (message: string) => toast.success(message),
-  error: (message: string) => toast.error(message),
+  error: (message: string) =>
+    toast.error(<ErrorToastContent message={message} />, {
+      autoClose: false,
+      closeOnClick: false,
+    }),
   warning: (message: string) => toast.warning(message),
   info: (message: string) => toast.info(message),
 };

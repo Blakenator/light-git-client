@@ -1,20 +1,20 @@
-import React, { useState, useCallback, ReactNode } from 'react';
+import React, { useCallback, ReactNode } from 'react';
 import styled from 'styled-components';
 import { useSettingsStore } from '../../stores';
 import { Icon } from '@light-git/core';
 
-const CardContainer = styled.div<{ $fillHeight?: boolean }>`
+const CardContainer = styled.div<{ $isExpanded?: boolean }>`
   background-color: ${({ theme }) => theme.colors.background};
   border-radius: ${({ theme }) => theme.borderRadius};
   box-shadow: ${({ theme }) => theme.shadows.material};
   overflow: hidden;
-  ${({ $fillHeight }) => $fillHeight && `
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    height: 100%;
-  `}
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  ${({ $isExpanded }) => $isExpanded
+    ? `flex: 1 1 0;`
+    : `flex: 0 0 auto;`
+  }
 `;
 
 const CardHeader = styled.div`
@@ -54,15 +54,12 @@ const HeaderContent = styled.div`
   gap: 0.5rem;
 `;
 
-const CardBody = styled.div<{ expanded: boolean; $fillHeight?: boolean; customClass?: string }>`
+const CardBody = styled.div<{ expanded: boolean }>`
   display: ${({ expanded }) => (expanded ? 'block' : 'none')};
-  ${({ expanded, $fillHeight }) => 
-    $fillHeight 
-      ? `flex: 1; min-height: 0;`
-      : `max-height: ${expanded ? '500px' : '0'};`
-  }
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  transition: max-height 0.2s ease-in-out;
+  background-color: ${({ theme }) => theme.colors.cardBodyBg};
 `;
 
 interface LayoutCardProps {
@@ -73,7 +70,7 @@ interface LayoutCardProps {
   headerContent?: ReactNode;
   customBodyClass?: string;
   defaultExpanded?: boolean;
-  fillHeight?: boolean;
+  fillHeight?: boolean; // kept for API compat, no longer used
   onScroll?: () => void;
   onScrollUp?: () => void;
 }
@@ -86,7 +83,6 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
   headerContent,
   customBodyClass,
   defaultExpanded = true,
-  fillHeight = false,
   onScroll,
   onScrollUp,
 }) => {
@@ -118,7 +114,7 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
   );
 
   return (
-    <CardContainer $fillHeight={fillHeight}>
+    <CardContainer $isExpanded={isExpanded}>
       <CardHeader onClick={toggleExpand}>
         <ExpandIcon expanded={isExpanded}>
           <Icon name="fa-chevron-right" size="sm" />
@@ -133,8 +129,6 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
       </CardHeader>
       <CardBody
         expanded={isExpanded}
-        $fillHeight={fillHeight}
-        customClass={customBodyClass}
         onScroll={handleScroll}
       >
         {children}

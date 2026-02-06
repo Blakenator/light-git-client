@@ -47,6 +47,8 @@ export const lightTheme = {
     // Utility colors
     white: '#ffffff',
     black: '#000000',
+    // Card body
+    cardBodyBg: '#f5f6f8',
     // Code output colors
     codeOutputBg: '#ffffff',
     codeOutputText: '#212529',
@@ -116,6 +118,8 @@ export const darkTheme = {
     // Utility colors
     white: '#ffffff',
     black: '#000000',
+    // Card body
+    cardBodyBg: '#1f1f1f',
     // Code output colors
     codeOutputBg: '#1e1e1e',
     codeOutputText: '#cccccc',

@@ -174,9 +174,61 @@ export const GlobalStyles = createGlobalStyle`
     background-color: ${({ theme }) => theme.colors.background};
   }
 
-  /* React-toastify theme override for dark mode */
-  .dark-mode .Toastify__toast-theme--colored {
+  /* React-toastify theme overrides for dark mode */
+  .dark-mode .Toastify__toast-theme--colored.Toastify__toast--success {
+    background-color: ${({ theme }) => theme.colors.success};
+  }
+
+  .dark-mode .Toastify__toast-theme--colored.Toastify__toast--error {
+    background-color: ${({ theme }) => theme.colors.danger};
+  }
+
+  .dark-mode .Toastify__toast-theme--colored.Toastify__toast--warning {
+    background-color: ${({ theme }) => theme.colors.warning};
+  }
+
+  .dark-mode .Toastify__toast-theme--colored.Toastify__toast--info {
+    background-color: ${({ theme }) => theme.colors.info};
+  }
+
+  .dark-mode .Toastify__toast-theme--colored.Toastify__toast--default {
     background-color: ${({ theme }) => theme.colors.formControlBg};
+  }
+
+  /* Error toast copy button */
+  .toast-error-content {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .toast-error-message {
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .toast-copy-btn {
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: inherit;
+    cursor: pointer;
+    padding: 2px 8px;
+    font-size: 0.8em;
+    line-height: 1.4;
+    white-space: nowrap;
+    transition: background 0.15s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    &:active {
+      background: rgba(255, 255, 255, 0.5);
+    }
   }
 
   /* Highlight.js theme switching for dark mode */

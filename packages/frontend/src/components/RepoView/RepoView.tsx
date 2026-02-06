@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, ButtonGroup } from 'react-bootstrap';
 import { useRepositoryStore, useSettingsStore, useUiStore } from '../../stores';
 import { Icon } from '@light-git/core';
-import { useIpc, useGitService } from '../../ipc';
+import { useIpc, useGitService, useIpcListener } from '../../ipc';
 import { Channels } from '@light-git/shared';
 import { ConfirmModal } from '../../common/components/ConfirmModal/ConfirmModal';
 import { InputModal } from '../../common/components/InputModal/InputModal';
@@ -12,8 +12,6 @@ import {
   Column,
   RepoTitle,
   TitleButtonGroup,
-  CardWrapper,
-  FlexGrowCard,
 } from './RepoView.styles';
 import {
   LocalBranchesCard,
@@ -55,6 +53,7 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const splitFilenameDisplay = useSettingsStore((state) => state.settings.splitFilenameDisplay);
   const commitAndPush = useSettingsStore((state) => state.settings.commitAndPush);
   const branchNamePrefix = useSettingsStore((state) => state.settings.branchNamePrefix);
+  const diffIgnoreWhitespace = useSettingsStore((state) => state.settings.diffIgnoreWhitespace);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const saveSettings = useSettingsStore((state) => state.saveSettings);
   const showModal = useUiStore((state) => state.showModal);
@@ -69,7 +68,6 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const [commandHistory, setCommandHistory] = React.useState<any[]>([]);
   const [currentDiff, setCurrentDiff] = React.useState<any[]>([]);
   const [commitInfo, setCommitInfo] = React.useState<any>(null);
-  const [ignoreWhitespace, setIgnoreWhitespace] = React.useState(false);
 
   // Refs for values that callbacks need to READ at call time but shouldn't trigger callback recreation.
   // This prevents cascading re-renders when selection/commit data changes.
@@ -82,6 +80,11 @@ export const RepoView: React.FC<RepoViewProps> = ({
   onLoadRepoFailedRef.current = onLoadRepoFailed;
   const onOpenRepoNewTabRef = React.useRef(onOpenRepoNewTab);
   onOpenRepoNewTabRef.current = onOpenRepoNewTab;
+  // Refs for UI state that effects need to read without triggering re-runs
+  const showDiffRef = React.useRef(showDiff);
+  showDiffRef.current = showDiff;
+  const commitInfoRef = React.useRef(commitInfo);
+  commitInfoRef.current = commitInfo;
 
   // Normalize diff data from backend format to frontend format
   const normalizeDiff = React.useCallback((diffHeaders: any[]): any[] => {
@@ -393,6 +396,11 @@ export const RepoView: React.FC<RepoViewProps> = ({
     saveSettings();
   }, [updateSettings, saveSettings]);
 
+  const handleIgnoreWhitespaceChange = useCallback((value: boolean) => {
+    updateSettings({ diffIgnoreWhitespace: value });
+    saveSettings();
+  }, [updateSettings, saveSettings]);
+
   const handleLoadMoreCommits = useCallback(async () => {
     try {
       const commits = await gitService.getCommitHistory(50);
@@ -495,20 +503,34 @@ export const RepoView: React.FC<RepoViewProps> = ({
     );
   }, [fetchDiffForFiles]);
 
-  // Collect all selected file paths and fetch diffs for them
+  // Collect all selected file paths and fetch diffs for them.
+  // When no files are selected, show diff for ALL files.
   const refreshSelectedFilesDiff = useCallback(async (
-    stagedChanges: Record<string, boolean>,
-    unstagedChanges: Record<string, boolean>
+    selectedStaged: Record<string, boolean>,
+    selectedUnstaged: Record<string, boolean>
   ) => {
-    const stagedFiles = Object.entries(stagedChanges)
+    const stagedFiles = Object.entries(selectedStaged)
       .filter(([_, selected]) => selected)
       .map(([file]) => file.replace(/.*?->\s*/, '')); // Handle renames
-    const unstagedFiles = Object.entries(unstagedChanges)
+    const unstagedFiles = Object.entries(selectedUnstaged)
       .filter(([_, selected]) => selected)
       .map(([file]) => file.replace(/.*?->\s*/, '')); // Handle renames
     
     if (stagedFiles.length > 0 || unstagedFiles.length > 0) {
+      // Show diff for selected files only
       await fetchDiffForFiles(unstagedFiles, stagedFiles);
+    } else {
+      // No files selected - show diff for all files
+      const current = repoRef.current;
+      const allStaged = (current?.changes?.stagedChanges || [])
+        .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
+        .filter(Boolean);
+      const allUnstaged = (current?.changes?.unstagedChanges || [])
+        .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
+        .filter(Boolean);
+      if (allStaged.length > 0 || allUnstaged.length > 0) {
+        await fetchDiffForFiles(allUnstaged, allStaged);
+      }
     }
   }, [fetchDiffForFiles]);
 
@@ -745,20 +767,22 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleLoadMoreCommands = useCallback(async () => {
     try {
       const history = await gitService.getCommandHistory();
-      setCommandHistory(history || []);
+      // Sort newest first (backend uses executedAt, frontend may use timestamp)
+      const sorted = (history || []).sort((a: any, b: any) => {
+        const dateA = new Date(a.executedAt ?? a.timestamp).getTime() || 0;
+        const dateB = new Date(b.executedAt ?? b.timestamp).getTime() || 0;
+        return dateB - dateA;
+      });
+      setCommandHistory(sorted);
     } catch (error: any) {
       console.error('Failed to load command history:', error);
     }
   }, [gitService]);
 
-  // Load command history on mount only (no periodic refresh to avoid performance issues)
-  const commandHistoryLoadedRef = React.useRef(false);
-  useEffect(() => {
-    if (!commandHistoryLoadedRef.current) {
-      commandHistoryLoadedRef.current = true;
-      handleLoadMoreCommands();
-    }
-  }, [handleLoadMoreCommands]);
+  // Listen for command history changes from backend
+  useIpcListener(Channels.COMMANDHISTORYCHANGED, () => {
+    handleLoadMoreCommands();
+  });
 
   // Stable callback refs for inline closures (prevents defeating React.memo)
   const handleRemoteCheckout = useCallback((b: any) => handleCheckout(b, true), [handleCheckout]);
@@ -801,6 +825,18 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const submodules = useMemo(() => repo.submodules || [], [repo.submodules]);
   const stashes = useMemo(() => repo.stashes || [], [repo.stashes]);
 
+  // Auto-refresh diff when file change lists update (after stage/unstage/commit/refresh).
+  // When no files are selected, refreshSelectedFilesDiff shows diff for all files.
+  // Uses refs for showDiff/commitInfo to avoid triggering when those change independently.
+  useEffect(() => {
+    if (showDiffRef.current && !commitInfoRef.current) {
+      refreshSelectedFilesDiff(
+        repoRef.current?.selectedStagedChanges || {},
+        repoRef.current?.selectedUnstagedChanges || {},
+      );
+    }
+  }, [stagedChanges, unstagedChanges, refreshSelectedFilesDiff]);
+
   if (!repoPath) {
     return null;
   }
@@ -827,100 +863,84 @@ export const RepoView: React.FC<RepoViewProps> = ({
           </TitleButtonGroup>
         </RepoTitle>
 
-        <CardWrapper>
-          <LocalBranchesCard
-            branches={localBranches}
-            onCheckout={handleCheckout}
-            onCreateBranch={handleCreateBranch}
-            onMerge={handleMerge}
-            onPrune={handlePruneBranches}
-            onPush={handlePush}
-            onPull={handlePull}
-            onDelete={handleDeleteBranch}
-            onRename={handleRenameBranch}
-            onFastForward={handleFastForward}
-          />
-        </CardWrapper>
+        <LocalBranchesCard
+          branches={localBranches}
+          onCheckout={handleCheckout}
+          onCreateBranch={handleCreateBranch}
+          onMerge={handleMerge}
+          onPrune={handlePruneBranches}
+          onPush={handlePush}
+          onPull={handlePull}
+          onDelete={handleDeleteBranch}
+          onRename={handleRenameBranch}
+          onFastForward={handleFastForward}
+        />
 
-        <CardWrapper>
-          <RemoteBranchesCard
-            branches={remoteBranches}
-            onCheckout={handleRemoteCheckout}
-            onDelete={handleDeleteBranch}
-          />
-        </CardWrapper>
+        <RemoteBranchesCard
+          branches={remoteBranches}
+          onCheckout={handleRemoteCheckout}
+          onDelete={handleDeleteBranch}
+        />
 
-        <CardWrapper>
-          <WorktreesCard
-            worktrees={worktrees}
-            onAddWorktree={handleShowAddWorktree}
-            onOpenFolder={handleOpenFolder}
-            onOpenNewTab={handleWorktreeOpenNewTab}
-            onSwitch={handleSwitchWorktree}
-            onDelete={handleDeleteWorktree}
-          />
-        </CardWrapper>
+        <WorktreesCard
+          worktrees={worktrees}
+          onAddWorktree={handleShowAddWorktree}
+          onOpenFolder={handleOpenFolder}
+          onOpenNewTab={handleWorktreeOpenNewTab}
+          onSwitch={handleSwitchWorktree}
+          onDelete={handleDeleteWorktree}
+        />
 
-        <CardWrapper>
-          <SubmodulesCard
-            submodules={submodules}
-            onAddSubmodule={handleShowAddSubmodule}
-            onUpdateSubmodules={handleUpdateSubmodules}
-            onOpenNewTab={handleOpenSubmoduleNewTab}
-            onViewSubmodule={handleOpenSubmoduleNewTab}
-          />
-        </CardWrapper>
+        <SubmodulesCard
+          submodules={submodules}
+          onAddSubmodule={handleShowAddSubmodule}
+          onUpdateSubmodules={handleUpdateSubmodules}
+          onOpenNewTab={handleOpenSubmoduleNewTab}
+          onViewSubmodule={handleOpenSubmoduleNewTab}
+        />
 
-        <CardWrapper>
-          <StashesCard
-            stashes={stashes}
-            onStash={handleStash}
-            onApplyStash={handleApplyStash}
-            onDeleteStash={handleDeleteStash}
-            onViewStash={handleViewStash}
-            onRestoreStash={handleShowRestoreStash}
-          />
-        </CardWrapper>
+        <StashesCard
+          stashes={stashes}
+          onStash={handleStash}
+          onApplyStash={handleApplyStash}
+          onDeleteStash={handleDeleteStash}
+          onViewStash={handleViewStash}
+          onRestoreStash={handleShowRestoreStash}
+        />
 
-        <CardWrapper>
-          <CommandHistoryCard
-            commandHistory={commandHistory}
-            onLoadMore={handleLoadMoreCommands}
-          />
-        </CardWrapper>
+        <CommandHistoryCard
+          commandHistory={commandHistory}
+          onLoadMore={handleLoadMoreCommands}
+        />
       </Column>
 
       {/* Middle Column */}
       <Column>
-        <FlexGrowCard>
-          <StagedChangesCard
-            changes={stagedChanges}
-            selectedChanges={selectedStagedChanges}
-            splitFilenameDisplay={splitFilenameDisplay}
-            onSelectChange={handleSelectStagedChange}
-            onUnstageAll={handleUnstageAll}
-            onUnstageSelected={handleUnstageSelected}
-            onUndoFile={handleUndoFile}
-            onDeleteFiles={handleDeleteFiles}
-            onSetFilenameSplit={handleSetFilenameSplit}
-            onFileClick={handleStagedFileClick}
-          />
-        </FlexGrowCard>
+        <StagedChangesCard
+          changes={stagedChanges}
+          selectedChanges={selectedStagedChanges}
+          splitFilenameDisplay={splitFilenameDisplay}
+          onSelectChange={handleSelectStagedChange}
+          onUnstageAll={handleUnstageAll}
+          onUnstageSelected={handleUnstageSelected}
+          onUndoFile={handleUndoFile}
+          onDeleteFiles={handleDeleteFiles}
+          onSetFilenameSplit={handleSetFilenameSplit}
+          onFileClick={handleStagedFileClick}
+        />
 
-        <FlexGrowCard>
-          <UnstagedChangesCard
-            changes={unstagedChanges}
-            selectedChanges={selectedUnstagedChanges}
-            splitFilenameDisplay={splitFilenameDisplay}
-            onSelectChange={handleSelectUnstagedChange}
-            onStageAll={handleStageAll}
-            onStageSelected={handleStageSelected}
-            onUndoFile={handleUndoFile}
-            onDeleteFiles={handleDeleteFiles}
-            onSetFilenameSplit={handleSetFilenameSplit}
-            onFileClick={handleUnstagedFileClick}
-          />
-        </FlexGrowCard>
+        <UnstagedChangesCard
+          changes={unstagedChanges}
+          selectedChanges={selectedUnstagedChanges}
+          splitFilenameDisplay={splitFilenameDisplay}
+          onSelectChange={handleSelectUnstagedChange}
+          onStageAll={handleStageAll}
+          onStageSelected={handleStageSelected}
+          onUndoFile={handleUndoFile}
+          onDeleteFiles={handleDeleteFiles}
+          onSetFilenameSplit={handleSetFilenameSplit}
+          onFileClick={handleUnstagedFileClick}
+        />
 
         <ActiveOperationBanner
           operation={activeOperation}
@@ -951,13 +971,13 @@ export const RepoView: React.FC<RepoViewProps> = ({
           showDiff={showDiff}
           diffHeaders={currentDiff}
           commitInfo={commitInfo}
-          ignoreWhitespace={ignoreWhitespace}
+          ignoreWhitespace={diffIgnoreWhitespace}
           onToggleView={handleToggleDiffView}
           onClickCommit={handleClickCommit}
           onCherryPick={handleCherryPick}
           onCheckout={handleCheckoutCommit}
           onLoadMore={handleLoadMoreCommits}
-          onIgnoreWhitespaceChange={setIgnoreWhitespace}
+          onIgnoreWhitespaceChange={handleIgnoreWhitespaceChange}
           onRevert={handleRevertCommit}
           onCreateBranchFromCommit={handleCreateBranchFromCommit}
           onCopyHash={handleCopyHash}
