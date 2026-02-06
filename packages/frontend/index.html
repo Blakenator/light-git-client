@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="./favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Light Git</title>
+  </head>
+  <body>
+    <style>
+      @font-face {
+        font-family: 'Roboto';
+        font-style: normal;
+        font-weight: 400;
+        src: local('Roboto'), local('Roboto-Regular'),
+          url('./roboto-v18-latin-regular.woff2') format('woff2'),
+          url('./roboto-v18-latin-regular.woff') format('woff');
+      }
+
+      .d2h-code-linenumber {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      #loadingScreen {
+        position: fixed;
+        right: 100%;
+        left: -100%;
+        overflow: hidden;
+        top: 0;
+        bottom: 0;
+        background-color: #e69119;
+        transition: right 0.3s, left 0.3s;
+      }
+
+      #loadingScreen.visible {
+        left: 0;
+        right: 0;
+        transition: right 0.3s, left 0.3s;
+      }
+
+      #loadingScreen .content {
+        position: absolute;
+        display: flex;
+        flex-direction: row;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        align-items: center;
+      }
+
+      #loadingScreen .content img {
+        width: 20vh;
+      }
+
+      #loadingScreen .content h1 {
+        color: #0d0d0d;
+        font-size: 3rem !important;
+        font-weight: bold !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-family: 'Product Sans', Roboto, sans-serif !important;
+      }
+    </style>
+    <div id="root"></div>
+    <div id="loadingScreen" class="visible">
+      <div class="content">
+        <div>
+          <img src="./favicon.512x512.png" />
+        </div>
+        <h1>Light Git</h1>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.setTheme = (theme) => {
+        const head = document.head;
+        const THEME_STYLE = 'themeStyle';
+        let previousTheme = document.getElementById(THEME_STYLE);
+        if (!previousTheme) {
+          setLoading(true);
+        }
+        const link = document.createElement('link');
+
+        link.type = 'text/css';
+        link.rel = 'stylesheet';
+        link.id = THEME_STYLE;
+        link.href = './assets/' + theme + '.min.css';
+        link.onload = () => {
+          if (previousTheme) {
+            head.removeChild(previousTheme);
+          } else {
+            setTimeout(() => setLoading(false), 1200);
+          }
+        };
+
+        head.insertBefore(link, head.firstChild);
+      };
+      window.setTheme('light');
+      setTimeout(() => setLoading(false), 6000);
+
+      function setLoading(val) {
+        let classes = document.getElementById('loadingScreen').classList;
+        if (classes.contains('visible') !== val) {
+          classes.toggle('visible');
+        }
+      }
+    </script>
+  </body>
+</html>

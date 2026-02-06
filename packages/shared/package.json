@@ -1,0 +1,44 @@
+{
+  "name": "@light-git/shared",
+  "version": "0.13.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./src/Channels": {
+      "require": "./dist/Channels.js",
+      "import": "./dist/Channels.js",
+      "types": "./dist/Channels.d.ts"
+    },
+    "./src/git/*": {
+      "require": "./dist/git/*.js",
+      "import": "./dist/git/*.js",
+      "types": "./dist/git/*.d.ts"
+    },
+    "./src/common/*": {
+      "require": "./dist/common/*.js",
+      "import": "./dist/common/*.js",
+      "types": "./dist/common/*.d.ts"
+    },
+    "./src/*": {
+      "require": "./dist/*.js",
+      "import": "./dist/*.js",
+      "types": "./dist/*.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}

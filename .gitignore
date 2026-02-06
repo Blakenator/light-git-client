@@ -54,3 +54,6 @@ git/**/*.js
 .nyc_output/
 !**/*.config.js
 !preload.js
+
+dist
+node_modules

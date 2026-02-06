@@ -1,0 +1,146 @@
+import React, { useState, useCallback, ReactNode } from 'react';
+import styled from 'styled-components';
+import { useSettingsStore } from '../../stores';
+import { Icon } from '@light-git/core';
+
+const CardContainer = styled.div<{ $fillHeight?: boolean }>`
+  background-color: ${({ theme }) => theme.colors.background};
+  border-radius: ${({ theme }) => theme.borderRadius};
+  box-shadow: ${({ theme }) => theme.shadows.material};
+  overflow: hidden;
+  ${({ $fillHeight }) => $fillHeight && `
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+  `}
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background-color: ${({ theme }) => theme.colors.light};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.border};
+  }
+`;
+
+const ExpandIcon = styled.span<{ expanded: boolean }>`
+  margin-right: 0.5rem;
+  transition: transform 0.2s;
+  transform: rotate(${({ expanded }) => (expanded ? '90deg' : '0deg')});
+`;
+
+const CardIcon = styled.span`
+  margin-right: 0.5rem;
+`;
+
+const CardTitle = styled.span`
+  font-weight: 500;
+  flex-shrink: 0;
+`;
+
+const HeaderContent = styled.div`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  margin-left: 0.5rem;
+  gap: 0.5rem;
+`;
+
+const CardBody = styled.div<{ expanded: boolean; $fillHeight?: boolean; customClass?: string }>`
+  display: ${({ expanded }) => (expanded ? 'block' : 'none')};
+  ${({ expanded, $fillHeight }) => 
+    $fillHeight 
+      ? `flex: 1; min-height: 0;`
+      : `max-height: ${expanded ? '500px' : '0'};`
+  }
+  overflow-y: auto;
+  transition: max-height 0.2s ease-in-out;
+`;
+
+interface LayoutCardProps {
+  title: string;
+  iconClass?: string;
+  expandKey: string;
+  children: ReactNode;
+  headerContent?: ReactNode;
+  customBodyClass?: string;
+  defaultExpanded?: boolean;
+  fillHeight?: boolean;
+  onScroll?: () => void;
+  onScrollUp?: () => void;
+}
+
+export const LayoutCard: React.FC<LayoutCardProps> = ({
+  title,
+  iconClass,
+  expandKey,
+  children,
+  headerContent,
+  customBodyClass,
+  defaultExpanded = true,
+  fillHeight = false,
+  onScroll,
+  onScrollUp,
+}) => {
+  // Subscribe to the specific expand state value so we re-render when it changes
+  const isExpanded = useSettingsStore(
+    (state) => state.settings.expandStates[expandKey] ?? defaultExpanded
+  );
+  const setExpandState = useSettingsStore((state) => state.setExpandState);
+
+  const toggleExpand = useCallback(() => {
+    setExpandState(expandKey, !isExpanded);
+  }, [expandKey, isExpanded, setExpandState]);
+
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLDivElement;
+      const isAtBottom =
+        target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
+      const isAtTop = target.scrollTop < 50;
+
+      if (isAtBottom && onScroll) {
+        onScroll();
+      }
+      if (isAtTop && onScrollUp) {
+        onScrollUp();
+      }
+    },
+    [onScroll, onScrollUp]
+  );
+
+  return (
+    <CardContainer $fillHeight={fillHeight}>
+      <CardHeader onClick={toggleExpand}>
+        <ExpandIcon expanded={isExpanded}>
+          <Icon name="fa-chevron-right" size="sm" />
+        </ExpandIcon>
+        {iconClass && (
+          <CardIcon>
+            <i className={iconClass} />
+          </CardIcon>
+        )}
+        <CardTitle>{title}</CardTitle>
+        {headerContent && <HeaderContent>{headerContent}</HeaderContent>}
+      </CardHeader>
+      <CardBody
+        expanded={isExpanded}
+        $fillHeight={fillHeight}
+        customClass={customBodyClass}
+        onScroll={handleScroll}
+      >
+        {children}
+      </CardBody>
+    </CardContainer>
+  );
+};
+
+export default LayoutCard;
