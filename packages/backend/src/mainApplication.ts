@@ -407,7 +407,12 @@ export class MainApplication extends GenericApplication {
 
     ipcMain.handle(Channels.GETFILEDIFF, (event, ...args) => {
       return this.handleGitPromise(
-        this.gitClients[args[1]].getDiff(args[2], args[3]),
+        this.gitClients[args[1]].getDiffPaginated(
+          args[2],
+          args[3],
+          args[4] ?? null,
+          args[5] ?? 500,
+        ),
       );
     });
 

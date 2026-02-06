@@ -96,21 +96,26 @@ export function useGitService(repoPath: string) {
     ));
   }, [ipc, runJob, createJobConfig]);
 
-  const getCommitHistory = useCallback((count = 50, skip = 0) => {
+  const getCommitHistory = useCallback((count = 50, skip = 0, activeBranch?: string) => {
     const rp = repoPathRef.current;
     return runJob(createJobConfig(
       Channels.GETCOMMITHISTORY,
-      () => ipc.rpc<any[]>(Channels.GETCOMMITHISTORY, rp, count, skip),
+      () => ipc.rpc<any[]>(Channels.GETCOMMITHISTORY, rp, count, skip, activeBranch),
       [RepoArea.COMMIT_HISTORY],
       { reorderable: true }
     ));
   }, [ipc, runJob, createJobConfig]);
 
-  const getFileDiff = useCallback((unstaged: string[], staged: string[]) => {
+  const getFileDiff = useCallback((
+    unstaged: string[],
+    staged: string[],
+    cursor?: string | null,
+    maxLines?: number,
+  ) => {
     const rp = repoPathRef.current;
     return runJob(createJobConfig(
       Channels.GETFILEDIFF,
-      () => ipc.rpc(Channels.GETFILEDIFF, rp, unstaged, staged),
+      () => ipc.rpc(Channels.GETFILEDIFF, rp, unstaged, staged, cursor ?? null, maxLines),
       [],
       { reorderable: true }
     ));

@@ -23,6 +23,7 @@ import * as fs from 'fs';
 import { ErrorModel } from '@light-git/shared/src/common/error.model';
 import { DiffHunkModel } from '@light-git/shared/src/git/diff.hunk.model';
 import { DiffLineModel, LineState } from '@light-git/shared/src/git/diff.line.model';
+import { PaginatedDiffResponse } from '@light-git/shared/src/git/paginated-diff.model';
 const serializeError = require('serialize-error').default || require('serialize-error');
 import { SubmoduleModel } from '@light-git/shared/src/git/submodule.model';
 import { app } from 'electron';
@@ -510,6 +511,156 @@ export class GitClient {
             diffArray.forEach(
               (x) => (result.content = result.content.concat(x)),
             );
+            resolve(result);
+          }),
+          reject,
+        );
+      },
+    );
+  }
+
+  getDiffPaginated(
+    unstaged: string[],
+    staged: string[],
+    cursor: string | null = null,
+    maxLines: number = 500,
+  ): Promise<CommandOutputModel<PaginatedDiffResponse>> {
+    return new Promise<CommandOutputModel<PaginatedDiffResponse>>(
+      (resolve, reject) => {
+        const BATCH_SIZE = 200;
+
+        // Sort files alphabetically for deterministic cursor-based ordering
+        const sortedUnstaged = [...unstaged].sort();
+        const sortedStaged = [...staged].sort();
+
+        // Apply cursor to determine remaining files
+        let remainingUnstaged = sortedUnstaged;
+        let remainingStaged = sortedStaged;
+
+        if (cursor) {
+          const separatorIdx = cursor.indexOf(':');
+          const cursorState = cursor.substring(0, separatorIdx);
+          const cursorPath = cursor.substring(separatorIdx + 1);
+
+          if (cursorState === DiffHeaderStagedState.UNSTAGED) {
+            // Still within unstaged: skip files up to and including cursor path
+            remainingUnstaged = sortedUnstaged.filter(
+              (f) => f > cursorPath,
+            );
+            // All staged files remain
+          } else if (cursorState === DiffHeaderStagedState.STAGED) {
+            // Past all unstaged files
+            remainingUnstaged = [];
+            remainingStaged = sortedStaged.filter((f) => f > cursorPath);
+          }
+        }
+
+        // Batch files to limit the amount of data processed per page
+        const batchUnstaged = remainingUnstaged.slice(0, BATCH_SIZE);
+        const stageBatchSlots = Math.max(
+          0,
+          BATCH_SIZE - batchUnstaged.length,
+        );
+        const batchStaged = remainingStaged.slice(0, stageBatchSlots);
+
+        const hasMoreFiles =
+          batchUnstaged.length < remainingUnstaged.length ||
+          batchStaged.length < remainingStaged.length;
+
+        const promises: Promise<DiffHeaderModel[]>[] = [];
+        const result = new CommandOutputModel<PaginatedDiffResponse>({
+          items: [],
+          nextCursor: null,
+          hasMore: false,
+        });
+
+        if (batchUnstaged.length > 0) {
+          const command: string = this.getGitPath();
+          promises.push(
+            this.execute(
+              command,
+              [
+                'diff',
+                GitClient.settings.diffIgnoreWhitespace ? '-w' : '',
+                '--',
+                ...batchUnstaged,
+              ],
+              'Get Unstaged Changes Diff',
+              true,
+            ).then((output) => {
+              result.merge(output);
+              return this.parseDiffString(
+                output.standardOutput,
+                DiffHeaderStagedState.UNSTAGED,
+              );
+            }),
+          );
+        }
+
+        if (batchStaged.length > 0) {
+          const command: string = this.getGitPath();
+          promises.push(
+            this.execute(
+              command,
+              [
+                'diff',
+                GitClient.settings.diffIgnoreWhitespace ? '-w' : '',
+                '--staged',
+                '--',
+                ...batchStaged,
+              ],
+              'Get Staged Changes Diff',
+              true,
+            ).then((output) => {
+              result.merge(output);
+              return this.parseDiffString(
+                output.standardOutput,
+                DiffHeaderStagedState.STAGED,
+              );
+            }),
+          );
+        }
+
+        this.handleErrorDefault(
+          Promise.all(promises).then((diffArrays) => {
+            // Combine: unstaged first, then staged
+            let allDiffs: DiffHeaderModel[] = [];
+            diffArrays.forEach(
+              (x) => (allDiffs = allDiffs.concat(x)),
+            );
+
+            // Paginate by accumulated line count (always include at least one file)
+            const pageItems: DiffHeaderModel[] = [];
+            let lineCount = 0;
+
+            for (const diff of allDiffs) {
+              const diffLineCount = diff.hunks.reduce(
+                (sum, h) => sum + h.lines.length,
+                0,
+              );
+              pageItems.push(diff);
+              lineCount += diffLineCount;
+
+              if (lineCount >= maxLines) {
+                break;
+              }
+            }
+
+            const hasMoreDiffs = pageItems.length < allDiffs.length;
+            const hasMore = hasMoreDiffs || hasMoreFiles;
+
+            let nextCursor: string | null = null;
+            if (hasMore && pageItems.length > 0) {
+              const lastItem = pageItems[pageItems.length - 1];
+              nextCursor = `${lastItem.stagedState}:${lastItem.toFilename}`;
+            }
+
+            result.content = {
+              items: pageItems,
+              nextCursor,
+              hasMore,
+            };
+
             resolve(result);
           }),
           reject,

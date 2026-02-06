@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { Button, ButtonGroup, Form, Badge, Alert } from 'react-bootstrap';
+import { Button, ButtonGroup, Form, Badge, Alert, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { Icon } from '@light-git/core';
 import hljs from 'highlight.js';
 
@@ -326,6 +326,41 @@ const TruncationWarning = styled.div`
   text-align: center;
 `;
 
+const LoadMoreSentinel = styled.div`
+  padding: 1rem;
+  text-align: center;
+  color: ${({ theme }) => theme.colors.secondary};
+  font-style: italic;
+`;
+
+const DiffSummary = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-family: ${({ theme }) => theme.fonts.monospace};
+`;
+
+const SummaryAdditions = styled.span`
+  color: ${({ theme }) => theme.colors.diffAddText};
+  font-weight: 500;
+`;
+
+const SummaryDeletions = styled.span`
+  color: ${({ theme }) => theme.colors.diffDeleteText};
+  font-weight: 500;
+`;
+
+const FileCountBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: default;
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 500;
+`;
+
 export enum LineState {
   ADDED = 'added',
   REMOVED = 'removed',
@@ -368,6 +403,10 @@ interface DiffViewerProps {
   } | null;
   ignoreWhitespace?: boolean;
   isReadOnly?: boolean;
+  /** Whether more diff pages are available to load */
+  hasMore?: boolean;
+  /** Whether the next page is currently being fetched */
+  isLoadingMore?: boolean;
   onIgnoreWhitespaceClick?: () => void;
   onExitCommitView?: () => void;
   onNavigateToHash?: (hash: string) => void;
@@ -450,6 +489,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
   commitInfo,
   ignoreWhitespace = false,
   isReadOnly = false,
+  hasMore = false,
+  isLoadingMore = false,
   onIgnoreWhitespaceClick,
   onExitCommitView,
   onNavigateToHash,
@@ -482,6 +523,44 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
       editorRef.current.focus();
     }
   }, [editingHunk]);
+
+  // Compute overall diff stats
+  const diffStats = useMemo(() => {
+    let totalAdditions = 0;
+    let totalDeletions = 0;
+    let addedFiles = 0;
+    let deletedFiles = 0;
+    let modifiedFiles = 0;
+    let renamedFiles = 0;
+
+    for (const header of diffHeaders) {
+      totalAdditions += header.additions || 0;
+      totalDeletions += header.deletions || 0;
+      switch (header.action) {
+        case 'Added':
+          addedFiles++;
+          break;
+        case 'Deleted':
+          deletedFiles++;
+          break;
+        case 'Renamed':
+          renamedFiles++;
+          break;
+        default:
+          modifiedFiles++;
+          break;
+      }
+    }
+    return {
+      totalAdditions,
+      totalDeletions,
+      totalFiles: diffHeaders.length,
+      addedFiles,
+      deletedFiles,
+      modifiedFiles,
+      renamedFiles,
+    };
+  }, [diffHeaders]);
 
   // Filter diff headers
   const filteredHeaders = useMemo(() => {
@@ -876,6 +955,32 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
           checked={ignoreWhitespace}
           onChange={onIgnoreWhitespaceClick}
         />
+        {diffHeaders.length > 0 && (
+          <DiffSummary>
+            <span>
+              <SummaryAdditions>+{diffStats.totalAdditions}</SummaryAdditions>
+              {' '}
+              <SummaryDeletions>-{diffStats.totalDeletions}</SummaryDeletions>
+            </span>
+            <OverlayTrigger
+              placement="bottom"
+              overlay={
+                <Tooltip id="file-stats-tooltip">
+                  <div>{diffStats.totalFiles} file{diffStats.totalFiles !== 1 ? 's' : ''} total</div>
+                  {diffStats.modifiedFiles > 0 && <div>{diffStats.modifiedFiles} modified</div>}
+                  {diffStats.addedFiles > 0 && <div>{diffStats.addedFiles} added</div>}
+                  {diffStats.deletedFiles > 0 && <div>{diffStats.deletedFiles} deleted</div>}
+                  {diffStats.renamedFiles > 0 && <div>{diffStats.renamedFiles} renamed</div>}
+                </Tooltip>
+              }
+            >
+              <FileCountBadge>
+                <Icon name="fa-file" size="sm" />
+                {diffStats.totalFiles}
+              </FileCountBadge>
+            </OverlayTrigger>
+          </DiffSummary>
+        )}
       </DiffToolbar>
 
       {stagedHeaders.length > 0 && (
@@ -900,8 +1005,14 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
         </>
       )}
 
-      {filteredHeaders.length === 0 && (
+      {filteredHeaders.length === 0 && !hasMore && (
         <div className="text-muted text-center py-4">No changes to display</div>
+      )}
+
+      {hasMore && (
+        <LoadMoreSentinel>
+          {isLoadingMore ? 'Loading more files...' : 'Scroll for more...'}
+        </LoadMoreSentinel>
       )}
     </DiffContainer>
   );

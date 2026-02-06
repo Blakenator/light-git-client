@@ -68,6 +68,13 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const [commandHistory, setCommandHistory] = React.useState<any[]>([]);
   const [currentDiff, setCurrentDiff] = React.useState<any[]>([]);
   const [commitInfo, setCommitInfo] = React.useState<any>(null);
+  const [activeBranch, setActiveBranch] = React.useState<any>(null);
+  // Pagination state for file diffs
+  const [diffCursor, setDiffCursor] = React.useState<string | null>(null);
+  const [hasMoreDiffs, setHasMoreDiffs] = React.useState(false);
+  const [isLoadingMoreDiffs, setIsLoadingMoreDiffs] = React.useState(false);
+  // Track current file selection for loading subsequent pages (ref to avoid re-renders)
+  const currentDiffFilesRef = React.useRef<{ unstaged: string[]; staged: string[] }>({ unstaged: [], staged: [] });
 
   // Refs for values that callbacks need to READ at call time but shouldn't trigger callback recreation.
   // This prevents cascading re-renders when selection/commit data changes.
@@ -85,6 +92,8 @@ export const RepoView: React.FC<RepoViewProps> = ({
   showDiffRef.current = showDiff;
   const commitInfoRef = React.useRef(commitInfo);
   commitInfoRef.current = commitInfo;
+  const activeBranchRef = React.useRef(activeBranch);
+  activeBranchRef.current = activeBranch;
 
   // Normalize diff data from backend format to frontend format
   const normalizeDiff = React.useCallback((diffHeaders: any[]): any[] => {
@@ -403,7 +412,8 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   const handleLoadMoreCommits = useCallback(async () => {
     try {
-      const commits = await gitService.getCommitHistory(50);
+      const branchName = activeBranchRef.current?.name;
+      const commits = await gitService.getCommitHistory(50, 0, branchName);
       updateRepoCache(repoPath, { commitHistory: commits });
     } catch (error: any) {
       addAlert(`Failed to load commits: ${error.message}`, 'error');
@@ -479,20 +489,52 @@ export const RepoView: React.FC<RepoViewProps> = ({
     }
   }, [gitService, refreshRepo, addAlert]);
 
-  // Helper to fetch diff for given staged and unstaged files
-  const fetchDiffForFiles = useCallback(async (unstagedFiles: string[], stagedFiles: string[]) => {
+  // Fetch a single page of file diffs. When append=true, adds to existing diffs.
+  const fetchDiffPage = useCallback(async (
+    unstagedFiles: string[],
+    stagedFiles: string[],
+    cursor: string | null,
+    append: boolean,
+  ) => {
     try {
-      const diffResponse = await gitService.getFileDiff(unstagedFiles, stagedFiles) as any;
-      // Extract content from response - backend returns {content, standardOutput, errorOutput, exitCode}
-      const diff = Array.isArray(diffResponse) ? diffResponse : (diffResponse?.content || []);
-      const normalizedDiff = normalizeDiff(diff || []);
-      setCurrentDiff(normalizedDiff);
+      const diffResponse = await gitService.getFileDiff(unstagedFiles, stagedFiles, cursor) as any;
+      // Backend returns { content: PaginatedDiffResponse, standardOutput, errorOutput, exitCode }
+      const content = diffResponse?.content ?? diffResponse;
+      const items = content?.items ?? (Array.isArray(content) ? content : []);
+      const normalizedDiff = normalizeDiff(Array.isArray(items) ? items : []);
+
+      if (append) {
+        setCurrentDiff((prev) => [...prev, ...normalizedDiff]);
+      } else {
+        setCurrentDiff(normalizedDiff);
+      }
+
+      setDiffCursor(content?.nextCursor ?? null);
+      setHasMoreDiffs(content?.hasMore ?? false);
       setCommitInfo(null); // Not a commit diff
       setShowDiff(true);
     } catch (error: any) {
       addAlert(`Failed to show file: ${error.message}`, 'error');
     }
   }, [gitService, addAlert, normalizeDiff]);
+
+  // Helper to start fetching diffs for given files (resets pagination)
+  const fetchDiffForFiles = useCallback(async (unstagedFiles: string[], stagedFiles: string[]) => {
+    currentDiffFilesRef.current = { unstaged: unstagedFiles, staged: stagedFiles };
+    await fetchDiffPage(unstagedFiles, stagedFiles, null, false);
+  }, [fetchDiffPage]);
+
+  // Load the next page of file diffs (called on scroll-to-bottom)
+  const loadMoreDiffs = useCallback(async () => {
+    if (!hasMoreDiffs || isLoadingMoreDiffs || !diffCursor) return;
+    setIsLoadingMoreDiffs(true);
+    try {
+      const { unstaged, staged } = currentDiffFilesRef.current;
+      await fetchDiffPage(unstaged, staged, diffCursor, true);
+    } finally {
+      setIsLoadingMoreDiffs(false);
+    }
+  }, [hasMoreDiffs, isLoadingMoreDiffs, diffCursor, fetchDiffPage]);
 
   // Handler for clicking on staged/unstaged file changes (shows file diff)
   // isStaged parameter tells us which list the file was clicked from
@@ -798,11 +840,26 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleWorktreeOpenNewTab = useCallback((path: string) => onOpenRepoNewTabRef.current?.(path), []);
   const handleToggleDiffView = useCallback((show: boolean) => {
     setShowDiff(show);
-    if (!show) {
-      setCurrentDiff([]);
-      setCommitInfo(null);
-    }
+    // Don't clear diff data when toggling tabs - let content persist
   }, []);
+
+  const handleExitDiffView = useCallback(() => {
+    setShowDiff(false);
+    setCurrentDiff([]);
+    setCommitInfo(null);
+    setDiffCursor(null);
+    setHasMoreDiffs(false);
+  }, []);
+
+  const handleBranchChange = useCallback(async (branch: any | null) => {
+    setActiveBranch(branch);
+    try {
+      const commits = await gitService.getCommitHistory(50, 0, branch?.name);
+      updateRepoCache(repoPath, { commitHistory: commits });
+    } catch (error: any) {
+      addAlert(`Failed to load commits: ${error.message}`, 'error');
+    }
+  }, [gitService, repoPath, updateRepoCache, addAlert]);
 
   const handlePrependClear = useCallback(() => {
     updateSettings({ branchNamePrefix: '' });
@@ -971,13 +1028,21 @@ export const RepoView: React.FC<RepoViewProps> = ({
           showDiff={showDiff}
           diffHeaders={currentDiff}
           commitInfo={commitInfo}
+          localBranches={localBranches}
+          remoteBranches={remoteBranches}
+          activeBranch={activeBranch}
           ignoreWhitespace={diffIgnoreWhitespace}
+          hasMoreDiffs={hasMoreDiffs}
+          isLoadingMoreDiffs={isLoadingMoreDiffs}
           onToggleView={handleToggleDiffView}
           onClickCommit={handleClickCommit}
           onCherryPick={handleCherryPick}
           onCheckout={handleCheckoutCommit}
           onLoadMore={handleLoadMoreCommits}
+          onLoadMoreDiffs={loadMoreDiffs}
+          onBranchChange={handleBranchChange}
           onIgnoreWhitespaceChange={handleIgnoreWhitespaceChange}
+          onExitDiffView={handleExitDiffView}
           onRevert={handleRevertCommit}
           onCreateBranchFromCommit={handleCreateBranchFromCommit}
           onCopyHash={handleCopyHash}

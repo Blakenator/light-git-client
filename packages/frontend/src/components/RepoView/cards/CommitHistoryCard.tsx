@@ -213,17 +213,21 @@ interface CommitHistoryCardProps {
   activeBranch?: BranchModel | null;
   enableGraphView?: boolean;
   ignoreWhitespace?: boolean;
+  hasMoreDiffs?: boolean;
+  isLoadingMoreDiffs?: boolean;
   onToggleView: (showDiff: boolean) => void;
   onClickCommit: (hash: string) => void;
   onCherryPick: (commit: CommitSummary) => void;
   onCheckout: (hash: string) => void;
   onLoadMore: () => void;
+  onLoadMoreDiffs?: () => void;
   onBranchChange?: (branch: BranchModel | null) => void;
   onIgnoreWhitespaceChange?: (value: boolean) => void;
   onRevert?: (commit: CommitSummary) => void;
   onCreateBranchFromCommit?: (commit: CommitSummary) => void;
   onCopyHash?: (hash: string) => void;
   onResetToCommit?: (commit: CommitSummary, mode: 'soft' | 'mixed' | 'hard') => void;
+  onExitDiffView?: () => void;
   onHunkChange?: (filename: string, hunk: DiffHunk, newContent: string) => Promise<void>;
   onHunkChangeError?: (error: Error) => void;
 }
@@ -238,16 +242,20 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
   activeBranch,
   enableGraphView = true,
   ignoreWhitespace = false,
+  hasMoreDiffs = false,
+  isLoadingMoreDiffs = false,
   onToggleView,
   onClickCommit,
   onCherryPick,
   onCheckout,
   onLoadMore,
+  onLoadMoreDiffs,
   onBranchChange,
   onIgnoreWhitespaceChange,
   onRevert,
   onCreateBranchFromCommit,
   onCopyHash,
+  onExitDiffView,
   onResetToCommit,
   onHunkChange,
   onHunkChangeError,
@@ -287,6 +295,19 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
     },
     [onBranchChange]
   );
+
+  const currentBranch = useMemo(
+    () => localBranches.find((b) => b.isCurrentBranch),
+    [localBranches]
+  );
+
+  const isCurrentBranchActive = activeBranch && currentBranch && activeBranch.name === currentBranch.name;
+
+  const toggleCurrentBranchFilter = useCallback(() => {
+    if (!currentBranch) return;
+    // If already filtering to current branch, clear filter; otherwise set to current branch
+    onBranchChange?.(isCurrentBranchActive ? null : currentBranch);
+  }, [currentBranch, isCurrentBranchActive, onBranchChange]);
 
   const toggleExpand = useCallback((hash: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -333,6 +354,15 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
     return hasMultipleLines || (tagLen + firstLine.length > 65);
   }, []);
 
+  // Route scroll-to-bottom to either commit loading or diff loading
+  const handleLayoutScroll = useCallback(() => {
+    if (showDiff) {
+      onLoadMoreDiffs?.();
+    } else {
+      onLoadMore();
+    }
+  }, [showDiff, onLoadMore, onLoadMoreDiffs]);
+
   const headerContent = (
     <CardHeaderContent>
       <ButtonGroup size="sm">
@@ -367,9 +397,20 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
         />
         
         {onBranchChange && (
+          <ButtonGroup size="sm">
+            {currentBranch && (
+              <Button
+                variant={isCurrentBranchActive ? 'primary' : 'secondary'}
+                onClick={toggleCurrentBranchFilter}
+                title="Filter to current branch"
+              >
+                <Icon name={isCurrentBranchActive ? 'fa-eye-slash' : 'fa-eye'} size="sm" />
+              </Button>
+            )}
           <Dropdown
             show={showBranchDropdown}
             onToggle={(open) => setShowBranchDropdown(open)}
+            as={ButtonGroup}
           >
             <Dropdown.Toggle variant="secondary" size="sm">
               <Icon name="fa-code-branch" className="me-1" />
@@ -427,6 +468,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
               )}
             </Dropdown.Menu>
           </Dropdown>
+          </ButtonGroup>
         )}
       </BranchSelector>
     </CardHeaderContent>
@@ -438,7 +480,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
       expandKey="commit-history"
       headerContent={headerContent}
       fillHeight={true}
-      onScroll={onLoadMore}
+      onScroll={handleLayoutScroll}
     >
       {!showDiff ? (
         <CommitListContainer>
@@ -604,8 +646,10 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
               diffHeaders={diffHeaders}
               commitInfo={commitInfo}
               ignoreWhitespace={ignoreWhitespace}
+              hasMore={hasMoreDiffs}
+              isLoadingMore={isLoadingMoreDiffs}
               onIgnoreWhitespaceClick={onIgnoreWhitespaceChange ? () => onIgnoreWhitespaceChange(!ignoreWhitespace) : undefined}
-              onExitCommitView={() => onToggleView(false)}
+              onExitCommitView={onExitDiffView || (() => onToggleView(false))}
               onNavigateToHash={onClickCommit}
               onHunkChange={onHunkChange}
               onHunkChangeError={onHunkChangeError}
