@@ -8,8 +8,14 @@ import { useIpc, useGitService, useIpcListener } from '../../ipc';
 import { Channels, CardId } from '@light-git/shared';
 import { ConfirmModal } from '../../common/components/ConfirmModal/ConfirmModal';
 import { InputModal } from '../../common/components/InputModal/InputModal';
-import { PruneBranchDialog, MergeBranchDialog } from './dialogs';
+import { PruneBranchDialog, MergeBranchDialog, PreCommitStatusModal } from './dialogs';
 import { calculateGraphBlocks } from '../../utils/calculateGraphBlocks';
+import {
+  detectPreCommitStatus,
+  detectRemoteMessage,
+  detectCrlfWarning,
+  detectSubmoduleCheckout,
+} from '../../utils/warningDetectors';
 import { EditSectionsContext } from './EditSectionsContext';
 import { EditableCard } from './EditableCard';
 import {
@@ -126,6 +132,7 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const addAlert = useUiStore((state) => state.addAlert);
   const crlfError = useUiStore((state) => state.crlfError);
   const setCrlfError = useUiStore((state) => state.setCrlfError);
+  const setPreCommitStatus = useUiStore((state) => state.setPreCommitStatus);
 
   // Local state
   const [showDiff, setShowDiff] = React.useState(false);
@@ -374,11 +381,14 @@ export const RepoView: React.FC<RepoViewProps> = ({
   // finishes, matching the Angular TabDataService.updateAreas() pattern.
   const handleCheckout = useCallback(async (branch: any, andPull: boolean) => {
     try {
-      // Local branches: toNewBranch=false
       await gitService.checkout(branch.name, false, andPull);
       addAlert(`Checked out ${branch.name}`, 'success');
     } catch (error: any) {
-      addAlert(`Checkout failed: ${error.message}`, 'error');
+      if (detectSubmoduleCheckout(error.message || '')) {
+        addAlert(`Checked out ${branch.name}`, 'success');
+      } else {
+        addAlert(`Checkout failed: ${error.message}`, 'error');
+      }
     }
   }, [gitService, addAlert]);
 
@@ -387,7 +397,12 @@ export const RepoView: React.FC<RepoViewProps> = ({
       await gitService.push(branch, force);
       addAlert('Push successful', 'success');
     } catch (error: any) {
-      addAlert(`Push failed: ${error.message}`, 'error');
+      const remoteMsg = detectRemoteMessage(error.message || '');
+      if (remoteMsg) {
+        addAlert(remoteMsg.message, 'info', 0);
+      } else {
+        addAlert(`Push failed: ${error.message}`, 'error');
+      }
     }
   }, [gitService, addAlert]);
 
@@ -396,7 +411,11 @@ export const RepoView: React.FC<RepoViewProps> = ({
       await gitService.pull(force);
       addAlert('Pull successful', 'success');
     } catch (error: any) {
-      addAlert(`Pull failed: ${error.message}`, 'error');
+      if (detectSubmoduleCheckout(error.message || '')) {
+        addAlert('Pull successful', 'success');
+      } else {
+        addAlert(`Pull failed: ${error.message}`, 'error');
+      }
     }
   }, [gitService, addAlert]);
 
@@ -546,13 +565,13 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   const handleCreateBranchSubmit = useCallback(async (branchName: string) => {
     try {
-      const prefix = branchNamePrefix || '';
-      await gitService.createBranch(prefix + branchName);
-      addAlert(`Created branch ${prefix + branchName}`, 'success');
+      // branchName already includes the prefix (InputModal prepends it on submit)
+      await gitService.createBranch(branchName);
+      addAlert(`Created branch ${branchName}`, 'success');
     } catch (error: any) {
       addAlert(`Create branch failed: ${error.message}`, 'error');
     }
-  }, [gitService, branchNamePrefix, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleRenameBranchSubmit = useCallback(async (newName: string) => {
     if (!branchToRename) return;
@@ -580,9 +599,15 @@ export const RepoView: React.FC<RepoViewProps> = ({
       await gitService.resolveConflict(file, useTheirs);
       addAlert(`Conflict resolved using ${useTheirs ? 'theirs' : 'ours'}`, 'success');
     } catch (error: any) {
-      addAlert(`Resolve conflict failed: ${error.message}`, 'error');
+      const crlf = detectCrlfWarning(error.message || '');
+      if (crlf) {
+        setCrlfError(crlf);
+        addAlert(`Conflict resolved using ${useTheirs ? 'theirs' : 'ours'}`, 'success');
+      } else {
+        addAlert(`Resolve conflict failed: ${error.message}`, 'error');
+      }
     }
-  }, [gitService, addAlert]);
+  }, [gitService, addAlert, setCrlfError]);
 
   const handleAddSubmodule = useCallback(async (url: string, path: string) => {
     try {
@@ -605,29 +630,52 @@ export const RepoView: React.FC<RepoViewProps> = ({
   }, [gitService, addAlert]);
 
   const handleCommit = useCallback(async (amend: boolean) => {
+    let message = commitMessageRef.current;
+    // When amending with no message, reuse the previous commit message
+    if (amend && !message.trim()) {
+      const lastCommit = repoRef.current?.commitHistory?.[0];
+      message = lastCommit?.message || '';
+    }
+    const currentBranch = commitAndPush
+      ? repoRef.current?.localBranches?.find((b: any) => b.isCurrentBranch)
+      : undefined;
+
+    let succeeded = false;
     try {
-      let message = commitMessageRef.current;
-      // When amending with no message, reuse the previous commit message
-      if (amend && !message.trim()) {
-        const lastCommit = repoRef.current?.commitHistory?.[0];
-        message = lastCommit?.message || '';
-      }
-      const currentBranch = commitAndPush
-        ? repoRef.current?.localBranches?.find((b: any) => b.isCurrentBranch)
-        : undefined;
       await gitService.commit(message, amend, commitAndPush, currentBranch);
+      succeeded = true;
+    } catch (error: any) {
+      const errorMsg = error.message || '';
+      const preCommit = detectPreCommitStatus(errorMsg);
+      if (preCommit) {
+        setPreCommitStatus(preCommit);
+        if (preCommit.isError()) {
+          showModal('preCommit');
+        } else {
+          succeeded = true;
+        }
+      } else {
+        const remoteMsg = detectRemoteMessage(errorMsg);
+        if (remoteMsg) {
+          // Server message from push portion of commit-and-push
+          succeeded = true;
+          addAlert(remoteMsg.message, 'info', 0);
+        } else {
+          addAlert(`Commit failed: ${errorMsg}`, 'error');
+        }
+      }
+    }
+
+    if (succeeded) {
       setCommitMessage('');
-      // Clear diff view and switch to commit history tab
       setShowDiff(false);
       setCurrentDiff([]);
       setCommitInfo(null);
       setDiffCursor(null);
       setHasMoreDiffs(false);
       addAlert(amend ? 'Commit amended' : 'Committed successfully', 'success');
-    } catch (error: any) {
-      addAlert(`Commit failed: ${error.message}`, 'error');
     }
-  }, [gitService, commitAndPush, addAlert]);
+  }, [gitService, commitAndPush, addAlert, setPreCommitStatus, showModal]);
 
   const handleCommitAndPushChange = useCallback((value: boolean) => {
     updateSettings({ commitAndPush: value });
@@ -669,18 +717,30 @@ export const RepoView: React.FC<RepoViewProps> = ({
       await gitService.stage(['.']);
       updateRepoCache(repoPath, { selectedUnstagedChanges: {} });
     } catch (error: any) {
-      addAlert(`Stage failed: ${error.message}`, 'error');
+      const crlf = detectCrlfWarning(error.message || '');
+      if (crlf) {
+        setCrlfError(crlf);
+        updateRepoCache(repoPath, { selectedUnstagedChanges: {} });
+      } else {
+        addAlert(`Stage failed: ${error.message}`, 'error');
+      }
     }
-  }, [gitService, repoPath, updateRepoCache, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert, setCrlfError]);
 
   const handleUnstageAll = useCallback(async () => {
     try {
       await gitService.unstage(['.']);
       updateRepoCache(repoPath, { selectedStagedChanges: {} });
     } catch (error: any) {
-      addAlert(`Unstage failed: ${error.message}`, 'error');
+      const crlf = detectCrlfWarning(error.message || '');
+      if (crlf) {
+        setCrlfError(crlf);
+        updateRepoCache(repoPath, { selectedStagedChanges: {} });
+      } else {
+        addAlert(`Unstage failed: ${error.message}`, 'error');
+      }
     }
-  }, [gitService, repoPath, updateRepoCache, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert, setCrlfError]);
 
   const handleStageSelected = useCallback(async () => {
     try {
@@ -692,9 +752,15 @@ export const RepoView: React.FC<RepoViewProps> = ({
         updateRepoCache(repoPath, { selectedUnstagedChanges: {} });
       }
     } catch (error: any) {
-      addAlert(`Stage failed: ${error.message}`, 'error');
+      const crlf = detectCrlfWarning(error.message || '');
+      if (crlf) {
+        setCrlfError(crlf);
+        updateRepoCache(repoPath, { selectedUnstagedChanges: {} });
+      } else {
+        addAlert(`Stage failed: ${error.message}`, 'error');
+      }
     }
-  }, [gitService, repoPath, updateRepoCache, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert, setCrlfError]);
 
   const handleUnstageSelected = useCallback(async () => {
     try {
@@ -706,17 +772,28 @@ export const RepoView: React.FC<RepoViewProps> = ({
         updateRepoCache(repoPath, { selectedStagedChanges: {} });
       }
     } catch (error: any) {
-      addAlert(`Unstage failed: ${error.message}`, 'error');
+      const crlf = detectCrlfWarning(error.message || '');
+      if (crlf) {
+        setCrlfError(crlf);
+        updateRepoCache(repoPath, { selectedStagedChanges: {} });
+      } else {
+        addAlert(`Unstage failed: ${error.message}`, 'error');
+      }
     }
-  }, [gitService, repoPath, updateRepoCache, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert, setCrlfError]);
 
   const handleUndoFile = useCallback(async (path: string) => {
     try {
       await gitService.undoFileChanges([path]);
     } catch (error: any) {
-      addAlert(`Undo failed: ${error.message}`, 'error');
+      const crlf = detectCrlfWarning(error.message || '');
+      if (crlf) {
+        setCrlfError(crlf);
+      } else {
+        addAlert(`Undo failed: ${error.message}`, 'error');
+      }
     }
-  }, [gitService, addAlert]);
+  }, [gitService, addAlert, setCrlfError]);
 
   const handleDeleteFiles = useCallback(async (paths: string[]) => {
     try {
@@ -896,9 +973,15 @@ export const RepoView: React.FC<RepoViewProps> = ({
       await gitService.stash(stashOnlyUnstaged, stashName);
       addAlert('Changes stashed', 'success');
     } catch (error: any) {
-      addAlert(`Stash failed: ${error.message}`, 'error');
+      const crlf = detectCrlfWarning(error.message || '');
+      if (crlf) {
+        setCrlfError(crlf);
+        addAlert('Changes stashed', 'success');
+      } else {
+        addAlert(`Stash failed: ${error.message}`, 'error');
+      }
     }
-  }, [gitService, stashOnlyUnstaged, addAlert]);
+  }, [gitService, stashOnlyUnstaged, addAlert, setCrlfError]);
 
   const handleApplyStash = useCallback(async (stash: any) => {
     try {
@@ -949,13 +1032,27 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   const handleContinueOperation = useCallback(async () => {
     if (!activeOperation) return;
+    let succeeded = false;
     try {
       await gitService.changeActiveOperation(activeOperation, false);
-      setActiveOperation(null);
+      succeeded = true;
     } catch (error: any) {
-      addAlert(`Continue failed: ${error.message}`, 'error');
+      const preCommit = detectPreCommitStatus(error.message || '');
+      if (preCommit) {
+        setPreCommitStatus(preCommit);
+        if (preCommit.isError()) {
+          showModal('preCommit');
+        } else {
+          succeeded = true;
+        }
+      } else {
+        addAlert(`Continue failed: ${error.message}`, 'error');
+      }
     }
-  }, [gitService, addAlert, activeOperation]);
+    if (succeeded) {
+      setActiveOperation(null);
+    }
+  }, [gitService, addAlert, activeOperation, setPreCommitStatus, showModal]);
 
   // Commit history handlers
   const handleCherryPick = useCallback(async (commit: any) => {
@@ -1150,10 +1247,9 @@ export const RepoView: React.FC<RepoViewProps> = ({
     }
   }, [gitService, repoPath, updateRepoCache, addAlert]);
 
-  const handlePrependClear = useCallback(() => {
-    updateSettings({ branchNamePrefix: '' });
-    saveSettings();
-  }, [updateSettings, saveSettings]);
+  // No-op: InputModal now handles temporary prefix clearing internally,
+  // resetting each time the modal opens. No need to persist the change.
+  const handlePrependClear = useCallback(() => {}, []);
 
   const handleStashOk = useCallback((name: string) => handleStashWithName(name), [handleStashWithName]);
 
@@ -1659,6 +1755,8 @@ export const RepoView: React.FC<RepoViewProps> = ({
         replaceChars={{ '\\s': '-' }}
         onOk={handleRenameBranchSubmit}
       />
+
+      <PreCommitStatusModal />
     </RepoViewContainer>
     </DragDropContext>
     </EditSectionsContext.Provider>

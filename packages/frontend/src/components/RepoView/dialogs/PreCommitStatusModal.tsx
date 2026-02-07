@@ -1,156 +1,177 @@
-import React, { useCallback } from 'react';
-import { Modal, Button, ListGroup, Badge } from 'react-bootstrap';
+import React, { useCallback, useMemo } from 'react';
+import { Modal, Button, Accordion, Card } from 'react-bootstrap';
 import styled from 'styled-components';
 import { useUiStore } from '../../../stores';
-import { Icon } from '@light-git/core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  PreCommitStatus,
+  PreCommitStatusRule,
+} from '@light-git/shared';
 
-const RulesList = styled(ListGroup)`
-  max-height: 400px;
-  overflow-y: auto;
+const ErrorBlock = styled.pre`
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 0.4em;
+  padding: 0.4em;
+  margin: 0;
 `;
 
-const RuleItem = styled(ListGroup.Item)`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+const StatusAccordion = styled(Accordion)`
+  .accordion-item {
+    border: none;
+    margin-bottom: 0.5rem;
+    border-radius: 0.5rem !important;
+    overflow: hidden;
+  }
+  .accordion-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 `;
 
-const RuleName = styled.span`
-  flex: 1;
-  font-weight: 500;
-`;
-
-const StatusIcon = styled.span<{ $status: 'passed' | 'failed' | 'skipped' }>`
-  color: ${({ $status, theme }) => {
-    switch ($status) {
-      case 'passed':
-        return theme.colors.success;
-      case 'failed':
-        return theme.colors.danger;
-      case 'skipped':
-        return theme.colors.secondary;
+const FailedItem = styled(Accordion.Item)`
+  .accordion-button {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: inherit;
+    &:not(.collapsed) {
+      background-color: rgba(220, 53, 69, 0.25);
+      color: inherit;
+      box-shadow: none;
     }
-  }};
+    &:focus { box-shadow: none; }
+  }
+  .accordion-body { background-color: rgba(220, 53, 69, 0.06); }
 `;
 
-const NoteSection = styled.div`
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background-color: ${({ theme }) => theme.colors.light};
-  border-radius: ${({ theme }) => theme.borderRadius};
-  font-size: 0.875rem;
+const SkippedItem = styled(Accordion.Item)`
+  .accordion-button {
+    background-color: rgba(128, 128, 128, 0.2);
+    color: inherit;
+    &:not(.collapsed) {
+      background-color: rgba(128, 128, 128, 0.25);
+      color: inherit;
+      box-shadow: none;
+    }
+    &:focus { box-shadow: none; }
+  }
+  .accordion-body { background-color: rgba(128, 128, 128, 0.06); }
 `;
 
-enum PreCommitStatus {
-  Passed = 'passed',
-  Failed = 'failed',
-  Skipped = 'skipped',
-}
+const PassedItem = styled(Accordion.Item)`
+  .accordion-button {
+    background-color: rgba(25, 135, 84, 0.2);
+    color: inherit;
+    &:not(.collapsed) {
+      background-color: rgba(25, 135, 84, 0.25);
+      color: inherit;
+      box-shadow: none;
+    }
+    &:focus { box-shadow: none; }
+  }
+  .accordion-body { background-color: rgba(25, 135, 84, 0.06); }
+`;
 
-interface PreCommitStatusRule {
-  name: string;
-  status: PreCommitStatus;
-  output?: string;
-}
+const RuleCard = styled(Card)`
+  border: none;
+  background-color: rgba(128, 128, 128, 0.1);
+`;
 
-interface PreCommitStatusModalProps {
-  rules: PreCommitStatusRule[];
-  note?: string;
-  onClose?: () => void;
-}
-
-export const PreCommitStatusModal: React.FC<PreCommitStatusModalProps> = ({
-  rules,
-  note,
-  onClose,
-}) => {
-  const isVisible = useUiStore((state) => state.modals['preCommit'] || false);
+export const PreCommitStatusModal: React.FC = () => {
+  const status = useUiStore((state) => state.preCommitStatus);
   const hideModal = useUiStore((state) => state.hideModal);
+  const setPreCommitStatus = useUiStore((state) => state.setPreCommitStatus);
+  const isVisible = useUiStore((state) => state.modals['preCommit'] || false);
 
   const handleClose = useCallback(() => {
     hideModal('preCommit');
-    onClose?.();
-  }, [hideModal, onClose]);
+    setPreCommitStatus(null);
+  }, [hideModal, setPreCommitStatus]);
 
-  const getStatusIcon = (status: PreCommitStatus): string => {
-    switch (status) {
-      case PreCommitStatus.Passed:
-        return 'fa-check';
-      case PreCommitStatus.Failed:
-        return 'fa-times-circle';
-      case PreCommitStatus.Skipped:
-        return 'fa-forward';
-    }
-  };
+  const groups = useMemo(() => {
+    if (!status) return { failed: [], skipped: [], passed: [] };
+    return {
+      failed: status.rules.filter((r) => r.status === PreCommitStatus.Failed),
+      skipped: status.rules.filter((r) => r.status === PreCommitStatus.Skipped),
+      passed: status.rules.filter((r) => r.status === PreCommitStatus.Passed),
+    };
+  }, [status]);
 
-  const passedCount = rules.filter((r) => r.status === PreCommitStatus.Passed).length;
-  const failedCount = rules.filter((r) => r.status === PreCommitStatus.Failed).length;
-  const skippedCount = rules.filter((r) => r.status === PreCommitStatus.Skipped).length;
+  const defaultActiveKeys = useMemo(() => {
+    const keys: string[] = [];
+    if (groups.failed.length > 0) keys.push('failed');
+    return keys;
+  }, [groups]);
 
-  // Sort rules: failed first, then passed, then skipped
-  const sortedRules = [...rules].sort((a, b) => {
-    const order = { failed: 0, passed: 1, skipped: 2 };
-    return order[a.status] - order[b.status];
-  });
+  const renderRuleCards = (rules: PreCommitStatusRule[]) =>
+    rules.map((rule, i) => (
+      <RuleCard key={i}>
+        <Card.Body className="py-2 px-3">
+          <div className="d-flex flex-row align-items-center">
+            <div className="flex-grow-1 fw-medium">{rule.name}</div>
+            {rule.status === PreCommitStatus.Skipped && rule.error && (
+              <div className="text-muted small">{rule.error}</div>
+            )}
+          </div>
+          {rule.error && rule.status === PreCommitStatus.Failed && (
+            <ErrorBlock className="mt-2">{rule.error}</ErrorBlock>
+          )}
+        </Card.Body>
+      </RuleCard>
+    ));
 
   return (
-    <Modal show={isVisible} onHide={handleClose} centered>
+    <Modal show={isVisible} onHide={handleClose} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>
-          <Icon name="fa-clipboard-check" className="me-2" />
-          Pre-commit Hook Results
+        <Modal.Title className="d-flex align-items-center">
+          <FontAwesomeIcon icon="exclamation-triangle" className="text-danger me-2" />
+          <span>A Pre-commit Error Occurred</span>
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        <div className="d-flex gap-2 mb-3">
-          {failedCount > 0 && (
-            <Badge bg="danger">
-              <Icon name="fa-times-circle" /> {failedCount} Failed
-            </Badge>
+      {status && (
+        <Modal.Body>
+          {status.note && (
+            <ErrorBlock className="mb-3">{status.note}</ErrorBlock>
           )}
-          {passedCount > 0 && (
-            <Badge bg="success">
-              <Icon name="fa-check" /> {passedCount} Passed
-            </Badge>
-          )}
-          {skippedCount > 0 && (
-            <Badge bg="secondary">
-              <Icon name="fa-forward" /> {skippedCount} Skipped
-            </Badge>
-          )}
-        </div>
-
-        <RulesList>
-          {sortedRules.map((rule, index) => (
-            <RuleItem key={index}>
-              <StatusIcon $status={rule.status}>
-                <Icon name={getStatusIcon(rule.status)} />
-              </StatusIcon>
-              <RuleName>{rule.name}</RuleName>
-              <Badge
-                bg={
-                  rule.status === PreCommitStatus.Passed
-                    ? 'success'
-                    : rule.status === PreCommitStatus.Failed
-                    ? 'danger'
-                    : 'secondary'
-                }
-              >
-                {rule.status}
-              </Badge>
-            </RuleItem>
-          ))}
-        </RulesList>
-
-        {note && (
-          <NoteSection>
-            <strong>Note:</strong> {note}
-          </NoteSection>
-        )}
-      </Modal.Body>
+          <StatusAccordion defaultActiveKey={defaultActiveKeys} alwaysOpen>
+            {groups.failed.length > 0 && (
+              <FailedItem eventKey="failed">
+                <Accordion.Header>
+                  <FontAwesomeIcon icon="exclamation-triangle" className="text-danger me-2" />
+                  <span className="fw-semibold">
+                    Failed ({groups.failed.length})
+                  </span>
+                </Accordion.Header>
+                <Accordion.Body>{renderRuleCards(groups.failed)}</Accordion.Body>
+              </FailedItem>
+            )}
+            {groups.skipped.length > 0 && (
+              <SkippedItem eventKey="skipped">
+                <Accordion.Header>
+                  <FontAwesomeIcon icon="ban" className="text-secondary me-2" />
+                  <span className="fw-semibold">
+                    Skipped ({groups.skipped.length})
+                  </span>
+                </Accordion.Header>
+                <Accordion.Body>{renderRuleCards(groups.skipped)}</Accordion.Body>
+              </SkippedItem>
+            )}
+            {groups.passed.length > 0 && (
+              <PassedItem eventKey="passed">
+                <Accordion.Header>
+                  <FontAwesomeIcon icon="check" className="text-success me-2" />
+                  <span className="fw-semibold">
+                    Passed ({groups.passed.length})
+                  </span>
+                </Accordion.Header>
+                <Accordion.Body>{renderRuleCards(groups.passed)}</Accordion.Body>
+              </PassedItem>
+            )}
+          </StatusAccordion>
+        </Modal.Body>
+      )}
       <Modal.Footer>
-        <Button variant="primary" onClick={handleClose}>
-          OK
+        <Button variant="secondary" onClick={handleClose} autoFocus>
+          Ok
         </Button>
       </Modal.Footer>
     </Modal>

@@ -8,4 +8,4 @@ export { useJobStore, useJobScheduler, RepoArea, RepoAreaDefaults, JobStatus } f
 export type { Job, JobConfig, Operation } from './jobStore';
 
 export { useUiStore } from './uiStore';
-export type { NotificationModel, ErrorModel, PreCommitStatusModel } from './uiStore';
+export type { NotificationModel, ErrorModel } from './uiStore';

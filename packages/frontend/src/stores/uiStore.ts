@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { PreCommitStatusModel } from '@light-git/shared';
 
 export interface NotificationModel {
   id: string;
@@ -14,12 +15,6 @@ export interface ErrorModel {
   message: string;
   stack?: string;
   timestamp: number;
-}
-
-export interface PreCommitStatusModel {
-  isRunning: boolean;
-  passed: boolean;
-  output: string;
 }
 
 interface UiState {

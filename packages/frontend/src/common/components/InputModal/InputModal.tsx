@@ -15,6 +15,7 @@ interface InputModalProps {
   replaceChars?: { [key: string]: string };
   onOk: (value: string) => void;
   onCancel?: () => void;
+  /** @deprecated No longer needed – the modal handles temporary prefix clearing internally. */
   onPrependClear?: () => void;
 }
 
@@ -31,7 +32,8 @@ export const InputModal: React.FC<InputModalProps> = ({
   replaceChars = {},
   onOk,
   onCancel,
-  onPrependClear,
+  // onPrependClear is accepted for backward compat but no longer used;
+  // the modal handles temporary prefix clearing internally.
 }) => {
   const isVisible = useUiStore((state) => state.modals[modalId] || false);
   const hideModal = useUiStore((state) => state.hideModal);
@@ -39,6 +41,7 @@ export const InputModal: React.FC<InputModalProps> = ({
   const [value, setValue] = useState(defaultValue);
   const [isValid, setIsValid] = useState(true);
   const [touched, setTouched] = useState(false);
+  const [prependCleared, setPrependCleared] = useState(false);
 
   // Reset when modal opens
   useEffect(() => {
@@ -46,6 +49,7 @@ export const InputModal: React.FC<InputModalProps> = ({
       setValue(defaultValue);
       setIsValid(true);
       setTouched(false);
+      setPrependCleared(false);
     }
   }, [isVisible, defaultValue]);
 
@@ -75,7 +79,8 @@ export const InputModal: React.FC<InputModalProps> = ({
 
   const handleSubmit = () => {
     if (isValid && value.trim()) {
-      const fullValue = inputPrepend ? inputPrepend + value : value;
+      const activePrepend = prependCleared ? '' : inputPrepend;
+      const fullValue = activePrepend ? activePrepend + value : value;
       onOk(fullValue);
       hideModal(modalId);
     }
@@ -96,7 +101,7 @@ export const InputModal: React.FC<InputModalProps> = ({
         {message && <p>{message}</p>}
         <Form.Group>
           <InputGroup>
-            {inputPrepend && (
+            {inputPrepend && !prependCleared && (
               <InputGroup.Text>
                 {inputPrepend}
                 {showPrependClearButton && (
@@ -104,7 +109,7 @@ export const InputModal: React.FC<InputModalProps> = ({
                     variant="link"
                     size="sm"
                     className="p-0 ms-1"
-                    onClick={onPrependClear}
+                    onClick={() => setPrependCleared(true)}
                   >
                     ×
                   </Button>
