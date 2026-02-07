@@ -55,7 +55,7 @@ const BranchIcon = styled.span`
   display: inline-flex;
   justify-content: center;
   margin-right: 0.25em;
-  color: ${({ theme }) => theme.colors.secondary};
+  color: ${({ theme }) => theme.colors.info};
 `;
 
 const BranchName = styled.span<{ $current?: boolean; $muted?: boolean }>`
@@ -128,6 +128,7 @@ const ActionBar = styled.div<{ $expanded: boolean }>`
   transition: max-height 0.2s ease-in-out;
   padding-left: 1.5em;
   display: flex;
+  justify-content: flex-end;
   gap: 0.25rem;
   flex-wrap: wrap;
   padding-top: ${({ $expanded }) => ($expanded ? '0.25em' : '0')};
@@ -296,17 +297,11 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
     return (
       <div key={node.fullPath}>
         <BranchRow $current={isRemoteCurrentLocal}>
-          <BranchIcon>
-            {isRemoteCurrentLocal ? (
+          {(isRemoteCurrentLocal || isRemoteCheckedOutLocally || branch.isCurrentBranch) && (
+            <BranchIcon>
               <Icon name="fa-shopping-cart" size="sm" />
-            ) : isRemoteCheckedOutLocally ? (
-              <Icon name="fa-shopping-cart" size="sm" />
-            ) : branch.isCurrentBranch ? (
-              <Icon name="fa-shopping-cart" size="sm" />
-            ) : (
-              <Icon name="fa-code-branch" size="sm" />
-            )}
-          </BranchIcon>
+            </BranchIcon>
+          )}
           <TooltipTrigger
             placement="top"
             tooltip={branch.name}

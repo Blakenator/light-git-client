@@ -478,9 +478,13 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
               placement="top"
               overlay={<Tooltip id="tooltip-active-branch">{activeBranch?.name || 'All branches'}</Tooltip>}
             >
-              <Dropdown.Toggle variant="secondary" size="sm">
-                <Icon name="fa-code-branch" className="me-1" />
-                <BranchToggleText>{activeBranch?.name || 'All branches'}</BranchToggleText>
+              <Dropdown.Toggle variant={activeBranch ? 'primary' : 'secondary'} size="sm">
+                {activeBranch && (
+                  <>
+                    <Icon name="fa-filter" className="me-1" />
+                    <BranchToggleText>{activeBranch.name}</BranchToggleText>
+                  </>
+                )}
               </Dropdown.Toggle>
             </TooltipTrigger>
             <BranchDropdownMenu>

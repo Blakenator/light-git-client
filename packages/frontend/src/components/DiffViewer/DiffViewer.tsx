@@ -111,7 +111,17 @@ const FileNameContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  /* Thin scrollbar so it doesn't eat vertical space */
+  &::-webkit-scrollbar {
+    height: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.colors.secondary}80;
+    border-radius: 2px;
+  }
 `;
 
 const PathSegment = styled(Badge)`
@@ -234,9 +244,24 @@ const LineNumber = styled.span`
   flex-shrink: 0;
 `;
 
+const LinePrefix = styled.span`
+  user-select: none;
+  flex-shrink: 0;
+`;
+
 const LineContent = styled.span`
   flex: 1;
   padding: 0 0.5rem;
+
+  .hljs {
+    background: none !important;
+    padding: 0 !important;
+  }
+`;
+
+const HunkLines = styled.div`
+  min-width: 100%;
+  width: fit-content;
 `;
 
 const HunkEditorContainer = styled.div`
@@ -462,6 +487,76 @@ const getLanguageFromFilename = (filename: string): string => {
     dockerfile: 'dockerfile',
   };
   return langMap[ext] || 'plaintext';
+};
+
+// HTML-escape plain text
+const escapeHtml = (text: string): string =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * Split highlighted HTML into individual lines, properly closing and
+ * reopening <span> tags at line boundaries so every line is valid HTML
+ * with the correct syntax-highlighting context.
+ */
+const splitHighlightedHtml = (html: string): string[] => {
+  const lines: string[] = [];
+  let current = '';
+  const openTags: string[] = []; // stack of full opening tags, e.g. '<span class="hljs-comment">'
+  let i = 0;
+
+  while (i < html.length) {
+    if (html[i] === '\n') {
+      // Close all open tags for this line
+      for (let t = openTags.length - 1; t >= 0; t--) current += '</span>';
+      lines.push(current);
+      // Start new line, reopening all tags
+      current = openTags.join('');
+      i++;
+    } else if (html[i] === '<') {
+      const closeMatch = html.startsWith('</span>', i);
+      if (closeMatch) {
+        openTags.pop();
+        current += '</span>';
+        i += 7; // length of '</span>'
+      } else {
+        // Opening tag – find its end
+        const end = html.indexOf('>', i);
+        if (end === -1) {
+          current += html.slice(i);
+          i = html.length;
+        } else {
+          const tag = html.slice(i, end + 1);
+          openTags.push(tag);
+          current += tag;
+          i = end + 1;
+        }
+      }
+    } else {
+      current += html[i];
+      i++;
+    }
+  }
+  // Push the last line
+  for (let t = openTags.length - 1; t >= 0; t--) current += '</span>';
+  lines.push(current);
+
+  return lines;
+};
+
+/**
+ * Highlight an array of code lines as a single block for accurate
+ * multi-line syntax (comments, strings, template literals, etc.),
+ * then split the result back into per-line HTML strings.
+ */
+const highlightLines = (texts: string[], language: string): string[] => {
+  if (texts.length === 0) return [];
+  try {
+    const block = texts.join('\n');
+    const highlighted = hljs.highlight(block, { language, ignoreIllegals: true }).value;
+    return splitHighlightedHtml(highlighted);
+  } catch {
+    return texts.map(escapeHtml);
+  }
 };
 
 // Parse raw @@ hunk header into a readable description
@@ -731,9 +826,14 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
           name={isExpanded(header.toFilename, header) ? 'fa-chevron-down' : 'fa-chevron-right'}
           size="sm"
         />
-        <FileNameContainer>
-          {renderFileNameSplit(header.toFilename)}
-        </FileNameContainer>
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id={`tooltip-filename-${header.toFilename}`}>{displayName}</Tooltip>}
+        >
+          <FileNameContainer>
+            {renderFileNameSplit(header.toFilename)}
+          </FileNameContainer>
+        </TooltipTrigger>
         <TooltipTrigger
           placement="top"
           overlay={<Tooltip id={`tooltip-copy-filename-${header.toFilename}`}>Copy filename</Tooltip>}
@@ -870,22 +970,34 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
                   </HunkEditorActions>
                 </>
               ) : (
-                hunk.lines.map((line, lineIndex) => (
-                  <DiffLine key={lineIndex} $type={getLineType(line.state)}>
-                    <LineNumber>
-                      {line.state !== LineState.ADDED ? line.oldLineNumber : ''}
-                    </LineNumber>
-                    <LineNumber>
-                      {line.state !== LineState.REMOVED ? line.newLineNumber : ''}
-                    </LineNumber>
-                    <LineContent>
-                      {line.state === LineState.ADDED && '+'}
-                      {line.state === LineState.REMOVED && '-'}
-                      {line.state === LineState.UNCHANGED && ' '}
-                      {line.text}
-                    </LineContent>
-                  </DiffLine>
-                ))
+                <HunkLines>
+                  {(() => {
+                    const lang = getLanguageFromFilename(header.toFilename);
+                    const highlightedHtml = highlightLines(
+                      hunk.lines.map((l) => l.text),
+                      lang,
+                    );
+                    return hunk.lines.map((line, lineIndex) => {
+                      const prefix =
+                        line.state === LineState.ADDED ? '+' :
+                        line.state === LineState.REMOVED ? '-' : ' ';
+                      return (
+                        <DiffLine key={lineIndex} $type={getLineType(line.state)}>
+                          <LineNumber>
+                            {line.state !== LineState.ADDED ? line.oldLineNumber : ''}
+                          </LineNumber>
+                          <LineNumber>
+                            {line.state !== LineState.REMOVED ? line.newLineNumber : ''}
+                          </LineNumber>
+                          <LineContent>
+                            <LinePrefix>{prefix}</LinePrefix>
+                            <span dangerouslySetInnerHTML={{ __html: highlightedHtml[lineIndex] || '' }} />
+                          </LineContent>
+                        </DiffLine>
+                      );
+                    });
+                  })()}
+                </HunkLines>
               )}
             </HunkContainer>
           );

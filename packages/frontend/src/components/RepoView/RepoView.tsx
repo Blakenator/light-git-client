@@ -280,6 +280,15 @@ export const RepoView: React.FC<RepoViewProps> = ({
     }
   }, [repoPath, refreshRepo, gitService]);
 
+  // Refresh repo state when the window regains focus (e.g. after switching back from another app)
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshRepo();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [refreshRepo]);
+
   // Auto-refresh affected areas when the job queue finishes (mirrors Angular TabDataService.updateAreas).
   // Write operations declare which RepoAreas they affect. When all queued jobs finish,
   // onFinishQueue fires with the accumulated affected areas, and we refresh only those.
