@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Form, Button, ListGroup, InputGroup, Badge, Accordion, Card, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
-import { Icon, PrettyCheckbox, TooltipTrigger } from '@light-git/core';
+import { Icon, TooltipTrigger } from '@light-git/core';
 
 const FormSection = styled.div`
   margin-bottom: 1.5rem;
@@ -160,6 +160,45 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
     [allWatchers, settings.codeWatchers, settings.loadedCodeWatchers, onChange]
   );
 
+  const handleCopyWatcher = useCallback(
+    (index: number) => {
+      const watcher = allWatchers[index];
+      const copy: CodeWatcherModel = {
+        name: (watcher.name || '') + ' (copy)',
+        pattern: watcher.pattern,
+        flags: watcher.flags,
+        filePattern: watcher.filePattern,
+        message: watcher.message,
+        disabled: watcher.disabled,
+      };
+      const currentWatchers = settings.codeWatchers || [];
+      onChange('codeWatchers', [...currentWatchers, copy]);
+    },
+    [allWatchers, settings.codeWatchers, onChange]
+  );
+
+  const handleWatcherPathChange = useCallback(
+    (index: number, value: string) => {
+      const paths = [...(settings.codeWatcherPaths || [])];
+      paths[index] = value;
+      onChange('codeWatcherPaths', paths);
+    },
+    [settings.codeWatcherPaths, onChange]
+  );
+
+  const handleAddWatcherPath = useCallback(() => {
+    const paths = [...(settings.codeWatcherPaths || []), ''];
+    onChange('codeWatcherPaths', paths);
+  }, [settings.codeWatcherPaths, onChange]);
+
+  const handleRemoveWatcherPath = useCallback(
+    (index: number) => {
+      const paths = (settings.codeWatcherPaths || []).filter((_: any, i: number) => i !== index);
+      onChange('codeWatcherPaths', paths);
+    },
+    [settings.codeWatcherPaths, onChange]
+  );
+
   const isPatternValid = useCallback((pattern: string): boolean => {
     if (!pattern) return true;
     try {
@@ -185,6 +224,43 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
           checked={settings.includeUnchangedInWatcherAnalysis}
           onChange={(e) => onChange('includeUnchangedInWatcherAnalysis', e.target.checked)}
         />
+      </FormSection>
+
+      <FormSection>
+        <SectionTitle>Code Watcher Files</SectionTitle>
+        <p className="text-muted">
+          Specify file paths containing code watcher definitions.
+        </p>
+        <ListGroup className="mb-2">
+          {(settings.codeWatcherPaths || []).map((path: string, index: number) => (
+            <ListGroup.Item key={index} className="d-flex align-items-center gap-2 py-1 px-2">
+              <Form.Control
+                size="sm"
+                type="text"
+                value={path}
+                onChange={(e) => handleWatcherPathChange(index, e.target.value)}
+                placeholder="Path to watcher file..."
+                className="flex-grow-1"
+              />
+              <TooltipTrigger
+                placement="top"
+                overlay={<Tooltip id={`tooltip-remove-watcher-path-${index}`}>Remove watcher file</Tooltip>}
+              >
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={() => handleRemoveWatcherPath(index)}
+                >
+                  <Icon name="fa-trash" size="sm" />
+                </Button>
+              </TooltipTrigger>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
+        <Button variant="outline-primary" size="sm" onClick={handleAddWatcherPath}>
+          <Icon name="fa-plus" className="me-1" />
+          Add File
+        </Button>
       </FormSection>
 
       <FormSection>
@@ -270,14 +346,22 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
                         onChange={(e) => handleUpdateWatcher(index, { message: e.target.value })}
                       />
                     </Form.Group>
-                    <div className="d-flex justify-content-end">
+                    <div className="d-flex justify-content-end gap-2">
+                      <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        onClick={() => handleCopyWatcher(index)}
+                      >
+                        <Icon name="fa-copy" className="me-1" />
+                        Copy
+                      </Button>
                       <Button
                         variant="outline-danger"
                         size="sm"
                         onClick={() => handleRemoveWatcher(index)}
                       >
                         <Icon name="fa-trash" className="me-1" />
-                        Remove Watcher
+                        Remove
                       </Button>
                     </div>
                   </WatcherEditForm>

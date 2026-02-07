@@ -1,7 +1,6 @@
 import React from 'react';
 import { Form, Row, Col } from 'react-bootstrap';
 import styled from 'styled-components';
-import { PrettyCheckbox } from '@light-git/core';
 
 const FormSection = styled.div`
   margin-bottom: 1.5rem;
@@ -28,54 +27,59 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
   <>
     <FormSection>
       <SectionTitle>Appearance</SectionTitle>
-      <PrettyCheckbox
+      <Form.Check
+        type="switch"
+        id="setting-darkMode"
+        label="Dark Mode"
         checked={settings.darkMode}
-        onChange={(checked) => onThemeChange(checked)}
-      >
-        Dark Mode
-      </PrettyCheckbox>
+        onChange={(e) => onThemeChange(e.target.checked)}
+      />
     </FormSection>
 
     <FormSection>
       <SectionTitle>Behavior</SectionTitle>
       <Row className="mb-2">
         <Col>
-          <PrettyCheckbox
+          <Form.Check
+            type="switch"
+            id="setting-commitAndPush"
+            label="Commit and Push by default"
             checked={settings.commitAndPush}
-            onChange={(checked) => onChange('commitAndPush', checked)}
-          >
-            Commit and Push by default
-          </PrettyCheckbox>
+            onChange={(e) => onChange('commitAndPush', e.target.checked)}
+          />
         </Col>
       </Row>
       <Row className="mb-2">
         <Col>
-          <PrettyCheckbox
+          <Form.Check
+            type="switch"
+            id="setting-rebasePull"
+            label="Rebase on Pull"
             checked={settings.rebasePull}
-            onChange={(checked) => onChange('rebasePull', checked)}
-          >
-            Rebase on Pull
-          </PrettyCheckbox>
+            onChange={(e) => onChange('rebasePull', e.target.checked)}
+          />
         </Col>
       </Row>
       <Row className="mb-2">
         <Col>
-          <PrettyCheckbox
+          <Form.Check
+            type="switch"
+            id="setting-commitMessageAutocomplete"
+            label="Enable commit message autocomplete"
             checked={settings.commitMessageAutocomplete}
-            onChange={(checked) => onChange('commitMessageAutocomplete', checked)}
-          >
-            Enable commit message autocomplete
-          </PrettyCheckbox>
+            onChange={(e) => onChange('commitMessageAutocomplete', e.target.checked)}
+          />
         </Col>
       </Row>
       <Row className="mb-2">
         <Col>
-          <PrettyCheckbox
+          <Form.Check
+            type="switch"
+            id="setting-airplaneMode"
+            label="Airplane Mode (disable network operations)"
             checked={settings.airplaneMode}
-            onChange={(checked) => onChange('airplaneMode', checked)}
-          >
-            Airplane Mode (disable network operations)
-          </PrettyCheckbox>
+            onChange={(e) => onChange('airplaneMode', e.target.checked)}
+          />
         </Col>
       </Row>
     </FormSection>
@@ -84,32 +88,61 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
       <SectionTitle>Display</SectionTitle>
       <Row className="mb-2">
         <Col>
-          <PrettyCheckbox
+          <Form.Check
+            type="switch"
+            id="setting-splitFilenameDisplay"
+            label="Split filename display (show directory separately)"
             checked={settings.splitFilenameDisplay}
-            onChange={(checked) => onChange('splitFilenameDisplay', checked)}
-          >
-            Split filename display (show directory separately)
-          </PrettyCheckbox>
+            onChange={(e) => onChange('splitFilenameDisplay', e.target.checked)}
+          />
         </Col>
       </Row>
       <Row className="mb-2">
         <Col>
-          <PrettyCheckbox
+          <Form.Check
+            type="switch"
+            id="setting-showTrackingPath"
+            label="Show tracking path in branch list"
             checked={settings.showTrackingPath}
-            onChange={(checked) => onChange('showTrackingPath', checked)}
-          >
-            Show tracking path in branch list
-          </PrettyCheckbox>
+            onChange={(e) => onChange('showTrackingPath', e.target.checked)}
+          />
         </Col>
       </Row>
       <Row className="mb-2">
         <Col>
-          <PrettyCheckbox
+          <Form.Check
+            type="switch"
+            id="setting-diffIgnoreWhitespace"
+            label="Ignore whitespace in diffs"
             checked={settings.diffIgnoreWhitespace}
-            onChange={(checked) => onChange('diffIgnoreWhitespace', checked)}
-          >
-            Ignore whitespace in diffs
-          </PrettyCheckbox>
+            onChange={(e) => onChange('diffIgnoreWhitespace', e.target.checked)}
+          />
+        </Col>
+      </Row>
+    </FormSection>
+
+    <FormSection>
+      <SectionTitle>Updates</SectionTitle>
+      <Row className="mb-2">
+        <Col>
+          <Form.Check
+            type="switch"
+            id="setting-allowPrerelease"
+            label="Bleeding Edge Builds"
+            checked={settings.allowPrerelease}
+            onChange={(e) => onChange('allowPrerelease', e.target.checked)}
+          />
+        </Col>
+      </Row>
+      <Row className="mb-2">
+        <Col>
+          <Form.Check
+            type="switch"
+            id="setting-allowStats"
+            label="Send anonymized statistics to help improve Light-Git"
+            checked={settings.allowStats}
+            onChange={(e) => onChange('allowStats', e.target.checked)}
+          />
         </Col>
       </Row>
     </FormSection>

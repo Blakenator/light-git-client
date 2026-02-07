@@ -1,7 +1,19 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Form, Button, ListGroup, InputGroup, Badge, Tooltip } from 'react-bootstrap';
+import { Form, Button, ListGroup, InputGroup, Badge, Row, Col, Alert, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
 import { Icon, TooltipTrigger } from '@light-git/core';
+
+const FormSection = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const SectionTitle = styled.h6`
+  margin-bottom: 1rem;
+  color: ${({ theme }) => theme.colors.secondary};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  padding-bottom: 0.5rem;
+`;
+
 const ShortcutsContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -103,6 +115,44 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
   const [newDescription, setNewDescription] = useState('');
   const [newScope, setNewScope] = useState<'local' | 'global'>('global');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [credentialHelper, setCredentialHelper] = useState(settings.credentialHelper || 'cache');
+  const [cacheHelperSeconds, setCacheHelperSeconds] = useState(settings.cacheHelperSeconds || '900');
+  const [mergetoolName, setMergetoolName] = useState(settings.mergetool || '');
+  const [mergetoolCommand, setMergetoolCommand] = useState(settings.mergetoolCommand || '');
+  const [setGlobalDefaultUserConfig, setSetGlobalDefaultUserConfig] = useState(false);
+  const [setGlobalDefaultMergetoolConfig, setSetGlobalDefaultMergetoolConfig] = useState(false);
+
+  const handleCredentialHelperChange = useCallback(
+    (value: string) => {
+      setCredentialHelper(value);
+      onChange('credentialHelper', value);
+    },
+    [onChange]
+  );
+
+  const handleCacheTimeoutChange = useCallback(
+    (value: string) => {
+      setCacheHelperSeconds(value);
+      onChange('cacheHelperSeconds', value);
+    },
+    [onChange]
+  );
+
+  const handleMergetoolNameChange = useCallback(
+    (value: string) => {
+      setMergetoolName(value);
+      onChange('mergetool', value);
+    },
+    [onChange]
+  );
+
+  const handleMergetoolCommandChange = useCallback(
+    (value: string) => {
+      setMergetoolCommand(value);
+      onChange('mergetoolCommand', value);
+    },
+    [onChange]
+  );
 
   const handleShortcutChange = useCallback(
     (index: number, value: string) => {
@@ -156,10 +206,111 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
 
   return (
     <ShortcutsContainer>
-      <p className="text-muted">
-        Configure quick access to common Git settings. Values here will be
-        displayed in the Git Config tab for easy editing.
-      </p>
+      <FormSection>
+        <SectionTitle>User Config</SectionTitle>
+        <Row>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Display Name</Form.Label>
+              <Form.Control
+                type="text"
+                value={settings.username || ''}
+                onChange={(e) => onChange('username', e.target.value)}
+                placeholder="Your name"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Display Email</Form.Label>
+              <Form.Control
+                type="email"
+                value={settings.email || ''}
+                onChange={(e) => onChange('email', e.target.value)}
+                placeholder="your@email.com"
+              />
+            </Form.Group>
+            <Form.Check
+              type="switch"
+              id="setting-globalDefaultUserConfig"
+              label="Set as Global Defaults"
+              checked={setGlobalDefaultUserConfig}
+              onChange={(e) => setSetGlobalDefaultUserConfig(e.target.checked)}
+            />
+          </Col>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Mergetool Name</Form.Label>
+              <Form.Control
+                type="text"
+                value={mergetoolName}
+                onChange={(e) => handleMergetoolNameChange(e.target.value)}
+                placeholder="e.g., vscode, sourcetree"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mergetool Command</Form.Label>
+              <Form.Text className="text-muted d-block mb-1">
+                Supports <code>$BASE $LOCAL $MERGED $REMOTE</code>
+              </Form.Text>
+              <Form.Control
+                type="text"
+                value={mergetoolCommand}
+                onChange={(e) => handleMergetoolCommandChange(e.target.value)}
+                placeholder="e.g., code --wait --merge $REMOTE $LOCAL $BASE $MERGED"
+              />
+            </Form.Group>
+            <Form.Check
+              type="switch"
+              id="setting-globalDefaultMergetoolConfig"
+              label="Set as Global Default"
+              checked={setGlobalDefaultMergetoolConfig}
+              onChange={(e) => setSetGlobalDefaultMergetoolConfig(e.target.checked)}
+            />
+          </Col>
+        </Row>
+      </FormSection>
+
+      <FormSection>
+        <SectionTitle>Credential Helper</SectionTitle>
+        {(credentialHelper === 'osxkeychain' || credentialHelper === 'wincred') && (
+          <Alert variant="warning" className="py-2">
+            {credentialHelper === 'osxkeychain' && 'Warning: This only works on Mac'}
+            {credentialHelper === 'wincred' && 'Warning: This only works on Windows'}
+          </Alert>
+        )}
+        <Form.Group className="mb-3">
+          <Form.Select
+            value={credentialHelper}
+            onChange={(e) => handleCredentialHelperChange(e.target.value)}
+          >
+            <option value="cache">Cache</option>
+            <option value="store">Unencrypted</option>
+            <option value="osxkeychain">OSX Keychain</option>
+            <option value="wincred">Windows Credential Manager</option>
+          </Form.Select>
+        </Form.Group>
+        {credentialHelper === 'cache' && (
+          <Form.Group className="mb-3">
+            <Form.Label>Cache Timeout</Form.Label>
+            <InputGroup>
+              <Form.Control
+                type="text"
+                value={cacheHelperSeconds}
+                onChange={(e) => handleCacheTimeoutChange(e.target.value)}
+                pattern="^\d+$"
+              />
+              <InputGroup.Text>seconds</InputGroup.Text>
+            </InputGroup>
+          </Form.Group>
+        )}
+      </FormSection>
+
+      <FormSection>
+        <SectionTitle>Config Shortcuts</SectionTitle>
+        <p className="text-muted">
+          Configure quick access to common Git settings. Values here will be
+          displayed in the Git Config tab for easy editing.
+        </p>
+      </FormSection>
 
       <ListGroup>
         {shortcuts.map((shortcut, index) => (

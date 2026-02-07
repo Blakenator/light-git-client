@@ -145,7 +145,9 @@ export const CommitMessageInput = styled.textarea`
 `;
 
 // Alert/banner for active operations
-export const OperationBanner = styled.div<{ variant: 'warning' | 'info' | 'danger' }>`
+export const OperationBanner = styled.div<{
+  variant: 'warning' | 'info' | 'danger';
+}>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -153,18 +155,26 @@ export const OperationBanner = styled.div<{ variant: 'warning' | 'info' | 'dange
   border-radius: ${({ theme }) => theme.borderRadius};
   background-color: ${({ variant, theme }) => {
     switch (variant) {
-      case 'warning': return theme.colors.alertWarningBg;
-      case 'info': return theme.colors.alertInfoBg;
-      case 'danger': return theme.colors.alertDangerBg;
-      default: return theme.colors.alertDefaultBg;
+      case 'warning':
+        return theme.colors.alertWarningBg;
+      case 'info':
+        return theme.colors.alertInfoBg;
+      case 'danger':
+        return theme.colors.alertDangerBg;
+      default:
+        return theme.colors.alertDefaultBg;
     }
   }};
   color: ${({ variant, theme }) => {
     switch (variant) {
-      case 'warning': return theme.colors.alertWarningText;
-      case 'info': return theme.colors.alertInfoText;
-      case 'danger': return theme.colors.alertDangerText;
-      default: return theme.colors.alertDefaultText;
+      case 'warning':
+        return theme.colors.alertWarningText;
+      case 'info':
+        return theme.colors.alertInfoText;
+      case 'danger':
+        return theme.colors.alertDangerText;
+      default:
+        return theme.colors.alertDefaultText;
     }
   }};
 `;

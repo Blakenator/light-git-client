@@ -95,11 +95,27 @@ const MessageBody = styled.pre`
   color: ${({ theme }) => theme.colors.secondary};
 `;
 
+const TagRow = styled.div`
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  
+  &::-webkit-scrollbar {
+    height: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: ${({ theme }) => theme.colors.secondary}40;
+    border-radius: 3px;
+  }
+`;
+
 const TagBadge = styled(Badge)<{ $tagType: 'local' | 'remote' | 'tag' | 'head' }>`
   font-size: 0.65rem;
   font-weight: 500;
-  margin-right: 0.25rem;
-  vertical-align: middle;
+  flex-shrink: 0;
   background-color: ${({ $tagType, theme }) => {
     switch ($tagType) {
       case 'head': return theme.colors.warning;
@@ -200,6 +216,14 @@ const ActionsCell = styled.td`
   vertical-align: middle !important;
 `;
 
+const ActionsToggle = styled(Dropdown.Toggle)`
+  &::after {
+    display: none;
+  }
+  line-height: 1;
+  padding: 0.25rem 0.4rem;
+`;
+
 interface BranchModel {
   name: string;
   isCurrentBranch?: boolean;
@@ -217,8 +241,8 @@ interface GraphBlockTarget {
 interface CommitSummary {
   hash: string;
   message: string;
-  author: string;
-  date: Date | string | number;
+  authorName: string;
+  authorDate: Date | string | number;
   parents?: string[];
   graphBlockTargets?: GraphBlockTarget[];
   branchEndings?: string[];
@@ -320,7 +344,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
       (c) =>
         c.message.toLowerCase().includes(filter) ||
         c.hash.toLowerCase().includes(filter) ||
-        c.author.toLowerCase().includes(filter)
+        c.authorName.toLowerCase().includes(filter)
     );
   }, [commits, searchFilter]);
 
@@ -384,11 +408,8 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
 
   // Determine if a commit message should be expandable
   const isExpandable = useCallback((commit: CommitSummary): boolean => {
-    const tags = commit.currentTags || commit.branchEndings || [];
-    const tagLen = tags.reduce((sum, t) => sum + t.length, 0) + tags.length * 3;
-    const firstLine = commit.message.split('\n')[0];
     const hasMultipleLines = commit.message.includes('\n');
-    return hasMultipleLines || (tagLen + firstLine.length > 65);
+    return hasMultipleLines;
   }, []);
 
   // Route scroll-to-bottom to either commit loading or diff loading
@@ -595,16 +616,6 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                         )}
                         <MessageContent>
                           <MessageFirstLine $expanded={isExpanded}>
-                            {tags.map((tag) => {
-                              const tagType = getTagType(tag);
-                              const icon = getTagIcon(tag);
-                              return (
-                                <TagBadge key={tag} $tagType={tagType}>
-                                  {icon && <Icon name={icon} size="sm" className="me-1" />}
-                                  {getTagLabel(tag)}
-                                </TagBadge>
-                              );
-                            })}
                             {firstLine}
                           </MessageFirstLine>
                           {isExpanded && restLines && (
@@ -626,15 +637,29 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                       </MessageRow>
                       <CommitMeta>
                         <CommitHash>{commit.hash.substring(0, 7)}</CommitHash>
-                        <span>{commit.author}</span>
-                        <AgeInfo date={commit.date} />
+                        <span>{commit.authorName}</span>
+                        <AgeInfo date={commit.authorDate} />
                       </CommitMeta>
+                      {tags.length > 0 && (
+                        <TagRow>
+                          {tags.map((tag) => {
+                            const tagType = getTagType(tag);
+                            const icon = getTagIcon(tag);
+                            return (
+                              <TagBadge key={tag} $tagType={tagType}>
+                                {icon && <Icon name={icon} size="sm" className="me-1" />}
+                                {getTagLabel(tag)}
+                              </TagBadge>
+                            );
+                          })}
+                        </TagRow>
+                      )}
                     </MessageCell>
                     <ActionsCell onClick={(e) => e.stopPropagation()}>
                       <Dropdown align="end">
-                        <Dropdown.Toggle variant="outline-secondary" size="sm" id={`commit-actions-${commit.hash}`}>
+                        <ActionsToggle variant="outline-secondary" size="sm" id={`commit-actions-${commit.hash}`}>
                           <Icon name="fa-ellipsis-h" size="sm" />
-                        </Dropdown.Toggle>
+                        </ActionsToggle>
                         <Dropdown.Menu>
                           <Dropdown.Item onClick={() => onClickCommit(commit.hash)}>
                             <Icon name="fa-eye" size="sm" className="me-2" />

@@ -76,7 +76,7 @@ export const AgeInfo: React.FC<AgeInfoProps> = ({ date, className }) => {
     return isNaN(d.getTime()) ? null : d;
   }, [date]);
 
-  const relativeTime = useMemo(() => (dateObj ? getRelativeTime(dateObj) : '—'), [dateObj]);
+  const relativeTime = useMemo(() => (dateObj ? getRelativeTime(dateObj) : '-'), [dateObj]);
   const ageType = useMemo(() => (dateObj ? getAgeType(dateObj) : 'default'), [dateObj]);
 
   const fullDate = dateObj ? dateObj.toLocaleString() : '';
