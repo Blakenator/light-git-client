@@ -391,7 +391,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
         </Button>
       </ButtonGroup>
 
-      <BranchSelector onClick={(e) => e.stopPropagation()}>
+      {!showDiff && <BranchSelector onClick={(e) => e.stopPropagation()}>
         <SearchInput
           size="sm"
           placeholder="Search commits..."
@@ -505,7 +505,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
             </BranchDropdownMenu>
           </Dropdown>
         </ButtonGroup>
-      </BranchSelector>
+      </BranchSelector>}
     </CardHeaderContent>
   );
 
