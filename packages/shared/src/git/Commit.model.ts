@@ -18,7 +18,7 @@ export enum ActiveOperation {
 }
 
 export class LightChange {
-  change: ChangeType;
+  change: string;
   file: string;
   staged: boolean;
 }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { Button, Form, Card, Badge } from 'react-bootstrap';
-import { useIpc } from '../ipc/useIpc';
 
 const Container = styled.div`
   display: flex;
@@ -42,8 +41,14 @@ const getHostIcon = (url: string): string => {
   }
 };
 
+/** Direct electronApi access for AskPass-specific channels (not part of super-ipc) */
+function getElectronApi() {
+  const api = (window as any).electronApi;
+  if (!api) throw new Error('electronApi not available');
+  return api;
+}
+
 const AskPassPage: React.FC = () => {
-  const ipc = useIpc();
   const [host, setHost] = useState<string>('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -51,14 +56,14 @@ const AskPassPage: React.FC = () => {
   useEffect(() => {
     const fetchHost = async () => {
       try {
-        const hostData = await ipc.rpc<string>('getHost');
+        const hostData = await getElectronApi().invoke('getHost');
         setHost(hostData);
       } catch (error) {
         console.error('Failed to get host:', error);
       }
     };
     fetchHost();
-  }, [ipc]);
+  }, []);
 
   const needsUsername = useMemo(() => {
     return host && !host.includes('@');
@@ -81,11 +86,11 @@ const AskPassPage: React.FC = () => {
   const handleSubmit = useCallback(async () => {
     try {
       const finalUsername = needsUsername ? username : existingUsername;
-      await ipc.rpc('CRED', finalUsername, password);
+      await getElectronApi().invoke('CRED', { username: finalUsername, password });
     } catch (error) {
       console.error('Failed to send credentials:', error);
     }
-  }, [ipc, username, password, needsUsername, existingUsername]);
+  }, [username, password, needsUsername, existingUsername]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

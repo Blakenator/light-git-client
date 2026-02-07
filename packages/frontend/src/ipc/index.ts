@@ -1,30 +1,44 @@
 /**
- * IPC Client Export - Swap Point for Future Migration
- * 
- * Current: Using electron IPC client
- * Future: Swap to @superflag/super-ipc-react
- * 
- * To migrate:
- * 1. Install @superflag/super-ipc-react
- * 2. Uncomment the super-ipc import below
- * 3. Comment out the electron client export
- * 4. All consumers will automatically use the new client
+ * IPC Client - powered by @superflag/super-ipc
+ *
+ * Provides typed React hooks and an imperative utility for IPC communication.
  */
 
-// Current: Use electron IPC client
-export { electronIpcClient as ipcClient } from './electronIpcClient';
+import {
+  createUseBackendSyncHook,
+  createUseBackendMutationSyncHook,
+  createUseBackendAsyncHook,
+} from '@superflag/super-ipc-react';
+import type {
+  SYNC_CHANNELS,
+  ASYNC_CHANNELS,
+  AppSyncApi,
+  AppAsyncApi,
+} from '@light-git/shared';
 
-// Hooks for easy IPC access
-export { useIpc, useIpcListener } from './useIpc';
+// --- React Hooks (declarative data fetching) ---
 
-// Future: Swap to super-ipc
-// import { createSuperIpcClient } from '@superflag/super-ipc-react';
-// export const ipcClient = createSuperIpcClient({
-//   // Configuration options here
-// });
+/** Hook for sync IPC calls that execute on mount */
+export const useBackend = createUseBackendSyncHook<SYNC_CHANNELS, AppSyncApi>();
 
-// Re-export types for consumers
-export type { IpcClient, ElectronResponse } from './types';
+/** Hook for sync IPC mutations (execute on demand, not on mount) */
+export const useBackendMutation = createUseBackendMutationSyncHook<SYNC_CHANNELS, AppSyncApi>();
+
+/** Hook for async IPC calls with init/progress/complete tracking */
+export const useBackendAsync = createUseBackendAsyncHook<ASYNC_CHANNELS, AppAsyncApi>();
+
+// --- Imperative IPC (for stores, non-hook code, job scheduler) ---
+
+export { invokeSync } from './invokeSync';
+
+// --- Push-only channel listener ---
+
+export { useBackendListener } from './useBackendListener';
+
+// --- Re-exports ---
+
+export type { AppSyncApi, AppAsyncApi } from '@light-git/shared';
+export { SYNC_CHANNELS, ASYNC_CHANNELS } from '@light-git/shared';
 
 // Git service hook (uses job scheduler for sequential operations)
 export { useGitService } from './useGitService';

@@ -43,24 +43,24 @@ const LineNumbers = styled.span`
   margin-left: 0.5rem;
 `;
 
-interface CodeWatcherModel {
-  name: string;
-  pattern: string;
-  message?: string;
-  severity?: 'warning' | 'error' | 'info';
-}
-
 interface DiffHunkModel {
   fromStartLine: number;
   toStartLine: number;
   lines: { text: string; state: string }[];
 }
 
+interface WatcherAlertWatcher {
+  name: string;
+  regex: string;
+  message?: string;
+  severity?: string;
+}
+
 interface WatcherAlert {
   file: string;
   hunks: {
     hunk: DiffHunkModel;
-    watchers: CodeWatcherModel[];
+    watchers: WatcherAlertWatcher[];
     matchingLines?: number[];
   }[];
 }

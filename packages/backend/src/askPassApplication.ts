@@ -1,7 +1,6 @@
 import { GenericApplication } from './genericApplication';
 import { ipcMain } from 'electron';
 import { Observable, Subject } from 'rxjs';
-import { ElectronResponse } from '@light-git/shared/src/common/electron-response';
 
 export class AskPassApplication extends GenericApplication {
   private finished = false;
@@ -24,11 +23,10 @@ export class AskPassApplication extends GenericApplication {
   start() {
     super.start();
     ipcMain.handle('CRED', (event, args) => {
-      this.finish(args[1], args[2]);
-      return new ElectronResponse();
+      this.finish(args.username, args.password);
     });
     ipcMain.handle('getHost', (event, args) => {
-      return new ElectronResponse(this.host);
+      return this.host;
     });
   }
 

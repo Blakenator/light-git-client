@@ -1,13 +1,10 @@
 import { create } from 'zustand';
-import { ipcClient } from '../ipc';
-import { Channels } from '@light-git/shared';
-
-export interface CodeWatcherModel {
-  name: string;
-  pattern: string;
-  flags: string;
-  filePattern?: string;
-}
+import { invokeSync } from '../ipc/invokeSync';
+import {
+  SYNC_CHANNELS,
+  type SettingsData,
+} from '@light-git/shared';
+export type { CodeWatcherModel } from '@light-git/shared';
 
 export interface ConfigShortcut {
   key: string;
@@ -25,35 +22,9 @@ export interface SectionCardLayout {
 export type RepoSectionLayout = { [cardId: string]: SectionCardLayout };
 export type AllSectionLayouts = { [repoPath: string]: RepoSectionLayout };
 
-export interface SettingsModel {
-  darkMode: boolean;
-  rebasePull: boolean;
-  openRepos: string[];
-  tabNames: string[];
-  activeTab: number;
-  gitPath: string;
-  bashPath: string;
-  showTrackingPath: boolean;
-  commitMessageAutocomplete: boolean;
-  diffIgnoreWhitespace: boolean;
-  airplaneMode: boolean;
-  mergetool: string;
-  expandStates: { [key: string]: boolean };
-  commandTimeoutSeconds: number;
-  codeWatchers: CodeWatcherModel[];
-  loadedCodeWatchers: CodeWatcherModel[];
-  codeWatcherPaths: string[];
-  includeUnchangedInWatcherAnalysis: boolean;
-  username: string;
-  email: string;
-  allowStats: boolean;
-  statsId: string;
-  allowPrerelease: boolean;
-  splitFilenameDisplay: boolean;
-  commitAndPush: boolean;
-  branchNamePrefix: string;
+/** Frontend settings extends the shared model with frontend-only fields */
+export interface SettingsModel extends SettingsData {
   configShortcuts: ConfigShortcut[];
-  sectionLayouts: AllSectionLayouts;
 }
 
 const defaultSettings: SettingsModel = {
@@ -109,7 +80,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
 
   loadSettings: async () => {
     try {
-      const settings = await ipcClient.rpc<SettingsModel>(Channels.LOADSETTINGS);
+      const settings = await invokeSync(SYNC_CHANNELS.LoadSettings);
       set({ settings: { ...defaultSettings, ...settings }, isLoaded: true });
       
       // Apply theme
@@ -133,7 +104,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
   saveSettings: async () => {
     try {
       const { settings } = get();
-      await ipcClient.rpc(Channels.SAVESETTINGS, settings);
+      await invokeSync(SYNC_CHANNELS.SaveSettings, { settings });
     } catch (error) {
       console.error('Failed to save settings:', error);
     }

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Form, Row, Col, Badge, Button } from 'react-bootstrap';
 import styled from 'styled-components';
-import { Channels } from '@light-git/shared';
+import { SYNC_CHANNELS } from '@light-git/shared';
 import { Icon } from '@light-git/core';
-import { useIpc } from '../../../ipc/useIpc';
+import { invokeSync } from '../../../ipc/invokeSync';
 
 const FormSection = styled.div`
   margin-bottom: 1.5rem;
@@ -34,30 +34,29 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
   onChange,
   onThemeChange,
 }) => {
-  const ipc = useIpc();
   const [version, setVersion] = useState('');
   const [isUpdateDownloaded, setIsUpdateDownloaded] = useState(false);
   const [downloadedUpdateVersion, setDownloadedUpdateVersion] = useState('');
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
 
   useEffect(() => {
-    ipc.rpc<string>(Channels.GETVERSION)
+    invokeSync(SYNC_CHANNELS.GetVersion)
       .then((v) => setVersion(v))
       .catch(() => {});
 
-    ipc.rpc<{ downloaded: boolean; version: string }>(Channels.ISUPDATEDOWNLOADED)
+    invokeSync(SYNC_CHANNELS.IsUpdateDownloaded)
       .then((info) => {
         setIsUpdateDownloaded(info.downloaded);
         setDownloadedUpdateVersion(info.version);
       })
       .catch(() => {});
-  }, [ipc]);
+  }, []);
 
   const checkForUpdates = useCallback(() => {
     setCheckingForUpdates(true);
-    ipc.rpc(Channels.CHECKFORUPDATES)
+    invokeSync(SYNC_CHANNELS.CheckForUpdates)
       .then(() => {
-        return ipc.rpc<{ downloaded: boolean; version: string }>(Channels.ISUPDATEDOWNLOADED);
+        return invokeSync(SYNC_CHANNELS.IsUpdateDownloaded);
       })
       .then((info) => {
         setIsUpdateDownloaded(info.downloaded);
@@ -65,11 +64,11 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
       })
       .catch(() => {})
       .finally(() => setCheckingForUpdates(false));
-  }, [ipc]);
+  }, []);
 
   const restartAndInstall = useCallback(() => {
-    ipc.rpc(Channels.RESTARTANDINSTALLUPDATE).catch(() => {});
-  }, [ipc]);
+    invokeSync(SYNC_CHANNELS.RestartAndInstallUpdate).catch(() => {});
+  }, []);
 
   return (
     <>

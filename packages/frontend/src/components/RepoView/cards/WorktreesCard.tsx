@@ -4,9 +4,9 @@ import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import { useRepositoryStore, useUiStore } from '../../../stores';
-import { useIpc, useGitService } from '../../../ipc';
+import { useGitService, invokeSync } from '../../../ipc';
 import { AddWorktreeDialog } from '../dialogs';
-import { Channels } from '@light-git/shared';
+import { SYNC_CHANNELS } from '@light-git/shared';
 import type { WorktreeModel } from '@light-git/shared';
 
 interface WorktreesCardProps {
@@ -19,7 +19,6 @@ export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
   onOpenRepoNewTab,
 }) => {
   const [filter, setFilter] = useState('');
-  const ipc = useIpc();
   const gitService = useGitService(repoPath);
   const addAlert = useUiStore((state) => state.addAlert);
   const showModal = useUiStore((state) => state.showModal);
@@ -50,11 +49,11 @@ export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
 
   const handleSwitch = useCallback(async (path: string) => {
     try {
-      await ipc.rpc(Channels.LOADREPO, path);
+      await invokeSync(SYNC_CHANNELS.LoadRepo, { repoPath: path });
     } catch (error: any) {
       addAlert(`Failed to switch worktree: ${error.message}`, 'error');
     }
-  }, [ipc, addAlert]);
+  }, [addAlert]);
 
   const handleDelete = useCallback(async (worktree: WorktreeModel) => {
     try {

@@ -17,7 +17,6 @@ const CommitContainer = styled.div`
   box-shadow: ${({ theme }) => theme.shadows.material};
   padding: 0.75rem;
 `;
-console.log('test');
 
 const CommitRow = styled.div`
   display: flex;

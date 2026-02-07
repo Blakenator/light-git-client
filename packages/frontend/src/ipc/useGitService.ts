@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { Channels } from '@light-git/shared';
-import { useIpc } from './useIpc';
+import { SYNC_CHANNELS, type ActiveOperation } from '@light-git/shared';
+import { invokeSync } from './invokeSync';
 import { useJobScheduler, RepoArea, RepoAreaDefaults } from '../stores';
 
 /**
@@ -13,7 +13,6 @@ import { useJobScheduler, RepoArea, RepoAreaDefaults } from '../stores';
  * their useCallback dependency arrays.
  */
 export function useGitService(repoPath: string) {
-  const ipc = useIpc();
   const { runJob } = useJobScheduler();
 
   // Keep repoPath in a ref so callbacks are stable across renders
@@ -43,102 +42,97 @@ export function useGitService(repoPath: string) {
 
   // --- Read operations ---
 
-  // Read operations have affectedAreas: [] (matching Angular).
-  // Only write operations declare affected areas, which the onFinishQueue
-  // mechanism uses to determine which areas to auto-refresh.
-
   const getFileChanges = useCallback(() => {
     const rp = repoPathRef.current;
     return runJob(
       createJobConfig(
-        Channels.GETFILECHANGES,
-        () => ipc.rpc<any>(Channels.GETFILECHANGES, rp),
+        SYNC_CHANNELS.GetFileChanges,
+        () => invokeSync(SYNC_CHANNELS.GetFileChanges, { repoPath: rp }),
         [],
         { reorderable: true },
       ),
     );
-  }, [ipc, runJob, createJobConfig]);
+  }, [runJob, createJobConfig]);
 
   const getLocalBranches = useCallback(() => {
     const rp = repoPathRef.current;
     return runJob(
       createJobConfig(
-        Channels.GETLOCALBRANCHES,
-        () => ipc.rpc<any[]>(Channels.GETLOCALBRANCHES, rp),
+        SYNC_CHANNELS.GetLocalBranches,
+        () => invokeSync(SYNC_CHANNELS.GetLocalBranches, { repoPath: rp }),
         [],
         { reorderable: true },
       ),
     );
-  }, [ipc, runJob, createJobConfig]);
+  }, [runJob, createJobConfig]);
 
   const getRemoteBranches = useCallback(() => {
     const rp = repoPathRef.current;
     return runJob(
       createJobConfig(
-        Channels.GETREMOTEBRANCHES,
-        () => ipc.rpc<any[]>(Channels.GETREMOTEBRANCHES, rp),
+        SYNC_CHANNELS.GetRemoteBranches,
+        () => invokeSync(SYNC_CHANNELS.GetRemoteBranches, { repoPath: rp }),
         [],
         { reorderable: true },
       ),
     );
-  }, [ipc, runJob, createJobConfig]);
+  }, [runJob, createJobConfig]);
 
   const getStashes = useCallback(() => {
     const rp = repoPathRef.current;
     return runJob(
       createJobConfig(
-        Channels.GETSTASHES,
-        () => ipc.rpc<any[]>(Channels.GETSTASHES, rp),
+        SYNC_CHANNELS.GetStashes,
+        () => invokeSync(SYNC_CHANNELS.GetStashes, { repoPath: rp }),
         [],
         { reorderable: true },
       ),
     );
-  }, [ipc, runJob, createJobConfig]);
+  }, [runJob, createJobConfig]);
 
   const getWorktrees = useCallback(() => {
     const rp = repoPathRef.current;
     return runJob(
       createJobConfig(
-        Channels.GETWORKTREES,
-        () => ipc.rpc<any[]>(Channels.GETWORKTREES, rp),
+        SYNC_CHANNELS.GetWorktrees,
+        () => invokeSync(SYNC_CHANNELS.GetWorktrees, { repoPath: rp }),
         [],
         { reorderable: true },
       ),
     );
-  }, [ipc, runJob, createJobConfig]);
+  }, [runJob, createJobConfig]);
 
   const getSubmodules = useCallback(() => {
     const rp = repoPathRef.current;
     return runJob(
       createJobConfig(
-        Channels.GETSUBMODULES,
-        () => ipc.rpc<any[]>(Channels.GETSUBMODULES, rp),
+        SYNC_CHANNELS.GetSubmodules,
+        () => invokeSync(SYNC_CHANNELS.GetSubmodules, { repoPath: rp }),
         [],
         { reorderable: true },
       ),
     );
-  }, [ipc, runJob, createJobConfig]);
+  }, [runJob, createJobConfig]);
 
   const getCommitHistory = useCallback(
     (count = 50, skip = 0, activeBranch?: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.GETCOMMITHISTORY,
+          SYNC_CHANNELS.GetCommitHistory,
           () =>
-            ipc.rpc<any[]>(
-              Channels.GETCOMMITHISTORY,
-              rp,
+            invokeSync(SYNC_CHANNELS.GetCommitHistory, {
+              repoPath: rp,
               count,
               skip,
               activeBranch,
-            ),
+            }),
           [],
           { reorderable: true },
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const getFileDiff = useCallback(
@@ -151,22 +145,21 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.GETFILEDIFF,
+          SYNC_CHANNELS.GetFileDiff,
           () =>
-            ipc.rpc(
-              Channels.GETFILEDIFF,
-              rp,
+            invokeSync(SYNC_CHANNELS.GetFileDiff, {
+              repoPath: rp,
               unstaged,
               staged,
-              cursor ?? null,
+              cursor: cursor ?? null,
               maxLines,
-            ),
+            }),
           [],
           { reorderable: true },
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const getStashDiff = useCallback(
@@ -174,14 +167,14 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.STASHDIFF,
-          () => ipc.rpc(Channels.STASHDIFF, rp, index),
+          SYNC_CHANNELS.StashDiff,
+          () => invokeSync(SYNC_CHANNELS.StashDiff, { repoPath: rp, index }),
           [],
           { reorderable: true },
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const getCommitDiff = useCallback(
@@ -189,20 +182,20 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.COMMITDIFF,
-          () => ipc.rpc(Channels.COMMITDIFF, rp, hash),
+          SYNC_CHANNELS.CommitDiff,
+          () => invokeSync(SYNC_CHANNELS.CommitDiff, { repoPath: rp, hash }),
           [],
           { reorderable: true },
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const getCommandHistory = useCallback(() => {
     const rp = repoPathRef.current;
-    return ipc.rpc<any[]>(Channels.GETCOMMANDHISTORY, rp);
-  }, [ipc]);
+    return invokeSync(SYNC_CHANNELS.GetCommandHistory, { repoPath: rp });
+  }, []);
 
   // --- Write operations ---
 
@@ -211,13 +204,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.GITSTAGE,
-          () => ipc.rpc(Channels.GITSTAGE, rp, files),
+          SYNC_CHANNELS.GitStage,
+          () => invokeSync(SYNC_CHANNELS.GitStage, { repoPath: rp, files }),
           [RepoArea.LOCAL_CHANGES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const unstage = useCallback(
@@ -225,13 +218,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.GITUNSTAGE,
-          () => ipc.rpc(Channels.GITUNSTAGE, rp, files),
+          SYNC_CHANNELS.GitUnstage,
+          () => invokeSync(SYNC_CHANNELS.GitUnstage, { repoPath: rp, files }),
           [RepoArea.LOCAL_CHANGES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const commit = useCallback(
@@ -239,14 +232,21 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.COMMIT,
-          () => ipc.rpc(Channels.COMMIT, rp, message, push, branch, amend),
+          SYNC_CHANNELS.Commit,
+          () =>
+            invokeSync(SYNC_CHANNELS.Commit, {
+              repoPath: rp,
+              message,
+              push,
+              branch,
+              amend,
+            }),
           [...RepoAreaDefaults.LOCAL],
           { immediate: true },
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const checkout = useCallback(
@@ -254,13 +254,19 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.CHECKOUT,
-          () => ipc.rpc(Channels.CHECKOUT, rp, branch, toNewBranch, andPull),
+          SYNC_CHANNELS.Checkout,
+          () =>
+            invokeSync(SYNC_CHANNELS.Checkout, {
+              repoPath: rp,
+              branch,
+              toNewBranch,
+              andPull,
+            }),
           [...RepoAreaDefaults.ALL],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const push = useCallback(
@@ -268,13 +274,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.PUSH,
-          () => ipc.rpc(Channels.PUSH, rp, branch, force),
+          SYNC_CHANNELS.Push,
+          () => invokeSync(SYNC_CHANNELS.Push, { repoPath: rp, branch, force }),
           [RepoArea.LOCAL_BRANCHES, RepoArea.REMOTE_BRANCHES, RepoArea.COMMIT_HISTORY],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const pull = useCallback(
@@ -282,13 +288,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.PULL,
-          () => ipc.rpc(Channels.PULL, rp, force),
+          SYNC_CHANNELS.Pull,
+          () => invokeSync(SYNC_CHANNELS.Pull, { repoPath: rp, force }),
           [...RepoAreaDefaults.ALL],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const fetch = useCallback(
@@ -296,13 +302,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.FETCH,
-          () => ipc.rpc(Channels.FETCH, rp, prune),
+          SYNC_CHANNELS.Fetch,
+          () => invokeSync(SYNC_CHANNELS.Fetch, { repoPath: rp, prune }),
           [RepoArea.REMOTE_BRANCHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const mergeBranch = useCallback(
@@ -310,13 +316,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.MERGEBRANCH,
-          () => ipc.rpc(Channels.MERGEBRANCH, rp, branch),
+          SYNC_CHANNELS.MergeBranch,
+          () => invokeSync(SYNC_CHANNELS.MergeBranch, { repoPath: rp, branch }),
           [...RepoAreaDefaults.ALL],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const rebaseBranch = useCallback(
@@ -324,13 +330,18 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.REBASEBRANCH,
-          () => ipc.rpc(Channels.REBASEBRANCH, rp, branch, interactive),
+          SYNC_CHANNELS.RebaseBranch,
+          () =>
+            invokeSync(SYNC_CHANNELS.RebaseBranch, {
+              repoPath: rp,
+              branch,
+              interactive,
+            }),
           [...RepoAreaDefaults.ALL],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const createBranch = useCallback(
@@ -338,13 +349,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.CREATEBRANCH,
-          () => ipc.rpc(Channels.CREATEBRANCH, rp, branchName),
+          SYNC_CHANNELS.CreateBranch,
+          () => invokeSync(SYNC_CHANNELS.CreateBranch, { repoPath: rp, branchName }),
           [RepoArea.LOCAL_BRANCHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const deleteBranch = useCallback(
@@ -352,13 +363,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.DELETEBRANCH,
-          () => ipc.rpc(Channels.DELETEBRANCH, rp, branches),
+          SYNC_CHANNELS.DeleteBranch,
+          () => invokeSync(SYNC_CHANNELS.DeleteBranch, { repoPath: rp, branches }),
           [RepoArea.LOCAL_BRANCHES, RepoArea.REMOTE_BRANCHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const renameBranch = useCallback(
@@ -366,13 +377,18 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.RENAMEBRANCH,
-          () => ipc.rpc(Channels.RENAMEBRANCH, rp, oldName, newName),
+          SYNC_CHANNELS.RenameBranch,
+          () =>
+            invokeSync(SYNC_CHANNELS.RenameBranch, {
+              repoPath: rp,
+              oldName,
+              newName,
+            }),
           [RepoArea.LOCAL_BRANCHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const fastForward = useCallback(
@@ -380,38 +396,44 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.FASTFORWARDBRANCH,
-          () => ipc.rpc(Channels.FASTFORWARDBRANCH, rp, branch),
+          SYNC_CHANNELS.FastForwardBranch,
+          () => invokeSync(SYNC_CHANNELS.FastForwardBranch, { repoPath: rp, branch }),
           [RepoArea.LOCAL_BRANCHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const hardReset = useCallback(() => {
     const rp = repoPathRef.current;
     return runJob(
       createJobConfig(
-        Channels.HARDRESET,
-        () => ipc.rpc(Channels.HARDRESET, rp),
+        SYNC_CHANNELS.HardReset,
+        () => invokeSync(SYNC_CHANNELS.HardReset, { repoPath: rp }),
         [...RepoAreaDefaults.LOCAL],
       ),
     );
-  }, [ipc, runJob, createJobConfig]);
+  }, [runJob, createJobConfig]);
 
   const undoFileChanges = useCallback(
     (files: string[], revision?: string, staged = false) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.UNDOFILECHANGES,
-          () => ipc.rpc(Channels.UNDOFILECHANGES, rp, files, revision, staged),
+          SYNC_CHANNELS.UndoFileChanges,
+          () =>
+            invokeSync(SYNC_CHANNELS.UndoFileChanges, {
+              repoPath: rp,
+              files,
+              revision,
+              staged,
+            }),
           [RepoArea.LOCAL_CHANGES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const stash = useCallback(
@@ -419,13 +441,18 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.STASH,
-          () => ipc.rpc(Channels.STASH, rp, unstagedOnly, stashName),
+          SYNC_CHANNELS.Stash,
+          () =>
+            invokeSync(SYNC_CHANNELS.Stash, {
+              repoPath: rp,
+              unstagedOnly,
+              stashName,
+            }),
           [RepoArea.LOCAL_CHANGES, RepoArea.STASHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const applyStash = useCallback(
@@ -433,13 +460,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.APPLYSTASH,
-          () => ipc.rpc(Channels.APPLYSTASH, rp, index),
+          SYNC_CHANNELS.ApplyStash,
+          () => invokeSync(SYNC_CHANNELS.ApplyStash, { repoPath: rp, index }),
           [RepoArea.LOCAL_CHANGES, RepoArea.STASHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const deleteStash = useCallback(
@@ -447,42 +474,43 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.DELETESTASH,
-          () => ipc.rpc(Channels.DELETESTASH, rp, index),
+          SYNC_CHANNELS.DeleteStash,
+          () => invokeSync(SYNC_CHANNELS.DeleteStash, { repoPath: rp, index }),
           [RepoArea.STASHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
-  const getDeletedStashes = useCallback(
-    () => {
-      const rp = repoPathRef.current;
-      return runJob(
-        createJobConfig(
-          Channels.GETDELETEDSTASHES,
-          () => ipc.rpc(Channels.GETDELETEDSTASHES, rp),
-          [],
-          { reorderable: true },
-        ),
-      );
-    },
-    [ipc, runJob, createJobConfig],
-  );
+  const getDeletedStashes = useCallback(() => {
+    const rp = repoPathRef.current;
+    return runJob(
+      createJobConfig(
+        SYNC_CHANNELS.GetDeletedStashes,
+        () => invokeSync(SYNC_CHANNELS.GetDeletedStashes, { repoPath: rp }),
+        [],
+        { reorderable: true },
+      ),
+    );
+  }, [runJob, createJobConfig]);
 
   const restoreDeletedStash = useCallback(
     (stashHash: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.RESTOREDELETEDSTASH,
-          () => ipc.rpc(Channels.RESTOREDELETEDSTASH, rp, stashHash),
+          SYNC_CHANNELS.RestoreDeletedStash,
+          () =>
+            invokeSync(SYNC_CHANNELS.RestoreDeletedStash, {
+              repoPath: rp,
+              stashHash,
+            }),
           [RepoArea.LOCAL_BRANCHES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const cherryPick = useCallback(
@@ -490,13 +518,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.CHERRYPICKCOMMIT,
-          () => ipc.rpc(Channels.CHERRYPICKCOMMIT, rp, hash),
+          SYNC_CHANNELS.CherryPickCommit,
+          () => invokeSync(SYNC_CHANNELS.CherryPickCommit, { repoPath: rp, hash }),
           [...RepoAreaDefaults.LOCAL],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const revert = useCallback(
@@ -504,13 +532,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.REVERTCOMMIT,
-          () => ipc.rpc(Channels.REVERTCOMMIT, rp, hash),
+          SYNC_CHANNELS.RevertCommit,
+          () => invokeSync(SYNC_CHANNELS.RevertCommit, { repoPath: rp, hash }),
           [...RepoAreaDefaults.LOCAL],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const reset = useCallback(
@@ -518,13 +546,18 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.RESETTOCOMMIT,
-          () => ipc.rpc(Channels.RESETTOCOMMIT, rp, hash, mode),
+          SYNC_CHANNELS.ResetToCommit,
+          () =>
+            invokeSync(SYNC_CHANNELS.ResetToCommit, {
+              repoPath: rp,
+              hash,
+              mode,
+            }),
           [...RepoAreaDefaults.LOCAL],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const resolveConflict = useCallback(
@@ -532,27 +565,37 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.RESOLVECONFLICTUSING,
-          () => ipc.rpc(Channels.RESOLVECONFLICTUSING, rp, file, useTheirs),
+          SYNC_CHANNELS.ResolveConflictUsing,
+          () =>
+            invokeSync(SYNC_CHANNELS.ResolveConflictUsing, {
+              repoPath: rp,
+              file,
+              useTheirs,
+            }),
           [RepoArea.LOCAL_CHANGES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const changeActiveOperation = useCallback(
-    (op: string, abort: boolean) => {
+    (op: ActiveOperation, abort: boolean) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.CHANGEACTIVEOPERATION,
-          () => ipc.rpc(Channels.CHANGEACTIVEOPERATION, rp, op, abort),
+          SYNC_CHANNELS.ChangeActiveOperation,
+          () =>
+            invokeSync(SYNC_CHANNELS.ChangeActiveOperation, {
+              repoPath: rp,
+              op,
+              abort,
+            }),
           [...RepoAreaDefaults.LOCAL],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const deleteWorktree = useCallback(
@@ -560,41 +603,55 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.DELETEWORKTREE,
-          () => ipc.rpc(Channels.DELETEWORKTREE, rp, worktreePath),
+          SYNC_CHANNELS.DeleteWorktree,
+          () =>
+            invokeSync(SYNC_CHANNELS.DeleteWorktree, {
+              repoPath: rp,
+              worktreePath,
+            }),
           [RepoArea.WORKTREES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const updateSubmodules = useCallback(
-    (recursive: boolean, path?: string) => {
+    (recursive: boolean, subPath?: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.UPDATESUBMODULES,
-          () => ipc.rpc(Channels.UPDATESUBMODULES, rp, recursive, path),
+          SYNC_CHANNELS.UpdateSubmodules,
+          () =>
+            invokeSync(SYNC_CHANNELS.UpdateSubmodules, {
+              repoPath: rp,
+              recursive,
+              path: subPath,
+            }),
           [RepoArea.SUBMODULES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const addSubmodule = useCallback(
-    (url: string, path: string) => {
+    (url: string, subPath: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.ADDSUBMODULE,
-          () => ipc.rpc(Channels.ADDSUBMODULE, rp, url, path),
+          SYNC_CHANNELS.AddSubmodule,
+          () =>
+            invokeSync(SYNC_CHANNELS.AddSubmodule, {
+              repoPath: rp,
+              url,
+              path: subPath,
+            }),
           [RepoArea.SUBMODULES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const deleteFiles = useCallback(
@@ -602,13 +659,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.DELETEFILES,
-          () => ipc.rpc(Channels.DELETEFILES, rp, paths),
+          SYNC_CHANNELS.DeleteFiles,
+          () => invokeSync(SYNC_CHANNELS.DeleteFiles, { repoPath: rp, files: paths }),
           [RepoArea.LOCAL_CHANGES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const merge = useCallback(
@@ -616,13 +673,13 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.MERGE,
-          () => ipc.rpc(Channels.MERGE, rp, file, mergetool),
+          SYNC_CHANNELS.Merge,
+          () => invokeSync(SYNC_CHANNELS.Merge, { repoPath: rp, file, mergetool }),
           [RepoArea.LOCAL_CHANGES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const getBranchPremerge = useCallback(
@@ -630,14 +687,18 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.GETBRANCHPREMERGE,
-          () => ipc.rpc(Channels.GETBRANCHPREMERGE, rp, branchHash),
+          SYNC_CHANNELS.GetBranchPremerge,
+          () =>
+            invokeSync(SYNC_CHANNELS.GetBranchPremerge, {
+              repoPath: rp,
+              branchHash,
+            }),
           [],
           { reorderable: true },
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   const changeHunk = useCallback(
@@ -645,25 +706,34 @@ export function useGitService(repoPath: string) {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
-          Channels.CHANGEHUNK,
-          () => ipc.rpc(Channels.CHANGEHUNK, rp, filename, hunk, changedText),
+          SYNC_CHANNELS.ChangeHunk,
+          () =>
+            invokeSync(SYNC_CHANNELS.ChangeHunk, {
+              repoPath: rp,
+              filename,
+              hunk,
+              changedText,
+            }),
           [RepoArea.LOCAL_CHANGES],
         ),
       );
     },
-    [ipc, runJob, createJobConfig],
+    [runJob, createJobConfig],
   );
 
   // UI operations (not queued)
   const openTerminal = useCallback(() => {
-    return ipc.rpc(Channels.OPENTERMINAL, repoPathRef.current);
-  }, [ipc]);
+    return invokeSync(SYNC_CHANNELS.OpenTerminal, { repoPath: repoPathRef.current });
+  }, []);
 
   const openFolder = useCallback(
-    (path?: string) => {
-      return ipc.rpc(Channels.OPENFOLDER, repoPathRef.current, path || '');
+    (folderPath?: string) => {
+      return invokeSync(SYNC_CHANNELS.OpenFolder, {
+        repoPath: repoPathRef.current,
+        path: folderPath || '',
+      });
     },
-    [ipc],
+    [],
   );
 
   // Composite operations

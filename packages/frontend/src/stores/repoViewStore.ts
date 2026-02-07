@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ActiveOperation } from '../components/RepoView/cards/ActiveOperationBanner';
+import type { ActiveOperation } from '@light-git/shared';
 
 export interface RepoViewState {
   // Diff state per repo
@@ -16,7 +16,7 @@ export interface RepoViewState {
   commitMessage: { [repoPath: string]: string };
 
   // Active operation per repo
-  activeOperation: { [repoPath: string]: ActiveOperation };
+  activeOperation: { [repoPath: string]: ActiveOperation | null };
 
   // Command history per repo
   commandHistory: { [repoPath: string]: any[] };
@@ -49,8 +49,8 @@ export interface RepoViewActions {
   setCommitMessage: (repoPath: string, message: string) => void;
 
   // Active operation actions
-  getActiveOperation: (repoPath: string) => ActiveOperation;
-  setActiveOperation: (repoPath: string, operation: ActiveOperation) => void;
+  getActiveOperation: (repoPath: string) => ActiveOperation | null;
+  setActiveOperation: (repoPath: string, operation: ActiveOperation | null) => void;
 
   // Command history actions
   getCommandHistory: (repoPath: string) => any[];

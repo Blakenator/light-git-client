@@ -1,15 +1,18 @@
 import { app, dialog, ipcMain, shell } from 'electron';
 import { SettingsModel } from '@light-git/shared/src/SettingsModel';
+import type { SettingsData } from '@light-git/shared';
 import * as fs from 'fs-extra';
 import { mkdirpSync } from 'fs-extra';
-import { RepositoryModel } from '@light-git/shared/src/git/Repository.model';
+
 import { GitClient } from './git/GitClient';
 import * as path from 'path';
-import { ElectronResponse } from '@light-git/shared/src/common/electron-response';
 import { autoUpdater } from 'electron-updater';
-import { Channels } from '@light-git/shared/src/Channels';
+import { SYNC_CHANNELS, ASYNC_CHANNELS } from '@light-git/shared/src/Channels';
+import type { AppSyncApi, AppAsyncApi } from '@light-git/shared/src/api-types';
 import { GenericApplication } from './genericApplication';
 import { CodeWatcherModel } from '@light-git/shared/src/code-watcher.model';
+import { setupApiHandlers } from '@superflag/super-ipc-backend';
+import type { BackendSyncHandlersType, BackendAsyncHandlersType } from '@superflag/super-ipc-backend';
 
 const opn = require('opn');
 
@@ -20,7 +23,7 @@ export class MainApplication extends GenericApplication {
   private settings: SettingsModel = new SettingsModel();
   private userInitiatedUpdate = false;
   private isWatchingSettingsDir: fs.FSWatcher;
-  private loadedRepos: { [key: number]: Promise<RepositoryModel> } = {};
+  private loadedRepos: { [key: string]: Promise<void> } = {};
   private gitClients: { [key: string]: GitClient } = {};
   private readonly iconFile = './src/favicon.512x512.png';
   private readonly notificationTitle = 'Light Git';
@@ -34,7 +37,7 @@ export class MainApplication extends GenericApplication {
     this.stopWatchingSettings();
   }
 
-  saveSettings(settingsModel: SettingsModel) {
+  saveSettings(settingsModel: SettingsData) {
     Object.assign(this.settings, settingsModel);
     GitClient.settings = this.settings;
 
@@ -64,7 +67,13 @@ export class MainApplication extends GenericApplication {
     );
   }
 
-  loadSettings(callback: Function) {
+  loadSettingsAsync(): Promise<SettingsModel> {
+    return new Promise((resolve) => {
+      this.loadSettingsCallback((settings) => resolve(settings));
+    });
+  }
+
+  loadSettingsCallback(callback: Function) {
     if (fs.existsSync(this.getSettingsPath())) {
       fs.readFile(this.getSettingsPath(), 'utf8', (err, data) => {
         if (err) {
@@ -204,29 +213,17 @@ export class MainApplication extends GenericApplication {
     }
   }
 
-  loadRepoInfo(repoPath: string): Promise<RepositoryModel> {
+  loadRepoInfo(repoPath: string): Promise<void> {
     this.gitClients[repoPath] = new GitClient(repoPath);
     this.loadedRepos[repoPath] = this.gitClients[repoPath].checkIfGitRepo();
-    this.gitClients[repoPath].onCommandExecuted.subscribe((history) =>
-      this.window.webContents.send(
-        this.getReplyChannel([Channels.COMMANDHISTORYCHANGED]),
-        new ElectronResponse(history),
-      ),
-    );
     return this.loadedRepos[repoPath];
-  }
-
-  handleGitPromise(p: Promise<any>) {
-    return p
-      .then((content) => new ElectronResponse(content))
-      .catch((content) => new ElectronResponse(content, false));
   }
 
   start() {
     super.start();
     this.checkForUpdates();
     this.configureApp();
-    this.bindEventHandlers();
+    setupApiHandlers(app, this.getSyncHandlers(), this.getAsyncHandlers(), ipcMain);
     setTimeout(
       () => this.sendEvent('general', 'window-opened', 'main-window'),
       20000,
@@ -317,430 +314,348 @@ export class MainApplication extends GenericApplication {
     }, 60 * 60 * 1000);
   }
 
-  bindEventHandlers() {
-    ipcMain.on(Channels.OPENURL, (event, ...args) => {
-      let url = args[1];
-      if (args.length > 2) {
-        opn(url, { app: args[2] });
-      } else {
-        opn(url);
-      }
-      this.defaultReply(event, args);
-    });
-
-    ipcMain.handle(Channels.OPENFOLDER, (event, ...args) => {
-      let url = args[2] || args[1];
-      shell.openPath(url);
-      return new ElectronResponse();
-    });
-
-    ipcMain.handle(Channels.LOADSETTINGS, (event, ...args) => {
-      const res = new Promise((resolve, reject) =>
-        this.loadSettings((settings) => {
-          resolve(new ElectronResponse(settings));
-        }),
-      );
-
-      if (!this.isWatchingSettingsDir) {
-        this.isWatchingSettingsDir = fs.watch(
-          this.getSettingsPath(),
-          (eventInfo, filename) => {
-            this.loadSettings((settings) => {
-              event.sender.send(
-                this.getReplyChannel([Channels.SETTINGSCHANGED]),
-                new ElectronResponse(settings),
-              );
-            });
-          },
+  /**
+   * Returns typed synchronous IPC handlers for super-ipc
+   */
+  getSyncHandlers(): BackendSyncHandlersType<SYNC_CHANNELS, AppSyncApi> {
+    return {
+      // --- Git Read Operations ---
+      [SYNC_CHANNELS.GetFileChanges]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getChanges();
+      },
+      [SYNC_CHANNELS.GetLocalBranches]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getLocalBranches();
+      },
+      [SYNC_CHANNELS.GetRemoteBranches]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getRemoteBranches();
+      },
+      [SYNC_CHANNELS.GetSubmodules]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getSubmodules();
+      },
+      [SYNC_CHANNELS.GetWorktrees]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getWorktrees();
+      },
+      [SYNC_CHANNELS.GetStashes]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getStashes();
+      },
+      [SYNC_CHANNELS.GetCommitHistory]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getCommitHistory(
+          args.count,
+          args.skip,
+          args.activeBranch,
         );
-      }
-      return res;
-    });
+      },
+      [SYNC_CHANNELS.GetFileDiff]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getDiffPaginated(
+          args.unstaged,
+          args.staged,
+          args.cursor ?? null,
+          args.maxLines ?? 500,
+        );
+      },
+      [SYNC_CHANNELS.CommitDiff]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getCommitDiff(args.hash);
+      },
+      [SYNC_CHANNELS.StashDiff]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getStashDiff(args.index);
+      },
+      [SYNC_CHANNELS.GetBranchPremerge]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getBranchPremerge(args.branchHash);
+      },
+      [SYNC_CHANNELS.GetDeletedStashes]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getDeletedStashes();
+      },
+      [SYNC_CHANNELS.GetConfigItems]: async ({ args }) => {
+        if (this.gitClients[args.repoPath]) {
+          return await this.gitClients[args.repoPath].getConfigItems();
+        }
+        return [];
+      },
+      [SYNC_CHANNELS.GetCommandHistory]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getCommandHistory();
+      },
+      [SYNC_CHANNELS.CheckGitBashVersions]: async ({ args }) => {
+        return await new GitClient(args.repoPath).checkGitBashVersions();
+      },
 
-    ipcMain.handle(Channels.CHECKFORUPDATES, (event, ...args) => {
-      this.userInitiatedUpdate = true;
-      this.checkForUpdates();
-      return new ElectronResponse();
-    });
+      // --- Git Write Operations ---
+      [SYNC_CHANNELS.GitStage]: async ({ args }) => {
+        await this.gitClients[args.repoPath].stage(args.files);
+      },
+      [SYNC_CHANNELS.GitUnstage]: async ({ args }) => {
+        await this.gitClients[args.repoPath].unstage(args.files);
+      },
+      [SYNC_CHANNELS.Commit]: async ({ args }) => {
+        await this.gitClients[args.repoPath].commit(
+          args.message,
+          args.push,
+          args.branch,
+          args.amend,
+        );
+      },
+      [SYNC_CHANNELS.Checkout]: async ({ args }) => {
+        await this.gitClients[args.repoPath].checkout(
+          args.branch,
+          args.toNewBranch,
+          '',
+          args.andPull,
+        );
+      },
+      [SYNC_CHANNELS.Push]: async ({ args }) => {
+        await this.gitClients[args.repoPath].pushBranch(args.branch, args.force);
+      },
+      [SYNC_CHANNELS.Pull]: async ({ args }) => {
+        await this.gitClients[args.repoPath].pull(args.force);
+      },
+      [SYNC_CHANNELS.Fetch]: async ({ args }) => {
+        await this.gitClients[args.repoPath].fetch();
+      },
+      [SYNC_CHANNELS.Merge]: async ({ args }) => {
+        await this.gitClients[args.repoPath].merge(args.file, args.mergetool);
+      },
+      [SYNC_CHANNELS.MergeBranch]: async ({ args }) => {
+        await this.gitClients[args.repoPath].mergeBranch(args.branch);
+      },
+      [SYNC_CHANNELS.RebaseBranch]: async ({ args }) => {
+        await this.gitClients[args.repoPath].rebaseBranch(args.branch, args.interactive);
+      },
+      [SYNC_CHANNELS.HardReset]: async ({ args }) => {
+        await this.gitClients[args.repoPath].hardReset();
+      },
+      [SYNC_CHANNELS.CreateBranch]: async ({ args }) => {
+        await this.gitClients[args.repoPath].createBranch(args.branchName);
+      },
+      [SYNC_CHANNELS.DeleteBranch]: async ({ args }) => {
+        await this.gitClients[args.repoPath].deleteBranch(args.branches);
+      },
+      [SYNC_CHANNELS.RenameBranch]: async ({ args }) => {
+        await this.gitClients[args.repoPath].renameBranch(args.oldName, args.newName);
+      },
+      [SYNC_CHANNELS.FastForwardBranch]: async ({ args }) => {
+        await this.gitClients[args.repoPath].fastForward(args.branch);
+      },
+      [SYNC_CHANNELS.CherryPickCommit]: async ({ args }) => {
+        await this.gitClients[args.repoPath].cherryPickCommit(args.hash);
+      },
+      [SYNC_CHANNELS.RevertCommit]: async ({ args }) => {
+        await this.gitClients[args.repoPath].revertCommit(args.hash);
+      },
+      [SYNC_CHANNELS.ResetToCommit]: async ({ args }) => {
+        await this.gitClients[args.repoPath].resetToCommit(args.hash, args.mode);
+      },
+      [SYNC_CHANNELS.UndoFileChanges]: async ({ args }) => {
+        await this.gitClients[args.repoPath].undoFileChanges(
+          args.files,
+          args.revision,
+          args.staged,
+        );
+      },
+      [SYNC_CHANNELS.UndoSubmoduleChanges]: async ({ args }) => {
+        await this.gitClients[args.repoPath].undoSubmoduleChanges(args.submodules);
+      },
+      [SYNC_CHANNELS.Stash]: async ({ args }) => {
+        await this.gitClients[args.repoPath].stash(args.unstagedOnly, args.stashName || '');
+      },
+      [SYNC_CHANNELS.ApplyStash]: async ({ args }) => {
+        await this.gitClients[args.repoPath].applyStash(args.index);
+      },
+      [SYNC_CHANNELS.DeleteStash]: async ({ args }) => {
+        await this.gitClients[args.repoPath].deleteStash(args.index);
+      },
+      [SYNC_CHANNELS.RestoreDeletedStash]: async ({ args }) => {
+        await this.gitClients[args.repoPath].restoreDeletedStash(args.stashHash);
+      },
+      [SYNC_CHANNELS.ChangeHunk]: async ({ args }) => {
+        await this.gitClients[args.repoPath].changeHunk(
+          path.join(args.repoPath, args.filename),
+          args.hunk,
+          args.changedText,
+        );
+      },
+      [SYNC_CHANNELS.ResolveConflictUsing]: async ({ args }) => {
+        await this.gitClients[args.repoPath].resolveConflictUsing(args.file, args.useTheirs);
+      },
+      [SYNC_CHANNELS.ChangeActiveOperation]: async ({ args }) => {
+        await this.gitClients[args.repoPath].changeActiveOperation(args.op, args.abort);
+      },
+      [SYNC_CHANNELS.SetConfigItem]: async ({ args }) => {
+        await this.gitClients[args.repoPath].setConfigItem(args.item);
+      },
+      [SYNC_CHANNELS.SetGitSettings]: async ({ args }) => {
+        await this.gitClients[args.repoPath].setBulkGitSettings(args.settings, args.scope);
+      },
+      [SYNC_CHANNELS.DeleteWorktree]: async ({ args }) => {
+        await this.gitClients[args.repoPath].deleteWorktree(args.worktreePath);
+      },
+      [SYNC_CHANNELS.UpdateSubmodules]: async ({ args }) => {
+        await this.gitClients[args.repoPath].updateSubmodules(args.recursive, args.path);
+      },
+      [SYNC_CHANNELS.AddSubmodule]: async ({ args }) => {
+        await this.gitClients[args.repoPath].addSubmodule(args.url, args.path);
+      },
+      [SYNC_CHANNELS.DeleteFiles]: async ({ args }) => {
+        let files = args.files.map((f) => f.replace(/["']/g, ''));
+        const promises = files.map(
+          (f) =>
+            new Promise<void>((resolve, reject) => {
+              const fullPath = path.join(args.repoPath, f);
+              fs.remove(fullPath, (err) => {
+                if (err) reject(err);
+                else resolve();
+              });
+            }),
+        );
+        await Promise.all(promises);
+      },
 
-    ipcMain.handle(Channels.GETVERSION, () => {
-      return new ElectronResponse(this.version);
-    });
+      // --- Repo / Settings ---
+      [SYNC_CHANNELS.LoadRepo]: async ({ args }) => {
+        return await this.loadRepoInfo(args.repoPath);
+      },
+      [SYNC_CHANNELS.LoadSettings]: async ({ event }) => {
+        const settings = await this.loadSettingsAsync();
 
-    ipcMain.handle(Channels.ISUPDATEDOWNLOADED, () => {
-      return new ElectronResponse({
-        downloaded: this.updateDownloaded,
-        version: this.updateDownloadedVersion,
-      });
-    });
+        if (!this.isWatchingSettingsDir) {
+          this.isWatchingSettingsDir = fs.watch(
+            this.getSettingsPath(),
+            () => {
+              this.loadSettingsAsync().then((updatedSettings) => {
+                if (!event.sender.isDestroyed()) {
+                  event.sender.send(
+                    SYNC_CHANNELS.SettingsChanged,
+                    updatedSettings,
+                  );
+                }
+              });
+            },
+          );
+        }
 
-    ipcMain.handle(Channels.RESTARTANDINSTALLUPDATE, (event, ...args) => {
-      autoUpdater.quitAndInstall();
-      return new ElectronResponse();
-    });
+        return settings;
+      },
+      [SYNC_CHANNELS.SaveSettings]: async ({ args }) => {
+        this.saveSettings(args.settings);
+      },
+      [SYNC_CHANNELS.SettingsChanged]: async () => {
+        throw new Error('SettingsChanged is a push-only channel and should not be invoked directly.');
+      },
 
-    ipcMain.handle(Channels.SAVESETTINGS, (event, ...args) => {
-      this.saveSettings(args[1]);
-      return new ElectronResponse();
-    });
+      // --- System / UI ---
+      [SYNC_CHANNELS.OpenFolder]: async ({ args }) => {
+        const target = args.path || args.repoPath;
+        if (target) {
+          shell.openPath(target);
+        }
+      },
+      [SYNC_CHANNELS.OpenUrl]: async ({ args }) => {
+        if (args.app) {
+          opn(args.url, { app: args.app });
+        } else {
+          opn(args.url);
+        }
+      },
+      [SYNC_CHANNELS.OpenTerminal]: async ({ args }) => {
+        this.gitClients[args.repoPath].openTerminal();
+      },
+      [SYNC_CHANNELS.OpenDevTools]: async () => {
+        this.window.webContents.openDevTools();
+      },
+      [SYNC_CHANNELS.OpenFileDialog]: async ({ args }) => {
+        return dialog.showOpenDialogSync(args.options);
+      },
+      [SYNC_CHANNELS.Log]: async ({ args }) => {
+        this.logger.error(
+          new Date().toLocaleString() +
+            ' ------------------------------------------------',
+        );
+        this.logger.error(args.message);
+      },
+      [SYNC_CHANNELS.CloseWindow]: async () => {
+        this.window.close();
+      },
+      [SYNC_CHANNELS.Minimize]: async () => {
+        this.window.minimize();
+      },
+      [SYNC_CHANNELS.Restore]: async () => {
+        if (this.window.isMaximized()) {
+          this.window.restore();
+        } else {
+          this.window.maximize();
+        }
+      },
 
-    ipcMain.handle(Channels.LOADREPO, (event, ...args) => {
-      return this.handleGitPromise(this.loadRepoInfo(args[1]));
-    });
+      // --- Updates ---
+      [SYNC_CHANNELS.GetVersion]: async () => {
+        return this.version;
+      },
+      [SYNC_CHANNELS.CheckForUpdates]: async () => {
+        this.userInitiatedUpdate = true;
+        this.checkForUpdates();
+      },
+      [SYNC_CHANNELS.IsUpdateDownloaded]: async () => {
+        return {
+          downloaded: this.updateDownloaded,
+          version: this.updateDownloadedVersion,
+        };
+      },
+      [SYNC_CHANNELS.RestartAndInstallUpdate]: async () => {
+        autoUpdater.quitAndInstall();
+      },
 
-    ipcMain.handle(Channels.GETFILECHANGES, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getChanges());
-    });
+      // --- Events ---
+      [SYNC_CHANNELS.CommandHistoryChanged]: async () => {
+        throw new Error('CommandHistoryChanged is a push-only channel and should not be invoked directly.');
+      },
+    };
+  }
 
-    ipcMain.handle(Channels.GITSTAGE, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].stage(args[2]));
-    });
-
-    ipcMain.handle(Channels.GITUNSTAGE, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].unstage(args[2]));
-    });
-
-    ipcMain.handle(Channels.OPENTERMINAL, (event, ...args) => {
-      this.gitClients[args[1]].openTerminal();
-      return new ElectronResponse();
-    });
-
-    ipcMain.handle(Channels.GETFILEDIFF, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].getDiffPaginated(
-          args[2],
-          args[3],
-          args[4] ?? null,
-          args[5] ?? 500,
-        ),
-      );
-    });
-
-    ipcMain.handle(Channels.COMMIT, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].commit(args[2], args[3], args[4], args[5]),
-      );
-    });
-
-    ipcMain.handle(Channels.CHERRYPICKCOMMIT, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].cherryPickCommit(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.REVERTCOMMIT, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].revertCommit(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.RESETTOCOMMIT, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].resetToCommit(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.GETCOMMITHISTORY, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].getCommitHistory(args[2], args[3], args[4]),
-      );
-    });
-
-    ipcMain.handle(Channels.GETDELETEDSTASHES, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].getDeletedStashes(),
-      );
-    });
-
-    ipcMain.handle(Channels.RESTOREDELETEDSTASH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].restoreDeletedStash(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.CHECKOUT, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].checkout(args[2], args[3], '', args[4]),
-      );
-    });
-
-    ipcMain.handle(Channels.UNDOFILECHANGES, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].undoFileChanges(args[2], args[3], args[4]),
-      );
-    });
-
-    ipcMain.handle(Channels.UNDOSUBMODULECHANGES, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].undoSubmoduleChanges(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.RESOLVECONFLICTUSING, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].resolveConflictUsing(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.CHANGEACTIVEOPERATION, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].changeActiveOperation(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.OPENDEVTOOLS, (event, ...args) => {
-      this.window.webContents.openDevTools();
-      return new ElectronResponse();
-    });
-
-    ipcMain.handle(Channels.PUSH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].pushBranch(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.PULL, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].pull(args[2]));
-    });
-
-    ipcMain.handle(Channels.GETSTASHES, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getStashes());
-    });
-
-    ipcMain.handle(Channels.GETWORKTREES, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getWorktrees());
-    });
-
-    ipcMain.handle(Channels.GETLOCALBRANCHES, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getLocalBranches());
-    });
-
-    ipcMain.handle(Channels.GETREMOTEBRANCHES, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].getRemoteBranches(),
-      );
-    });
-
-    ipcMain.handle(Channels.GETSUBMODULES, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].getSubmodules());
-    });
-
-    ipcMain.handle(Channels.MERGE, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].merge(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.HARDRESET, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].hardReset());
-    });
-
-    ipcMain.handle(Channels.DELETEBRANCH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].deleteBranch(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.FASTFORWARDBRANCH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].fastForward(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.DELETEWORKTREE, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].deleteWorktree(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.COMMITDIFF, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].getCommitDiff(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.STASHDIFF, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].getStashDiff(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.GETBRANCHPREMERGE, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].getBranchPremerge(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.STASH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].stash(args[2], args[3] || ''),
-      );
-    });
-
-    ipcMain.handle(Channels.SETGITSETTINGS, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].setBulkGitSettings(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.UPDATESUBMODULES, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].updateSubmodules(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.ADDSUBMODULE, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].addSubmodule(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.FETCH, (event, ...args) => {
-      return this.handleGitPromise(this.gitClients[args[1]].fetch());
-    });
-
-    ipcMain.handle(Channels.GETCONFIGITEMS, (event, ...args) => {
-      if (this.gitClients[args[1]]) {
-        return this.handleGitPromise(this.gitClients[args[1]].getConfigItems());
-      } else {
-        return new ElectronResponse([]);
-      }
-    });
-
-    ipcMain.handle(Channels.SETCONFIGITEM, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].setConfigItem(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.MERGEBRANCH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].mergeBranch(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.REBASEBRANCH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].rebaseBranch(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.APPLYSTASH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].applyStash(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.DELETESTASH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].deleteStash(args[2]),
-      );
-    });
-
-    ipcMain.handle(Channels.CHECKGITBASHVERSIONS, (event, ...args) => {
-      return this.handleGitPromise(
-        new GitClient(args[1]).checkGitBashVersions(),
-      );
-    });
-
-    ipcMain.on(Channels.ADDWORKTREE, (event, ...args) => {
-      this.gitClients[args[1]]
-        .addWorktree(args[2], args[3])
-        .subscribe((eventData) => {
-          this.defaultReply(event, args, {
-            out: eventData.out,
-            err: eventData.error,
-            done: eventData.done,
-          });
-        });
-    });
-
-    ipcMain.on(Channels.CLONE, (event, ...args) => {
-      new GitClient(args[1]).clone(args[2], args[3]).subscribe((eventData) => {
-        this.defaultReply(event, args, {
-          out: eventData.out,
-          err: eventData.error,
-          done: eventData.done,
-        });
-      });
-    });
-
-    ipcMain.handle(Channels.CHANGEHUNK, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].changeHunk(
-          path.join(args[1], args[2]),
-          args[3],
-          args[4],
-        ),
-      );
-    });
-
-    ipcMain.handle(Channels.GETCOMMANDHISTORY, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].getCommandHistory(),
-      );
-    });
-
-    ipcMain.handle(Channels.RENAMEBRANCH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].renameBranch(args[2], args[3]),
-      );
-    });
-
-    ipcMain.handle(Channels.CREATEBRANCH, (event, ...args) => {
-      return this.handleGitPromise(
-        this.gitClients[args[1]].createBranch(args[2]),
-      );
-    });
-
-    ipcMain.on(Channels.CLOSEWINDOW, (event, ...args) => {
-      this.window.close();
-    });
-
-    ipcMain.on(Channels.MINIMIZE, (event, ...args) => {
-      this.window.minimize();
-    });
-
-    ipcMain.on(Channels.RESTORE, (event, ...args) => {
-      if (this.window.isMaximized()) {
-        this.window.restore();
-      } else {
-        this.window.maximize();
-      }
-    });
-
-    ipcMain.handle(Channels.LOG, (event, ...args) => {
-      this.logger.error(
-        new Date().toLocaleString() +
-          ' ------------------------------------------------',
-      );
-      this.logger.error(args[1]);
-      return new ElectronResponse();
-    });
-
-    ipcMain.handle(Channels.OPENFILEDIALOG, async (event, ...args) => {
-      return new ElectronResponse(dialog.showOpenDialogSync(args[1]));
-    });
-
-    ipcMain.handle(Channels.DELETEFILES, (event, ...args) => {
-      let promises = [];
-      let files: string[] = args[2];
-      files = files.map((f) => f.replace(/["']/g, ''));
-      for (let f of files) {
-        promises.push(
-          new Promise<void>((resolve, reject) => {
-            let path1 = path.join(args[1], f);
-            fs.remove(path1, (err) => {
-              if (err) {
-                reject(err);
+  /**
+   * Returns typed asynchronous IPC handlers for super-ipc (streaming operations)
+   */
+  getAsyncHandlers(): BackendAsyncHandlersType<ASYNC_CHANNELS, AppAsyncApi> {
+    return {
+      [ASYNC_CHANNELS.Clone]: async ({ args, handlers }) => {
+        const { onProgress, onComplete, onError } = handlers;
+        new GitClient(args.repoPath)
+          .clone(args.url, args.targetPath)
+          .subscribe({
+            next: (eventData) => {
+              if (eventData.done) {
+                onComplete({ success: true });
               } else {
-                resolve();
+                onProgress({
+                  out: eventData.out,
+                  err: eventData.error,
+                  done: false,
+                });
               }
-            });
-          }),
-        );
-      }
-      return this.handleGitPromise(Promise.all(promises));
-    });
+            },
+            error: (err) => {
+              onError(err);
+            },
+          });
+      },
+      [ASYNC_CHANNELS.AddWorktree]: async ({ args, handlers }) => {
+        const { onProgress, onComplete, onError } = handlers;
+        this.gitClients[args.repoPath]
+          .addWorktree(args.worktreePath, args.branch)
+          .subscribe({
+            next: (eventData) => {
+              if (eventData.done) {
+                onComplete({ success: true });
+              } else {
+                onProgress({
+                  out: eventData.out,
+                  err: eventData.error,
+                  done: false,
+                });
+              }
+            },
+            error: (err) => {
+              onError(err);
+            },
+          });
+      },
+    };
   }
 }

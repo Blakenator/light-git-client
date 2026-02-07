@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react';
 import styled from 'styled-components';
 import { Button, Form, InputGroup, Tooltip } from 'react-bootstrap';
-import { useIpc } from '../../../ipc/useIpc';
-import { Channels } from '@light-git/shared';
+import { invokeSync } from '../../../ipc/invokeSync';
+import { SYNC_CHANNELS } from '@light-git/shared';
 import { Icon, TooltipTrigger } from '@light-git/core';
 
 const FileInputWrapper = styled.div`
@@ -37,8 +37,6 @@ export const FileInput: React.FC<FileInputProps> = ({
   disabled = false,
   filter = ['*'],
 }) => {
-  const ipc = useIpc();
-
   const handleBrowse = useCallback(async () => {
     try {
       const properties: string[] = isFolder ? ['openDirectory'] : ['openFile'];
@@ -46,22 +44,21 @@ export const FileInput: React.FC<FileInputProps> = ({
         properties.push('multiSelections');
       }
 
-      const result = await ipc.rpc<{ filePaths: string[]; canceled: boolean }>(
-        Channels.OPENFILEDIALOG,
-        { properties, filters: filter }
-      );
+      const result = await invokeSync(SYNC_CHANNELS.OpenFileDialog, {
+        options: { properties, filters: filter },
+      });
 
-      if (!result.canceled && result.filePaths?.length > 0) {
+      if (result && result.length > 0) {
         if (allowMultiple) {
-          onChange(result.filePaths.join(','));
+          onChange(result.join(','));
         } else {
-          onChange(result.filePaths[0]);
+          onChange(result[0]);
         }
       }
     } catch (error) {
       console.error('Failed to open file dialog:', error);
     }
-  }, [ipc, isFolder, allowMultiple, filter, onChange]);
+  }, [isFolder, allowMultiple, filter, onChange]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {

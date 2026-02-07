@@ -2,9 +2,9 @@ import React, { useCallback, useState } from 'react';
 import styled from 'styled-components';
 import { Button } from 'react-bootstrap';
 import { Icon } from '@light-git/core';
-import { useIpc } from '../../ipc/useIpc';
+import { invokeSync } from '../../ipc/invokeSync';
 import { useUiStore } from '../../stores';
-import { Channels } from '@light-git/shared';
+import { SYNC_CHANNELS } from '@light-git/shared';
 import { CloneDialog } from '../RepoView/dialogs/CloneDialog';
 
 const Container = styled.div`
@@ -47,24 +47,21 @@ interface NewTabPageProps {
 }
 
 export const NewTabPage: React.FC<NewTabPageProps> = ({ onLoadRepo }) => {
-  const ipc = useIpc();
   const addAlert = useUiStore((state) => state.addAlert);
   const [showCloneDialog, setShowCloneDialog] = useState(false);
 
   const handleOpenFolder = useCallback(async () => {
     try {
-      // Use OPENFILEDIALOG with openDirectory property to show folder picker
-      const result = await ipc.rpc<string[] | undefined>(
-        Channels.OPENFILEDIALOG,
-        { properties: ['openDirectory'] }
-      );
+      const result = await invokeSync(SYNC_CHANNELS.OpenFileDialog, {
+        options: { properties: ['openDirectory'] },
+      });
       if (result && result[0]) {
         onLoadRepo(result[0]);
       }
     } catch (error: any) {
       addAlert(`Failed to open folder: ${error.message}`, 'error');
     }
-  }, [ipc, onLoadRepo, addAlert]);
+  }, [onLoadRepo, addAlert]);
 
   const handleClone = useCallback(() => {
     setShowCloneDialog(true);

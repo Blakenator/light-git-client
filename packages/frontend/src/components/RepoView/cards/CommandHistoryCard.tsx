@@ -6,8 +6,9 @@ import { Icon } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput } from '../RepoView.styles';
 import { useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
-import { useGitService, useIpcListener } from '../../../ipc';
-import { Channels } from '@light-git/shared';
+import { useGitService } from '../../../ipc';
+import { useBackendListener } from '../../../ipc/useBackendListener';
+import { SYNC_CHANNELS } from '@light-git/shared';
 
 // ==================== Styled Components ====================
 
@@ -351,8 +352,8 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
     }
   }, [gitService, repoPath]);
 
-  // Listen for command history changes from backend
-  useIpcListener(Channels.COMMANDHISTORYCHANGED, () => {
+  // Listen for command history changes pushed from backend
+  useBackendListener(SYNC_CHANNELS.CommandHistoryChanged, () => {
     handleLoadMore();
   });
 

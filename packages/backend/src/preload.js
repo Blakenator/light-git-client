@@ -1,16 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const { registerElectronApiBridge } = require('@superflag/super-ipc-preloader');
 
-contextBridge.exposeInMainWorld('electronApi', {
-  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
-  send: (channel, ...args) => ipcRenderer.send(channel, ...args),
-  on: (channel, callback) => {
-    const subscription = (event, ...args) => callback(event, ...args);
-    ipcRenderer.on(channel, subscription);
-    return subscription;
-  },
-  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
-});
+// Register the super-ipc bridge (exposes invoke, on, removeListener)
+registerElectronApiBridge(contextBridge, ipcRenderer);
 
+// Keep setTheme separate (not part of IPC)
 contextBridge.exposeInMainWorld('setTheme', (theme) => {
   document.body.classList.remove('light-theme', 'dark-theme');
   document.body.classList.add(theme === 'dark' ? 'dark-theme' : 'light-theme');

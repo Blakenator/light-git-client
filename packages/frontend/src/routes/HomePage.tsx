@@ -3,8 +3,8 @@ import styled from 'styled-components';
 import { Tooltip } from 'react-bootstrap';
 import { TooltipTrigger } from '@light-git/core';
 import { useRepositoryStore, useSettingsStore, useUiStore } from '../stores';
-import { useIpc } from '../ipc/useIpc';
-import { Channels } from '@light-git/shared';
+import { invokeSync } from '../ipc/invokeSync';
+import { SYNC_CHANNELS } from '@light-git/shared';
 import { TabBar } from '../components/TabBar/TabBar';
 import { ActiveJobs } from '../components/ActiveJobs/ActiveJobs';
 import { NewTabPage } from '../components/NewTabPage/NewTabPage';
@@ -56,8 +56,6 @@ const SettingsButton = styled.button`
 `;
 
 const HomePage: React.FC = () => {
-  const ipc = useIpc();
-  
   // Repository store
   const tabs = useRepositoryStore((state) => state.tabs);
   const activeTabIndex = useRepositoryStore((state) => state.activeTabIndex);
@@ -97,7 +95,7 @@ const HomePage: React.FC = () => {
     try {
       // Initialize the git client on backend FIRST (validates it's a valid repo)
       // This must happen before setActiveTabData so the git client exists when RepoView mounts
-      await ipc.rpc(Channels.LOADREPO, path);
+      await invokeSync(SYNC_CHANNELS.LoadRepo, { repoPath: path });
 
       // Now update the UI state - RepoView will mount and can safely call git operations
       setActiveTabData(path);
@@ -115,7 +113,7 @@ const HomePage: React.FC = () => {
     } catch (error: any) {
       addAlert(`Failed to load repository: ${error.message}`, 'error');
     }
-  }, [ipc, setActiveTabData, initializeCacheForPath, updateSettings, saveSettings, addAlert]);
+  }, [setActiveTabData, initializeCacheForPath, updateSettings, saveSettings, addAlert]);
 
   // Initialize cache and load active repo when settings are loaded
   useEffect(() => {

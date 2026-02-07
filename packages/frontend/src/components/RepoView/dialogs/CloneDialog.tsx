@@ -2,8 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Modal, Button, Form, ProgressBar, Badge } from 'react-bootstrap';
 import styled from 'styled-components';
 import { useUiStore } from '../../../stores';
-import { useIpc, useIpcListener } from '../../../ipc/useIpc';
-import { Channels } from '@light-git/shared';
+import { useBackendAsync, ASYNC_CHANNELS } from '../../../ipc';
 import { Icon } from '@light-git/core';
 import { FileInput } from '../../../common/components/FileInput/FileInput';
 
@@ -62,7 +61,6 @@ export const CloneDialog: React.FC<CloneDialogProps> = ({
 
   // Support both prop-based and store-based visibility
   const isVisible = show !== undefined ? show : modalVisible;
-  const ipc = useIpc();
 
   const [url, setUrl] = useState('');
   const [targetPath, setTargetPath] = useState('');
@@ -72,6 +70,44 @@ export const CloneDialog: React.FC<CloneDialogProps> = ({
   const [outputs, setOutputs] = useState<CloneOutput[]>([]);
   const [cloneError, setCloneError] = useState<string | null>(null);
   const outputContainerRef = useRef<HTMLDivElement>(null);
+  const targetPathRef = useRef(targetPath);
+  targetPathRef.current = targetPath;
+
+  // Use super-ipc async hook for clone streaming
+  const { refetch: startClone } = useBackendAsync({
+    channel: ASYNC_CHANNELS.Clone,
+    skip: true,
+    onProgress: useCallback((event: { out?: string; err?: string; done?: boolean }) => {
+      if (event.out) {
+        setOutputs((prev) => [...prev, { message: event.out! }]);
+        setStatusMessage(event.out);
+      }
+      if (event.err) {
+        setOutputs((prev) => [...prev, { message: event.err!, type: 'error' }]);
+      }
+    }, []),
+    onComplete: useCallback((event: { success: boolean }) => {
+      setIsCloning(false);
+      if (event.success) {
+        setProgress(100);
+        setOutputs((prev) => [
+          ...prev,
+          { message: 'Clone completed successfully!', type: 'success' },
+        ]);
+        setTimeout(() => {
+          if (onHide) {
+            onHide();
+          } else {
+            hideModal('clone');
+          }
+          const callback = onSuccess || onCloneComplete;
+          if (callback) {
+            callback(targetPathRef.current);
+          }
+        }, 1000);
+      }
+    }, [onHide, onSuccess, onCloneComplete, hideModal]),
+  });
 
   // Auto-scroll to bottom when new output arrives
   useEffect(() => {
@@ -79,55 +115,6 @@ export const CloneDialog: React.FC<CloneDialogProps> = ({
       outputContainerRef.current.scrollTop = outputContainerRef.current.scrollHeight;
     }
   }, [outputs]);
-
-  // Listen for clone progress
-  useIpcListener(
-    Channels.CLONE,
-    (data) => {
-      if (data.progress !== undefined) {
-        setProgress(data.progress);
-      }
-      if (data.message) {
-        setStatusMessage(data.message);
-        const messageType = data.message.toLowerCase().includes('error')
-          ? 'error'
-          : data.message.toLowerCase().includes('complete') ||
-            data.message.toLowerCase().includes('done')
-          ? 'success'
-          : 'info';
-        setOutputs((prev) => [...prev, { message: data.message, type: messageType }]);
-      }
-      if (data.output) {
-        setOutputs((prev) => [...prev, { message: data.output }]);
-      }
-      if (data.error) {
-        setCloneError(data.error);
-        setOutputs((prev) => [...prev, { message: data.error, type: 'error' }]);
-        setIsCloning(false);
-      }
-      if (data.complete) {
-        setIsCloning(false);
-        setOutputs((prev) => [
-          ...prev,
-          { message: 'Clone completed successfully!', type: 'success' },
-        ]);
-        // Close modal after a brief delay
-        setTimeout(() => {
-          if (onHide) {
-            onHide();
-          } else {
-            hideModal('clone');
-          }
-          // Notify success
-          const callback = onSuccess || onCloneComplete;
-          if (callback) {
-            callback(targetPath);
-          }
-        }, 1000);
-      }
-    },
-    [targetPath, hideModal, onHide, onSuccess, onCloneComplete]
-  );
 
   const handleClose = useCallback(() => {
     if (!isCloning) {
@@ -155,13 +142,13 @@ export const CloneDialog: React.FC<CloneDialogProps> = ({
     setCloneError(null);
 
     try {
-      ipc.trigger(Channels.CLONE, url, targetPath);
+      await startClone({ repoPath: targetPath, url, targetPath });
     } catch (error: any) {
       console.error('Failed to start clone:', error);
       setCloneError(error.message || 'Failed to start clone');
       setIsCloning(false);
     }
-  }, [url, targetPath, ipc]);
+  }, [url, targetPath, startClone]);
 
   const handleUrlKeyPress = useCallback(
     (e: React.KeyboardEvent) => {

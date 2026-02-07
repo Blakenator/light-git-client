@@ -6,33 +6,32 @@ import { useRepositoryStore, useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
 import { detectPreCommitStatus } from '../../../utils/warningDetectors';
+import { ActiveOperation } from '@light-git/shared';
 
-export type ActiveOperation = 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null;
-
-const operationConfig = {
-  merge: {
+const operationConfig: Record<ActiveOperation, { name: string; icon: string; isFa: boolean; variant: 'warning' | 'info' | 'danger' }> = {
+  [ActiveOperation.Merge]: {
     name: 'Merge',
     icon: 'merge_type',
     isFa: false,
-    variant: 'warning' as const,
+    variant: 'warning',
   },
-  rebase: {
+  [ActiveOperation.Rebase]: {
     name: 'Rebase',
     icon: 'fa-code-branch',
     isFa: true,
-    variant: 'info' as const,
+    variant: 'info',
   },
-  'cherry-pick': {
+  [ActiveOperation.CherryPick]: {
     name: 'Cherry Pick',
     icon: 'fa-apple-alt',
     isFa: true,
-    variant: 'info' as const,
+    variant: 'info',
   },
-  revert: {
+  [ActiveOperation.Revert]: {
     name: 'Revert',
     icon: 'fa-undo',
     isFa: true,
-    variant: 'danger' as const,
+    variant: 'danger',
   },
 };
 
@@ -56,7 +55,7 @@ export const ActiveOperationBanner: React.FC<ActiveOperationBannerProps> = React
     const activeOps = repoCache?.changes?.activeOperations;
     if (activeOps) {
       const [op] = Object.entries(activeOps).find(([, val]) => val) ?? [];
-      useRepoViewStore.getState().setActiveOperation(repoPath, (op as ActiveOperation) || null);
+      useRepoViewStore.getState().setActiveOperation(repoPath, (op as ActiveOperation) ?? null);
     } else {
       useRepoViewStore.getState().setActiveOperation(repoPath, null);
     }

@@ -1,5 +1,6 @@
-// Channels
+// Channels & API Types
 export * from './Channels';
+export * from './api-types';
 
 // Models
 export * from './SettingsModel';
@@ -23,5 +24,5 @@ export * from './git/command-history.model';
 export * from './git/config-item.model';
 
 // Common
-export * from './common/electron-response';
+export * from './common/command.output.model';
 export * from './common/error.model';

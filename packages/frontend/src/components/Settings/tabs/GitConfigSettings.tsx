@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Form, Button, ButtonGroup, Table, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
-import { Channels } from '@light-git/shared';
+import { SYNC_CHANNELS, type ConfigItemModel } from '@light-git/shared';
 import { Icon, TooltipTrigger } from '@light-git/core';
-import { useIpc } from '../../../ipc/useIpc';
+import { invokeSync } from '../../../ipc/invokeSync';
 import { useRepositoryStore } from '../../../stores';
 import {
   useReactTable,
@@ -86,11 +86,6 @@ const NewItemRow = styled.tr`
   }
 `;
 
-interface ConfigItemModel {
-  key: string;
-  value: string;
-  sourceFile: string;
-}
 
 interface GitConfigSettingsProps {
   settings: any;
@@ -257,7 +252,6 @@ export const GitConfigSettings: React.FC<GitConfigSettingsProps> = ({
   settings,
   onChange,
 }) => {
-  const ipc = useIpc();
   const getActiveTab = useRepositoryStore((state) => state.getActiveTab);
   const [configItems, setConfigItems] = useState<ConfigItemModel[]>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -270,11 +264,11 @@ export const GitConfigSettings: React.FC<GitConfigSettingsProps> = ({
   useEffect(() => {
     const activeTab = getActiveTab();
     if (activeTab?.path) {
-      ipc.rpc<ConfigItemModel[]>(Channels.GETCONFIGITEMS, activeTab.path)
+      invokeSync(SYNC_CHANNELS.GetConfigItems, { repoPath: activeTab.path })
         .then((items) => setConfigItems(items))
         .catch((err) => console.error('Failed to load config items:', err));
     }
-  }, [ipc, getActiveTab]);
+  }, [getActiveTab]);
 
   const getConfigFileDisplay = useCallback((sourceFile: string) => {
     if (!sourceFile) return '';
@@ -306,7 +300,11 @@ export const GitConfigSettings: React.FC<GitConfigSettingsProps> = ({
       const activeTab = getActiveTab();
       if (!activeTab?.path) return;
 
-      ipc.rpc<ConfigItemModel[]>(Channels.SETCONFIGITEM, activeTab.path, editedItem, rename)
+      invokeSync(SYNC_CHANNELS.SetConfigItem, { repoPath: activeTab.path, item: editedItem })
+        .then(() => {
+          // Reload config items after save
+          return invokeSync(SYNC_CHANNELS.GetConfigItems, { repoPath: activeTab.path });
+        })
         .then((items) => setConfigItems(items))
         .catch((err) => {
           console.error('Failed to save config item:', err);
@@ -315,7 +313,7 @@ export const GitConfigSettings: React.FC<GitConfigSettingsProps> = ({
           }
         });
     },
-    [ipc, getActiveTab, editedItem]
+    [getActiveTab, editedItem]
   );
 
   const saveConfigItem = useCallback(
@@ -342,14 +340,15 @@ export const GitConfigSettings: React.FC<GitConfigSettingsProps> = ({
         const activeTab = getActiveTab();
         if (!activeTab?.path) return;
 
-        ipc.rpc<ConfigItemModel[]>(Channels.SETCONFIGITEM, activeTab.path, { ...item, value: '' })
+        invokeSync(SYNC_CHANNELS.SetConfigItem, { repoPath: activeTab.path, item: { ...item, value: '' } })
+          .then(() => invokeSync(SYNC_CHANNELS.GetConfigItems, { repoPath: activeTab.path }))
           .then((items) => setConfigItems(items))
           .catch((err) => console.error('Failed to delete config item:', err));
       } else {
         setConfigItems((prev) => prev.filter((i) => i !== item));
       }
     },
-    [ipc, getActiveTab]
+    [getActiveTab]
   );
 
   const newItem = useCallback(() => {

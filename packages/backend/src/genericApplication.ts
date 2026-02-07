@@ -1,7 +1,6 @@
 import { app, BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 import * as NodeNotifier from 'node-notifier';
-import { ElectronResponse } from '@light-git/shared/src/common/electron-response';
 import * as url from 'url';
 import { UrlObject } from 'url';
 
@@ -71,6 +70,7 @@ export abstract class GenericApplication {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        sandbox: false,
         preload: path.join(__dirname, 'preload.js'),
       },
     });
@@ -113,17 +113,6 @@ export abstract class GenericApplication {
   }
 
   beforeQuit() {}
-
-  defaultReply(event, args, data?: any, success: boolean = true) {
-    event.sender.send(
-      this.getReplyChannel(args),
-      new ElectronResponse(data, success),
-    );
-  }
-
-  getReplyChannel(arg) {
-    return arg[0] + 'reply';
-  }
 
   start() {
     this.bindAppHandlers();

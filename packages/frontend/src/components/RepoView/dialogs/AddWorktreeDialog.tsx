@@ -1,8 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { useUiStore } from '../../../stores';
-import { useIpc } from '../../../ipc/useIpc';
-import { Channels } from '@light-git/shared';
+import { invokeSync, useBackendAsync, SYNC_CHANNELS, ASYNC_CHANNELS } from '../../../ipc';
 
 interface BranchModel {
   name: string;
@@ -24,7 +23,6 @@ export const AddWorktreeDialog: React.FC<AddWorktreeDialogProps> = ({
 }) => {
   const isVisible = useUiStore((state) => state.modals['addWorktree'] || false);
   const hideModal = useUiStore((state) => state.hideModal);
-  const ipc = useIpc();
 
   const [selectedBranch, setSelectedBranch] = useState('');
   const [worktreePath, setWorktreePath] = useState('');
@@ -32,7 +30,18 @@ export const AddWorktreeDialog: React.FC<AddWorktreeDialogProps> = ({
   const [createNewBranch, setCreateNewBranch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleClose = useCallback(() => {
+  const { refetch: startAddWorktree } = useBackendAsync({
+    channel: ASYNC_CHANNELS.AddWorktree,
+    skip: true,
+    onComplete: useCallback(() => {
+      setIsSubmitting(false);
+      handleCloseAndReset();
+      onSuccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onSuccess]),
+  });
+
+  const handleCloseAndReset = useCallback(() => {
     hideModal('addWorktree');
     setSelectedBranch('');
     setWorktreePath('');
@@ -42,50 +51,46 @@ export const AddWorktreeDialog: React.FC<AddWorktreeDialogProps> = ({
 
   const handleBrowse = useCallback(async () => {
     try {
-      const result = await ipc.rpc<{ filePaths: string[] }>(Channels.OPENFOLDER);
-      if (result?.filePaths?.[0]) {
-        setWorktreePath(result.filePaths[0]);
+      const result = await invokeSync(SYNC_CHANNELS.OpenFileDialog, {
+        options: { properties: ['openDirectory'] },
+      });
+      if (result?.[0]) {
+        setWorktreePath(result[0]);
       }
     } catch (error) {
       console.error('Failed to open folder:', error);
     }
-  }, [ipc]);
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!worktreePath) return;
 
     setIsSubmitting(true);
     try {
-      await ipc.rpc(
-        Channels.ADDWORKTREE,
+      await startAddWorktree({
         repoPath,
         worktreePath,
-        createNewBranch ? newBranchName : selectedBranch,
-        createNewBranch
-      );
-      handleClose();
-      onSuccess();
+        branch: createNewBranch ? newBranchName : selectedBranch,
+        createNewBranch,
+      });
     } catch (error) {
       console.error('Failed to add worktree:', error);
-    } finally {
       setIsSubmitting(false);
     }
   }, [
-    ipc,
     repoPath,
     worktreePath,
     selectedBranch,
     newBranchName,
     createNewBranch,
-    handleClose,
-    onSuccess,
+    startAddWorktree,
   ]);
 
   const isValid =
     worktreePath && (createNewBranch ? newBranchName : selectedBranch);
 
   return (
-    <Modal show={isVisible} onHide={handleClose} centered>
+    <Modal show={isVisible} onHide={handleCloseAndReset} centered>
       <Modal.Header closeButton>
         <Modal.Title>Add Worktree</Modal.Title>
       </Modal.Header>
@@ -142,7 +147,7 @@ export const AddWorktreeDialog: React.FC<AddWorktreeDialogProps> = ({
         )}
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={handleClose}>
+        <Button variant="secondary" onClick={handleCloseAndReset}>
           Cancel
         </Button>
         <Button

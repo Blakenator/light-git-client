@@ -1,15 +1,18 @@
 /// <reference types="vite/client" />
 
-interface ElectronApi {
-  invoke: (channel: string, ...args: any[]) => Promise<any>;
-  on: (channel: string, callback: (event: any, ...args: any[]) => void) => void;
-  send: (channel: string, ...args: any[]) => void;
-  removeAllListeners: (channel: string) => void;
+/**
+ * Raw bridge exposed by the preload script via registerElectronApiBridge.
+ * Type safety is provided by invokeSync, useBackend, useBackendAsync, etc.
+ */
+interface ElectronApiBridge {
+  invoke(channel: string, ...args: unknown[]): Promise<unknown>;
+  on(channel: string, callback: (...args: unknown[]) => void): void;
+  removeListener(channel: string, callback: (...args: unknown[]) => void): void;
 }
 
 declare global {
   interface Window {
-    electronApi: ElectronApi;
+    electronApi: ElectronApiBridge;
     setTheme: (theme: string) => void;
   }
 }
