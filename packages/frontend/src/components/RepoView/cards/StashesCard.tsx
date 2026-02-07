@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Button, ButtonGroup, Tooltip } from 'react-bootstrap';
+import { Badge, Button, ButtonGroup, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import type { StashModel } from '@light-git/shared';
+import styled from 'styled-components';
 
 interface StashesCardProps {
   stashes: StashModel[];
@@ -27,7 +28,10 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({
   const filteredStashes = useMemo(() => {
     if (!filter) return stashes;
     const lowerFilter = filter.toLowerCase();
-    return stashes.filter((s) => s.message?.toLowerCase().includes(lowerFilter));
+    return stashes.filter((s) =>
+      s.message?.toLowerCase().includes(lowerFilter) ||
+      s.branchName?.toLowerCase().includes(lowerFilter)
+    );
   }, [stashes, filter]);
 
   const headerContent = (
@@ -113,6 +117,33 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({
   );
 });
 
+const StashRow = styled.div`
+  padding: 0.25em 0.3em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &:nth-child(even) {
+    background-color: rgba(128, 128, 128, 0.1);
+  }
+`;
+
+const StashMessage = styled.div`
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const BranchBadge = styled(Badge)`
+  min-width: 3em;
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 interface StashItemProps {
   stash: StashModel;
   onApply: (stash: StashModel) => void;
@@ -126,42 +157,28 @@ const StashItem: React.FC<StashItemProps> = ({
   onDelete,
   onView,
 }) => {
-  const [showActions, setShowActions] = useState(false);
-
   return (
-    <div
-      className="d-flex align-items-center py-1 px-2 rounded"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <TooltipTrigger
-        placement="bottom"
-        overlay={<Tooltip id={`tooltip-stash-message-${stash.hash}`}>{stash.message}</Tooltip>}
-      >
-        <span className="flex-grow-1 text-truncate">
-          {stash.message || `stash@{${stash.index}}`}
-        </span>
-      </TooltipTrigger>
-      {showActions && (
+    <StashRow>
+      <Badge bg="info">{stash.index}</Badge>
+      <StashMessage>
+        {stash.message || `stash@{${stash.index}}`}
+      </StashMessage>
+      {stash.branchName && (
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id={`tooltip-stash-branch-${stash.hash}`}>{stash.branchName}</Tooltip>}
+        >
+          <BranchBadge bg="primary">{stash.branchName}</BranchBadge>
+        </TooltipTrigger>
+      )}
+      <div className="d-inline-block flex-shrink-0">
         <ButtonGroup size="sm">
           <TooltipTrigger
             placement="top"
-            overlay={<Tooltip id={`tooltip-apply-stash-${stash.hash}`}>Apply stash</Tooltip>}
+            overlay={<Tooltip id={`tooltip-view-stash-${stash.hash}`}>View Stash Diff</Tooltip>}
           >
             <Button
-              variant="outline-success"
-              size="sm"
-              onClick={() => onApply(stash)}
-            >
-              <Icon name="fa-download" size="sm" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipTrigger
-            placement="top"
-            overlay={<Tooltip id={`tooltip-view-stash-${stash.hash}`}>View stash</Tooltip>}
-          >
-            <Button
-              variant="outline-info"
+              variant="outline-warning"
               size="sm"
               onClick={() => onView(stash)}
             >
@@ -170,7 +187,19 @@ const StashItem: React.FC<StashItemProps> = ({
           </TooltipTrigger>
           <TooltipTrigger
             placement="top"
-            overlay={<Tooltip id={`tooltip-delete-stash-${stash.hash}`}>Delete stash</Tooltip>}
+            overlay={<Tooltip id={`tooltip-apply-stash-${stash.hash}`}>Apply Stash</Tooltip>}
+          >
+            <Button
+              variant="outline-light"
+              size="sm"
+              onClick={() => onApply(stash)}
+            >
+              <Icon name="fa-box-open" size="sm" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id={`tooltip-delete-stash-${stash.hash}`}>Delete Stash</Tooltip>}
           >
             <Button
               variant="outline-danger"
@@ -181,8 +210,8 @@ const StashItem: React.FC<StashItemProps> = ({
             </Button>
           </TooltipTrigger>
         </ButtonGroup>
-      )}
-    </div>
+      </div>
+    </StashRow>
   );
 };
 

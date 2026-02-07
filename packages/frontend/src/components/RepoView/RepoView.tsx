@@ -128,6 +128,7 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const diffIgnoreWhitespace = useSettingsStore((state) => state.settings.diffIgnoreWhitespace);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const saveSettings = useSettingsStore((state) => state.saveSettings);
+  const setExpandState = useSettingsStore((state) => state.setExpandState);
   const showModal = useUiStore((state) => state.showModal);
   const addAlert = useUiStore((state) => state.addAlert);
   const crlfError = useUiStore((state) => state.crlfError);
@@ -971,52 +972,75 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleStashWithName = useCallback(async (stashName: string) => {
     try {
       await gitService.stash(stashOnlyUnstaged, stashName);
+      updateRepoCache(repoPath, { selectedStagedChanges: {}, selectedUnstagedChanges: {} });
       addAlert('Changes stashed', 'success');
     } catch (error: any) {
       const crlf = detectCrlfWarning(error.message || '');
       if (crlf) {
         setCrlfError(crlf);
+        updateRepoCache(repoPath, { selectedStagedChanges: {}, selectedUnstagedChanges: {} });
         addAlert('Changes stashed', 'success');
       } else {
         addAlert(`Stash failed: ${error.message}`, 'error');
       }
     }
-  }, [gitService, stashOnlyUnstaged, addAlert, setCrlfError]);
+  }, [gitService, stashOnlyUnstaged, repoPath, updateRepoCache, addAlert, setCrlfError]);
 
   const handleApplyStash = useCallback(async (stash: any) => {
     try {
       await gitService.applyStash(stash.index);
+      updateRepoCache(repoPath, { selectedStagedChanges: {}, selectedUnstagedChanges: {} });
       addAlert('Stash applied', 'success');
     } catch (error: any) {
       addAlert(`Apply stash failed: ${error.message}`, 'error');
     }
-  }, [gitService, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert]);
 
   const handleDeleteStash = useCallback(async (stash: any) => {
+    // Optimistically remove the stash from the local list and re-index
+    const currentStashes = repoRef.current?.stashes || [];
+    const updatedStashes = currentStashes
+      .filter((s: any) => s.hash !== stash.hash)
+      .map((s: any, i: number) => ({ ...s, index: i }));
+    updateRepoCache(repoPath, {
+      stashes: updatedStashes,
+      selectedStagedChanges: {},
+      selectedUnstagedChanges: {},
+    });
     try {
       await gitService.deleteStash(stash.index);
       addAlert('Stash deleted', 'success');
     } catch (error: any) {
+      // Revert optimistic update on failure
+      updateRepoCache(repoPath, { stashes: currentStashes });
       addAlert(`Delete stash failed: ${error.message}`, 'error');
     }
-  }, [gitService, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert]);
 
   const handleViewStash = useCallback(async (stash: any) => {
     try {
       const diffResponse = await gitService.getStashDiff(stash.index) as any;
       const diff = Array.isArray(diffResponse) ? diffResponse : (diffResponse?.content || []);
-      setCurrentDiff(normalizeDiff(diff || []));
+      const normalized = normalizeDiff(diff || []);
+      if (normalized.length === 0) {
+        console.warn('View stash: normalized diff is empty. Raw response:', diffResponse);
+      }
+      setCurrentDiff(normalized);
       setCommitInfo({ 
         hash: stash.hash, 
         message: stash.message || `stash@{${stash.index}}`, 
-        author: '',
-        date: ''
+        author: stash.authorName || '',
+        date: stash.authorDate || '',
+        parents: stash.parentHashes || [],
+        tags: stash.branchName ? [stash.branchName] : [],
       });
       setShowDiff(true);
+      // Ensure the commit-history card is expanded so the diff view is visible
+      setExpandState('commit-history', true);
     } catch (error: any) {
       addAlert(`View stash failed: ${error.message}`, 'error');
     }
-  }, [gitService, addAlert, normalizeDiff]);
+  }, [gitService, addAlert, normalizeDiff, setExpandState]);
 
   // Active operation handlers
   const handleAbortOperation = useCallback(async () => {
@@ -1710,9 +1734,10 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
       <InputModal
         modalId="createStash"
-        title="Stash Changes"
+        title={`Stash ${stashOnlyUnstaged ? 'Unstaged' : 'All'} Changes`}
         message="Please enter a name for the stash"
         placeholder="Stash name..."
+        defaultValue={currentBranch?.lastCommitText ?? ''}
         validPattern='^[^"]*$'
         invalidMessage="Stash name cannot include double quotes"
         onOk={handleStashOk}

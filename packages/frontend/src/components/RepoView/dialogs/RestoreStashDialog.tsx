@@ -77,13 +77,10 @@ export const RestoreStashDialog: React.FC<RestoreStashDialogProps> = ({
   useEffect(() => {
     if (isVisible && repoPath) {
       setIsLoading(true);
-      // The getDeletedStashes method may need to be added to the git service
-      // For now, we'll use a placeholder that can be implemented later
       const loadDeletedStashes = async () => {
         try {
-          // This would typically call: gitService.getDeletedStashes()
-          // For now, return empty array until backend method is implemented
-          const stashes: CommitSummary[] = [];
+          const result = await gitService.getDeletedStashes() as any;
+          const stashes: CommitSummary[] = Array.isArray(result) ? result : (result?.content || []);
           setAvailableStashes(
             stashes.sort(
               (a, b) =>
@@ -100,7 +97,7 @@ export const RestoreStashDialog: React.FC<RestoreStashDialogProps> = ({
       };
       loadDeletedStashes();
     }
-  }, [isVisible, repoPath, addAlert]);
+  }, [isVisible, repoPath, gitService, addAlert]);
 
   const filteredStashes = availableStashes.filter(
     (stash) =>
@@ -120,9 +117,7 @@ export const RestoreStashDialog: React.FC<RestoreStashDialogProps> = ({
 
     try {
       setIsLoading(true);
-      // This would typically call: gitService.restoreDeletedStash(selectedStash.hash)
-      // The backend method needs to be implemented to run:
-      // git stash store -m "Restored: <message>" <hash>
+      await gitService.restoreDeletedStash(selectedStash.hash);
       addAlert('Stash restored successfully', 'success');
       onRestored?.();
       handleClose();
@@ -131,7 +126,7 @@ export const RestoreStashDialog: React.FC<RestoreStashDialogProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedStash, addAlert, onRestored, handleClose]);
+  }, [selectedStash, gitService, addAlert, onRestored, handleClose]);
 
   return (
     <Modal show={isVisible} onHide={handleClose} size="lg" centered>
@@ -149,6 +144,16 @@ export const RestoreStashDialog: React.FC<RestoreStashDialogProps> = ({
             onChange={(e) => setFilter(e.target.value)}
           />
         </Form.Group>
+
+        {selectedStash && (
+          <div className="alert alert-warning d-flex align-items-center mb-3">
+            <Icon name="fa-exclamation-triangle" className="me-2" />
+            <div>
+              <div>This will create the branch</div>
+              <span className="badge bg-info">restored-stash/{selectedStash.hash}</span>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="text-center py-4">Loading deleted stashes...</div>

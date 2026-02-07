@@ -255,6 +255,7 @@ interface CommitInfo {
   author: string;
   date: string;
   parents?: string[];
+  tags?: string[];
 }
 
 interface DiffHunk {

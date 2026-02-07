@@ -456,6 +456,35 @@ export function useGitService(repoPath: string) {
     [ipc, runJob, createJobConfig],
   );
 
+  const getDeletedStashes = useCallback(
+    () => {
+      const rp = repoPathRef.current;
+      return runJob(
+        createJobConfig(
+          Channels.GETDELETEDSTASHES,
+          () => ipc.rpc(Channels.GETDELETEDSTASHES, rp),
+          [],
+          { reorderable: true },
+        ),
+      );
+    },
+    [ipc, runJob, createJobConfig],
+  );
+
+  const restoreDeletedStash = useCallback(
+    (stashHash: string) => {
+      const rp = repoPathRef.current;
+      return runJob(
+        createJobConfig(
+          Channels.RESTOREDELETEDSTASH,
+          () => ipc.rpc(Channels.RESTOREDELETEDSTASH, rp, stashHash),
+          [RepoArea.LOCAL_BRANCHES],
+        ),
+      );
+    },
+    [ipc, runJob, createJobConfig],
+  );
+
   const cherryPick = useCallback(
     (hash: string) => {
       const rp = repoPathRef.current;
@@ -691,6 +720,7 @@ export function useGitService(repoPath: string) {
       getStashDiff,
       getCommitDiff,
       getCommandHistory,
+      getDeletedStashes,
 
       // Write operations
       stage,
@@ -711,6 +741,7 @@ export function useGitService(repoPath: string) {
       stash,
       applyStash,
       deleteStash,
+      restoreDeletedStash,
       cherryPick,
       revert,
       reset,
@@ -743,6 +774,7 @@ export function useGitService(repoPath: string) {
       getStashDiff,
       getCommitDiff,
       getCommandHistory,
+      getDeletedStashes,
       stage,
       unstage,
       commit,
@@ -761,6 +793,7 @@ export function useGitService(repoPath: string) {
       stash,
       applyStash,
       deleteStash,
+      restoreDeletedStash,
       cherryPick,
       revert,
       reset,
