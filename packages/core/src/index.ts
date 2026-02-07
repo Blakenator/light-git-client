@@ -10,6 +10,7 @@ export { ErrorMessages } from './components/ErrorMessage/ErrorMessage';
 export type { ErrorItem } from './components/ErrorMessage/ErrorMessage';
 export { AgeInfo } from './components/AgeInfo/AgeInfo';
 export { PrettyCheckbox } from './components/PrettyCheckbox/PrettyCheckbox';
+export { TooltipTrigger } from './components/TooltipTrigger/TooltipTrigger';
 
 // Styles
 export * from './styles/theme';

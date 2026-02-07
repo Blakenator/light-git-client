@@ -1,16 +1,19 @@
 import React, { useMemo } from 'react';
 import styled, { useTheme } from 'styled-components';
 
-const SvgContainer = styled.div`
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  height: 100%;
-  min-width: 20px;
-`;
-
-const StyledSvg = styled.svg`
-  overflow: visible;
+/**
+ * Absolutely-positioned SVG that fills the table cell.
+ * overflow:hidden clips spacer lines at the cell boundary so they
+ * aren't painted behind adjacent rows' td backgrounds.
+ * Each row's curves (top half) and spacers (bottom half) meet
+ * seamlessly at the cell boundary thanks to border-spacing: 0.
+ */
+const GraphSvg = styled.svg`
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
 `;
 
 interface GraphBlockTarget {
@@ -29,24 +32,29 @@ interface CommitWithGraph {
 
 interface GitGraphCanvasProps {
   commit: CommitWithGraph;
-  prevCommit?: CommitWithGraph | null; // Newer commit (above in the list)
-  nextCommit?: CommitWithGraph | null; // Older commit (below in the list)
-  darkMode?: boolean;
-  rowHeight?: number;
 }
 
-// Branch colors - cycling through a palette
+// Layout constants
+const SLOT_WIDTH = 14;
+const LEFT_PADDING = 8;
+const NODE_RADIUS = 5;
+const CENTER_Y = 22; // Vertical position of commit node within each row
+const SPACER_Y = 2000; // Spacer lines extend far below to cover any row height
+
+const getSafeHoriz = (slot: number): number => slot * SLOT_WIDTH + LEFT_PADDING;
+
+// Branch color palette
 const getBranchColors = (theme: any): string[] => [
-  theme.colors.primary, // blue
-  theme.colors.statusAdded, // green
-  theme.colors.statusDeleted, // red
-  theme.colors.statusChanged, // yellow
-  theme.colors.statusMoved, // cyan
-  theme.colors.statusRenamed, // purple
-  theme.colors.warning, // orange
-  theme.colors.info, // teal
-  theme.colors.danger, // pink
-  theme.colors.secondary, // gray
+  theme.colors.primary,
+  theme.colors.statusAdded,
+  theme.colors.statusDeleted,
+  theme.colors.statusChanged,
+  theme.colors.statusMoved,
+  theme.colors.statusRenamed,
+  theme.colors.warning,
+  theme.colors.info,
+  theme.colors.danger,
+  theme.colors.secondary,
 ];
 
 const getCommitBranchColor = (branchIndex: number, theme: any): string => {
@@ -54,169 +62,104 @@ const getCommitBranchColor = (branchIndex: number, theme: any): string => {
   return colors[branchIndex % colors.length];
 };
 
-export const GitGraphCanvas: React.FC<GitGraphCanvasProps> = ({
-  commit,
-  prevCommit,
-  nextCommit,
-  darkMode = false,
-  rowHeight = 40,
-}) => {
+/**
+ * Deduplicated spacer entry — one per active source slot.
+ * Merges isCommit/isMerge flags when multiple blocks share a slot.
+ */
+interface SpacerEntry {
+  source: number;
+  isCommit: boolean;
+  isMerge: boolean;
+  branchIndex: number;
+}
+
+/**
+ * Git graph visualization for a single commit row.
+ *
+ * Rendering strategy (matching the proven Angular approach):
+ *   1. Curves UP   — from (source, CENTER_Y) to (target, 0) — connect to the row above
+ *   2. Spacers DOWN — from (source, CENTER_Y) to (source, SPACER_Y) — extend into the row below
+ *   3. Commit nodes — drawn last on top of all lines
+ *
+ * Each row is fully self-contained: no neighbor commit data needed.
+ * The spacer overflow from row N visually connects to the curves in row N+1.
+ */
+export const GitGraphCanvas: React.FC<GitGraphCanvasProps> = ({ commit }) => {
   const theme = useTheme();
-  const graphBlockTargets = commit.graphBlockTargets || [];
-  const centerY = rowHeight / 2;
-  const slotWidth = 14;
-  const nodeRadius = 5;
-  const leftPadding = 8;
+  const blocks = commit.graphBlockTargets || [];
 
-  const getSafeHoriz = (slot: number): number => {
-    return slot * slotWidth + leftPadding;
-  };
-
-  // Find commit block
-  const commitBlock = useMemo(() => {
-    return graphBlockTargets.find((x) => x.isCommit);
-  }, [graphBlockTargets]);
-
-  // Get slots that exist in adjacent commits for connecting lines
-  const prevSlots = useMemo(() => {
-    const slots = new Set<number>();
-    prevCommit?.graphBlockTargets?.forEach((x) => {
-      slots.add(x.source);
-      if (x.source !== x.target) {
-        slots.add(x.target);
-      }
+  // Build spacer list: one entry per unique source slot, merging flags
+  const spacerList = useMemo((): SpacerEntry[] => {
+    const bySlot: (SpacerEntry | undefined)[] = [];
+    blocks.forEach((x) => {
+      const existing = bySlot[x.source];
+      bySlot[x.source] = {
+        source: x.source,
+        isCommit: x.isCommit || (existing?.isCommit ?? false),
+        isMerge: x.isMerge || (existing?.isMerge ?? false),
+        branchIndex: existing?.branchIndex ?? x.branchIndex,
+      };
     });
-    return slots;
-  }, [prevCommit]);
+    return bySlot.filter((x): x is SpacerEntry => x !== undefined);
+  }, [blocks]);
 
-  const nextSlots = useMemo(() => {
-    const slots = new Set<number>();
-    nextCommit?.graphBlockTargets?.forEach((x) => {
-      slots.add(x.source);
-      if (x.source !== x.target) {
-        slots.add(x.target);
-      }
-    });
-    return slots;
-  }, [nextCommit]);
+  // Blocks with target >= 0 draw curves connecting to the row above
+  const curveBlocks = useMemo(
+    () => blocks.filter((x) => x.target >= 0),
+    [blocks],
+  );
 
-  // Calculate what to draw
-  const { straightLines, commitLine, mergeLines } = useMemo(() => {
-    const straight: Array<{ slot: number; branchIndex: number }> = [];
-    const merges: GraphBlockTarget[] = [];
-    
-    graphBlockTargets.forEach((block) => {
-      if (block.source === block.target) {
-        if (!block.isCommit) {
-          straight.push({ slot: block.source, branchIndex: block.branchIndex });
-        }
-      } else {
-        merges.push(block);
-      }
-    });
-    
-    return {
-      straightLines: straight,
-      commitLine: commitBlock ? { slot: commitBlock.source, branchIndex: commitBlock.branchIndex } : null,
-      mergeLines: merges,
-    };
-  }, [graphBlockTargets, commitBlock]);
-
+  // Calculate required width from the widest slot
   const svgWidth = useMemo(() => {
-    if (graphBlockTargets.length === 0) return 30;
+    if (blocks.length === 0) return 30;
     const maxSlot = Math.max(
-      ...graphBlockTargets.map((x) => Math.max(x.target, x.source))
+      ...blocks.map((x) => Math.max(x.target >= 0 ? x.target : 0, x.source)),
     );
     return getSafeHoriz(maxSlot + 1) + 4;
-  }, [graphBlockTargets]);
+  }, [blocks]);
 
-  // For commits without graph data, draw a simple line
-  if (graphBlockTargets.length === 0) {
-    const hasParent = commit.parents && commit.parents.length > 0;
-    const hasChild = prevCommit !== null;
-    
+  // Fallback: no graph data — simple dot with vertical line
+  if (blocks.length === 0) {
     return (
-      <SvgContainer style={{ width: 30 }}>
-        <StyledSvg width={30} height={rowHeight}>
-          {/* Vertical line - only if there's a connection */}
+      <>
+        <GraphSvg width={30} height="100%">
           <line
-            x1={leftPadding}
-            y1={hasChild ? 0 : centerY}
-            x2={leftPadding}
-            y2={hasParent ? rowHeight : centerY}
+            x1={LEFT_PADDING}
+            y1={0}
+            x2={LEFT_PADDING}
+            y2={SPACER_Y}
             stroke={theme.colors.primary}
             strokeWidth={2}
           />
-          {/* White background for commit dot */}
           <circle
-            cx={leftPadding}
-            cy={centerY}
-            r={nodeRadius + 2}
+            cx={LEFT_PADDING}
+            cy={CENTER_Y}
+            r={NODE_RADIUS + 2}
             fill={theme.colors.background}
           />
-          {/* Commit dot */}
           <circle
-            cx={leftPadding}
-            cy={centerY}
-            r={nodeRadius}
+            cx={LEFT_PADDING}
+            cy={CENTER_Y}
+            r={NODE_RADIUS}
             fill={theme.colors.primary}
           />
-        </StyledSvg>
-      </SvgContainer>
+        </GraphSvg>
+        <div style={{ width: 30 }} />
+      </>
     );
   }
 
   return (
-    <SvgContainer style={{ width: svgWidth }}>
-      <StyledSvg width={svgWidth} height={rowHeight}>
-        {/* Layer 1: Straight-through vertical lines (non-commit slots) */}
-        {straightLines.map(({ slot, branchIndex }) => {
-          // Check if this line connects to adjacent rows
-          const connectsUp = prevSlots.has(slot);
-          const connectsDown = nextSlots.has(slot);
-          
-          return (
-            <line
-              key={`straight-${slot}`}
-              x1={getSafeHoriz(slot)}
-              y1={connectsUp ? 0 : centerY}
-              x2={getSafeHoriz(slot)}
-              y2={connectsDown ? rowHeight : centerY}
-              stroke={getCommitBranchColor(branchIndex, theme)}
-              strokeWidth={2}
-            />
-          );
-        })}
-
-        {/* Layer 2: Commit slot vertical line */}
-        {commitLine && (
-          <line
-            x1={getSafeHoriz(commitLine.slot)}
-            y1={prevSlots.has(commitLine.slot) ? 0 : centerY}
-            x2={getSafeHoriz(commitLine.slot)}
-            y2={nextSlots.has(commitLine.slot) ? rowHeight : centerY}
-            stroke={getCommitBranchColor(commitLine.branchIndex, theme)}
-            strokeWidth={2}
-          />
-        )}
-
-        {/* Layer 3: Merge/branch curves */}
-        {mergeLines.map((block, i) => {
-          const sourceX = getSafeHoriz(block.source);
-          const targetX = getSafeHoriz(block.target);
-          
-          // Curve goes from source at centerY up to target at top of cell
-          // Control points create a smooth S-curve
-          const controlY1 = centerY - 15;
-          const controlY2 = 5;
-          const endY = prevSlots.has(block.target) ? 0 : centerY;
-          
-          const path = `M${sourceX} ${centerY} C ${sourceX} ${controlY1}, ${targetX} ${controlY2}, ${targetX} ${endY}`;
-          
+    <>
+      <GraphSvg width={svgWidth} height="100%">
+        {/* Layer 1: Curves connecting this row up to the previous row */}
+        {curveBlocks.map((block, i) => {
+          const sx = getSafeHoriz(block.source);
+          const tx = getSafeHoriz(block.target);
           return (
             <path
-              key={`curve-${i}`}
-              d={path}
+              key={`c-${i}`}
+              d={`M${sx} ${CENTER_Y} C ${sx} ${CENTER_Y * 0.5}, ${tx} ${CENTER_Y * 0.36}, ${tx} 0`}
               stroke={getCommitBranchColor(block.branchIndex, theme)}
               strokeWidth={2}
               fill="none"
@@ -224,38 +167,59 @@ export const GitGraphCanvas: React.FC<GitGraphCanvasProps> = ({
           );
         })}
 
-        {/* Layer 4: Commit node (on top to cover lines) */}
-        {commitBlock && (
-          <g>
-            {/* White background to cover the vertical line */}
-            <circle
-              cx={getSafeHoriz(commitBlock.source)}
-              cy={centerY}
-              r={nodeRadius + 2}
-              fill={theme.colors.background}
-            />
-            {/* Outer ring for merges */}
-            {commitBlock.isMerge && (
-              <circle
-                cx={getSafeHoriz(commitBlock.source)}
-                cy={centerY}
-                r={nodeRadius + 1}
-                fill="none"
-                stroke={getCommitBranchColor(commitBlock.branchIndex, theme)}
-                strokeWidth={2}
-              />
-            )}
-            {/* Main commit dot */}
-            <circle
-              cx={getSafeHoriz(commitBlock.source)}
-              cy={centerY}
-              r={commitBlock.isMerge ? nodeRadius - 1 : nodeRadius}
-              fill={getCommitBranchColor(commitBlock.branchIndex, theme)}
-            />
-          </g>
-        )}
-      </StyledSvg>
-    </SvgContainer>
+        {/* Layer 2: Spacer lines extending downward from each active slot */}
+        {spacerList.map((s) => (
+          <line
+            key={`s-${s.source}`}
+            x1={getSafeHoriz(s.source)}
+            y1={CENTER_Y}
+            x2={getSafeHoriz(s.source)}
+            y2={SPACER_Y}
+            stroke={getCommitBranchColor(s.branchIndex, theme)}
+            strokeWidth={2}
+          />
+        ))}
+
+        {/* Layer 3: Commit nodes — drawn last so they sit on top */}
+        {spacerList
+          .filter((s) => s.isCommit)
+          .map((s) => {
+            const cx = getSafeHoriz(s.source);
+            const color = getCommitBranchColor(s.branchIndex, theme);
+            return (
+              <g key={`n-${s.source}`}>
+                {/* Background circle to mask lines underneath */}
+                <circle
+                  cx={cx}
+                  cy={CENTER_Y}
+                  r={NODE_RADIUS + 2}
+                  fill={theme.colors.background}
+                />
+                {/* Outer ring for merge commits */}
+                {s.isMerge && (
+                  <circle
+                    cx={cx}
+                    cy={CENTER_Y}
+                    r={NODE_RADIUS + 1}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={2}
+                  />
+                )}
+                {/* Filled commit dot */}
+                <circle
+                  cx={cx}
+                  cy={CENTER_Y}
+                  r={s.isMerge ? NODE_RADIUS - 1 : NODE_RADIUS}
+                  fill={color}
+                />
+              </g>
+            );
+          })}
+      </GraphSvg>
+      {/* Invisible spacer that gives the table cell its width */}
+      <div style={{ width: svgWidth }} />
+    </>
   );
 };
 

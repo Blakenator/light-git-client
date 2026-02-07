@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Button, ButtonGroup } from 'react-bootstrap';
+import { Button, ButtonGroup, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
-import { Icon } from '@light-git/core';
+import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import type { WorktreeModel } from '@light-git/shared';
 
@@ -39,17 +39,21 @@ export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
         onClick={(e) => e.stopPropagation()}
       />
       <CardHeaderButtons>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddWorktree();
-          }}
-          title="Add Worktree"
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id="tooltip-add-worktree">Add Worktree</Tooltip>}
         >
-          <Icon name="fa-plus" />
-        </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddWorktree();
+            }}
+          >
+            <Icon name="fa-plus" />
+          </Button>
+        </TooltipTrigger>
       </CardHeaderButtons>
     </CardHeaderContent>
   );
@@ -100,50 +104,68 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
 
   return (
     <div className="d-flex align-items-center py-1">
-      <span
-        className={`flex-grow-1 ${isCurrent ? 'fw-bold' : ''}`}
-        title={worktree.path}
+      <TooltipTrigger
+        placement="bottom"
+        overlay={<Tooltip id={`tooltip-worktree-path-${worktree.path}`}>{worktree.path}</Tooltip>}
       >
-        {worktree.name}
-        {worktree.currentBranch === 'detached' && (
-          <small className="text-muted ms-1">(detached)</small>
-        )}
-      </span>
+        <span className={`flex-grow-1 ${isCurrent ? 'fw-bold' : ''}`}>
+          {worktree.name}
+          {worktree.currentBranch === 'detached' && (
+            <small className="text-muted ms-1">(detached)</small>
+          )}
+        </span>
+      </TooltipTrigger>
       <ButtonGroup size="sm" className="ms-2">
-        <Button
-          variant="info"
-          size="sm"
-          onClick={() => onOpenFolder(worktree.path)}
-          title="Open folder"
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id={`tooltip-open-folder-${worktree.path}`}>Open folder</Tooltip>}
         >
-          <Icon name="fa-folder-open" size="sm" />
-        </Button>
+          <Button
+            variant="info"
+            size="sm"
+            onClick={() => onOpenFolder(worktree.path)}
+          >
+            <Icon name="fa-folder-open" size="sm" />
+          </Button>
+        </TooltipTrigger>
         {!isBare && !isCurrent && (
           <>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onOpenNewTab(worktree.path)}
-              title="Open in new tab"
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id={`tooltip-open-new-tab-${worktree.path}`}>Open in new tab</Tooltip>}
             >
-              <Icon name="fa-external-link-square-alt" size="sm" />
-            </Button>
-            <Button
-              variant="light"
-              size="sm"
-              onClick={() => onSwitch(worktree.path)}
-              title="Switch to this worktree"
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => onOpenNewTab(worktree.path)}
+              >
+                <Icon name="fa-external-link-square-alt" size="sm" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id={`tooltip-switch-worktree-${worktree.path}`}>Switch to this worktree</Tooltip>}
             >
-              <Icon name="fa-exchange-alt" size="sm" />
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => onDelete(worktree)}
-              title="Delete worktree"
+              <Button
+                variant="light"
+                size="sm"
+                onClick={() => onSwitch(worktree.path)}
+              >
+                <Icon name="fa-exchange-alt" size="sm" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id={`tooltip-delete-worktree-${worktree.path}`}>Delete worktree</Tooltip>}
             >
-              <Icon name="fa-trash" size="sm" />
-            </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => onDelete(worktree)}
+              >
+                <Icon name="fa-trash" size="sm" />
+              </Button>
+            </TooltipTrigger>
           </>
         )}
       </ButtonGroup>

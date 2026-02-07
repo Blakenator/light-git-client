@@ -129,8 +129,14 @@ export const GlobalStyles = createGlobalStyle`
 
   .dark-mode .dropdown-item:hover,
   .dark-mode .dropdown-item:focus {
-    background-color: ${({ theme }) => theme.colors.dark};
+    background-color: ${({ theme }) => theme.colors.border};
     color: ${({ theme }) => theme.colors.formControlText};
+  }
+
+  .dark-mode .dropdown-item:active,
+  .dark-mode .dropdown-item.active {
+    background-color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.white};
   }
 
   /* Custom gaps */

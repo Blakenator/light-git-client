@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
-import { Button, Form, InputGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { Button, Form, InputGroup, Tooltip } from 'react-bootstrap';
+import { TooltipTrigger } from '@light-git/core';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useRepositoryStore, ITabInfo } from '../../stores';
 import { Icon } from '@light-git/core';
 
@@ -20,6 +21,17 @@ const TabContainer = styled.div`
 const DroppableContainer = styled.div`
   display: flex;
   gap: 0.25rem;
+`;
+
+const DragHandle = styled.span`
+  margin-right: 0.25rem;
+  opacity: 0;
+  cursor: grab;
+  transition: opacity 0.2s;
+
+  &:active {
+    cursor: grabbing;
+  }
 `;
 
 const TabButton = styled.div<{ $active: boolean; $isDragging?: boolean }>`
@@ -46,6 +58,10 @@ const TabButton = styled.div<{ $active: boolean; $isDragging?: boolean }>`
     background-color: ${({ $active, theme }) =>
       $active ? theme.colors.primary : theme.colors.border};
   }
+
+  &:hover ${DragHandle} {
+    opacity: 0.5;
+  }
 `;
 
 const TabName = styled.span`
@@ -60,16 +76,6 @@ const CloseTabButton = styled.span`
 
   &:hover {
     opacity: 1;
-  }
-`;
-
-const DragHandle = styled.span`
-  margin-right: 0.25rem;
-  opacity: 0.5;
-  cursor: grab;
-
-  &:active {
-    cursor: grabbing;
   }
 `;
 
@@ -221,7 +227,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onLoadRepo }) => {
                         ref={draggableProvided.innerRef}
                         {...draggableProvided.draggableProps}
                       >
-                        <OverlayTrigger
+                        <TooltipTrigger
                           placement="bottom"
                           overlay={<Tooltip id={`tooltip-${tabId}`}>{tab.path || 'No repo loaded'}</Tooltip>}
                         >
@@ -269,7 +275,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onLoadRepo }) => {
                               </>
                             )}
                           </TabButton>
-                        </OverlayTrigger>
+                        </TooltipTrigger>
                       </div>
                     )}
                   </Draggable>

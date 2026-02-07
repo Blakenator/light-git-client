@@ -461,28 +461,7 @@ export class GitClient {
       (resolve, reject) => {
         const promises = [];
         const result = new CommandOutputModel<DiffHeaderModel[]>([]);
-        if (unstaged && unstaged.length > 0) {
-          const command: string = this.getGitPath();
-          promises.push(
-            this.execute(
-              command,
-              [
-                'diff',
-                GitClient.settings.diffIgnoreWhitespace ? '-w' : '',
-                '--',
-                ...unstaged,
-              ],
-              'Get Unstaged Changes Diff',
-              true,
-            ).then((output) => {
-              result.merge(output);
-              return this.parseDiffString(
-                output.standardOutput,
-                DiffHeaderStagedState.UNSTAGED,
-              );
-            }),
-          );
-        }
+        // Staged first to maintain staged-first ordering
         if (staged && staged.length > 0) {
           const command: string = this.getGitPath();
           promises.push(
@@ -506,11 +485,42 @@ export class GitClient {
             }),
           );
         }
+        if (unstaged && unstaged.length > 0) {
+          const command: string = this.getGitPath();
+          promises.push(
+            this.execute(
+              command,
+              [
+                'diff',
+                GitClient.settings.diffIgnoreWhitespace ? '-w' : '',
+                '--',
+                ...unstaged,
+              ],
+              'Get Unstaged Changes Diff',
+              true,
+            ).then((output) => {
+              result.merge(output);
+              return this.parseDiffString(
+                output.standardOutput,
+                DiffHeaderStagedState.UNSTAGED,
+              );
+            }),
+          );
+        }
         this.handleErrorDefault(
           Promise.all(promises).then((diffArray) => {
+            // Combine: staged first, then unstaged; sort each group by file path
+            let allDiffs: DiffHeaderModel[] = [];
             diffArray.forEach(
-              (x) => (result.content = result.content.concat(x)),
+              (x) => (allDiffs = allDiffs.concat(x)),
             );
+            allDiffs.sort((a, b) => {
+              if (a.stagedState !== b.stagedState) {
+                return a.stagedState === DiffHeaderStagedState.STAGED ? -1 : 1;
+              }
+              return a.toFilename.localeCompare(b.toFilename);
+            });
+            result.content = allDiffs;
             resolve(result);
           }),
           reject,
@@ -534,34 +544,38 @@ export class GitClient {
         const sortedStaged = [...staged].sort();
 
         // Apply cursor to determine remaining files
-        let remainingUnstaged = sortedUnstaged;
+        // Order: staged first, then unstaged (each sorted by file path ASC)
         let remainingStaged = sortedStaged;
+        let remainingUnstaged = sortedUnstaged;
 
         if (cursor) {
           const separatorIdx = cursor.indexOf(':');
           const cursorState = cursor.substring(0, separatorIdx);
           const cursorPath = cursor.substring(separatorIdx + 1);
 
-          if (cursorState === DiffHeaderStagedState.UNSTAGED) {
-            // Still within unstaged: skip files up to and including cursor path
+          if (cursorState === DiffHeaderStagedState.STAGED) {
+            // Still within staged: skip files up to and including cursor path
+            remainingStaged = sortedStaged.filter(
+              (f) => f > cursorPath,
+            );
+            // All unstaged files remain
+          } else if (cursorState === DiffHeaderStagedState.UNSTAGED) {
+            // Past all staged files
+            remainingStaged = [];
             remainingUnstaged = sortedUnstaged.filter(
               (f) => f > cursorPath,
             );
-            // All staged files remain
-          } else if (cursorState === DiffHeaderStagedState.STAGED) {
-            // Past all unstaged files
-            remainingUnstaged = [];
-            remainingStaged = sortedStaged.filter((f) => f > cursorPath);
           }
         }
 
         // Batch files to limit the amount of data processed per page
-        const batchUnstaged = remainingUnstaged.slice(0, BATCH_SIZE);
-        const stageBatchSlots = Math.max(
+        // Staged first, then fill remaining slots with unstaged
+        const batchStaged = remainingStaged.slice(0, BATCH_SIZE);
+        const unstagedBatchSlots = Math.max(
           0,
-          BATCH_SIZE - batchUnstaged.length,
+          BATCH_SIZE - batchStaged.length,
         );
-        const batchStaged = remainingStaged.slice(0, stageBatchSlots);
+        const batchUnstaged = remainingUnstaged.slice(0, unstagedBatchSlots);
 
         const hasMoreFiles =
           batchUnstaged.length < remainingUnstaged.length ||
@@ -574,29 +588,7 @@ export class GitClient {
           hasMore: false,
         });
 
-        if (batchUnstaged.length > 0) {
-          const command: string = this.getGitPath();
-          promises.push(
-            this.execute(
-              command,
-              [
-                'diff',
-                GitClient.settings.diffIgnoreWhitespace ? '-w' : '',
-                '--',
-                ...batchUnstaged,
-              ],
-              'Get Unstaged Changes Diff',
-              true,
-            ).then((output) => {
-              result.merge(output);
-              return this.parseDiffString(
-                output.standardOutput,
-                DiffHeaderStagedState.UNSTAGED,
-              );
-            }),
-          );
-        }
-
+        // Staged diffs first to maintain staged-first ordering
         if (batchStaged.length > 0) {
           const command: string = this.getGitPath();
           promises.push(
@@ -621,13 +613,42 @@ export class GitClient {
           );
         }
 
+        if (batchUnstaged.length > 0) {
+          const command: string = this.getGitPath();
+          promises.push(
+            this.execute(
+              command,
+              [
+                'diff',
+                GitClient.settings.diffIgnoreWhitespace ? '-w' : '',
+                '--',
+                ...batchUnstaged,
+              ],
+              'Get Unstaged Changes Diff',
+              true,
+            ).then((output) => {
+              result.merge(output);
+              return this.parseDiffString(
+                output.standardOutput,
+                DiffHeaderStagedState.UNSTAGED,
+              );
+            }),
+          );
+        }
+
         this.handleErrorDefault(
           Promise.all(promises).then((diffArrays) => {
-            // Combine: unstaged first, then staged
+            // Combine and sort: staged first, then unstaged (each sorted by file path)
             let allDiffs: DiffHeaderModel[] = [];
             diffArrays.forEach(
               (x) => (allDiffs = allDiffs.concat(x)),
             );
+            allDiffs.sort((a, b) => {
+              if (a.stagedState !== b.stagedState) {
+                return a.stagedState === DiffHeaderStagedState.STAGED ? -1 : 1;
+              }
+              return a.toFilename.localeCompare(b.toFilename);
+            });
 
             // Paginate by accumulated line count (always include at least one file)
             const pageItems: DiffHeaderModel[] = [];

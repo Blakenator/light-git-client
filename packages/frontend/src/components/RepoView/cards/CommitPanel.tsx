@@ -1,8 +1,11 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Button, ButtonGroup, Dropdown } from 'react-bootstrap';
+import { Button, ButtonGroup, Dropdown, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
-import { Icon, PrettyCheckbox } from '@light-git/core';
-import { MarkdownEditor } from '../../../common/components/MarkdownEditor/MarkdownEditor';
+import { Icon, PrettyCheckbox, TooltipTrigger } from '@light-git/core';
+import {
+  MarkdownEditor,
+  type Suggestion,
+} from '../../../common/components/MarkdownEditor/MarkdownEditor';
 
 const CommitContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.background};
@@ -36,7 +39,8 @@ const CrlfWarning = styled.div<{ $show: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 0 0 ${({ theme }) => theme.borderRadius} ${({ theme }) => theme.borderRadius};
+  border-radius: 0 0 ${({ theme }) => theme.borderRadius}
+    ${({ theme }) => theme.borderRadius};
   z-index: 10;
 `;
 
@@ -61,132 +65,136 @@ interface CommitPanelProps {
   onDismissCrlfError: () => void;
 }
 
-// Extract filename chunks for autocomplete
-const getFilenameChunks = (filename: string): string[] => {
-  return filename
+// Add filename chunks directly into the target map for autocomplete.
+// Adds both the full segment (e.g. "CommitPanel.tsx") and without extension ("CommitPanel").
+const addFilenameChunks = (
+  filename: string,
+  source: string,
+  target: Map<string, string>,
+): void => {
+  const parts = filename
     .replace('->', '/->/') // Handle renames
     .split('/')
-    .filter((chunk) => chunk && chunk !== '->')
-    .map((chunk) => chunk.replace(/\.[^.]*$/, '')); // Remove file extensions
+    .filter((chunk) => chunk && chunk !== '->');
+
+  for (const part of parts) {
+    if (part.length > 2 && !target.has(part)) target.set(part, source);
+    const withoutExt = part.replace(/\.[^.]*$/, '');
+    if (withoutExt !== part && withoutExt.length > 2 && !target.has(withoutExt))
+      target.set(withoutExt, source);
+  }
 };
 
-export const CommitPanel: React.FC<CommitPanelProps> = React.memo(({
-  commitMessage,
-  commitAndPush,
-  hasWatcherAlerts,
-  disabledReason,
-  crlfError,
-  stagedChanges = [],
-  unstagedChanges = [],
-  currentBranchName = '',
-  enableAutocomplete = true,
-  onMessageChange,
-  onCommitAndPushChange,
-  onCommit,
-  onShowWatchers,
-  onDismissCrlfError,
-}) => {
-  const isDisabled = !!disabledReason;
+export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
+  ({
+    commitMessage,
+    commitAndPush,
+    hasWatcherAlerts,
+    disabledReason,
+    crlfError,
+    stagedChanges = [],
+    unstagedChanges = [],
+    currentBranchName = '',
+    enableAutocomplete = true,
+    onMessageChange,
+    onCommitAndPushChange,
+    onCommit,
+    onShowWatchers,
+    onDismissCrlfError,
+  }) => {
+    const isDisabled = !!disabledReason;
 
-  // Generate suggestions from file names and branch name
-  const suggestions = useMemo(() => {
-    if (!enableAutocomplete) return [];
+    // Generate suggestions from file names and branch name
+    const suggestions: Suggestion[] = useMemo(() => {
+      if (!enableAutocomplete) return [];
 
-    const chunks = new Set<string>();
+      const chunks = new Map<string, string>();
 
-    // Add chunks from staged changes
-    stagedChanges.forEach((change) => {
-      getFilenameChunks(change.file).forEach((chunk) => {
-        if (chunk.length > 2) {
-          chunks.add(chunk);
-        }
-      });
-    });
+      for (const change of stagedChanges)
+        addFilenameChunks(change.file, 'file', chunks);
+      for (const change of unstagedChanges)
+        addFilenameChunks(change.file, 'file', chunks);
+      if (currentBranchName)
+        addFilenameChunks(currentBranchName, 'branch', chunks);
 
-    // Add chunks from unstaged changes
-    unstagedChanges.forEach((change) => {
-      getFilenameChunks(change.file).forEach((chunk) => {
-        if (chunk.length > 2) {
-          chunks.add(chunk);
-        }
-      });
-    });
+      return Array.from(chunks, ([label, source]) => ({ label, source }));
+    }, [enableAutocomplete, stagedChanges, unstagedChanges, currentBranchName]);
 
-    // Add branch name chunks
-    if (currentBranchName) {
-      getFilenameChunks(currentBranchName).forEach((chunk) => {
-        if (chunk.length > 2) {
-          chunks.add(chunk);
-        }
-      });
-    }
+    const handleSubmit = useCallback(() => {
+      onCommit(false);
+    }, [onCommit]);
 
-    return Array.from(chunks);
-  }, [enableAutocomplete, stagedChanges, unstagedChanges, currentBranchName]);
-
-  const handleSubmit = useCallback(() => {
-    onCommit(false);
-  }, [onCommit]);
-
-  return (
-    <CommitContainer>
-      <CommitRow>
-        <PrettyCheckbox checked={commitAndPush} onChange={onCommitAndPushChange}>
-          Commit and Push
-        </PrettyCheckbox>
-        <span className="flex-grow-1" />
-        {hasWatcherAlerts && (
-          <Button variant="warning" size="sm" onClick={onShowWatchers}>
-            <Icon name="fa-glasses" />
-          </Button>
-        )}
-        <Dropdown as={ButtonGroup}>
-          <Button
-            variant="success"
-            onClick={() => onCommit(false)}
-            disabled={isDisabled}
-            title={disabledReason || 'Commit changes'}
+    return (
+      <CommitContainer>
+        <CommitRow>
+          <PrettyCheckbox
+            checked={commitAndPush}
+            onChange={onCommitAndPushChange}
           >
-            Commit
-          </Button>
-          <Dropdown.Toggle split variant="success" disabled={isDisabled} />
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => onCommit(true)} disabled={isDisabled}>
-              Amend
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-      </CommitRow>
-      <CommitMessageContainer>
-        <MarkdownEditor
-          value={commitMessage}
-          onChange={onMessageChange}
-          onSubmit={handleSubmit}
-          placeholder="Commit message..."
-          suggestions={suggestions}
-        />
-
-        <CrlfWarning $show={!!crlfError}>
-          {crlfError && (
-            <>
-              <span>
-                {crlfError.start} will be replaced by {crlfError.end} on commit
-              </span>
-              <Button
-                variant="link"
-                size="sm"
-                className="p-0"
-                onClick={onDismissCrlfError}
-              >
-                <Icon name="fa-times" />
-              </Button>
-            </>
+            Commit and Push
+          </PrettyCheckbox>
+          <span className="flex-grow-1" />
+          {hasWatcherAlerts && (
+            <Button variant="warning" size="sm" onClick={onShowWatchers}>
+              <Icon name="fa-glasses" />
+            </Button>
           )}
-        </CrlfWarning>
-      </CommitMessageContainer>
-    </CommitContainer>
-  );
-});
+          <Dropdown as={ButtonGroup}>
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id="tooltip-commit-changes">{disabledReason || 'Commit changes'}</Tooltip>}
+            >
+              <Button
+                variant="success"
+                onClick={() => onCommit(false)}
+                disabled={isDisabled}
+              >
+                Commit
+              </Button>
+            </TooltipTrigger>
+            <Dropdown.Toggle split variant="success" disabled={isDisabled} />
+            <Dropdown.Menu>
+              <Dropdown.Item
+                onClick={() => onCommit(true)}
+                disabled={isDisabled}
+              >
+                Amend
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </CommitRow>
+        <CommitMessageContainer>
+          <MarkdownEditor
+            value={commitMessage}
+            onChange={onMessageChange}
+            onSubmit={handleSubmit}
+            placeholder="Commit message..."
+            suggestions={suggestions}
+          />
+
+          <CrlfWarning $show={!!crlfError}>
+            {crlfError && (
+              <>
+                <span>
+                  {crlfError.start} will be replaced by {crlfError.end} on
+                  commit
+                </span>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="p-0"
+                  onClick={onDismissCrlfError}
+                >
+                  <Icon name="fa-times" />
+                </Button>
+              </>
+            )}
+          </CrlfWarning>
+        </CommitMessageContainer>
+      </CommitContainer>
+    );
+  },
+);
 
 CommitPanel.displayName = 'CommitPanel';
 

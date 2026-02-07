@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Tooltip } from 'react-bootstrap';
+import { TooltipTrigger } from '@light-git/core';
 import { useJobStore, JobStatus } from '../../stores';
 import { LoadingSpinner } from '@light-git/core';
 
@@ -83,14 +84,14 @@ export const ActiveJobs: React.FC = () => {
   );
 
   return (
-    <OverlayTrigger placement="bottom" overlay={tooltip}>
+    <TooltipTrigger placement="bottom" overlay={tooltip}>
       <ActiveJobsContainer>
         {isRunning && <LoadingSpinner size="sm" />}
         <JobCount>
           {activeJobs.length} job{activeJobs.length !== 1 ? 's' : ''}
         </JobCount>
       </ActiveJobsContainer>
-    </OverlayTrigger>
+    </TooltipTrigger>
   );
 };
 

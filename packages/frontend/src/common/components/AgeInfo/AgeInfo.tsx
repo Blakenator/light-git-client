@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
+import { Tooltip } from 'react-bootstrap';
+import { TooltipTrigger } from '@light-git/core';
 
 const AgeSpan = styled.span<{ $ageType?: 'recent' | 'recentSecondary' | 'old' | 'default' }>`
   font-size: 0.875rem;
@@ -80,9 +82,14 @@ export const AgeInfo: React.FC<AgeInfoProps> = ({ date, className }) => {
   const fullDate = dateObj ? dateObj.toLocaleString() : '';
 
   return (
-    <AgeSpan className={className} $ageType={ageType} title={fullDate}>
-      {relativeTime}
-    </AgeSpan>
+    <TooltipTrigger
+      placement="bottom"
+      overlay={<Tooltip id={`tooltip-age-info-${fullDate}`}>{fullDate}</Tooltip>}
+    >
+      <AgeSpan className={className} $ageType={ageType}>
+        {relativeTime}
+      </AgeSpan>
+    </TooltipTrigger>
   );
 };
 

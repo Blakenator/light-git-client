@@ -92,7 +92,12 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
   );
   const setExpandState = useSettingsStore((state) => state.setExpandState);
 
-  const toggleExpand = useCallback(() => {
+  const toggleExpand = useCallback((e: React.MouseEvent) => {
+    // Don't toggle the card when clicking on buttons, dropdowns, or inputs
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, input, .dropdown-menu, .dropdown-item, .dropdown-toggle, .btn')) {
+      return;
+    }
     setExpandState(expandKey, !isExpanded);
   }, [expandKey, isExpanded, setExpandState]);
 

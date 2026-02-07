@@ -7,3 +7,4 @@ export { LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
 export { ErrorMessages } from './ErrorMessage/ErrorMessage';
 export { AgeInfo } from './AgeInfo/AgeInfo';
 export { PrettyCheckbox } from './PrettyCheckbox/PrettyCheckbox';
+export { TooltipTrigger } from './TooltipTrigger/TooltipTrigger';

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { Button, ButtonGroup, Form, Badge, Alert, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { Icon } from '@light-git/core';
+import { Button, ButtonGroup, Form, Badge, Alert, Tooltip } from 'react-bootstrap';
+import { Icon, TooltipTrigger } from '@light-git/core';
 import hljs from 'highlight.js';
 
 const DiffContainer = styled.div`
@@ -83,6 +83,10 @@ const ParentButtons = styled.div`
 const StagedSeparator = styled(Alert)`
   margin: 0.5rem;
   padding: 0.5rem 1rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const DiffHeader = styled.div`
@@ -388,7 +392,7 @@ export interface DiffHeaderModel {
   deletions: number;
   hunks: DiffHunk[];
   action?: 'Added' | 'Deleted' | 'Modified' | 'Renamed';
-  stagedState?: 'staged' | 'unstaged';
+  stagedState?: 'staged' | 'unstaged' | 'Staged' | 'Unstaged' | string;
 }
 
 interface DiffViewerProps {
@@ -564,28 +568,30 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
 
   // Filter diff headers
   const filteredHeaders = useMemo(() => {
-    if (!filter) return diffHeaders;
-    const lowerFilter = filter.toLowerCase();
-    return diffHeaders.filter(
-      (h) =>
-        h.fromFilename.toLowerCase().includes(lowerFilter) ||
-        h.toFilename.toLowerCase().includes(lowerFilter)
-    );
+    let headers = diffHeaders;
+    if (filter) {
+      const lowerFilter = filter.toLowerCase();
+      headers = headers.filter(
+        (h) =>
+          h.fromFilename.toLowerCase().includes(lowerFilter) ||
+          h.toFilename.toLowerCase().includes(lowerFilter)
+      );
+    }
+    // Sort by staged state (staged first), then file path ASC
+    return [...headers].sort((a, b) => {
+      const aStaged = a.stagedState?.toLowerCase() === 'staged';
+      const bStaged = b.stagedState?.toLowerCase() === 'staged';
+      if (aStaged !== bStaged) return aStaged ? -1 : 1;
+      return a.toFilename.localeCompare(b.toFilename);
+    });
   }, [diffHeaders, filter]);
 
-  // Group by staged state
+  // Group by staged state (backend sends capitalized 'Staged'/'Unstaged')
   const { stagedHeaders, unstagedHeaders } = useMemo(() => {
-    const staged = filteredHeaders.filter((h) => h.stagedState === 'staged');
-    const unstaged = filteredHeaders.filter((h) => h.stagedState !== 'staged');
+    const staged = filteredHeaders.filter((h) => h.stagedState?.toLowerCase() === 'staged');
+    const unstaged = filteredHeaders.filter((h) => h.stagedState?.toLowerCase() !== 'staged');
     return { stagedHeaders: staged, unstagedHeaders: unstaged };
   }, [filteredHeaders]);
-
-  const toggleFile = useCallback((fileName: string) => {
-    setExpandedFiles((prev) => ({
-      ...prev,
-      [fileName]: !prev[fileName],
-    }));
-  }, []);
 
   const isExpanded = useCallback(
     (fileName: string, header: DiffHeaderModel) => {
@@ -597,6 +603,13 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
     },
     [expandedFiles]
   );
+
+  const toggleFile = useCallback((fileName: string, header: DiffHeaderModel) => {
+    setExpandedFiles((prev) => ({
+      ...prev,
+      [fileName]: !isExpanded(fileName, header),
+    }));
+  }, [isExpanded]);
 
   const getEditableCode = useCallback((hunk: DiffHunk): string => {
     return hunk.lines
@@ -713,7 +726,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
       : header.toFilename;
 
     return (
-      <DiffHeader onClick={() => toggleFile(header.toFilename)}>
+      <DiffHeader onClick={() => toggleFile(header.toFilename, header)}>
         <Icon
           name={isExpanded(header.toFilename, header) ? 'fa-chevron-down' : 'fa-chevron-right'}
           size="sm"
@@ -721,14 +734,18 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
         <FileNameContainer>
           {renderFileNameSplit(header.toFilename)}
         </FileNameContainer>
-        <CopyButton
-          variant="link"
-          size="sm"
-          onClick={(e) => copyFilename(header.toFilename, e)}
-          title="Copy filename"
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id={`tooltip-copy-filename-${header.toFilename}`}>Copy filename</Tooltip>}
         >
-          <Icon name="fa-copy" size="sm" />
-        </CopyButton>
+          <CopyButton
+            variant="link"
+            size="sm"
+            onClick={(e) => copyFilename(header.toFilename, e)}
+          >
+            <Icon name="fa-copy" size="sm" />
+          </CopyButton>
+        </TooltipTrigger>
         {header.action && (
           <ActionBadge $action={header.action}>{header.action}</ActionBadge>
         )}
@@ -771,38 +788,51 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
                 {(() => {
                   const parsed = parseHunkHeader(hunk.header);
                   return (
-                    <HunkHeaderText title={parsed.raw}>
-                      <HunkHeaderLines>{parsed.lineInfo}</HunkHeaderLines>
-                      {parsed.context && <HunkHeaderContext>{parsed.context}</HunkHeaderContext>}
-                    </HunkHeaderText>
+                    <TooltipTrigger
+                      placement="bottom"
+                      overlay={<Tooltip id={`tooltip-hunk-header-${header.toFilename}-${hunkIndex}`}>{parsed.raw}</Tooltip>}
+                    >
+                      <HunkHeaderText>
+                        <HunkHeaderLines>{parsed.lineInfo}</HunkHeaderLines>
+                        {parsed.context && <HunkHeaderContext>{parsed.context}</HunkHeaderContext>}
+                      </HunkHeaderText>
+                    </TooltipTrigger>
                   );
                 })()}
                 {!isReadOnly && !commitInfo && onHunkChange && !isEditing && (
                   <HunkActions>
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEdit(header.toFilename, hunkIndex, hunk);
-                      }}
-                      disabled={isSaving}
-                      title="Edit this hunk"
+                    <TooltipTrigger
+                      placement="top"
+                      overlay={<Tooltip id={`tooltip-edit-hunk-${header.toFilename}-${hunkIndex}`}>Edit this hunk</Tooltip>}
                     >
-                      <Icon name="edit" size="sm" />
-                    </Button>
-                    <Button
-                      variant="outline-warning"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        undoHunk(header.toFilename, hunkIndex, hunk);
-                      }}
-                      disabled={isSaving}
-                      title="Undo this hunk"
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEdit(header.toFilename, hunkIndex, hunk);
+                        }}
+                        disabled={isSaving}
+                      >
+                        <Icon name="edit" size="sm" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipTrigger
+                      placement="top"
+                      overlay={<Tooltip id={`tooltip-undo-hunk-${header.toFilename}-${hunkIndex}`}>Undo this hunk</Tooltip>}
                     >
-                      <Icon name="fa-undo" size="sm" />
-                    </Button>
+                      <Button
+                        variant="outline-warning"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          undoHunk(header.toFilename, hunkIndex, hunk);
+                        }}
+                        disabled={isSaving}
+                      >
+                        <Icon name="fa-undo" size="sm" />
+                      </Button>
+                    </TooltipTrigger>
                   </HunkActions>
                 )}
               </HunkHeader>
@@ -895,9 +925,14 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
     <DiffContainer>
       {commitInfo && (
         <CommitInfoContainer>
-          <CloseButton variant="outline-secondary" size="sm" onClick={onExitCommitView} title="Close diff view">
-            <Icon name="fa-times" />
-          </CloseButton>
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id="tooltip-close-diff-view">Close diff view</Tooltip>}
+          >
+            <CloseButton variant="outline-secondary" size="sm" onClick={onExitCommitView}>
+              <Icon name="fa-times" />
+            </CloseButton>
+          </TooltipTrigger>
           <CommitInfoHeader>
             <CommitHash>{commitInfo.hash.substring(0, 8)}</CommitHash>
             {commitInfo.tags?.map((tag) => (
@@ -962,7 +997,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
               {' '}
               <SummaryDeletions>-{diffStats.totalDeletions}</SummaryDeletions>
             </span>
-            <OverlayTrigger
+            <TooltipTrigger
               placement="bottom"
               overlay={
                 <Tooltip id="file-stats-tooltip">
@@ -978,7 +1013,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
                 <Icon name="fa-file" size="sm" />
                 {diffStats.totalFiles}
               </FileCountBadge>
-            </OverlayTrigger>
+            </TooltipTrigger>
           </DiffSummary>
         )}
       </DiffToolbar>
@@ -986,8 +1021,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
       {stagedHeaders.length > 0 && (
         <>
           <StagedSeparator variant="info">
-            <Icon name="fa-check-circle" className="me-2" />
-            Staged Changes ({stagedHeaders.length} files)
+            <Icon name="fa-arrow-down" />
+            <span>Staged Changes</span>
+            <Icon name="fa-arrow-down" />
           </StagedSeparator>
           {stagedHeaders.map(renderFile)}
         </>
@@ -997,8 +1033,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
         <>
           {stagedHeaders.length > 0 && (
             <StagedSeparator variant="primary">
-              <Icon name="fa-edit" className="me-2" />
-              Unstaged Changes ({unstagedHeaders.length} files)
+              <Icon name="fa-arrow-down" />
+              <span>Unstaged Changes</span>
+              <Icon name="fa-arrow-down" />
             </StagedSeparator>
           )}
           {unstagedHeaders.map(renderFile)}

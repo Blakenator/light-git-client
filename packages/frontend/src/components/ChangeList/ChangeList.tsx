@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Button, ButtonGroup, Table } from 'react-bootstrap';
+import { Button, ButtonGroup, Table, Tooltip } from 'react-bootstrap';
+import { TooltipTrigger } from '@light-git/core';
 import {
   useReactTable,
   getCoreRowModel,
@@ -54,7 +55,8 @@ const ResizeHandle = styled.div<{ $isResizing: boolean }>`
   top: 0;
   height: 100%;
   width: 5px;
-  background: ${({ $isResizing, theme }) => $isResizing ? theme.colors.primary : 'transparent'};
+  background: ${({ $isResizing, theme }) =>
+    $isResizing ? theme.colors.primary : 'transparent'};
   cursor: col-resize;
   user-select: none;
   touch-action: none;
@@ -168,6 +170,7 @@ interface ChangeListProps {
   filter?: string;
   submodules?: SubmoduleModel[];
   onSelectChange: (path: string, selected: boolean) => void;
+  onBatchSelectChange?: (changes: Record<string, boolean>) => void;
   onFileClick: (path: string) => void;
   onUndoFile?: (path: string) => void;
   onUndoSubmodule?: (submodule: SubmoduleModel) => void;
@@ -217,7 +220,7 @@ const RowCheckbox: React.FC<{
       e.stopPropagation();
       onChange(path, e.target.checked);
     },
-    [path, onChange]
+    [path, onChange],
   );
 
   return (
@@ -232,376 +235,514 @@ const RowCheckbox: React.FC<{
 
 RowCheckbox.displayName = 'RowCheckbox';
 
-export const ChangeList: React.FC<ChangeListProps> = React.memo(({
-  changes,
-  selectedChanges,
-  splitFilenameDisplay = false,
-  filter = '',
-  submodules = [],
-  onSelectChange,
-  onFileClick,
-  onUndoFile,
-  onUndoSubmodule,
-  onMergeFile,
-  onResolveConflict,
-  onDeleteFile,
-  onCopyPath,
-}) => {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const lastClickedRef = useRef<string | null>(null);
+export const ChangeList: React.FC<ChangeListProps> = React.memo(
+  ({
+    changes,
+    selectedChanges,
+    splitFilenameDisplay = false,
+    filter = '',
+    submodules = [],
+    onSelectChange,
+    onBatchSelectChange,
+    onFileClick,
+    onUndoFile,
+    onUndoSubmodule,
+    onMergeFile,
+    onResolveConflict,
+    onDeleteFile,
+    onCopyPath,
+  }) => {
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const lastClickedRef = useRef<string | null>(null);
 
-  const submoduleSet = useMemo(
-    () => new Set(submodules.map((s) => s.path)),
-    [submodules]
-  );
+    const submoduleSet = useMemo(
+      () => new Set(submodules.map((s) => s.path)),
+      [submodules],
+    );
 
-  const data = useMemo<NormalizedChange[]>(() => {
-    let normalized = changes.map((c) => {
-      const path = c.path || c.file || '';
-      const lastSlash = path.lastIndexOf('/');
-      return {
-        ...c,
-        path,
-        status: c.status || c.change || '?',
-        dirPath: lastSlash > -1 ? path.substring(0, lastSlash + 1) : '',
-        fileName: lastSlash > -1 ? path.substring(lastSlash + 1) : path,
-      };
-    });
+    const data = useMemo<NormalizedChange[]>(() => {
+      let normalized = changes.map((c) => {
+        const path = c.path || c.file || '';
+        const lastSlash = path.lastIndexOf('/');
+        return {
+          ...c,
+          path,
+          status: c.status || c.change || '?',
+          dirPath: lastSlash > -1 ? path.substring(0, lastSlash + 1) : '',
+          fileName: lastSlash > -1 ? path.substring(lastSlash + 1) : path,
+        };
+      });
 
-    if (filter) {
-      const lowerFilter = filter.toLowerCase();
-      normalized = normalized.filter((c) =>
-        c.path.toLowerCase().includes(lowerFilter)
-      );
-    }
-
-    return normalized;
-  }, [changes, filter]);
-
-  const isConflicted = useCallback((change: NormalizedChange): boolean => {
-    return change.isConflicted || change.status?.[0]?.toUpperCase() === 'U';
-  }, []);
-
-  const isNewFile = useCallback((status: string): boolean => {
-    const firstChar = status?.[0]?.toUpperCase();
-    return firstChar === 'A' || firstChar === '?';
-  }, []);
-
-  const handleRowClick = useCallback(
-    (e: React.MouseEvent, path: string) => {
-      if (e.shiftKey && lastClickedRef.current) {
-        const lastIndex = data.findIndex((c) => c.path === lastClickedRef.current);
-        const currentIndex = data.findIndex((c) => c.path === path);
-        if (lastIndex !== -1 && currentIndex !== -1) {
-          const start = Math.min(lastIndex, currentIndex);
-          const end = Math.max(lastIndex, currentIndex);
-          for (let i = start; i <= end; i++) {
-            onSelectChange(data[i].path, true);
-          }
-        }
-      } else {
-        onSelectChange(path, !selectedChanges[path]);
+      if (filter) {
+        const lowerFilter = filter.toLowerCase();
+        normalized = normalized.filter((c) =>
+          c.path.toLowerCase().includes(lowerFilter),
+        );
       }
-      lastClickedRef.current = path;
-    },
-    [data, selectedChanges, onSelectChange]
-  );
 
-  const columnHelper = useMemo(() => createColumnHelper<NormalizedChange>(), []);
+      // Sort by file path ascending by default
+      normalized.sort((a, b) => a.path.localeCompare(b.path));
 
-  // Columns definition - avoid putting selectedChanges in deps to prevent re-renders
-  const columns = useMemo<ColumnDef<NormalizedChange, any>[]>(() => {
-    const cols: ColumnDef<NormalizedChange, any>[] = [
-      {
-        id: 'select',
-        header: '',
-        size: 30,
-        minSize: 30,
-        maxSize: 30,
-        enableResizing: false,
-        cell: () => null, // Placeholder - we'll render checkbox separately
+      return normalized;
+    }, [changes, filter]);
+
+    const allSelected = useMemo(() => {
+      return data.length > 0 && data.every((c) => selectedChanges[c.path]);
+    }, [data, selectedChanges]);
+
+    const someSelected = useMemo(() => {
+      return data.some((c) => selectedChanges[c.path]) && !allSelected;
+    }, [data, selectedChanges, allSelected]);
+
+    const handleSelectAll = useCallback(() => {
+      const newSelected = !allSelected;
+      if (onBatchSelectChange) {
+        const batch: Record<string, boolean> = {};
+        data.forEach((c) => {
+          batch[c.path] = newSelected;
+        });
+        onBatchSelectChange(batch);
+      } else {
+        data.forEach((c) => onSelectChange(c.path, newSelected));
+      }
+    }, [data, allSelected, onSelectChange, onBatchSelectChange]);
+
+    const isConflicted = useCallback((change: NormalizedChange): boolean => {
+      return change.isConflicted || change.status?.[0]?.toUpperCase() === 'U';
+    }, []);
+
+    const isNewFile = useCallback((status: string): boolean => {
+      const firstChar = status?.[0]?.toUpperCase();
+      return firstChar === 'A' || firstChar === '?';
+    }, []);
+
+    const handleRowClick = useCallback(
+      (e: React.MouseEvent, path: string) => {
+        if (e.shiftKey) {
+          // Shift-click: select range from last clicked to current row
+          const lastPath = lastClickedRef.current;
+          if (lastPath) {
+            const lastIndex = data.findIndex((c) => c.path === lastPath);
+            const currentIndex = data.findIndex((c) => c.path === path);
+            if (lastIndex !== -1 && currentIndex !== -1) {
+              const start = Math.min(lastIndex, currentIndex);
+              const end = Math.max(lastIndex, currentIndex);
+              if (onBatchSelectChange) {
+                const batch: Record<string, boolean> = {};
+                for (let i = start; i <= end; i++) {
+                  batch[data[i].path] = true;
+                }
+                onBatchSelectChange(batch);
+              } else {
+                for (let i = start; i <= end; i++) {
+                  onSelectChange(data[i].path, true);
+                }
+              }
+            }
+          } else {
+            // No previous click: just select the current row
+            onSelectChange(path, true);
+          }
+        } else {
+          onSelectChange(path, !selectedChanges[path]);
+        }
+        lastClickedRef.current = path;
       },
-      columnHelper.accessor('status', {
-        header: 'Status',
-        cell: ({ getValue, row }) => (
-          <StatusBadge $status={getValue()} title={getStatusDescription(getValue())}>
-            {submoduleSet.has(row.original.path) ? (
-              <Icon name="fa-plug" size="sm" />
-            ) : (
-              getValue()?.[0]?.toUpperCase() || '?'
-            )}
-          </StatusBadge>
-        ),
-        size: 60,
-        minSize: 50,
-        maxSize: 80,
-        enableResizing: true,
-      }),
-    ];
+      [data, selectedChanges, onSelectChange, onBatchSelectChange],
+    );
 
-    if (splitFilenameDisplay) {
-      cols.push(
-        columnHelper.accessor('dirPath', {
-          header: 'Directory',
-          cell: ({ getValue }) => <DirPath title={getValue()}>{getValue()}</DirPath>,
-          size: 200,
-          minSize: 80,
+    const columnHelper = useMemo(
+      () => createColumnHelper<NormalizedChange>(),
+      [],
+    );
+
+    // Columns definition - avoid putting selectedChanges in deps to prevent re-renders
+    const columns = useMemo<ColumnDef<NormalizedChange, any>[]>(() => {
+      const cols: ColumnDef<NormalizedChange, any>[] = [
+        {
+          id: 'select',
+          header: '',
+          size: 30,
+          minSize: 30,
+          maxSize: 30,
+          enableResizing: false,
+          cell: () => null, // Placeholder - we'll render checkbox separately
+        },
+        columnHelper.accessor('status', {
+          header: 'Status',
+          cell: ({ getValue, row }) => (
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id={`tooltip-status-${row.original.path}`}>{getStatusDescription(getValue())}</Tooltip>}
+            >
+              <StatusBadge $status={getValue()}>
+                {submoduleSet.has(row.original.path) ? (
+                  <Icon name="fa-plug" size="sm" />
+                ) : (
+                  getValue()?.[0]?.toUpperCase() || '?'
+                )}
+              </StatusBadge>
+            </TooltipTrigger>
+          ),
+          size: 60,
+          minSize: 50,
+          maxSize: 80,
           enableResizing: true,
         }),
-        columnHelper.accessor('fileName', {
-          header: 'File',
-          cell: ({ getValue, row }) => (
-            <FileNameCell>
-              <FileBaseName
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFileClick(row.original.path);
-                }}
-                style={{ cursor: 'pointer' }}
-                title={row.original.path}
-              >
-                {getValue()}
-              </FileBaseName>
-            </FileNameCell>
-          ),
-          size: 150,
-          minSize: 80,
-          enableResizing: true,
-        })
-      );
-    } else {
-      cols.push(
-        columnHelper.accessor('path', {
-          header: 'File',
-          cell: ({ getValue, row }) => (
-            <FileNameCell>
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFileClick(row.original.path);
-                }}
-                style={{ cursor: 'pointer' }}
-                title={getValue()}
-              >
-                {getValue()}
-              </span>
-            </FileNameCell>
-          ),
-          size: 300,
-          minSize: 100,
-          enableResizing: true,
-        })
-      );
-    }
+      ];
 
-    cols.push({
-      id: 'actions',
-      header: '',
-      size: 120,
-      minSize: 80,
-      enableResizing: false,
-      cell: () => null, // Placeholder - we'll render actions separately
+      if (splitFilenameDisplay) {
+        cols.push(
+          columnHelper.accessor('dirPath', {
+            header: 'Directory',
+            cell: ({ getValue, row }) => (
+              <TooltipTrigger
+                placement="bottom"
+                overlay={<Tooltip id={`tooltip-dirpath-${row.original.path}`}>{getValue()}</Tooltip>}
+              >
+                <DirPath>{getValue()}</DirPath>
+              </TooltipTrigger>
+            ),
+            size: 200,
+            minSize: 80,
+            enableResizing: true,
+          }),
+          columnHelper.accessor('fileName', {
+            header: 'File',
+            cell: ({ getValue, row }) => (
+              <FileNameCell>
+                <TooltipTrigger
+                  placement="bottom"
+                  overlay={<Tooltip id={`tooltip-filename-${row.original.path}`}>{row.original.path}</Tooltip>}
+                >
+                  <FileBaseName
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFileClick(row.original.path);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {getValue()}
+                  </FileBaseName>
+                </TooltipTrigger>
+              </FileNameCell>
+            ),
+            size: 150,
+            minSize: 80,
+            enableResizing: true,
+          }),
+        );
+      } else {
+        cols.push(
+          columnHelper.accessor('path', {
+            header: 'File',
+            cell: ({ getValue, row }) => (
+              <FileNameCell>
+                <TooltipTrigger
+                  placement="bottom"
+                  overlay={<Tooltip id={`tooltip-path-${row.original.path}`}>{getValue()}</Tooltip>}
+                >
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFileClick(row.original.path);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {getValue()}
+                  </span>
+                </TooltipTrigger>
+              </FileNameCell>
+            ),
+            size: 300,
+            minSize: 100,
+            enableResizing: true,
+          }),
+        );
+      }
+
+      cols.push({
+        id: 'actions',
+        header: '',
+        size: 120,
+        minSize: 80,
+        enableResizing: false,
+        cell: () => null, // Placeholder - we'll render actions separately
+      });
+
+      return cols;
+    }, [columnHelper, splitFilenameDisplay, submoduleSet, onFileClick]);
+
+    const table = useReactTable({
+      data,
+      columns,
+      state: { sorting },
+      onSortingChange: setSorting,
+      getCoreRowModel: getCoreRowModel(),
+      getSortedRowModel: getSortedRowModel(),
+      columnResizeMode: 'onChange' as ColumnResizeMode,
+      enableColumnResizing: true,
     });
 
-    return cols;
-  }, [columnHelper, splitFilenameDisplay, submoduleSet, onFileClick]);
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    columnResizeMode: 'onChange' as ColumnResizeMode,
-    enableColumnResizing: true,
-  });
-
-  // Render actions for a row
-  const renderActions = useCallback(
-    (change: NormalizedChange) => {
-      return (
-        <ActionButtons>
-          {onCopyPath && (
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCopyPath(change.path);
-              }}
-              title="Copy path"
-            >
-              <Icon name="fa-copy" size="sm" />
-            </Button>
-          )}
-          {isConflicted(change) && onMergeFile && (
-            <Button
-              variant="outline-success"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMergeFile(change.path);
-              }}
-              title="Merge"
-            >
-              <Icon name="merge_type" size="sm" />
-            </Button>
-          )}
-          {isConflicted(change) && onResolveConflict && (
-            <ButtonGroup size="sm">
-              <Button
-                variant="outline-info"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onResolveConflict(change.path, false);
-                }}
-                title="Use ours"
+    // Render actions for a row
+    const renderActions = useCallback(
+      (change: NormalizedChange) => {
+        return (
+          <ActionButtons>
+            {onCopyPath && (
+              <TooltipTrigger
+                placement="top"
+                overlay={<Tooltip id={`tooltip-copy-path-${change.path}`}>Copy path</Tooltip>}
               >
-                <Icon name="fa-user" size="sm" />
-              </Button>
-              <Button
-                variant="outline-warning"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onResolveConflict(change.path, true);
-                }}
-                title="Use theirs"
-              >
-                <Icon name="fa-users" size="sm" />
-              </Button>
-            </ButtonGroup>
-          )}
-          {!isNewFile(change.status) && !isConflicted(change) && onUndoFile && (
-            <Button
-              variant="outline-warning"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                const submodule = submodules.find((s) => s.path === change.path);
-                if (submodule && onUndoSubmodule) {
-                  onUndoSubmodule(submodule);
-                } else {
-                  onUndoFile(change.path);
-                }
-              }}
-              title="Undo"
-            >
-              <Icon name="fa-undo" size="sm" />
-            </Button>
-          )}
-          {onDeleteFile && (
-            <Button
-              variant="outline-danger"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteFile(change.path);
-              }}
-              title="Delete"
-            >
-              <Icon name="fa-trash" size="sm" />
-            </Button>
-          )}
-        </ActionButtons>
-      );
-    },
-    [
-      onCopyPath,
-      onMergeFile,
-      onResolveConflict,
-      onUndoFile,
-      onUndoSubmodule,
-      onDeleteFile,
-      submodules,
-      isConflicted,
-      isNewFile,
-    ]
-  );
-
-  return (
-    <ChangeListContainer>
-      <StyledTable size="sm" hover>
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
-                  style={{ 
-                    width: header.getSize(),
-                    cursor: header.column.getCanSort() ? 'pointer' : 'default'
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCopyPath(change.path);
                   }}
                 >
-                  {header.id !== 'select' && header.id !== 'actions' && 
-                    flexRender(header.column.columnDef.header, header.getContext())}
-                  {header.column.getIsSorted() && (
-                    <SortIcon>
-                      {header.column.getIsSorted() === 'asc' ? '↑' : '↓'}
-                    </SortIcon>
-                  )}
-                  {header.column.getCanResize() && (
-                    <ResizeHandle
-                      $isResizing={header.column.getIsResizing()}
-                      onMouseDown={header.getResizeHandler()}
-                      onTouchStart={header.getResizeHandler()}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => {
-            const change = row.original;
-            const isSelected = selectedChanges[change.path] || false;
-            
-            return (
-              <TableRow
-                key={row.id}
-                $selected={isSelected}
-                onClick={(e) => handleRowClick(e, change.path)}
+                  <Icon name="fa-copy" size="sm" />
+                </Button>
+              </TooltipTrigger>
+            )}
+            {isConflicted(change) && onMergeFile && (
+              <TooltipTrigger
+                placement="top"
+                overlay={<Tooltip id={`tooltip-merge-${change.path}`}>Merge</Tooltip>}
               >
-                {row.getVisibleCells().map((cell) => {
-                  // Special handling for checkbox and actions columns
-                  if (cell.column.id === 'select') {
-                    return (
-                      <td key={cell.id} style={{ width: cell.column.getSize() }}>
-                        <RowCheckbox
-                          path={change.path}
-                          checked={isSelected}
-                          onChange={onSelectChange}
+                <Button
+                  variant="outline-success"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMergeFile(change.path);
+                  }}
+                >
+                  <Icon name="merge_type" size="sm" />
+                </Button>
+              </TooltipTrigger>
+            )}
+            {isConflicted(change) && onResolveConflict && (
+              <ButtonGroup size="sm">
+                <TooltipTrigger
+                  placement="top"
+                  overlay={<Tooltip id={`tooltip-use-ours-${change.path}`}>Use ours</Tooltip>}
+                >
+                  <Button
+                    variant="outline-info"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onResolveConflict(change.path, false);
+                    }}
+                  >
+                    <Icon name="fa-user" size="sm" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipTrigger
+                  placement="top"
+                  overlay={<Tooltip id={`tooltip-use-theirs-${change.path}`}>Use theirs</Tooltip>}
+                >
+                  <Button
+                    variant="outline-warning"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onResolveConflict(change.path, true);
+                    }}
+                  >
+                    <Icon name="fa-users" size="sm" />
+                  </Button>
+                </TooltipTrigger>
+              </ButtonGroup>
+            )}
+            {!isNewFile(change.status) &&
+              !isConflicted(change) &&
+              onUndoFile && (
+                <TooltipTrigger
+                  placement="top"
+                  overlay={<Tooltip id={`tooltip-undo-${change.path}`}>Undo</Tooltip>}
+                >
+                  <Button
+                    variant="outline-warning"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const submodule = submodules.find(
+                        (s) => s.path === change.path,
+                      );
+                      if (submodule && onUndoSubmodule) {
+                        onUndoSubmodule(submodule);
+                      } else {
+                        onUndoFile(change.path);
+                      }
+                    }}
+                  >
+                    <Icon name="fa-undo" size="sm" />
+                  </Button>
+                </TooltipTrigger>
+              )}
+            {onDeleteFile && (
+              <TooltipTrigger
+                placement="top"
+                overlay={<Tooltip id={`tooltip-delete-${change.path}`}>Delete</Tooltip>}
+              >
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteFile(change.path);
+                  }}
+                >
+                  <Icon name="fa-trash" size="sm" />
+                </Button>
+              </TooltipTrigger>
+            )}
+          </ActionButtons>
+        );
+      },
+      [
+        onCopyPath,
+        onMergeFile,
+        onResolveConflict,
+        onUndoFile,
+        onUndoSubmodule,
+        onDeleteFile,
+        submodules,
+        isConflicted,
+        isNewFile,
+      ],
+    );
+
+    return (
+      <ChangeListContainer>
+        <StyledTable size="sm" hover>
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    onClick={
+                      header.column.getCanSort()
+                        ? header.column.getToggleSortingHandler()
+                        : undefined
+                    }
+                    style={{
+                      width: header.getSize(),
+                      cursor: header.column.getCanSort()
+                        ? 'pointer'
+                        : 'default',
+                    }}
+                  >
+                    {header.id === 'select' && data.length > 0 && (
+                      <TooltipTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip id="tooltip-select-all">
+                            {allSelected ? 'Deselect all' : 'Select all'}
+                          </Tooltip>
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected;
+                          }}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectAll();
+                          }}
+                          onClick={(e) => e.stopPropagation()}
                         />
-                      </td>
-                    );
-                  }
-                  if (cell.column.id === 'actions') {
+                      </TooltipTrigger>
+                    )}
+                    {header.id !== 'select' &&
+                      header.id !== 'actions' &&
+                      flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    {header.column.getIsSorted() && (
+                      <SortIcon>
+                        {header.column.getIsSorted() === 'asc' ? '↑' : '↓'}
+                      </SortIcon>
+                    )}
+                    {header.column.getCanResize() && (
+                      <ResizeHandle
+                        $isResizing={header.column.getIsResizing()}
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => {
+              const change = row.original;
+              const isSelected = selectedChanges[change.path] || false;
+
+              return (
+                <TableRow
+                  key={row.id}
+                  $selected={isSelected}
+                  onClick={(e) => handleRowClick(e, change.path)}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    // Special handling for checkbox and actions columns
+                    if (cell.column.id === 'select') {
+                      return (
+                        <td
+                          key={cell.id}
+                          style={{ width: cell.column.getSize() }}
+                        >
+                          <RowCheckbox
+                            path={change.path}
+                            checked={isSelected}
+                            onChange={onSelectChange}
+                          />
+                        </td>
+                      );
+                    }
+                    if (cell.column.id === 'actions') {
+                      return (
+                        <td
+                          key={cell.id}
+                          style={{ width: cell.column.getSize() }}
+                        >
+                          {renderActions(change)}
+                        </td>
+                      );
+                    }
                     return (
-                      <td key={cell.id} style={{ width: cell.column.getSize() }}>
-                        {renderActions(change)}
+                      <td
+                        key={cell.id}
+                        style={{ width: cell.column.getSize() }}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </td>
                     );
-                  }
-                  return (
-                    <td key={cell.id} style={{ width: cell.column.getSize() }}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  );
-                })}
-              </TableRow>
-            );
-          })}
-        </tbody>
-      </StyledTable>
-      {data.length === 0 && (
-        <div className="text-muted text-center py-3">No changes</div>
-      )}
-    </ChangeListContainer>
-  );
-});
+                  })}
+                </TableRow>
+              );
+            })}
+          </tbody>
+        </StyledTable>
+        {data.length === 0 && (
+          <div className="text-muted text-center py-3">No changes</div>
+        )}
+      </ChangeListContainer>
+    );
+  },
+);
 
 ChangeList.displayName = 'ChangeList';
 

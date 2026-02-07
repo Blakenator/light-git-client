@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Form, Button, ListGroup, InputGroup, Badge } from 'react-bootstrap';
+import { Form, Button, ListGroup, InputGroup, Badge, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
-import { Icon } from '@light-git/core';
+import { Icon, TooltipTrigger } from '@light-git/core';
 const ShortcutsContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -192,14 +192,18 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
                 onChange={(e) => handleShortcutChange(index, e.target.value)}
               />
             </InputGroup>
-            <Button
-              variant="outline-danger"
-              size="sm"
-              onClick={() => handleRemoveShortcut(index)}
-              title="Remove shortcut"
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id={`tooltip-remove-shortcut-${index}`}>Remove shortcut</Tooltip>}
             >
-              <Icon name="fa-trash" size="sm" />
-            </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={() => handleRemoveShortcut(index)}
+              >
+                <Icon name="fa-trash" size="sm" />
+              </Button>
+            </TooltipTrigger>
           </ShortcutItem>
         ))}
       </ListGroup>

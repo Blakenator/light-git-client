@@ -1,53 +1,184 @@
-import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+
+// Lexical core
+import {
+  TextNode,
+  KEY_ENTER_COMMAND,
+  COMMAND_PRIORITY_HIGH,
+  type EditorState,
+} from 'lexical';
+
+// Lexical React plugins
+import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { ContentEditable } from '@lexical/react/LexicalContentEditable';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
+import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import {
+  LexicalTypeaheadMenuPlugin,
+  MenuOption,
+  useBasicTypeaheadTriggerMatch,
+} from '@lexical/react/LexicalTypeaheadMenuPlugin';
+import { ListPlugin } from '@lexical/react/LexicalListPlugin';
+
+// Markdown
+import {
+  $convertFromMarkdownString,
+  $convertToMarkdownString,
+  TRANSFORMERS,
+} from '@lexical/markdown';
+
+// Nodes
+import { HeadingNode, QuoteNode } from '@lexical/rich-text';
+import { ListNode, ListItemNode } from '@lexical/list';
+import { LinkNode } from '@lexical/link';
+import { CodeNode } from '@lexical/code';
+
+// ---- Styled Components ----
 
 const EditorContainer = styled.div`
   position: relative;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius};
   background-color: ${({ theme }) => theme.colors.background};
-  
+
   &:focus-within {
     border-color: ${({ theme }) => theme.colors.primary};
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
   }
 `;
 
-const EditorTextarea = styled.textarea`
+const EditorInner = styled.div`
+  position: relative;
+`;
+
+const StyledContentEditable = styled(ContentEditable)`
   width: 100%;
   min-height: 80px;
   max-height: 200px;
   padding: 0.75rem;
   border: none;
   outline: none;
-  resize: vertical;
+  overflow-y: auto;
   font-family: inherit;
   font-size: 0.875rem;
   line-height: 1.5;
   background-color: transparent;
   color: ${({ theme }) => theme.colors.text};
-  
-  &::placeholder {
+
+  /* Lexical theme class styles */
+  .editor-paragraph {
+    margin: 0;
+  }
+
+  .editor-heading-h1 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  .editor-heading-h2 {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  .editor-heading-h3 {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  .editor-text-bold {
+    font-weight: bold;
+  }
+
+  .editor-text-italic {
+    font-style: italic;
+  }
+
+  .editor-text-code {
+    background-color: rgba(150, 150, 150, 0.15);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: ${({ theme }) => theme.fonts.monospace};
+    font-size: 0.9em;
+  }
+
+  .editor-text-strikethrough {
+    text-decoration: line-through;
+  }
+
+  .editor-text-underline {
+    text-decoration: underline;
+  }
+
+  .editor-quote {
+    border-left: 3px solid ${({ theme }) => theme.colors.border};
+    padding-left: 0.75rem;
+    margin: 0.25rem 0;
     color: ${({ theme }) => theme.colors.secondary};
-    opacity: 0.6;
   }
-  
-  &:disabled {
-    background-color: ${({ theme }) => theme.colors.light};
-    cursor: not-allowed;
+
+  .editor-list-ul,
+  .editor-list-ol {
+    margin: 0;
+    padding-left: 1.5rem;
   }
+
+  .editor-list-item {
+    margin: 0;
+  }
+
+  .editor-link {
+    color: ${({ theme }) => theme.colors.primary};
+    text-decoration: underline;
+  }
+
+  .editor-code {
+    background-color: rgba(150, 150, 150, 0.1);
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-family: ${({ theme }) => theme.fonts.monospace};
+    font-size: 0.9em;
+    display: block;
+    margin: 0.25rem 0;
+    tab-size: 2;
+    overflow-x: auto;
+  }
+`;
+
+const EditorPlaceholder = styled.div`
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  color: ${({ theme }) => theme.colors.secondary};
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+  font-size: 0.875rem;
 `;
 
 const AutocompleteDropdown = styled.div`
   position: absolute;
-  top: 100%;
+  bottom: calc(100% + 1.5rem);
   left: 0;
-  right: 0;
+  min-width: 200px;
   background-color: ${({ theme }) => theme.colors.background};
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius};
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  z-index: 100;
   max-height: 200px;
   overflow-y: auto;
 `;
@@ -65,16 +196,228 @@ const AutocompleteItem = styled.div<{ $active?: boolean }>`
   }
 `;
 
+const NoMatchesItem = styled.div`
+  padding: 0.5rem 1rem;
+  color: ${({ theme }) => theme.colors.secondary};
+  font-style: italic;
+  font-size: 0.875rem;
+`;
+
 const SuggestionSource = styled.span`
   opacity: 0.6;
   font-size: 0.75rem;
   margin-left: 0.5rem;
 `;
 
-interface AutocompleteSuggestion {
-  text: string;
-  source: 'file' | 'branch' | 'history';
+// ---- Lexical Configuration ----
+
+const lexicalTheme = {
+  paragraph: 'editor-paragraph',
+  heading: {
+    h1: 'editor-heading-h1',
+    h2: 'editor-heading-h2',
+    h3: 'editor-heading-h3',
+    h4: 'editor-heading-h3',
+    h5: 'editor-heading-h3',
+    h6: 'editor-heading-h3',
+  },
+  text: {
+    bold: 'editor-text-bold',
+    italic: 'editor-text-italic',
+    code: 'editor-text-code',
+    strikethrough: 'editor-text-strikethrough',
+    underline: 'editor-text-underline',
+  },
+  list: {
+    ul: 'editor-list-ul',
+    ol: 'editor-list-ol',
+    listitem: 'editor-list-item',
+  },
+  quote: 'editor-quote',
+  code: 'editor-code',
+  link: 'editor-link',
+};
+
+const EDITOR_NODES = [
+  HeadingNode,
+  QuoteNode,
+  ListNode,
+  ListItemNode,
+  LinkNode,
+  CodeNode,
+];
+
+// ---- Suggestion Option ----
+
+class SuggestionOption extends MenuOption {
+  label: string;
+  source: string;
+
+  constructor(label: string, source: string = 'file') {
+    super(label);
+    this.label = label;
+    this.source = source;
+  }
 }
+
+// ---- Custom Plugins ----
+
+/**
+ * Syncs the external `value` prop into the Lexical editor when it changes
+ * from outside (e.g., clearing the message after a commit).
+ */
+function ExternalValueSyncPlugin({
+  value,
+  lastEmittedValueRef,
+}: {
+  value: string;
+  lastEmittedValueRef: React.MutableRefObject<string>;
+}) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    if (value !== lastEmittedValueRef.current) {
+      lastEmittedValueRef.current = value;
+      editor.update(() => {
+        $convertFromMarkdownString(value, TRANSFORMERS);
+      });
+    }
+  }, [value, editor, lastEmittedValueRef]);
+
+  return null;
+}
+
+/**
+ * Handles Ctrl/Cmd+Enter to trigger commit submission.
+ */
+function SubmitPlugin({ onSubmit }: { onSubmit?: () => void }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    if (!onSubmit) return;
+
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event: KeyboardEvent | null) => {
+        if (event && (event.ctrlKey || event.metaKey)) {
+          event.preventDefault();
+          onSubmit();
+          return true;
+        }
+        return false;
+      },
+      COMMAND_PRIORITY_HIGH,
+    );
+  }, [editor, onSubmit]);
+
+  return null;
+}
+
+/**
+ * Syncs the `disabled` prop to Lexical's editable state.
+ */
+function EditablePlugin({ disabled }: { disabled: boolean }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    editor.setEditable(!disabled);
+  }, [editor, disabled]);
+
+  return null;
+}
+
+/**
+ * Provides typeahead autocomplete from file/branch name suggestions.
+ * Triggered by typing `@` followed by at least 1 character.
+ * On selection the `@` prefix is stripped and only the suggestion is inserted.
+ * The dropdown is portaled into the anchor element that the plugin positions
+ * at the cursor location.
+ */
+export interface Suggestion {
+  label: string;
+  source: string;
+}
+
+function AutocompletePlugin({ suggestions }: { suggestions: Suggestion[] }) {
+  const [queryString, setQueryString] = useState<string | null>(null);
+
+  const triggerFn = useBasicTypeaheadTriggerMatch('@', {
+    minLength: 1,
+  });
+
+  const filteredOptions = useMemo(() => {
+    if (!queryString || !suggestions.length) return [];
+
+    const lowerQuery = queryString.toLowerCase();
+    return suggestions
+      .filter(
+        (s) =>
+          s.label.toLowerCase().includes(lowerQuery) &&
+          s.label.toLowerCase() !== lowerQuery,
+      )
+      .slice(0, 8)
+      .map((s) => new SuggestionOption(s.label, s.source));
+  }, [queryString, suggestions]);
+
+  const onSelectOption = useCallback(
+    (
+      option: SuggestionOption,
+      textNodeContainingQuery: TextNode | null,
+      closeMenu: () => void,
+    ) => {
+      // This callback is already invoked inside editor.update() by the plugin.
+      // textNodeContainingQuery contains "@query" — replace with just the label.
+      if (textNodeContainingQuery) {
+        textNodeContainingQuery.setTextContent(option.label + ' ');
+        textNodeContainingQuery.select();
+      }
+      closeMenu();
+    },
+    [],
+  );
+
+  return (
+    <LexicalTypeaheadMenuPlugin<SuggestionOption>
+      options={filteredOptions}
+      onQueryChange={setQueryString}
+      triggerFn={triggerFn}
+      onSelectOption={onSelectOption}
+      menuRenderFn={(
+        anchorElementRef,
+        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex, options },
+      ) => {
+        if (!anchorElementRef.current) return null;
+
+        return createPortal(
+          <AutocompleteDropdown>
+            {options.length === 0 ? (
+              <NoMatchesItem>No matches</NoMatchesItem>
+            ) : (
+              options.map((option, index) => (
+                <AutocompleteItem
+                  key={option.key}
+                  $active={selectedIndex === index}
+                  ref={(el) => option.setRefElement(el)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectOptionAndCleanUp(option);
+                  }}
+                  onMouseEnter={() => setHighlightedIndex(index)}
+                >
+                  {option.label}
+                  <SuggestionSource>({option.source})</SuggestionSource>
+                </AutocompleteItem>
+              ))
+            )}
+          </AutocompleteDropdown>,
+          anchorElementRef.current,
+        );
+      }}
+    />
+  );
+}
+
+// ---- Props ----
 
 interface MarkdownEditorProps {
   value: string;
@@ -83,8 +426,10 @@ interface MarkdownEditorProps {
   onSubmit?: () => void;
   placeholder?: string;
   disabled?: boolean;
-  suggestions?: string[];
+  suggestions?: Suggestion[];
 }
+
+// ---- Main Component ----
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
@@ -95,175 +440,75 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   disabled = false,
   suggestions: externalSuggestions = [],
 }) => {
-  const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [currentWord, setCurrentWord] = useState('');
-  const [cursorPosition, setCursorPosition] = useState(0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const lastEmittedValueRef = useRef(value);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Filter suggestions based on current word
-  const updateSuggestions = useCallback((text: string, position: number) => {
-    // Find the current word being typed
-    const beforeCursor = text.substring(0, position);
-    const words = beforeCursor.split(/[\s,]/);
-    const word = words[words.length - 1] || '';
-    
-    setCurrentWord(word);
-    setCursorPosition(position);
+  // Handle editor state changes: convert Lexical nodes back to markdown string
+  const handleChange = useCallback(
+    (editorState: EditorState) => {
+      editorState.read(() => {
+        const markdown = $convertToMarkdownString(TRANSFORMERS);
+        lastEmittedValueRef.current = markdown;
+        onChange(markdown);
+      });
+    },
+    [onChange],
+  );
 
-    if (word.length < 2) {
-      setSuggestions([]);
-      return;
-    }
-
-    // Filter suggestions
-    const lowerWord = word.toLowerCase();
-    const filtered = externalSuggestions
-      .filter((s) => s.toLowerCase().includes(lowerWord) && s.toLowerCase() !== lowerWord)
-      .slice(0, 8)
-      .map((text) => ({ text, source: 'file' as const }));
-
-    setSuggestions(filtered);
-    setSelectedIndex(0);
-  }, [externalSuggestions]);
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    const position = e.target.selectionStart || 0;
-    onChange(newValue);
-    updateSuggestions(newValue, position);
-  }, [onChange, updateSuggestions]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Ctrl/Cmd+Enter to submit
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      onSubmit?.();
-      return;
-    }
-
-    // Handle autocomplete navigation
-    if (suggestions.length > 0) {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        if (suggestions[selectedIndex]) {
-          selectSuggestion(suggestions[selectedIndex]);
-        }
+  // Handle blur on the container, ignoring internal focus moves
+  const handleContainerBlur = useCallback(
+    (e: React.FocusEvent<HTMLDivElement>) => {
+      if (e.currentTarget.contains(e.relatedTarget as Node)) {
         return;
       }
-      
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex((prev) => Math.min(suggestions.length - 1, prev + 1));
-        return;
-      }
-      
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex((prev) => Math.max(0, prev - 1));
-        return;
-      }
-      
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setSuggestions([]);
-        return;
-      }
-      
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (suggestions[selectedIndex]) {
-          selectSuggestion(suggestions[selectedIndex]);
-        }
-        return;
-      }
-    }
-  }, [suggestions, selectedIndex, onSubmit]);
+      // Delay slightly to allow autocomplete clicks to register
+      setTimeout(() => {
+        onBlur?.();
+      }, 150);
+    },
+    [onBlur],
+  );
 
-  const selectSuggestion = useCallback((suggestion: AutocompleteSuggestion) => {
-    if (!textareaRef.current) return;
-    
-    const textarea = textareaRef.current;
-    const text = value;
-    
-    // Find the start of the current word
-    const beforeCursor = text.substring(0, cursorPosition);
-    const lastSpaceIndex = Math.max(
-      beforeCursor.lastIndexOf(' '),
-      beforeCursor.lastIndexOf(','),
-      beforeCursor.lastIndexOf('\n')
-    );
-    const wordStart = lastSpaceIndex + 1;
-    
-    // Replace the current word with the suggestion
-    const newValue = 
-      text.substring(0, wordStart) + 
-      suggestion.text + 
-      text.substring(cursorPosition);
-    
-    onChange(newValue);
-    setSuggestions([]);
-    setSelectedIndex(0);
-    
-    // Set cursor position after the inserted text
-    const newPosition = wordStart + suggestion.text.length;
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(newPosition, newPosition);
-    }, 0);
-  }, [value, cursorPosition, onChange]);
-
-  const handleBlur = useCallback((e: React.FocusEvent) => {
-    // Check if the new focus target is within the container (e.g., clicking on suggestions)
-    const relatedTarget = e.relatedTarget as Node | null;
-    if (containerRef.current?.contains(relatedTarget)) {
-      return;
-    }
-    
-    // Delay to allow clicking on suggestions
-    setTimeout(() => {
-      setSuggestions([]);
-      onBlur?.();
-    }, 150);
-  }, [onBlur]);
-
-  const handleClick = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
-    const textarea = e.currentTarget;
-    updateSuggestions(textarea.value, textarea.selectionStart || 0);
-  }, [updateSuggestions]);
+  // Initial config - only computed once
+  const initialConfig = useMemo(
+    () => ({
+      namespace: 'CommitMessageEditor',
+      nodes: EDITOR_NODES,
+      theme: lexicalTheme,
+      editable: !disabled,
+      editorState: () => {
+        $convertFromMarkdownString(value, TRANSFORMERS);
+      },
+      onError: (error: Error) => {
+        console.error('Lexical editor error:', error);
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [], // Intentionally empty: initialConfig is only used once at mount
+  );
 
   return (
-    <EditorContainer ref={containerRef}>
-      <EditorTextarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-        onClick={handleClick}
-        placeholder={placeholder}
-        disabled={disabled}
-      />
-
-      {suggestions.length > 0 && (
-        <AutocompleteDropdown>
-          {suggestions.map((suggestion, index) => (
-            <AutocompleteItem
-              key={suggestion.text}
-              $active={index === selectedIndex}
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent blur
-                selectSuggestion(suggestion);
-              }}
-              onMouseEnter={() => setSelectedIndex(index)}
-            >
-              {suggestion.text}
-              <SuggestionSource>({suggestion.source})</SuggestionSource>
-            </AutocompleteItem>
-          ))}
-        </AutocompleteDropdown>
-      )}
+    <EditorContainer ref={containerRef} onBlur={handleContainerBlur}>
+      <LexicalComposer initialConfig={initialConfig}>
+        <EditorInner>
+          <RichTextPlugin
+            contentEditable={<StyledContentEditable />}
+            placeholder={<EditorPlaceholder>{placeholder}</EditorPlaceholder>}
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+        </EditorInner>
+        <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+        <HistoryPlugin />
+        <ListPlugin />
+        <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
+        <ExternalValueSyncPlugin
+          value={value}
+          lastEmittedValueRef={lastEmittedValueRef}
+        />
+        <SubmitPlugin onSubmit={onSubmit} />
+        <EditablePlugin disabled={disabled} />
+        <AutocompletePlugin suggestions={externalSuggestions} />
+      </LexicalComposer>
     </EditorContainer>
   );
 };

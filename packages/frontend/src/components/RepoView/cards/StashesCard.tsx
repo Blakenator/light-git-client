@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Button, ButtonGroup } from 'react-bootstrap';
+import { Button, ButtonGroup, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
-import { Icon } from '@light-git/core';
+import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import type { StashModel } from '@light-git/shared';
 
@@ -40,38 +40,50 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({
       />
       <CardHeaderButtons>
         <ButtonGroup size="sm">
-          <Button
-            variant="secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStash(false);
-            }}
-            title="Stash All Changes"
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id="tooltip-stash-all">Stash All Changes</Tooltip>}
           >
-            <Icon name="fa-boxes" />
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStash(true);
-            }}
-            title="Stash Unstaged Changes Only"
+            <Button
+              variant="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStash(false);
+              }}
+            >
+              <Icon name="fa-boxes" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id="tooltip-stash-unstaged">Stash Unstaged Changes Only</Tooltip>}
           >
-            <Icon name="fa-box" />
-          </Button>
+            <Button
+              variant="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStash(true);
+              }}
+            >
+              <Icon name="fa-box" />
+            </Button>
+          </TooltipTrigger>
         </ButtonGroup>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRestoreStash();
-          }}
-          title="Restore deleted stash"
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id="tooltip-restore-stash">Restore deleted stash</Tooltip>}
         >
-          <Icon name="fa-history" />
-        </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRestoreStash();
+            }}
+          >
+            <Icon name="fa-history" />
+          </Button>
+        </TooltipTrigger>
       </CardHeaderButtons>
     </CardHeaderContent>
   );
@@ -122,35 +134,52 @@ const StashItem: React.FC<StashItemProps> = ({
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <span className="flex-grow-1 text-truncate" title={stash.message}>
-        {stash.message || `stash@{${stash.index}}`}
-      </span>
+      <TooltipTrigger
+        placement="bottom"
+        overlay={<Tooltip id={`tooltip-stash-message-${stash.hash}`}>{stash.message}</Tooltip>}
+      >
+        <span className="flex-grow-1 text-truncate">
+          {stash.message || `stash@{${stash.index}}`}
+        </span>
+      </TooltipTrigger>
       {showActions && (
         <ButtonGroup size="sm">
-          <Button
-            variant="outline-success"
-            size="sm"
-            onClick={() => onApply(stash)}
-            title="Apply stash"
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id={`tooltip-apply-stash-${stash.hash}`}>Apply stash</Tooltip>}
           >
-            <Icon name="fa-download" size="sm" />
-          </Button>
-          <Button
-            variant="outline-info"
-            size="sm"
-            onClick={() => onView(stash)}
-            title="View stash"
+            <Button
+              variant="outline-success"
+              size="sm"
+              onClick={() => onApply(stash)}
+            >
+              <Icon name="fa-download" size="sm" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id={`tooltip-view-stash-${stash.hash}`}>View stash</Tooltip>}
           >
-            <Icon name="fa-eye" size="sm" />
-          </Button>
-          <Button
-            variant="outline-danger"
-            size="sm"
-            onClick={() => onDelete(stash)}
-            title="Delete stash"
+            <Button
+              variant="outline-info"
+              size="sm"
+              onClick={() => onView(stash)}
+            >
+              <Icon name="fa-eye" size="sm" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id={`tooltip-delete-stash-${stash.hash}`}>Delete stash</Tooltip>}
           >
-            <Icon name="fa-trash" size="sm" />
-          </Button>
+            <Button
+              variant="outline-danger"
+              size="sm"
+              onClick={() => onDelete(stash)}
+            >
+              <Icon name="fa-trash" size="sm" />
+            </Button>
+          </TooltipTrigger>
         </ButtonGroup>
       )}
     </div>

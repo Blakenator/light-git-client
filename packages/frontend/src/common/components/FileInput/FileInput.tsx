@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
 import styled from 'styled-components';
-import { Button, Form, InputGroup } from 'react-bootstrap';
+import { Button, Form, InputGroup, Tooltip } from 'react-bootstrap';
 import { useIpc } from '../../../ipc/useIpc';
 import { Channels } from '@light-git/shared';
-import { Icon } from '../Icon/Icon';
+import { Icon, TooltipTrigger } from '@light-git/core';
 
 const FileInputWrapper = styled.div`
   margin-bottom: 1rem;
@@ -91,14 +91,18 @@ export const FileInput: React.FC<FileInputProps> = ({
           placeholder={placeholder}
           disabled={disabled}
         />
-        <Button
-          variant="secondary"
-          onClick={handleBrowse}
-          disabled={disabled}
-          title={isFolder ? 'Browse for folder' : 'Browse for file'}
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id="tooltip-browse-file">{isFolder ? 'Browse for folder' : 'Browse for file'}</Tooltip>}
         >
-          <Icon name="fa-folder-open" />
-        </Button>
+          <Button
+            variant="secondary"
+            onClick={handleBrowse}
+            disabled={disabled}
+          >
+            <Icon name="fa-folder-open" />
+          </Button>
+        </TooltipTrigger>
       </InputGroup>
     </FileInputWrapper>
   );

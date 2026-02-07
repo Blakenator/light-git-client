@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ToastContainer, toast, TypeOptions, Id } from 'react-toastify';
+import { Tooltip } from 'react-bootstrap';
 import 'react-toastify/dist/ReactToastify.css';
 import { useUiStore, NotificationModel } from '../../../stores';
+import { TooltipTrigger } from '@light-git/core';
 
 // Map our notification types to react-toastify types
 const getToastType = (type: NotificationModel['type']): TypeOptions => {
@@ -37,13 +39,17 @@ const ErrorToastContent: React.FC<{ message: string }> = ({ message }) => {
   return (
     <div className="toast-error-content">
       <span className="toast-error-message">{message}</span>
-      <button
-        className="toast-copy-btn"
-        onClick={handleCopy}
-        title="Copy error message"
+      <TooltipTrigger
+        placement="top"
+        overlay={<Tooltip id="tooltip-copy-error-message">Copy error message</Tooltip>}
       >
-        {copied ? 'Copied!' : 'Copy'}
-      </button>
+        <button
+          className="toast-copy-btn"
+          onClick={handleCopy}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </TooltipTrigger>
     </div>
   );
 };

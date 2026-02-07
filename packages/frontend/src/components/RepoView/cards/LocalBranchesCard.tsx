@@ -1,40 +1,44 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Button, ButtonGroup, Dropdown } from 'react-bootstrap';
+import { Button, ButtonGroup, Dropdown, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
-import { Icon } from '@light-git/core';
+import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import { BranchTreeItem } from '../../BranchTreeItem/BranchTreeItem';
 import type { BranchModel } from '@light-git/shared';
 
 interface LocalBranchesCardProps {
   branches: BranchModel[];
+  worktrees?: any[];
   showTrackingPath?: boolean;
   onCheckout: (branch: BranchModel, andPull: boolean) => void;
   onCreateBranch: () => void;
   onMerge: (branch?: BranchModel) => void;
+  onRebase?: (branch: BranchModel) => void;
+  onInteractiveRebase?: (branch: BranchModel) => void;
   onPrune: () => void;
   onPush: (branch: BranchModel, force: boolean) => void;
   onPull: (branch: BranchModel | null, force: boolean) => void;
   onDelete: (branch: BranchModel) => void;
   onRename: (branch: BranchModel) => void;
   onFastForward?: (branch: BranchModel) => void;
-  onRebase?: (branch: BranchModel) => void;
   onViewChanges?: (branch: BranchModel) => void;
 }
 
 export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
   branches,
+  worktrees,
   showTrackingPath = false,
   onCheckout,
   onCreateBranch,
   onMerge,
+  onRebase,
+  onInteractiveRebase,
   onPrune,
   onPush,
   onPull,
   onDelete,
   onRename,
   onFastForward,
-  onRebase,
   onViewChanges,
 }) => {
   const [filter, setFilter] = useState('');
@@ -64,79 +68,104 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
         placeholder="Filter..."
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        onClick={(e) => e.stopPropagation()}
       />
       <CardHeaderButtons>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCreateBranch();
-          }}
-          title="Create branch off current HEAD"
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id="tooltip-create-branch">Create branch off current HEAD</Tooltip>}
         >
-          <Icon name="fa-plus" />
-        </Button>
-        <Button
-          variant="warning"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrune();
-          }}
-          title="Prune local branches"
-        >
-          <Icon name="fa-cut" />
-        </Button>
-        <ButtonGroup size="sm">
           <Button
-            variant="success"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMerge();
-            }}
-            title="Merge branches"
+            variant="primary"
+            size="sm"
+            onClick={() => onCreateBranch()}
           >
-            <Icon name="merge_type" />
+            <Icon name="fa-code-branch" />
           </Button>
-        </ButtonGroup>
+        </TooltipTrigger>
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id="tooltip-prune-branches">Prune local branches</Tooltip>}
+        >
+          <Button
+            variant="warning"
+            size="sm"
+            onClick={() => onPrune()}
+          >
+            <Icon name="fa-cut" />
+          </Button>
+        </TooltipTrigger>
+        <Dropdown as={ButtonGroup} size="sm">
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id="tooltip-merge-branches">Merge branches</Tooltip>}
+          >
+            <Button
+              variant="success"
+              onClick={() => onMerge()}
+            >
+              <Icon name="merge_type" />
+            </Button>
+          </TooltipTrigger>
+          <Dropdown.Toggle split variant="success" />
+          <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
+            <Dropdown.Item onClick={() => {
+              if (onRebase && currentBranch) {
+                onRebase(currentBranch);
+              } else {
+                onMerge();
+              }
+            }}>
+              Rebase
+            </Dropdown.Item>
+            <Dropdown.Item onClick={() => {
+              if (onInteractiveRebase && currentBranch) {
+                onInteractiveRebase(currentBranch);
+              } else {
+                onMerge();
+              }
+            }}>
+              Interactive Rebase
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
         {currentBranch && (
           <Dropdown as={ButtonGroup} size="sm">
-            <Button
-              variant="info"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPull(currentBranch, false);
-              }}
-              title="Pull"
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id="tooltip-pull-local">Pull</Tooltip>}
             >
-              <Icon name="fa-download" />
-            </Button>
-            <Dropdown.Toggle split variant="info" onClick={(e) => e.stopPropagation()} />
-            <Dropdown.Menu>
+              <Button
+                variant="info"
+                onClick={() => onPull(currentBranch, false)}
+              >
+                <Icon name="fa-arrow-down" />
+              </Button>
+            </TooltipTrigger>
+            <Dropdown.Toggle split variant="info" />
+            <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
               <Dropdown.Item onClick={() => onPull(currentBranch, true)}>
-                Force Pull
+                <Icon name="fa-shield-alt" /> Force Pull
               </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         )}
         {currentBranch && (
           <Dropdown as={ButtonGroup} size="sm">
-            <Button
-              variant="info"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPush(currentBranch, false);
-              }}
-              title="Push current branch"
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id="tooltip-push-local">Push current branch</Tooltip>}
             >
-              <Icon name="fa-upload" />
-            </Button>
-            <Dropdown.Toggle split variant="info" onClick={(e) => e.stopPropagation()} />
-            <Dropdown.Menu>
+              <Button
+                variant="info"
+                onClick={() => onPush(currentBranch, false)}
+              >
+                <Icon name="fa-arrow-up" />
+              </Button>
+            </TooltipTrigger>
+            <Dropdown.Toggle split variant="info" />
+            <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
               <Dropdown.Item onClick={() => onPush(currentBranch, true)}>
-                Force Push
+                <Icon name="fa-shield-alt" /> Force Push
               </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
@@ -158,12 +187,14 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
           isLocal={true}
           filter={filter}
           showTrackingPath={showTrackingPath}
+          worktrees={worktrees}
           onCheckoutClicked={handleCheckout}
           onPushClicked={(branch, force) => onPush(branch as any, force)}
           onPullClicked={(branch, force) => onPull(branch as any, force)}
           onDeleteClicked={(branch) => onDelete(branch as any)}
           onMergeClicked={(branch) => onMerge(branch as any)}
-          onRebaseClicked={(branch) => onRebase?.(branch as any)}
+          onRebaseClicked={onRebase ? (branch) => onRebase(branch as any) : undefined}
+          onInteractiveRebaseClicked={onInteractiveRebase ? (branch) => onInteractiveRebase(branch as any) : undefined}
           onFastForwardClicked={(branch) => onFastForward?.(branch as any)}
           onBranchRename={(branch) => onRename(branch as any)}
           onCopyBranchName={handleCopyBranchName}

@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Modal, Button, Form, ButtonGroup, ListGroup, Badge } from 'react-bootstrap';
+import { Modal, Button, Form, ButtonGroup, ListGroup, Badge, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
 import { useUiStore } from '../../../stores';
-import { Icon, AgeInfo } from '@light-git/core';
+import { Icon, AgeInfo, TooltipTrigger } from '@light-git/core';
 
 const DialogContent = styled.div`
   display: grid;
@@ -213,9 +213,14 @@ export const PruneBranchDialog: React.FC<PruneBranchDialogProps> = ({
                     <BranchName>
                       {branch.name}
                       {branch.isTrackingPathGone && (
-                        <span title="Remote branch no longer exists">
-                          <Icon name="fa-unlink" className="text-warning" />
-                        </span>
+                        <TooltipTrigger
+                          placement="top"
+                          overlay={<Tooltip id={`tooltip-tracking-gone-${branch.name}`}>Remote branch no longer exists</Tooltip>}
+                        >
+                          <span>
+                            <Icon name="fa-unlink" className="text-warning" />
+                          </span>
+                        </TooltipTrigger>
                       )}
                     </BranchName>
                     {branch.lastCommitDate && (

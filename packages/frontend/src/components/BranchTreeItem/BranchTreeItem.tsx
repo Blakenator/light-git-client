@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
-import { Button, ButtonGroup, Dropdown } from 'react-bootstrap';
-import { Icon } from '@light-git/core';
+import { Button, ButtonGroup, Dropdown, Tooltip } from 'react-bootstrap';
+import { Icon, TooltipTrigger } from '@light-git/core';
 
 const TreeContainer = styled.div`
   padding-left: 0;
@@ -61,7 +61,8 @@ const BranchIcon = styled.span`
 const BranchName = styled.span<{ $current?: boolean; $muted?: boolean }>`
   flex: 1;
   font-weight: ${({ $current }) => ($current ? 'bold' : 'normal')};
-  color: ${({ $muted, theme }) => ($muted ? theme.colors.secondary : 'inherit')};
+  color: ${({ $muted, theme }) =>
+    $muted ? theme.colors.secondary : 'inherit'};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -87,6 +88,20 @@ const AheadBehindBadge = styled.span<{ $type: 'ahead' | 'behind' }>`
   &:hover {
     opacity: 0.8;
   }
+`;
+
+const TrackingInfo = styled.span`
+  font-size: 0.7rem;
+  color: ${({ theme }) => theme.colors.secondary};
+  margin-left: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+`;
+
+const WorktreeIndicator = styled.span`
+  color: ${({ theme }) => theme.colors.warning};
+  margin-left: 0.25rem;
 `;
 
 const ExpandButton = styled.button<{ $visible: boolean }>`
@@ -126,6 +141,13 @@ export interface BranchModel {
   trackingPath?: string;
   ahead?: number;
   behind?: number;
+  hash?: string;
+}
+
+interface WorktreeModel {
+  path: string;
+  branch?: string;
+  isBare?: boolean;
 }
 
 interface BranchTreeItemProps {
@@ -133,12 +155,15 @@ interface BranchTreeItemProps {
   isLocal: boolean;
   filter?: string;
   showTrackingPath?: boolean;
+  worktrees?: WorktreeModel[];
+  localBranches?: BranchModel[];
   onCheckoutClicked: (info: { branch: string; andPull: boolean }) => void;
   onPushClicked?: (branch: BranchModel, force: boolean) => void;
   onPullClicked?: (branch: BranchModel, force: boolean) => void;
   onDeleteClicked: (branch: BranchModel) => void;
   onMergeClicked?: (branch: BranchModel) => void;
   onRebaseClicked?: (branch: BranchModel) => void;
+  onInteractiveRebaseClicked?: (branch: BranchModel) => void;
   onFastForwardClicked?: (branch: BranchModel) => void;
   onBranchRename?: (branch: BranchModel) => void;
   onCopyBranchName?: (branch: BranchModel) => void;
@@ -157,19 +182,26 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
   isLocal,
   filter = '',
   showTrackingPath = false,
+  worktrees = [],
+  localBranches = [],
   onCheckoutClicked,
   onPushClicked,
   onPullClicked,
   onDeleteClicked,
   onMergeClicked,
   onRebaseClicked,
+  onInteractiveRebaseClicked,
   onFastForwardClicked,
   onBranchRename,
   onCopyBranchName,
   onViewChanges,
 }) => {
-  const [expandedFolders, setExpandedFolders] = useState<{ [key: string]: boolean }>({});
-  const [expandedActions, setExpandedActions] = useState<{ [key: string]: boolean }>({});
+  const [expandedFolders, setExpandedFolders] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [expandedActions, setExpandedActions] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const filteredBranches = useMemo(() => {
     if (!filter) return branches;
@@ -208,103 +240,228 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
     setExpandedFolders((prev) => ({ ...prev, [path]: !prev[path] }));
   }, []);
 
-  const isFolderExpanded = useCallback((path: string) => {
-    return expandedFolders[path] !== false; // Default expanded
-  }, [expandedFolders]);
+  const isFolderExpanded = useCallback(
+    (path: string) => {
+      return expandedFolders[path] !== false; // Default expanded
+    },
+    [expandedFolders],
+  );
 
-  const toggleActions = useCallback((branchName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedActions((prev) => ({ ...prev, [branchName]: !prev[branchName] }));
-  }, []);
+  const toggleActions = useCallback(
+    (branchName: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setExpandedActions((prev) => ({
+        ...prev,
+        [branchName]: !prev[branchName],
+      }));
+    },
+    [],
+  );
 
-  const handleCopyBranchName = useCallback((branch: BranchModel, e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(branch.name);
-    onCopyBranchName?.(branch);
-  }, [onCopyBranchName]);
+  const handleCopyBranchName = useCallback(
+    (branch: BranchModel, e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(branch.name);
+      onCopyBranchName?.(branch);
+    },
+    [onCopyBranchName],
+  );
+
+  // Check if a branch is checked out in a worktree (not the main one)
+  const isInWorktree = useCallback((branchName: string): boolean => {
+    return worktrees.some(
+      (wt) => wt.branch === branchName && !wt.isBare
+    );
+  }, [worktrees]);
+
+  // For remote branches: check if the remote branch has a corresponding local branch
+  const localBranchNameSet = useMemo(() => {
+    return new Set(localBranches.map((b) => b.name));
+  }, [localBranches]);
+
+  const currentLocalBranch = useMemo(() => {
+    return localBranches.find((b) => b.isCurrentBranch)?.name;
+  }, [localBranches]);
 
   const renderBranchNode = (node: TreeNodeData): React.ReactNode => {
     if (!node.branch) return null;
     const branch = node.branch;
     const isActionsExpanded = expandedActions[branch.name] || false;
+    const branchInWorktree = isLocal && !branch.isCurrentBranch && isInWorktree(branch.name);
+    // For remote branches, check if already checked out locally
+    const remoteBranchLocalName = !isLocal ? branch.name.replace(/^origin\//, '') : '';
+    const isRemoteCheckedOutLocally = !isLocal && localBranchNameSet.has(remoteBranchLocalName);
+    const isRemoteCurrentLocal = !isLocal && currentLocalBranch === remoteBranchLocalName;
 
     return (
       <div key={node.fullPath}>
-        <BranchRow $current={branch.isCurrentBranch}>
+        <BranchRow $current={isRemoteCurrentLocal}>
           <BranchIcon>
-            {branch.isCurrentBranch ? (
+            {isRemoteCurrentLocal ? (
+              <Icon name="fa-shopping-cart" size="sm" />
+            ) : isRemoteCheckedOutLocally ? (
+              <Icon name="fa-shopping-cart" size="sm" />
+            ) : branch.isCurrentBranch ? (
               <Icon name="fa-shopping-cart" size="sm" />
             ) : (
               <Icon name="fa-code-branch" size="sm" />
             )}
           </BranchIcon>
-          <BranchName $current={branch.isCurrentBranch} title={branch.name}>
-            {node.name}
-          </BranchName>
+          <TooltipTrigger
+            placement="top"
+            tooltip={branch.name}
+            tooltipId={`tooltip-branch-name-${branch.name}`}
+          >
+            <BranchName
+              $current={branch.isCurrentBranch || isRemoteCurrentLocal}
+              $muted={branchInWorktree}
+            >
+              {node.name}
+            </BranchName>
+          </TooltipTrigger>
+          {/* Worktree indicator */}
+          {branchInWorktree && (
+            <TooltipTrigger
+              placement="top"
+              tooltip="Checked out in another worktree"
+              tooltipId={`tooltip-worktree-${branch.name}`}
+            >
+              <WorktreeIndicator>
+                <Icon name="fa-lock" size="sm" />
+              </WorktreeIndicator>
+            </TooltipTrigger>
+          )}
+          {/* Tracking path display */}
+          {isLocal && showTrackingPath && branch.trackingPath && (
+            <TooltipTrigger
+              placement="top"
+              tooltip={`Tracking: ${branch.trackingPath}`}
+              tooltipId={`tooltip-tracking-${branch.name}`}
+            >
+              <TrackingInfo>
+                <Icon name="fa-cloud" size="sm" />
+              </TrackingInfo>
+            </TooltipTrigger>
+          )}
+          {isLocal && showTrackingPath && !branch.trackingPath && !branch.isRemote && (
+            <TooltipTrigger
+              placement="top"
+              tooltip="No remote tracking"
+              tooltipId={`tooltip-no-tracking-${branch.name}`}
+            >
+              <TrackingInfo>
+                <Icon name="fa-unlink" size="sm" />
+              </TrackingInfo>
+            </TooltipTrigger>
+          )}
           <StatusIndicators>
             {branch.ahead !== undefined && branch.ahead > 0 && (
-              <AheadBehindBadge
-                $type="ahead"
-                title={`${branch.ahead} commits ahead - click to push`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPushClicked?.(branch, false);
-                }}
+              <TooltipTrigger
+                placement="top"
+                tooltip={`${branch.ahead} commits ahead - click to push`}
+                tooltipId={`tooltip-ahead-${branch.name}`}
               >
-                ↑{branch.ahead}
-              </AheadBehindBadge>
+                <AheadBehindBadge
+                  $type="ahead"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPushClicked?.(branch, false);
+                  }}
+                >
+                  ↑{branch.ahead}
+                </AheadBehindBadge>
+              </TooltipTrigger>
             )}
             {branch.behind !== undefined && branch.behind > 0 && (
-              <AheadBehindBadge
-                $type="behind"
-                title={`${branch.behind} commits behind - click to pull`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPullClicked?.(branch, false);
-                }}
+              <TooltipTrigger
+                placement="top"
+                tooltip={
+                  branch.isCurrentBranch
+                    ? `${branch.behind} commits behind - click to pull`
+                    : `${branch.behind} commits behind - click to fast forward`
+                }
+                tooltipId={`tooltip-behind-${branch.name}`}
               >
-                ↓{branch.behind}
-              </AheadBehindBadge>
+                <AheadBehindBadge
+                  $type="behind"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (branch.isCurrentBranch) {
+                      onPullClicked?.(branch, false);
+                    } else if (!branch.ahead && onFastForwardClicked) {
+                      onFastForwardClicked(branch);
+                    }
+                  }}
+                >
+                  ↓{branch.behind}
+                </AheadBehindBadge>
+              </TooltipTrigger>
             )}
           </StatusIndicators>
-          <ExpandButton
-            $visible={isActionsExpanded}
-            onClick={(e) => toggleActions(branch.name, e)}
-            title={isActionsExpanded ? 'Hide actions' : 'Show actions'}
+          <TooltipTrigger
+            placement="bottom"
+            tooltip={isActionsExpanded ? 'Hide actions' : 'Show actions'}
+            tooltipId={`tooltip-expand-${branch.name}`}
           >
-            <Icon name={isActionsExpanded ? 'fa-times' : 'fa-ellipsis-h'} size="sm" />
-          </ExpandButton>
+            <ExpandButton
+              $visible={isActionsExpanded}
+              onClick={(e) => toggleActions(branch.name, e)}
+            >
+              <Icon
+                name={isActionsExpanded ? 'fa-times' : 'fa-ellipsis-h'}
+                size="sm"
+              />
+            </ExpandButton>
+          </TooltipTrigger>
         </BranchRow>
         <ActionBar $expanded={isActionsExpanded}>
           {/* Copy branch name */}
-          <Button
-            variant="outline-secondary"
-            size="sm"
-            onClick={(e) => handleCopyBranchName(branch, e)}
-            title="Copy branch name"
+          <TooltipTrigger
+            placement="top"
+            tooltip="Copy branch name"
+            tooltipId={`tooltip-copy-${branch.name}`}
           >
-            <Icon name="fa-copy" size="sm" />
-          </Button>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={(e) => handleCopyBranchName(branch, e)}
+            >
+              <Icon name="fa-copy" size="sm" />
+            </Button>
+          </TooltipTrigger>
 
-          {/* Checkout (only for non-current branches) */}
-          {!branch.isCurrentBranch && (
+          {/* Checkout (only for non-current branches, not in worktree) */}
+          {!branch.isCurrentBranch && !branchInWorktree && (
             <Dropdown as={ButtonGroup} size="sm">
-              <Button
-                variant="outline-primary"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCheckoutClicked({ branch: branch.name, andPull: false });
-                }}
-                title="Checkout"
+              <TooltipTrigger
+                placement="top"
+                tooltip="Checkout"
+                tooltipId={`tooltip-checkout-${branch.name}`}
               >
-                <Icon name="fa-sign-in-alt" size="sm" />
-              </Button>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => onCheckoutClicked({ branch: branch.name, andPull: false })}
+                >
+                  <Icon name="fa-shopping-cart" size="sm" />
+                </Button>
+              </TooltipTrigger>
               {isLocal && (
                 <>
-                  <Dropdown.Toggle split variant="outline-primary" size="sm" onClick={(e) => e.stopPropagation()} />
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => onCheckoutClicked({ branch: branch.name, andPull: true })}>
+                  <Dropdown.Toggle
+                    split
+                    variant="outline-primary"
+                    size="sm"
+                  />
+                  <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
+                    <Dropdown.Item
+                      onClick={() =>
+                        onCheckoutClicked({
+                          branch: branch.name,
+                          andPull: true,
+                        })
+                      }
+                    >
                       Checkout and Pull
                     </Dropdown.Item>
                   </Dropdown.Menu>
@@ -313,54 +470,87 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
             </Dropdown>
           )}
 
-          {/* View Changes */}
-          {onViewChanges && (
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewChanges(branch);
-              }}
-              title="View changes in branch"
+          {/* Worktree disabled checkout indicator */}
+          {!branch.isCurrentBranch && branchInWorktree && (
+            <TooltipTrigger
+              placement="top"
+              tooltip="Branch is checked out in another worktree"
+              tooltipId={`tooltip-worktree-disabled-${branch.name}`}
             >
-              <Icon name="fa-eye" size="sm" />
-            </Button>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                disabled
+              >
+                <Icon name="fa-lock" size="sm" />
+              </Button>
+            </TooltipTrigger>
+          )}
+
+          {/* View Changes / Branch premerge */}
+          {onViewChanges && !branch.isCurrentBranch && (
+            <TooltipTrigger
+              placement="top"
+              tooltip="View changes since common ancestor"
+              tooltipId={`tooltip-view-changes-${branch.name}`}
+            >
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewChanges(branch);
+                }}
+              >
+                <Icon name="fa-eye" size="sm" />
+              </Button>
+            </TooltipTrigger>
           )}
 
           {/* Fast Forward (local, non-current only) */}
           {isLocal && !branch.isCurrentBranch && onFastForwardClicked && (
-            <Button
-              variant="outline-warning"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFastForwardClicked(branch);
-              }}
-              title="Fast Forward"
+            <TooltipTrigger
+              placement="top"
+              tooltip="Fast Forward"
+              tooltipId={`tooltip-fast-forward-${branch.name}`}
             >
-              <Icon name="fa-forward" size="sm" />
-            </Button>
-          )}
-
-          {/* Pull (current branch only) */}
-          {isLocal && branch.isCurrentBranch && onPullClicked && (
-            <Dropdown as={ButtonGroup} size="sm">
               <Button
-                variant="outline-info"
+                variant="outline-warning"
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onPullClicked(branch, false);
+                  onFastForwardClicked(branch);
                 }}
-                title="Pull"
               >
-                <Icon name="fa-download" size="sm" />
+                <Icon name="fa-forward" size="sm" />
               </Button>
-              <Dropdown.Toggle split variant="outline-info" size="sm" onClick={(e) => e.stopPropagation()} />
-              <Dropdown.Menu>
+            </TooltipTrigger>
+          )}
+
+          {/* Pull (current branch only, with trackingPath check) */}
+          {isLocal && branch.isCurrentBranch && branch.trackingPath && onPullClicked && (
+            <Dropdown as={ButtonGroup} size="sm">
+              <TooltipTrigger
+                placement="top"
+                tooltip="Pull"
+                tooltipId={`tooltip-pull-${branch.name}`}
+              >
+                <Button
+                  variant="outline-info"
+                  size="sm"
+                  onClick={() => onPullClicked(branch, false)}
+                >
+                  <Icon name="fa-arrow-down" size="sm" />
+                </Button>
+              </TooltipTrigger>
+              <Dropdown.Toggle
+                split
+                variant="outline-info"
+                size="sm"
+              />
+              <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
                 <Dropdown.Item onClick={() => onPullClicked(branch, true)}>
-                  Force Pull
+                  <Icon name="fa-shield-alt" /> Force Pull
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
@@ -369,86 +559,120 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
           {/* Push (local only) */}
           {isLocal && onPushClicked && (
             <Dropdown as={ButtonGroup} size="sm">
-              <Button
+              <TooltipTrigger
+                placement="top"
+                tooltip="Push"
+                tooltipId={`tooltip-push-${branch.name}`}
+              >
+                <Button
+                  variant="outline-info"
+                  size="sm"
+                  onClick={() => onPushClicked(branch, false)}
+                >
+                  <Icon name="fa-arrow-up" size="sm" />
+                </Button>
+              </TooltipTrigger>
+              <Dropdown.Toggle
+                split
                 variant="outline-info"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPushClicked(branch, false);
-                }}
-                title="Push"
-              >
-                <Icon name="fa-upload" size="sm" />
-              </Button>
-              <Dropdown.Toggle split variant="outline-info" size="sm" onClick={(e) => e.stopPropagation()} />
-              <Dropdown.Menu>
+              />
+              <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
                 <Dropdown.Item onClick={() => onPushClicked(branch, true)}>
-                  Force Push
+                  <Icon name="fa-shield-alt" /> Force Push
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
           )}
 
-          {/* Merge */}
-          {onMergeClicked && (
+          {/* Merge / Rebase / Interactive Rebase */}
+          {!branch.isCurrentBranch && onMergeClicked && (
             <Dropdown as={ButtonGroup} size="sm">
-              <Button
-                variant="outline-success"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMergeClicked(branch);
-                }}
-                title="Merge into current branch"
+              <TooltipTrigger
+                placement="top"
+                tooltip="Merge into current branch"
+                tooltipId={`tooltip-merge-${branch.name}`}
               >
-                <Icon name="merge_type" size="sm" />
-              </Button>
-              {isLocal && onRebaseClicked && (
+                <Button
+                  variant="outline-success"
+                  size="sm"
+                  onClick={() => onMergeClicked(branch)}
+                >
+                  <Icon name="merge_type" size="sm" />
+                </Button>
+              </TooltipTrigger>
+              {isLocal && (onRebaseClicked || onInteractiveRebaseClicked) && (
                 <>
-                  <Dropdown.Toggle split variant="outline-success" size="sm" onClick={(e) => e.stopPropagation()} />
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => onRebaseClicked(branch)}>
-                      Rebase
-                    </Dropdown.Item>
+                  <Dropdown.Toggle
+                    split
+                    variant="outline-success"
+                    size="sm"
+                  />
+                  <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
+                    {onRebaseClicked && (
+                      <Dropdown.Item onClick={() => onRebaseClicked(branch)}>
+                        Rebase
+                      </Dropdown.Item>
+                    )}
+                    {onInteractiveRebaseClicked && (
+                      <Dropdown.Item onClick={() => onInteractiveRebaseClicked(branch)}>
+                        Interactive Rebase
+                      </Dropdown.Item>
+                    )}
                   </Dropdown.Menu>
                 </>
               )}
             </Dropdown>
           )}
 
-          {/* Rename (local only) */}
-          {isLocal && onBranchRename && (
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onBranchRename(branch);
-              }}
-              title="Rename branch"
+          {/* Rename (local only, not current) */}
+          {isLocal && onBranchRename && !branch.isCurrentBranch && (
+            <TooltipTrigger
+              placement="top"
+              tooltip="Rename branch"
+              tooltipId={`tooltip-rename-${branch.name}`}
             >
-              <Icon name="edit" size="sm" />
-            </Button>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBranchRename(branch);
+                }}
+              >
+                <Icon name="edit" size="sm" />
+              </Button>
+            </TooltipTrigger>
           )}
 
-          {/* Delete */}
-          <Button
-            variant="outline-danger"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteClicked(branch);
-            }}
-            title="Delete branch"
-          >
-            <Icon name="fa-trash" size="sm" />
-          </Button>
+          {/* Delete (not for current branch) */}
+          {!branch.isCurrentBranch && (
+            <TooltipTrigger
+              placement="top"
+              tooltip="Delete branch"
+              tooltipId={`tooltip-delete-${branch.name}`}
+            >
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteClicked(branch);
+                }}
+              >
+                <Icon name="fa-trash" size="sm" />
+              </Button>
+            </TooltipTrigger>
+          )}
         </ActionBar>
       </div>
     );
   };
 
-  const renderNode = (node: TreeNodeData, level: number = 0): React.ReactNode => {
+  const renderNode = (
+    node: TreeNodeData,
+    level: number = 0,
+  ): React.ReactNode => {
     const childKeys = Object.keys(node.children);
     const hasChildren = childKeys.length > 0;
 
@@ -465,11 +689,12 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
         {node.fullPath && (
           <FolderRow onClick={() => toggleFolder(node.fullPath)}>
             <CaretIcon $expanded={isExpanded}>
-              <Icon name={isExpanded ? 'fa-caret-down' : 'fa-caret-right'} size="sm" />
+              <Icon
+                name={isExpanded ? 'fa-caret-down' : 'fa-caret-right'}
+                size="sm"
+              />
             </CaretIcon>
-            <BranchName>
-              {node.name}
-            </BranchName>
+            <BranchName>{node.name}</BranchName>
           </FolderRow>
         )}
         {(isExpanded || !node.fullPath) && hasChildren && (

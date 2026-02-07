@@ -1,5 +1,7 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
+import { Tooltip } from 'react-bootstrap';
+import { TooltipTrigger } from '@light-git/core';
 import { useRepositoryStore, useSettingsStore, useUiStore } from '../stores';
 import { useIpc } from '../ipc/useIpc';
 import { Channels } from '@light-git/shared';
@@ -171,16 +173,26 @@ const HomePage: React.FC = () => {
     <MainPanel>
       <Navbar airplaneMode={settings.airplaneMode}>
         {settings.airplaneMode && (
-          <AirplaneModeIcon title="Airplane Mode is Active">
-            <i className="fa fa-plane" />
-          </AirplaneModeIcon>
+          <TooltipTrigger
+            placement="bottom"
+            overlay={<Tooltip id="tooltip-airplane-mode">Airplane Mode is Active</Tooltip>}
+          >
+            <AirplaneModeIcon>
+              <i className="fa fa-plane" />
+            </AirplaneModeIcon>
+          </TooltipTrigger>
         )}
         <ActiveJobs />
         <TabBar onLoadRepo={loadRepo} />
-        <SettingsButton onClick={handleSettingsClick} title="App Settings">
-          <i className="material-icons">settings</i>
-          <span>Settings</span>
-        </SettingsButton>
+        <TooltipTrigger
+          placement="bottom"
+          overlay={<Tooltip id="tooltip-app-settings">App Settings</Tooltip>}
+        >
+          <SettingsButton onClick={handleSettingsClick}>
+            <i className="material-icons">settings</i>
+            <span>Settings</span>
+          </SettingsButton>
+        </TooltipTrigger>
       </Navbar>
       <MainBody>
         {activeTabIndex >= 0 && (

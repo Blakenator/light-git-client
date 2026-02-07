@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Modal, Button, Form, ListGroup } from 'react-bootstrap';
+import { Modal, Button, Form, ListGroup, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
 import { useUiStore } from '../../../stores';
 import { useGitService } from '../../../ipc';
-import { AgeInfo, Icon } from '@light-git/core';
+import { AgeInfo, Icon, TooltipTrigger } from '@light-git/core';
 
 const StashList = styled(ListGroup)`
   max-height: 400px;
@@ -161,12 +161,22 @@ export const RestoreStashDialog: React.FC<RestoreStashDialogProps> = ({
                 onClick={() => setSelectedStash(stash)}
               >
                 <StashHeader>
-                  <StashMessage title={stash.message}>{stash.message}</StashMessage>
+                  <TooltipTrigger
+                    placement="bottom"
+                    overlay={<Tooltip id={`tooltip-stash-message-${stash.hash}`}>{stash.message}</Tooltip>}
+                  >
+                    <StashMessage>{stash.message}</StashMessage>
+                  </TooltipTrigger>
                 </StashHeader>
                 <StashMeta>
-                  <span title={stash.hash}>
-                    <Icon name="fa-hashtag" size="sm" /> {stash.hash.substring(0, 7)}
-                  </span>
+                  <TooltipTrigger
+                    placement="bottom"
+                    overlay={<Tooltip id={`tooltip-stash-hash-${stash.hash}`}>{stash.hash}</Tooltip>}
+                  >
+                    <span>
+                      <Icon name="fa-hashtag" size="sm" /> {stash.hash.substring(0, 7)}
+                    </span>
+                  </TooltipTrigger>
                   {stash.authorName && (
                     <span>
                       <Icon name="fa-user" size="sm" /> {stash.authorName}

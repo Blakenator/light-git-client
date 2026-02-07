@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, ButtonGroup } from 'react-bootstrap';
-import { useRepositoryStore, useSettingsStore, useUiStore } from '../../stores';
-import { Icon } from '@light-git/core';
+import { Button, ButtonGroup, Tooltip } from 'react-bootstrap';
+import { useRepositoryStore, useSettingsStore, useUiStore, useJobStore, RepoArea } from '../../stores';
+import { Icon, TooltipTrigger } from '@light-git/core';
 import { useIpc, useGitService, useIpcListener } from '../../ipc';
 import { Channels } from '@light-git/shared';
 import { ConfirmModal } from '../../common/components/ConfirmModal/ConfirmModal';
 import { InputModal } from '../../common/components/InputModal/InputModal';
 import { PruneBranchDialog, MergeBranchDialog } from './dialogs';
+import { calculateGraphBlocks } from '../../utils/calculateGraphBlocks';
 import {
   RepoViewContainer,
   Column,
@@ -27,6 +28,13 @@ import {
   CommitHistoryCard,
   ActiveOperation,
 } from './cards';
+
+interface MergeInfo {
+  sourceBranch?: any;
+  targetBranch?: any;
+  isRebase?: boolean;
+  isInteractive?: boolean;
+}
 
 interface RepoViewProps {
   repoPath: string;
@@ -75,6 +83,10 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const [isLoadingMoreDiffs, setIsLoadingMoreDiffs] = React.useState(false);
   // Track current file selection for loading subsequent pages (ref to avoid re-renders)
   const currentDiffFilesRef = React.useRef<{ unstaged: string[]; staged: string[] }>({ unstaged: [], staged: [] });
+
+  // Pagination guards for commit history infinite scrolling
+  const isLoadingMoreCommits = React.useRef(false);
+  const noMoreCommits = React.useRef(false);
 
   // Refs for values that callbacks need to READ at call time but shouldn't trigger callback recreation.
   // This prevents cascading re-renders when selection/commit data changes.
@@ -169,18 +181,24 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   // Helper to refresh repo data (uses job scheduler for proper queuing)
   const refreshRepo = useCallback(async () => {
+    noMoreCommits.current = false;
     try {
       const data = await gitService.refreshAll();
       
-      updateRepoCache(repoPath, {
-        changes: data.changes,
-        localBranches: data.localBranches,
-        remoteBranches: data.remoteBranches,
-        stashes: data.stashes,
-        worktrees: data.worktrees,
-        submodules: data.submodules,
-        commitHistory: data.commitHistory,
-      });
+      // Filter out undefined values - these can occur when overlapping refreshes
+      // cause the job scheduler to supersede (deduplicate) pending read jobs.
+      const update: Record<string, any> = {};
+      if (data.changes !== undefined) update.changes = data.changes;
+      if (data.localBranches !== undefined) update.localBranches = data.localBranches;
+      if (data.remoteBranches !== undefined) update.remoteBranches = data.remoteBranches;
+      if (data.stashes !== undefined) update.stashes = data.stashes;
+      if (data.worktrees !== undefined) update.worktrees = data.worktrees;
+      if (data.submodules !== undefined) update.submodules = data.submodules;
+      if (data.commitHistory !== undefined) update.commitHistory = data.commitHistory;
+      
+      if (Object.keys(update).length > 0) {
+        updateRepoCache(repoPath, update);
+      }
     } catch (error) {
       console.error('Failed to refresh repo:', error);
       addAlert('Failed to refresh repository', 'error');
@@ -204,40 +222,178 @@ export const RepoView: React.FC<RepoViewProps> = ({
     }
   }, [repoPath, refreshRepo, gitService]);
 
-  // Git operation handlers (using job scheduler for proper queuing)
+  // Auto-refresh affected areas when the job queue finishes (mirrors Angular TabDataService.updateAreas).
+  // Write operations declare which RepoAreas they affect. When all queued jobs finish,
+  // onFinishQueue fires with the accumulated affected areas, and we refresh only those.
+  // Read operations have affectedAreas: [], so they don't trigger further refreshes.
+  const onFinishQueue = useJobStore((state) => state.onFinishQueue);
+
+  useEffect(() => {
+    const unsubscribe = onFinishQueue(({ affectedAreas, path }) => {
+      if (affectedAreas.size === 0 || path !== repoPath) return;
+
+      const promises: Promise<any>[] = [];
+
+      if (affectedAreas.has(RepoArea.LOCAL_BRANCHES)) {
+        promises.push(
+          gitService.getLocalBranches()
+            .then((result: any) => result !== undefined ? { localBranches: result } : null)
+            .catch((err: any) => { console.error('Failed to refresh local branches:', err); return null; })
+        );
+      }
+      if (affectedAreas.has(RepoArea.REMOTE_BRANCHES)) {
+        promises.push(
+          gitService.getRemoteBranches()
+            .then((result: any) => result !== undefined ? { remoteBranches: result } : null)
+            .catch((err: any) => { console.error('Failed to refresh remote branches:', err); return null; })
+        );
+      }
+      if (affectedAreas.has(RepoArea.LOCAL_CHANGES)) {
+        promises.push(
+          gitService.getFileChanges()
+            .then((result: any) => result !== undefined ? { changes: result } : null)
+            .catch((err: any) => { console.error('Failed to refresh file changes:', err); return null; })
+        );
+      }
+      if (affectedAreas.has(RepoArea.COMMIT_HISTORY)) {
+        noMoreCommits.current = false;
+        promises.push(
+          gitService.getCommitHistory(50, 0, activeBranchRef.current?.name)
+            .then((result: any) => result !== undefined ? { commitHistory: result } : null)
+            .catch((err: any) => { console.error('Failed to refresh commit history:', err); return null; })
+        );
+      }
+      if (affectedAreas.has(RepoArea.STASHES)) {
+        promises.push(
+          gitService.getStashes()
+            .then((result: any) => result !== undefined ? { stashes: result } : null)
+            .catch((err: any) => { console.error('Failed to refresh stashes:', err); return null; })
+        );
+      }
+      if (affectedAreas.has(RepoArea.WORKTREES)) {
+        promises.push(
+          gitService.getWorktrees()
+            .then((result: any) => result !== undefined ? { worktrees: result } : null)
+            .catch((err: any) => { console.error('Failed to refresh worktrees:', err); return null; })
+        );
+      }
+      if (affectedAreas.has(RepoArea.SUBMODULES)) {
+        promises.push(
+          gitService.getSubmodules()
+            .then((result: any) => result !== undefined ? { submodules: result } : null)
+            .catch((err: any) => { console.error('Failed to refresh submodules:', err); return null; })
+        );
+      }
+
+      if (promises.length > 0) {
+        Promise.all(promises).then((results) => {
+          const update: Record<string, any> = {};
+          results.forEach((r) => {
+            if (r) Object.assign(update, r);
+          });
+          if (Object.keys(update).length > 0) {
+            updateRepoCache(repoPath, update);
+          }
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, [onFinishQueue, repoPath, gitService, updateRepoCache]);
+
+  // Git operation handlers (using job scheduler for proper queuing).
+  // Note: handlers do NOT call refreshRepo() manually. The onFinishQueue
+  // subscription above auto-refreshes the affected areas when the job queue
+  // finishes, matching the Angular TabDataService.updateAreas() pattern.
   const handleCheckout = useCallback(async (branch: any, andPull: boolean) => {
     try {
-      await gitService.checkout(branch.name, andPull);
-      await refreshRepo();
+      // Local branches: toNewBranch=false
+      await gitService.checkout(branch.name, false, andPull);
       addAlert(`Checked out ${branch.name}`, 'success');
     } catch (error: any) {
       addAlert(`Checkout failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handlePush = useCallback(async (branch: any, force: boolean) => {
     try {
       await gitService.push(branch, force);
-      await refreshRepo();
       addAlert('Push successful', 'success');
     } catch (error: any) {
       addAlert(`Push failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handlePull = useCallback(async (branch: any, force: boolean) => {
     try {
       await gitService.pull(force);
-      await refreshRepo();
       addAlert('Pull successful', 'success');
     } catch (error: any) {
       addAlert(`Pull failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
+
+  // State for merge dialog pre-selection
+  const [activeMergeInfo, setActiveMergeInfo] = useState<MergeInfo | null>(null);
+
+  // State for branch delete confirmation
+  const [branchToDelete, setBranchToDelete] = useState<any>(null);
+
+  // State for rename branch
+  const [branchToRename, setBranchToRename] = useState<any>(null);
 
   const handleMerge = useCallback((branch?: any) => {
+    if (branch) {
+      setActiveMergeInfo({ sourceBranch: branch });
+    } else {
+      setActiveMergeInfo(null);
+    }
     showModal('mergeBranch');
   }, [showModal]);
+
+  const handleRebase = useCallback((branch: any) => {
+    setActiveMergeInfo({ sourceBranch: branch, isRebase: true });
+    showModal('mergeBranch');
+  }, [showModal]);
+
+  const handleInteractiveRebase = useCallback((branch: any) => {
+    setActiveMergeInfo({ sourceBranch: branch, isRebase: true, isInteractive: true });
+    showModal('mergeBranch');
+  }, [showModal]);
+
+  const handleMergeBranchSubmit = useCallback(async (
+    source: string,
+    target: string,
+    options: { rebase: boolean; interactive: boolean }
+  ) => {
+    try {
+      const currentBranch = repoRef.current?.localBranches?.find((b: any) => b.isCurrentBranch);
+      if (options.rebase) {
+        // Rebase: checkout source, then rebase onto target
+        if (currentBranch?.name !== source) {
+          await gitService.checkout(source, false, false);
+        }
+        await gitService.rebaseBranch(target, options.interactive);
+      } else {
+        // Merge: checkout target, then merge source
+        if (currentBranch?.name !== target) {
+          await gitService.checkout(target, false, false);
+        }
+        await gitService.mergeBranch(source);
+      }
+      addAlert(
+        options.rebase
+          ? `Rebased ${source} onto ${target}`
+          : `Merged ${source} into ${target}`,
+        'success'
+      );
+    } catch (error: any) {
+      addAlert(
+        `${options.rebase ? 'Rebase' : 'Merge'} failed: ${error.message}`,
+        'error'
+      );
+    }
+  }, [gitService, addAlert]);
 
   const handleCreateBranch = useCallback(() => {
     showModal('createBranch');
@@ -249,28 +405,32 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   const handleConfirmPruneBranches = useCallback(async (branches: any[]) => {
     try {
-      for (const branch of branches) {
-        await gitService.deleteBranch(branch.name, false);
-      }
-      await refreshRepo();
+      await gitService.deleteBranch(branches);
       addAlert(`Deleted ${branches.length} branch(es)`, 'success');
     } catch (error: any) {
       addAlert(`Prune failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleDeleteBranch = useCallback(async (branch: any) => {
+    // Show confirmation modal instead of deleting directly
+    setBranchToDelete(branch);
+    showModal('confirmDeleteBranch');
+  }, [showModal]);
+
+  const handleConfirmDeleteBranch = useCallback(async () => {
+    if (!branchToDelete) return;
     try {
-      await gitService.deleteBranch(branch.name, branch.isRemote);
-      await refreshRepo();
-      addAlert(`Deleted branch ${branch.name}`, 'success');
+      await gitService.deleteBranch([branchToDelete]);
+      addAlert(`Deleted branch ${branchToDelete.name}`, 'success');
     } catch (error: any) {
       addAlert(`Delete failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+    setBranchToDelete(null);
+  }, [gitService, addAlert, branchToDelete]);
 
   const handleRenameBranch = useCallback(async (branch: any) => {
-    // TODO: Show rename dialog
+    setBranchToRename(branch);
     showModal('renameBranch');
   }, [showModal]);
 
@@ -302,84 +462,80 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleHardReset = useCallback(async () => {
     try {
       await gitService.hardReset();
-      await refreshRepo();
       addAlert('All changes discarded', 'info');
     } catch (error: any) {
       addAlert(`Hard reset failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleFastForward = useCallback(async (branch: any) => {
     try {
       await gitService.fastForward(branch);
-      await refreshRepo();
       addAlert(`Fast-forwarded ${branch.name}`, 'success');
     } catch (error: any) {
       addAlert(`Fast-forward failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleCreateBranchSubmit = useCallback(async (branchName: string) => {
     try {
       const prefix = branchNamePrefix || '';
       await gitService.createBranch(prefix + branchName);
-      await refreshRepo();
       addAlert(`Created branch ${prefix + branchName}`, 'success');
     } catch (error: any) {
       addAlert(`Create branch failed: ${error.message}`, 'error');
     }
-  }, [gitService, branchNamePrefix, refreshRepo, addAlert]);
+  }, [gitService, branchNamePrefix, addAlert]);
 
-  const handleRenameBranchSubmit = useCallback(async (oldName: string, newName: string) => {
+  const handleRenameBranchSubmit = useCallback(async (newName: string) => {
+    if (!branchToRename) return;
     try {
-      await gitService.renameBranch(oldName, newName);
-      await refreshRepo();
+      await gitService.renameBranch(branchToRename.name, newName);
       addAlert(`Renamed branch to ${newName}`, 'success');
     } catch (error: any) {
       addAlert(`Rename branch failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+    setBranchToRename(null);
+  }, [gitService, addAlert, branchToRename]);
 
+  const mergetool = useSettingsStore((state) => state.settings.mergetool);
+  
   const handleMergeFile = useCallback(async (file: string) => {
     try {
-      await gitService.merge(file);
-      await refreshRepo();
+      await gitService.merge(file, mergetool);
     } catch (error: any) {
       addAlert(`Merge failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert, mergetool]);
 
   const handleResolveConflict = useCallback(async (file: string, useTheirs: boolean) => {
     try {
       await gitService.resolveConflict(file, useTheirs);
-      await refreshRepo();
       addAlert(`Conflict resolved using ${useTheirs ? 'theirs' : 'ours'}`, 'success');
     } catch (error: any) {
       addAlert(`Resolve conflict failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleAddSubmodule = useCallback(async (url: string, path: string) => {
     try {
       await gitService.addSubmodule(url, path);
-      await refreshRepo();
       addAlert('Submodule added', 'success');
     } catch (error: any) {
       addAlert(`Add submodule failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleFetch = useCallback(async (prune: boolean = false) => {
     try {
       await gitService.fetch(prune);
-      await refreshRepo();
     } catch (error: any) {
       // Only show error for certain cases
       if (!error.message?.includes('No remote repository')) {
         addAlert(`Fetch failed: ${error.message}`, 'error');
       }
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleCommit = useCallback(async (amend: boolean) => {
     try {
@@ -388,12 +544,11 @@ export const RepoView: React.FC<RepoViewProps> = ({
         : undefined;
       await gitService.commit(commitMessageRef.current, amend, commitAndPush, currentBranch);
       setCommitMessage('');
-      await refreshRepo();
       addAlert(amend ? 'Commit amended' : 'Committed successfully', 'success');
     } catch (error: any) {
       addAlert(`Commit failed: ${error.message}`, 'error');
     }
-  }, [gitService, commitAndPush, refreshRepo, addAlert]);
+  }, [gitService, commitAndPush, addAlert]);
 
   const handleCommitAndPushChange = useCallback((value: boolean) => {
     updateSettings({ commitAndPush: value });
@@ -411,12 +566,21 @@ export const RepoView: React.FC<RepoViewProps> = ({
   }, [updateSettings, saveSettings]);
 
   const handleLoadMoreCommits = useCallback(async () => {
+    if (isLoadingMoreCommits.current || noMoreCommits.current) return;
+    isLoadingMoreCommits.current = true;
     try {
+      const existing = repoRef.current?.commitHistory || [];
       const branchName = activeBranchRef.current?.name;
-      const commits = await gitService.getCommitHistory(50, 0, branchName);
-      updateRepoCache(repoPath, { commitHistory: commits });
+      const newCommits = await gitService.getCommitHistory(50, existing.length, branchName);
+      if (!newCommits || newCommits.length === 0) {
+        noMoreCommits.current = true;
+        return;
+      }
+      updateRepoCache(repoPath, { commitHistory: [...existing, ...newCommits] });
     } catch (error: any) {
       addAlert(`Failed to load commits: ${error.message}`, 'error');
+    } finally {
+      isLoadingMoreCommits.current = false;
     }
   }, [gitService, repoPath, updateRepoCache, addAlert]);
 
@@ -424,22 +588,20 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleStageAll = useCallback(async () => {
     try {
       await gitService.stage(['.']);
-      await refreshRepo();
       updateRepoCache(repoPath, { selectedUnstagedChanges: {} });
     } catch (error: any) {
       addAlert(`Stage failed: ${error.message}`, 'error');
     }
-  }, [gitService, repoPath, refreshRepo, updateRepoCache, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert]);
 
   const handleUnstageAll = useCallback(async () => {
     try {
       await gitService.unstage(['.']);
-      await refreshRepo();
       updateRepoCache(repoPath, { selectedStagedChanges: {} });
     } catch (error: any) {
       addAlert(`Unstage failed: ${error.message}`, 'error');
     }
-  }, [gitService, repoPath, refreshRepo, updateRepoCache, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert]);
 
   const handleStageSelected = useCallback(async () => {
     try {
@@ -448,13 +610,12 @@ export const RepoView: React.FC<RepoViewProps> = ({
         .map(([file]) => file.replace(/.*?->\s*/, '')); // Handle renames
       if (files.length > 0) {
         await gitService.stage(files);
-        await refreshRepo();
         updateRepoCache(repoPath, { selectedUnstagedChanges: {} });
       }
     } catch (error: any) {
       addAlert(`Stage failed: ${error.message}`, 'error');
     }
-  }, [gitService, repoPath, refreshRepo, updateRepoCache, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert]);
 
   const handleUnstageSelected = useCallback(async () => {
     try {
@@ -463,31 +624,28 @@ export const RepoView: React.FC<RepoViewProps> = ({
         .map(([file]) => file.replace(/.*?->\s*/, '')); // Handle renames
       if (files.length > 0) {
         await gitService.unstage(files);
-        await refreshRepo();
         updateRepoCache(repoPath, { selectedStagedChanges: {} });
       }
     } catch (error: any) {
       addAlert(`Unstage failed: ${error.message}`, 'error');
     }
-  }, [gitService, repoPath, refreshRepo, updateRepoCache, addAlert]);
+  }, [gitService, repoPath, updateRepoCache, addAlert]);
 
   const handleUndoFile = useCallback(async (path: string) => {
     try {
       await gitService.undoFileChanges([path]);
-      await refreshRepo();
     } catch (error: any) {
       addAlert(`Undo failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleDeleteFiles = useCallback(async (paths: string[]) => {
     try {
       await gitService.deleteFiles(paths);
-      await refreshRepo();
     } catch (error: any) {
       addAlert(`Delete failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   // Fetch a single page of file diffs. When append=true, adds to existing diffs.
   const fetchDiffPage = useCallback(async (
@@ -598,6 +756,26 @@ export const RepoView: React.FC<RepoViewProps> = ({
     refreshSelectedFilesDiff(current?.selectedStagedChanges || {}, newUnstagedChanges);
   }, [repoPath, updateRepoCache, refreshSelectedFilesDiff]);
 
+  const handleBatchSelectStagedChange = useCallback((changes: Record<string, boolean>) => {
+    const current = repoRef.current;
+    const currentStaged = current?.selectedStagedChanges || {};
+    const newStagedChanges = { ...currentStaged, ...changes };
+    updateRepoCache(repoPath, {
+      selectedStagedChanges: newStagedChanges,
+    });
+    refreshSelectedFilesDiff(newStagedChanges, current?.selectedUnstagedChanges || {});
+  }, [repoPath, updateRepoCache, refreshSelectedFilesDiff]);
+
+  const handleBatchSelectUnstagedChange = useCallback((changes: Record<string, boolean>) => {
+    const current = repoRef.current;
+    const currentUnstaged = current?.selectedUnstagedChanges || {};
+    const newUnstagedChanges = { ...currentUnstaged, ...changes };
+    updateRepoCache(repoPath, {
+      selectedUnstagedChanges: newUnstagedChanges,
+    });
+    refreshSelectedFilesDiff(current?.selectedStagedChanges || {}, newUnstagedChanges);
+  }, [repoPath, updateRepoCache, refreshSelectedFilesDiff]);
+
   // Worktree handlers
   const handleSwitchWorktree = useCallback(async (path: string) => {
     try {
@@ -610,23 +788,21 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleDeleteWorktree = useCallback(async (worktree: any) => {
     try {
       await gitService.deleteWorktree(worktree.path);
-      await refreshRepo();
       addAlert('Worktree deleted', 'success');
     } catch (error: any) {
       addAlert(`Delete worktree failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   // Submodule handlers
   const handleUpdateSubmodules = useCallback(async (recursive: boolean) => {
     try {
       await gitService.updateSubmodules(recursive);
-      await refreshRepo();
       addAlert('Submodules updated', 'success');
     } catch (error: any) {
       addAlert(`Update submodules failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   // Stash handlers
   const [stashOnlyUnstaged, setStashOnlyUnstaged] = useState(false);
@@ -639,32 +815,29 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleStashWithName = useCallback(async (stashName: string) => {
     try {
       await gitService.stash(stashOnlyUnstaged, stashName);
-      await refreshRepo();
       addAlert('Changes stashed', 'success');
     } catch (error: any) {
       addAlert(`Stash failed: ${error.message}`, 'error');
     }
-  }, [gitService, stashOnlyUnstaged, refreshRepo, addAlert]);
+  }, [gitService, stashOnlyUnstaged, addAlert]);
 
   const handleApplyStash = useCallback(async (stash: any) => {
     try {
       await gitService.applyStash(stash.index);
-      await refreshRepo();
       addAlert('Stash applied', 'success');
     } catch (error: any) {
       addAlert(`Apply stash failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleDeleteStash = useCallback(async (stash: any) => {
     try {
       await gitService.deleteStash(stash.index);
-      await refreshRepo();
       addAlert('Stash deleted', 'success');
     } catch (error: any) {
       addAlert(`Delete stash failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleViewStash = useCallback(async (stash: any) => {
     try {
@@ -685,46 +858,44 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   // Active operation handlers
   const handleAbortOperation = useCallback(async () => {
+    if (!activeOperation) return;
     try {
-      await gitService.changeActiveOperation('abort');
+      await gitService.changeActiveOperation(activeOperation, true);
       setActiveOperation(null);
-      await refreshRepo();
       addAlert('Operation aborted', 'info');
     } catch (error: any) {
       addAlert(`Abort failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert, activeOperation]);
 
   const handleContinueOperation = useCallback(async () => {
+    if (!activeOperation) return;
     try {
-      await gitService.changeActiveOperation('continue');
+      await gitService.changeActiveOperation(activeOperation, false);
       setActiveOperation(null);
-      await refreshRepo();
     } catch (error: any) {
       addAlert(`Continue failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert, activeOperation]);
 
   // Commit history handlers
   const handleCherryPick = useCallback(async (commit: any) => {
     try {
       await gitService.cherryPick(commit.hash);
-      await refreshRepo();
       addAlert('Cherry-pick successful', 'success');
     } catch (error: any) {
       addAlert(`Cherry-pick failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleCheckoutCommit = useCallback(async (hash: string) => {
     try {
-      await gitService.checkout(hash, false);
-      await refreshRepo();
+      await gitService.checkout(hash, false, false);
       addAlert(`Checked out ${hash.substring(0, 7)}`, 'success');
     } catch (error: any) {
       addAlert(`Checkout failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleClickCommit = useCallback(async (hash: string) => {
     try {
@@ -755,18 +926,17 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleRevertCommit = useCallback(async (commit: any) => {
     try {
       await gitService.revert(commit.hash);
-      await refreshRepo();
       addAlert(`Reverted commit ${commit.hash.substring(0, 7)}`, 'success');
     } catch (error: any) {
       addAlert(`Revert failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   const handleCreateBranchFromCommit = useCallback(async (commit: any) => {
     // Store the commit hash for the create branch modal
     // For now, we'll just checkout the commit and then show the create branch modal
     try {
-      await gitService.checkout(commit.hash, false);
+      await gitService.checkout(commit.hash, false, false);
       showModal('createBranch');
     } catch (error: any) {
       addAlert(`Failed to create branch: ${error.message}`, 'error');
@@ -781,25 +951,22 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleResetToCommit = useCallback(async (commit: any, mode: 'soft' | 'mixed' | 'hard') => {
     try {
       await gitService.reset(commit.hash, mode);
-      await refreshRepo();
       addAlert(`Reset to ${commit.hash.substring(0, 7)} (${mode})`, 'success');
     } catch (error: any) {
       addAlert(`Reset failed: ${error.message}`, 'error');
     }
-  }, [gitService, refreshRepo, addAlert]);
+  }, [gitService, addAlert]);
 
   // Hunk editing handlers
   const handleHunkChange = useCallback(async (filename: string, hunk: any, newContent: string) => {
     try {
       await gitService.changeHunk(filename, hunk, newContent);
-      await refreshRepo();
-      // Refresh the diff to show the updated content
-      const current = repoRef.current;
-      refreshSelectedFilesDiff(current?.selectedStagedChanges || {}, current?.selectedUnstagedChanges || {});
+      // The onFinishQueue auto-refresh will update file changes, and the
+      // useEffect watching stagedChanges/unstagedChanges will refresh the diff.
     } catch (error: any) {
       throw error; // Let the error bubble up to onHunkChangeError
     }
-  }, [gitService, refreshRepo, refreshSelectedFilesDiff]);
+  }, [gitService]);
 
   const handleHunkChangeError = useCallback((error: Error) => {
     addAlert(`Failed to modify hunk: ${error.message}`, 'error');
@@ -826,8 +993,44 @@ export const RepoView: React.FC<RepoViewProps> = ({
     handleLoadMoreCommands();
   });
 
+  // Remote checkout handler - strips origin/ prefix and checks if local branch exists
+  const handleRemoteCheckout = useCallback(async (branch: any) => {
+    try {
+      const localBranchName = branch.name.replace('origin/', '');
+      const localBranch = repoRef.current?.localBranches?.find(
+        (b: any) => b.name === localBranchName
+      );
+      // If the local branch already exists, just checkout (no new branch)
+      // If it doesn't exist, create a new local branch from the remote
+      const branchName = localBranch ? localBranchName : branch.name;
+      const toNewBranch = !localBranch;
+      const andPull = !!localBranch; // Pull if branch already exists locally
+      await gitService.checkout(branchName, toNewBranch, andPull);
+      addAlert(`Checked out ${localBranchName}`, 'success');
+    } catch (error: any) {
+      addAlert(`Checkout failed: ${error.message}`, 'error');
+    }
+  }, [gitService, addAlert]);
+
+  // Branch premerge diff view handler
+  const handleBranchPremerge = useCallback(async (branch: any) => {
+    try {
+      const diffResponse = await gitService.getBranchPremerge(branch.hash || branch.name) as any;
+      const diff = Array.isArray(diffResponse) ? diffResponse : (diffResponse?.content || []);
+      setCurrentDiff(normalizeDiff(diff || []));
+      setCommitInfo({
+        hash: branch.hash || branch.name,
+        message: `Changes between current branch and ${branch.name}`,
+        author: '',
+        date: '',
+      });
+      setShowDiff(true);
+    } catch (error: any) {
+      addAlert(`Failed to load premerge diff: ${error.message}`, 'error');
+    }
+  }, [gitService, addAlert, normalizeDiff]);
+
   // Stable callback refs for inline closures (prevents defeating React.memo)
-  const handleRemoteCheckout = useCallback((b: any) => handleCheckout(b, true), [handleCheckout]);
   const handleShowAddWorktree = useCallback(() => showModal('addWorktree'), [showModal]);
   const handleShowAddSubmodule = useCallback(() => showModal('addSubmodule'), [showModal]);
   const handleShowRestoreStash = useCallback(() => showModal('restoreStash'), [showModal]);
@@ -840,8 +1043,14 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const handleWorktreeOpenNewTab = useCallback((path: string) => onOpenRepoNewTabRef.current?.(path), []);
   const handleToggleDiffView = useCallback((show: boolean) => {
     setShowDiff(show);
-    // Don't clear diff data when toggling tabs - let content persist
-  }, []);
+    // When switching to diff view, auto-fetch diffs so the view isn't empty
+    if (show && !commitInfoRef.current) {
+      refreshSelectedFilesDiff(
+        repoRef.current?.selectedStagedChanges || {},
+        repoRef.current?.selectedUnstagedChanges || {},
+      );
+    }
+  }, [refreshSelectedFilesDiff]);
 
   const handleExitDiffView = useCallback(() => {
     setShowDiff(false);
@@ -853,6 +1062,7 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   const handleBranchChange = useCallback(async (branch: any | null) => {
     setActiveBranch(branch);
+    noMoreCommits.current = false;
     try {
       const commits = await gitService.getCommitHistory(50, 0, branch?.name);
       updateRepoCache(repoPath, { commitHistory: commits });
@@ -870,12 +1080,28 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   const noop = useCallback(() => {}, []);
 
+  // Detect active operation from changes data (mirrors Angular getActiveOperation)
+  useEffect(() => {
+    const activeOps = repo.changes?.activeOperations;
+    if (activeOps) {
+      const [op] = Object.entries(activeOps).find(([, val]) => val) ?? [];
+      setActiveOperation((op as ActiveOperation) || null);
+    } else {
+      setActiveOperation(null);
+    }
+  }, [repo.changes?.activeOperations]);
+
   // Memoize data arrays/objects to avoid new references on each render
   const stagedChanges = useMemo(() => repo.changes?.stagedChanges || [], [repo.changes?.stagedChanges]);
   const unstagedChanges = useMemo(() => repo.changes?.unstagedChanges || [], [repo.changes?.unstagedChanges]);
   const selectedStagedChanges = useMemo(() => repo.selectedStagedChanges || {}, [repo.selectedStagedChanges]);
   const selectedUnstagedChanges = useMemo(() => repo.selectedUnstagedChanges || {}, [repo.selectedUnstagedChanges]);
-  const commitHistory = useMemo(() => repo.commitHistory || [], [repo.commitHistory]);
+  // Recalculate graph blocks across the full commit list so branch
+  // visualization stays continuous when new pages are loaded.
+  const commitHistory = useMemo(
+    () => calculateGraphBlocks(repo.commitHistory || []),
+    [repo.commitHistory],
+  );
   const localBranches = useMemo(() => repo.localBranches || [], [repo.localBranches]);
   const remoteBranches = useMemo(() => repo.remoteBranches || [], [repo.remoteBranches]);
   const worktrees = useMemo(() => repo.worktrees || [], [repo.worktrees]);
@@ -905,36 +1131,62 @@ export const RepoView: React.FC<RepoViewProps> = ({
         <RepoTitle>
           {activeTab?.name || 'Repository'}
           <TitleButtonGroup>
-            <Button variant="primary" size="sm" onClick={handleOpenTerminal} title="Open Bash Terminal">
-              <Icon name="fa-terminal" />
-            </Button>
-            <Button variant="info" size="sm" onClick={handleOpenFolderDefault} title="Open Folder">
-              <Icon name="fa-folder-open" />
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleFullRefresh} title="Refresh All">
-              <Icon name="fa-sync-alt" />
-            </Button>
-            <Button variant="warning" size="sm" onClick={handleDiscardAll} title="Discard All Changes">
-              <Icon name="fa-undo" /> Discard All
-            </Button>
+            <TooltipTrigger
+              placement="bottom"
+              overlay={<Tooltip id="tooltip-open-terminal">Open Bash Terminal</Tooltip>}
+            >
+              <Button variant="primary" size="sm" onClick={handleOpenTerminal}>
+                <Icon name="fa-terminal" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipTrigger
+              placement="bottom"
+              overlay={<Tooltip id="tooltip-open-folder">Open Folder</Tooltip>}
+            >
+              <Button variant="info" size="sm" onClick={handleOpenFolderDefault}>
+                <Icon name="fa-folder-open" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipTrigger
+              placement="bottom"
+              overlay={<Tooltip id="tooltip-refresh-all">Refresh All</Tooltip>}
+            >
+              <Button variant="primary" size="sm" onClick={handleFullRefresh}>
+                <Icon name="fa-sync-alt" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipTrigger
+              placement="bottom"
+              overlay={<Tooltip id="tooltip-discard-all">Discard All Changes</Tooltip>}
+            >
+              <Button variant="warning" size="sm" onClick={handleDiscardAll}>
+                <Icon name="fa-undo" /> Discard All
+              </Button>
+            </TooltipTrigger>
           </TitleButtonGroup>
         </RepoTitle>
 
         <LocalBranchesCard
           branches={localBranches}
+          worktrees={worktrees}
+          showTrackingPath={true}
           onCheckout={handleCheckout}
           onCreateBranch={handleCreateBranch}
           onMerge={handleMerge}
+          onRebase={handleRebase}
+          onInteractiveRebase={handleInteractiveRebase}
           onPrune={handlePruneBranches}
           onPush={handlePush}
           onPull={handlePull}
           onDelete={handleDeleteBranch}
           onRename={handleRenameBranch}
           onFastForward={handleFastForward}
+          onViewChanges={handleBranchPremerge}
         />
 
         <RemoteBranchesCard
           branches={remoteBranches}
+          localBranches={localBranches}
           onCheckout={handleRemoteCheckout}
           onDelete={handleDeleteBranch}
         />
@@ -978,6 +1230,7 @@ export const RepoView: React.FC<RepoViewProps> = ({
           selectedChanges={selectedStagedChanges}
           splitFilenameDisplay={splitFilenameDisplay}
           onSelectChange={handleSelectStagedChange}
+          onBatchSelectChange={handleBatchSelectStagedChange}
           onUnstageAll={handleUnstageAll}
           onUnstageSelected={handleUnstageSelected}
           onUndoFile={handleUndoFile}
@@ -991,6 +1244,7 @@ export const RepoView: React.FC<RepoViewProps> = ({
           selectedChanges={selectedUnstagedChanges}
           splitFilenameDisplay={splitFilenameDisplay}
           onSelectChange={handleSelectUnstagedChange}
+          onBatchSelectChange={handleBatchSelectUnstagedChange}
           onStageAll={handleStageAll}
           onStageSelected={handleStageSelected}
           onUndoFile={handleUndoFile}
@@ -1012,6 +1266,9 @@ export const RepoView: React.FC<RepoViewProps> = ({
             hasWatcherAlerts={false}
             disabledReason={undefined}
             crlfError={crlfError}
+            stagedChanges={stagedChanges}
+            unstagedChanges={unstagedChanges}
+            currentBranchName={activeBranch?.name || localBranches.find((b: any) => b.isCurrentBranch)?.name || ''}
             onMessageChange={setCommitMessage}
             onCommitAndPushChange={handleCommitAndPushChange}
             onCommit={handleCommit}
@@ -1096,9 +1353,34 @@ export const RepoView: React.FC<RepoViewProps> = ({
       <MergeBranchDialog
         localBranches={localBranches}
         remoteBranches={remoteBranches}
+        activeMergeInfo={activeMergeInfo}
         hasUncommittedChanges={(stagedChanges.length || 0) + (unstagedChanges.length || 0) > 0}
-        onMerge={handleMerge}
+        onMerge={handleMergeBranchSubmit}
         onCancel={noop}
+      />
+
+      <ConfirmModal
+        modalId="confirmDeleteBranch"
+        title="Confirm Delete Branch"
+        confirmText="Delete"
+        confirmVariant="danger"
+        onConfirm={handleConfirmDeleteBranch}
+      >
+        <p>Are you sure you want to delete branch <strong>{branchToDelete?.name}</strong>?</p>
+        {branchToDelete?.isRemote && (
+          <p className="text-danger"><strong>This will affect everyone and cannot be undone.</strong></p>
+        )}
+      </ConfirmModal>
+
+      <InputModal
+        modalId="renameBranch"
+        title="Rename Branch"
+        message={`Rename branch "${branchToRename?.name || ''}"`}
+        placeholder="New branch name..."
+        validPattern="[a-zA-Z0-9/._-]*[a-zA-Z0-9._-]"
+        invalidMessage="Please enter a valid branch name"
+        replaceChars={{ '\\s': '-' }}
+        onOk={handleRenameBranchSubmit}
       />
     </RepoViewContainer>
   );

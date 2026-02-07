@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
-import { Button, ButtonGroup, Form } from 'react-bootstrap';
-import { AgeInfo, Icon } from '@light-git/core';
+import { Button, ButtonGroup, Form, Tooltip } from 'react-bootstrap';
+import { AgeInfo, Icon, TooltipTrigger } from '@light-git/core';
 
 const Container = styled.div`
   display: flex;
@@ -233,7 +233,12 @@ const CommitItem: React.FC<CommitItemProps> = ({
         <CommitDot />
       </GraphColumn>
       <ContentColumn>
-        <Message title={commit.message}>{commit.message}</Message>
+        <TooltipTrigger
+          placement="bottom"
+          overlay={<Tooltip id={`tooltip-commit-message-${commit.hash}`}>{commit.message}</Tooltip>}
+        >
+          <Message>{commit.message}</Message>
+        </TooltipTrigger>
         <Meta>
           <Hash>{commit.hash.substring(0, 7)}</Hash>
           <span>{commit.author}</span>
@@ -250,26 +255,34 @@ const CommitItem: React.FC<CommitItemProps> = ({
       </ContentColumn>
       {showActions && (
         <ButtonGroup size="sm">
-          <Button
-            variant="outline-success"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCherryPick();
-            }}
-            title="Cherry pick"
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id={`tooltip-cherry-pick-${commit.hash}`}>Cherry pick</Tooltip>}
           >
-            <Icon name="fa-code-branch" size="sm" />
-          </Button>
-          <Button
-            variant="outline-primary"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCheckout();
-            }}
-            title="Checkout"
+            <Button
+              variant="outline-success"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCherryPick();
+              }}
+            >
+              <Icon name="fa-code-branch" size="sm" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id={`tooltip-checkout-${commit.hash}`}>Checkout</Tooltip>}
           >
-            <Icon name="fa-sign-in-alt" size="sm" />
-          </Button>
+            <Button
+              variant="outline-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCheckout();
+              }}
+            >
+              <Icon name="fa-shopping-cart" size="sm" />
+            </Button>
+          </TooltipTrigger>
         </ButtonGroup>
       )}
     </CommitRow>

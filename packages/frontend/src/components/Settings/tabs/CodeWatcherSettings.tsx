@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Form, Button, ListGroup, InputGroup, Badge, Accordion, Card } from 'react-bootstrap';
+import { Form, Button, ListGroup, InputGroup, Badge, Accordion, Card, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
-import { Icon, PrettyCheckbox } from '@light-git/core';
+import { Icon, PrettyCheckbox, TooltipTrigger } from '@light-git/core';
 
 const FormSection = styled.div`
   margin-bottom: 1.5rem;
@@ -214,7 +214,12 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
                       {watcher.name || 'Unnamed Watcher'}
                     </WatcherName>
                     {watcher.source === 'file' && (
-                      <Badge bg="info" title="Loaded from config file">file</Badge>
+                      <TooltipTrigger
+                        placement="top"
+                        overlay={<Tooltip id={`tooltip-watcher-file-${watcher.name}`}>Loaded from config file</Tooltip>}
+                      >
+                        <Badge bg="info">file</Badge>
+                      </TooltipTrigger>
                     )}
                     <WatcherPattern>
                       /{(watcher.pattern || '').length > 20 ? (watcher.pattern || '').substring(0, 20) + '...' : watcher.pattern || ''}/

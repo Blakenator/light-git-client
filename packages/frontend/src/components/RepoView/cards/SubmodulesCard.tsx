@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Button, ButtonGroup, Badge } from 'react-bootstrap';
+import { Button, ButtonGroup, Badge, Tooltip } from 'react-bootstrap';
+import { TooltipTrigger } from '@light-git/core';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
@@ -37,28 +38,36 @@ export const SubmodulesCard: React.FC<SubmodulesCardProps> = React.memo(({
         onClick={(e) => e.stopPropagation()}
       />
       <CardHeaderButtons>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddSubmodule();
-          }}
-          title="Add Submodule"
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id="tooltip-add-submodule">Add Submodule</Tooltip>}
         >
-          <Icon name="fa-plus" />
-        </Button>
-        <ButtonGroup size="sm">
           <Button
             variant="primary"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onUpdateSubmodules(true);
+              onAddSubmodule();
             }}
-            title="Update Submodules Recursively"
           >
-            <Icon name="fa-sitemap" />
+            <Icon name="fa-plus" />
           </Button>
+        </TooltipTrigger>
+        <ButtonGroup size="sm">
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id="tooltip-update-submodules">Update Submodules Recursively</Tooltip>}
+          >
+            <Button
+              variant="primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdateSubmodules(true);
+              }}
+            >
+              <Icon name="fa-sitemap" />
+            </Button>
+          </TooltipTrigger>
         </ButtonGroup>
       </CardHeaderButtons>
     </CardHeaderContent>
@@ -103,35 +112,48 @@ const SubmoduleItem: React.FC<SubmoduleItemProps> = ({
 
   return (
     <div className="d-flex align-items-center py-1">
-      <span className="flex-grow-1" title={submodule.path}>
-        {pathParts.map((part, index) => (
-          <React.Fragment key={index}>
-            <Badge bg="light" text="dark" pill>
-              {part}
-              {index < pathParts.length - 1 && (
-                <Icon name="fa-arrow-right" size="sm" className="mx-1" />
-              )}
-            </Badge>
-          </React.Fragment>
-        ))}
-      </span>
+      <TooltipTrigger
+        placement="bottom"
+        overlay={<Tooltip id={`tooltip-submodule-path-${submodule.path}`}>{submodule.path}</Tooltip>}
+      >
+        <span className="flex-grow-1">
+          {pathParts.map((part, index) => (
+            <React.Fragment key={index}>
+              <Badge bg="light" text="dark" pill>
+                {part}
+                {index < pathParts.length - 1 && (
+                  <Icon name="fa-arrow-right" size="sm" className="mx-1" />
+                )}
+              </Badge>
+            </React.Fragment>
+          ))}
+        </span>
+      </TooltipTrigger>
       <ButtonGroup size="sm">
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => onOpenNewTab(submodule)}
-          title="Open in new tab"
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id={`tooltip-open-submodule-tab-${submodule.path}`}>Open in new tab</Tooltip>}
         >
-          <Icon name="fa-external-link-square-alt" size="sm" />
-        </Button>
-        <Button
-          variant="warning"
-          size="sm"
-          onClick={() => onViewSubmodule(submodule)}
-          title="Quick view"
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => onOpenNewTab(submodule)}
+          >
+            <Icon name="fa-external-link-square-alt" size="sm" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipTrigger
+          placement="top"
+          overlay={<Tooltip id={`tooltip-quick-view-${submodule.path}`}>Quick view</Tooltip>}
         >
-          <Icon name="fa-eye" size="sm" />
-        </Button>
+          <Button
+            variant="warning"
+            size="sm"
+            onClick={() => onViewSubmodule(submodule)}
+          >
+            <Icon name="fa-eye" size="sm" />
+          </Button>
+        </TooltipTrigger>
       </ButtonGroup>
     </div>
   );

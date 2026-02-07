@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button } from 'react-bootstrap';
+import { Button, Tooltip } from 'react-bootstrap';
 import { OperationBanner } from '../RepoView.styles';
-import { Icon } from '@light-git/core';
+import { Icon, TooltipTrigger } from '@light-git/core';
 
 export type ActiveOperation = 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null;
 
@@ -52,23 +52,31 @@ export const ActiveOperationBanner: React.FC<ActiveOperationBannerProps> = React
       <Icon name={config.icon} />
       <span>Active {config.name}</span>
       <span className="flex-grow-1" />
-      <Button
-        variant="outline-light"
-        size="sm"
-        onClick={onAbort}
-        title={`Abort the ${config.name}`}
+      <TooltipTrigger
+        placement="top"
+        overlay={<Tooltip id={`tooltip-abort-${config.name}`}>Abort the {config.name}</Tooltip>}
       >
-        <Icon name="fa-undo" />
-      </Button>
-      <Button
-        variant="outline-light"
-        size="sm"
-        onClick={onContinue}
-        title={`Continue the ${config.name}`}
-        className="ms-1"
+        <Button
+          variant="outline-light"
+          size="sm"
+          onClick={onAbort}
+        >
+          <Icon name="fa-undo" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipTrigger
+        placement="top"
+        overlay={<Tooltip id={`tooltip-continue-${config.name}`}>Continue the {config.name}</Tooltip>}
       >
-        <Icon name="fa-play" />
-      </Button>
+        <Button
+          variant="outline-light"
+          size="sm"
+          onClick={onContinue}
+          className="ms-1"
+        >
+          <Icon name="fa-play" />
+        </Button>
+      </TooltipTrigger>
     </OperationBanner>
   );
 });

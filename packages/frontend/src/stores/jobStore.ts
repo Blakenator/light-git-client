@@ -66,12 +66,12 @@ interface Deferred<T> {
 function createDeferred<T>(): Deferred<T> {
   let resolve: (value: T) => void = () => {};
   let reject: (error: any) => void = () => {};
-  
+
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
   });
-  
+
   return { promise, resolve, reject };
 }
 
@@ -99,37 +99,41 @@ interface JobState {
   runningChannels: Set<string>;
   pastJobIds: string[];
   affectedAreas: Set<RepoArea>;
-  
+
   // Subscribers for queue events
-  onFinishQueueCallbacks: Array<(data: { affectedAreas: Set<RepoArea>; path: string }) => void>;
+  onFinishQueueCallbacks: Array<
+    (data: { affectedAreas: Set<RepoArea>; path: string }) => void
+  >;
   onStartQueueCallbacks: Array<(path: string) => void>;
 }
 
 interface JobActions {
   // Create a job (doesn't schedule it yet)
   createJob: <T>(config: JobConfig<T>) => Job<T>;
-  
+
   // Schedule a single job as a simple operation
   scheduleSimpleOperation: <T>(job: Job<T>) => Operation<T>;
-  
+
   // Schedule an operation with multiple jobs
   scheduleOperation: <T>(name: string, jobs: Job<T>[]) => Operation<T>;
-  
+
   // Schedule jobs
   schedule: (jobs: Job[]) => void;
-  
+
   // Start processing queues
   start: () => void;
-  
+
   // Get active jobs (first job in each queue)
   getActiveJobs: () => Job[];
-  
+
   // Check if a channel is running
   isRunning: (path: string) => boolean;
-  
+
   // Subscribe to queue finish events
-  onFinishQueue: (callback: (data: { affectedAreas: Set<RepoArea>; path: string }) => void) => () => void;
-  
+  onFinishQueue: (
+    callback: (data: { affectedAreas: Set<RepoArea>; path: string }) => void,
+  ) => () => void;
+
   // Subscribe to queue start events
   onStartQueue: (callback: (path: string) => void) => () => void;
 }
@@ -143,7 +147,7 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
   affectedAreas: new Set(),
   onFinishQueueCallbacks: [],
   onStartQueueCallbacks: [],
-  
+
   createJob: <T>(config: JobConfig<T>): Job<T> => {
     const job: Job<T> = {
       id: generateId(),
@@ -155,7 +159,7 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
     };
     return job;
   },
-  
+
   scheduleSimpleOperation: <T>(job: Job<T>): Operation<T> => {
     const operation: Operation<T> = {
       id: generateId(),
@@ -164,9 +168,9 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
       jobIds: [job.id],
       deferred: createDeferred<T>(),
     };
-    
+
     job.operationId = operation.id;
-    
+
     set((state) => {
       const newJobs = new Map(state.jobs);
       const newOperations = new Map(state.operations);
@@ -174,147 +178,169 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
       newOperations.set(operation.id, operation);
       return { jobs: newJobs, operations: newOperations };
     });
-    
+
     get().schedule([job]);
     return operation;
   },
-  
+
   scheduleOperation: <T>(name: string, jobs: Job<T>[]): Operation<T> => {
     const operation: Operation<T> = {
       id: generateId(),
       name,
       status: JobStatus.UNSCHEDULED,
-      jobIds: jobs.map(j => j.id),
+      jobIds: jobs.map((j) => j.id),
       deferred: createDeferred<T>(),
     };
-    
-    jobs.forEach(job => {
+
+    jobs.forEach((job) => {
       job.operationId = operation.id;
     });
-    
+
     set((state) => {
       const newJobs = new Map(state.jobs);
       const newOperations = new Map(state.operations);
-      jobs.forEach(job => newJobs.set(job.id, job));
+      jobs.forEach((job) => newJobs.set(job.id, job));
       newOperations.set(operation.id, operation);
       return { jobs: newJobs, operations: newOperations };
     });
-    
+
     get().schedule(jobs);
     return operation;
   },
-  
+
   schedule: (jobs: Job[]) => {
     set((state) => {
       const newQueues = new Map(state.queues);
       const newJobs = new Map(state.jobs);
-      
+
       // Group jobs by channel
       const jobsByChannel = new Map<string, Job[]>();
-      jobs.forEach(job => {
+      jobs.forEach((job) => {
         const channel = job.channel || '__async__';
         if (!jobsByChannel.has(channel)) {
           jobsByChannel.set(channel, []);
         }
         jobsByChannel.get(channel)!.push(job);
       });
-      
+
       // Queue jobs by channel
       jobsByChannel.forEach((channelJobs, channel) => {
         if (!newQueues.has(channel)) {
           newQueues.set(channel, []);
         }
         const queue = newQueues.get(channel)!;
-        
+
         // Handle immediate jobs
-        const immediate = channelJobs.filter(j => j.config.immediate);
+        const immediate = channelJobs.filter((j) => j.config.immediate);
         if (immediate.length > 0) {
           let nextNonImmediate = queue.findIndex((jobId, i) => {
             const job = newJobs.get(jobId);
             return i > 0 && job && !job.config.immediate;
           });
           if (nextNonImmediate === -1) nextNonImmediate = queue.length;
-          queue.splice(nextNonImmediate, 0, ...immediate.map(j => j.id));
+          queue.splice(nextNonImmediate, 0, ...immediate.map((j) => j.id));
         }
-        
+
         // Handle non-immediate jobs (with reorderable deduplication)
-        const nonImmediate = channelJobs.filter(j => !j.config.immediate);
+        const nonImmediate = channelJobs.filter((j) => !j.config.immediate);
         if (nonImmediate.length > 0) {
-          const commands = new Set(nonImmediate.map(j => j.config.command));
-          
-          // Remove reorderable jobs with matching commands
+          const commands = new Set(nonImmediate.map((j) => j.config.command));
+
+          // Remove reorderable jobs with matching commands, but never remove the
+          // currently executing job (head of queue for a running channel). Removing
+          // it would cause the completion handler's q.shift() to remove the NEXT job,
+          // cascading into both the old and new callers hanging indefinitely.
+          const isChannelRunning = state.runningChannels.has(channel);
           for (let i = queue.length - 1; i >= 0; i--) {
-            const job = newJobs.get(queue[i]);
-            if (job && job.config.reorderable && commands.has(job.config.command)) {
+            // Skip the currently executing job (index 0 of a running channel)
+            if (i === 0 && isChannelRunning) continue;
+
+            const existingJob = newJobs.get(queue[i]);
+            if (
+              existingJob &&
+              existingJob.config.reorderable &&
+              commands.has(existingJob.config.command)
+            ) {
+              // Resolve the superseded job's deferred to prevent Promise.all hangs
+              existingJob.deferred?.resolve(undefined as any);
+
+              // Also resolve the operation's deferred if present
+              const op = state.operations.get(existingJob.operationId);
+              if (op && op.jobIds.length === 1) {
+                op.deferred?.resolve(undefined as any);
+              }
+
               queue.splice(i, 1);
             }
           }
-          
-          queue.push(...nonImmediate.map(j => j.id));
+
+          queue.push(...nonImmediate.map((j) => j.id));
         }
-        
+
         newQueues.set(channel, queue);
       });
-      
+
       // Update job statuses
-      jobs.forEach(job => {
+      jobs.forEach((job) => {
         job.status = JobStatus.SCHEDULED;
         newJobs.set(job.id, { ...job });
       });
-      
+
       return { queues: newQueues, jobs: newJobs };
     });
-    
+
     // Start processing asynchronously
     Promise.resolve().then(() => get().start());
   },
-  
+
   start: () => {
     const { queues, runningChannels, onStartQueueCallbacks } = get();
-    
+
     queues.forEach((queue, channel) => {
       if (!runningChannels.has(channel) && queue.length > 0) {
         // Mark channel as running
         set((state) => ({
           runningChannels: new Set(state.runningChannels).add(channel),
         }));
-        
+
         // Notify subscribers
-        onStartQueueCallbacks.forEach(cb => cb(channel));
-        
+        onStartQueueCallbacks.forEach((cb) => cb(channel));
+
         // Process queue
         const processQueue = async () => {
           let currentQueue = get().queues.get(channel) || [];
-          
+
           while (currentQueue.length > 0) {
             await executeNextJob(channel);
             currentQueue = get().queues.get(channel) || [];
           }
-          
+
           // Mark channel as not running
           const { affectedAreas, onFinishQueueCallbacks } = get();
           set((state) => {
             const newRunningChannels = new Set(state.runningChannels);
             newRunningChannels.delete(channel);
-            return { 
+            return {
               runningChannels: newRunningChannels,
               affectedAreas: new Set(),
             };
           });
-          
+
           // Notify subscribers
-          onFinishQueueCallbacks.forEach(cb => cb({ affectedAreas, path: channel }));
+          onFinishQueueCallbacks.forEach((cb) =>
+            cb({ affectedAreas, path: channel }),
+          );
         };
-        
+
         processQueue();
       }
     });
-    
+
     async function executeNextJob(channel: string) {
       const state = get();
       const queue = state.queues.get(channel);
       if (!queue || queue.length === 0) return;
-      
+
       const jobId = queue[0];
       const job = state.jobs.get(jobId);
       if (!job) {
@@ -328,9 +354,9 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
         });
         return;
       }
-      
+
       const operation = state.operations.get(job.operationId);
-      
+
       // Skip if operation already failed
       if (operation && operation.status === JobStatus.FAILED) {
         set((state) => {
@@ -345,7 +371,7 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
         });
         return;
       }
-      
+
       // Mark job as in progress
       set((state) => {
         const newJobs = new Map(state.jobs);
@@ -353,30 +379,33 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
         const updatedJob = { ...job, status: JobStatus.IN_PROGRESS };
         newJobs.set(job.id, updatedJob);
         if (operation) {
-          newOperations.set(operation.id, { ...operation, status: JobStatus.IN_PROGRESS });
+          newOperations.set(operation.id, {
+            ...operation,
+            status: JobStatus.IN_PROGRESS,
+          });
         }
         return { jobs: newJobs, operations: newOperations };
       });
-      
+
       try {
         const result = await job.config.execute();
-        
+
         // Mark job as succeeded
         job.deferred.resolve(result);
-        
+
         set((state) => {
           const newJobs = new Map(state.jobs);
           const newOperations = new Map(state.operations);
           const newQueues = new Map(state.queues);
           const newAffectedAreas = new Set(state.affectedAreas);
-          
+
           const updatedJob = { ...job, status: JobStatus.SUCCEEDED };
           newJobs.set(job.id, updatedJob);
-          
+
           // Check if all jobs in operation succeeded
           const op = newOperations.get(job.operationId);
           if (op) {
-            const allSucceeded = op.jobIds.every(id => {
+            const allSucceeded = op.jobIds.every((id) => {
               const j = newJobs.get(id);
               return j && j.status === JobStatus.SUCCEEDED;
             });
@@ -385,22 +414,24 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
               newOperations.set(op.id, { ...op, status: JobStatus.SUCCEEDED });
             }
           }
-          
+
           // Track affected areas
-          job.config.affectedAreas.forEach(area => newAffectedAreas.add(area));
-          
+          job.config.affectedAreas.forEach((area) =>
+            newAffectedAreas.add(area),
+          );
+
           // Remove job from queue
           const q = newQueues.get(channel) || [];
           q.shift();
           newQueues.set(channel, q);
-          
+
           // Add to past jobs
           const newPastJobIds = [...state.pastJobIds, job.id];
-          
-          return { 
-            jobs: newJobs, 
-            operations: newOperations, 
-            queues: newQueues, 
+
+          return {
+            jobs: newJobs,
+            operations: newOperations,
+            queues: newQueues,
             affectedAreas: newAffectedAreas,
             pastJobIds: newPastJobIds,
           };
@@ -408,38 +439,40 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
       } catch (error) {
         // Mark job as failed
         job.deferred.reject(error);
-        
+
         set((state) => {
           const newJobs = new Map(state.jobs);
           const newOperations = new Map(state.operations);
           const newQueues = new Map(state.queues);
           const newAffectedAreas = new Set(state.affectedAreas);
-          
+
           const updatedJob = { ...job, status: JobStatus.FAILED };
           newJobs.set(job.id, updatedJob);
-          
+
           // Mark operation as failed
           const op = newOperations.get(job.operationId);
           if (op) {
             op.deferred.reject(error);
             newOperations.set(op.id, { ...op, status: JobStatus.FAILED });
           }
-          
+
           // Track affected areas
-          job.config.affectedAreas.forEach(area => newAffectedAreas.add(area));
-          
+          job.config.affectedAreas.forEach((area) =>
+            newAffectedAreas.add(area),
+          );
+
           // Remove job from queue
           const q = newQueues.get(channel) || [];
           q.shift();
           newQueues.set(channel, q);
-          
+
           // Add to past jobs
           const newPastJobIds = [...state.pastJobIds, job.id];
-          
-          return { 
-            jobs: newJobs, 
-            operations: newOperations, 
-            queues: newQueues, 
+
+          return {
+            jobs: newJobs,
+            operations: newOperations,
+            queues: newQueues,
             affectedAreas: newAffectedAreas,
             pastJobIds: newPastJobIds,
           };
@@ -447,7 +480,7 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
       }
     }
   },
-  
+
   getActiveJobs: () => {
     const { queues, jobs } = get();
     const result: Job[] = [];
@@ -459,29 +492,33 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
     });
     return result;
   },
-  
+
   isRunning: (path: string) => {
     return get().runningChannels.has(path);
   },
-  
+
   onFinishQueue: (callback) => {
     set((state) => ({
       onFinishQueueCallbacks: [...state.onFinishQueueCallbacks, callback],
     }));
     return () => {
       set((state) => ({
-        onFinishQueueCallbacks: state.onFinishQueueCallbacks.filter(cb => cb !== callback),
+        onFinishQueueCallbacks: state.onFinishQueueCallbacks.filter(
+          (cb) => cb !== callback,
+        ),
       }));
     };
   },
-  
+
   onStartQueue: (callback) => {
     set((state) => ({
       onStartQueueCallbacks: [...state.onStartQueueCallbacks, callback],
     }));
     return () => {
       set((state) => ({
-        onStartQueueCallbacks: state.onStartQueueCallbacks.filter(cb => cb !== callback),
+        onStartQueueCallbacks: state.onStartQueueCallbacks.filter(
+          (cb) => cb !== callback,
+        ),
       }));
     };
   },
@@ -490,7 +527,9 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
 // Helper hook to create and schedule jobs easily
 export function useJobScheduler() {
   const createJob = useJobStore((state) => state.createJob);
-  const scheduleSimpleOperation = useJobStore((state) => state.scheduleSimpleOperation);
+  const scheduleSimpleOperation = useJobStore(
+    (state) => state.scheduleSimpleOperation,
+  );
   const scheduleOperation = useJobStore((state) => state.scheduleOperation);
   const getActiveJobs = useJobStore((state) => state.getActiveJobs);
   const isRunning = useJobStore((state) => state.isRunning);
@@ -508,12 +547,22 @@ export function useJobScheduler() {
     return operation.deferred.promise;
   }, []);
 
-  return useMemo(() => ({
-    createJob,
-    scheduleSimpleOperation,
-    scheduleOperation,
-    getActiveJobs,
-    isRunning,
-    runJob,
-  }), [createJob, scheduleSimpleOperation, scheduleOperation, getActiveJobs, isRunning, runJob]);
+  return useMemo(
+    () => ({
+      createJob,
+      scheduleSimpleOperation,
+      scheduleOperation,
+      getActiveJobs,
+      isRunning,
+      runJob,
+    }),
+    [
+      createJob,
+      scheduleSimpleOperation,
+      scheduleOperation,
+      getActiveJobs,
+      isRunning,
+      runJob,
+    ],
+  );
 }

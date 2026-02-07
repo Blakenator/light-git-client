@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Button } from 'react-bootstrap';
+import { Button, Tooltip } from 'react-bootstrap';
+import { TooltipTrigger } from '@light-git/core';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
@@ -8,6 +9,7 @@ import type { BranchModel } from '@light-git/shared';
 
 interface RemoteBranchesCardProps {
   branches: BranchModel[];
+  localBranches?: BranchModel[];
   onCheckout: (branch: BranchModel) => void;
   onDelete: (branch: BranchModel) => void;
   onFetch?: () => void;
@@ -17,6 +19,7 @@ interface RemoteBranchesCardProps {
 
 export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(({
   branches,
+  localBranches = [],
   onCheckout,
   onDelete,
   onFetch,
@@ -45,21 +48,21 @@ export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(
         placeholder="Filter..."
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        onClick={(e) => e.stopPropagation()}
       />
       <CardHeaderButtons>
         {onFetch && (
-          <Button
-            variant="info"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onFetch();
-            }}
-            title="Fetch all remotes"
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id="tooltip-fetch-remotes">Fetch all remotes</Tooltip>}
           >
-            <Icon name="fa-sync" />
-          </Button>
+            <Button
+              variant="info"
+              size="sm"
+              onClick={() => onFetch()}
+            >
+              <Icon name="fa-sync" />
+            </Button>
+          </TooltipTrigger>
         )}
       </CardHeaderButtons>
     </CardHeaderContent>
@@ -77,6 +80,7 @@ export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(
           branches={branches as any}
           isLocal={false}
           filter={filter}
+          localBranches={localBranches as any}
           onCheckoutClicked={handleCheckout}
           onDeleteClicked={(branch) => onDelete(branch as any)}
           onMergeClicked={onMerge ? (branch) => onMerge(branch as any) : undefined}

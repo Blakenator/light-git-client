@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Button, ButtonGroup, Badge, Dropdown, Form, Table, DropdownButton } from 'react-bootstrap';
+import { Button, ButtonGroup, Badge, Dropdown, Form, Table, DropdownButton, Tooltip } from 'react-bootstrap';
+import { TooltipTrigger } from '@light-git/core';
 import styled, { useTheme } from 'styled-components';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { AgeInfo, Icon, GitGraphCanvas } from '../../../common/components';
@@ -7,10 +8,8 @@ import { CardHeaderContent } from '../RepoView.styles';
 import { DiffViewer } from '../../DiffViewer/DiffViewer';
 
 const CommitListContainer = styled.div`
-  overflow-x: hidden;
+  overflow: hidden;
 `;
-
-const ROW_HEIGHT = 44;
 
 const CommitTable = styled(Table)`
   margin-bottom: 0;
@@ -18,9 +17,7 @@ const CommitTable = styled(Table)`
   border-spacing: 0;
   
   tbody tr {
-    cursor: pointer;
-    
-    &:hover {
+    &:hover td {
       background-color: ${({ theme }) => theme.colors.light};
     }
   }
@@ -30,6 +27,11 @@ const CommitTable = styled(Table)`
     padding: 0.375rem 0.5rem;
     border: none;
     position: relative;
+    background-color: transparent;
+  }
+
+  tbody tr:nth-child(odd) td {
+    background-color: ${({ theme }) => theme.colors.text}08;
   }
 `;
 
@@ -37,9 +39,10 @@ const GraphCell = styled.td`
   width: 1%;
   white-space: nowrap;
   padding: 0 !important;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   vertical-align: middle !important;
+  background-color: transparent !important;
 `;
 
 const MessageCell = styled.td`
@@ -151,6 +154,40 @@ const BranchSelector = styled.div`
   align-items: center;
   gap: 0.5rem;
   margin-left: auto;
+  min-width: 0;
+`;
+
+const BranchDropdownMenu = styled(Dropdown.Menu)`
+  max-height: 300px;
+  overflow-y: auto;
+  max-width: 320px;
+  min-width: 220px;
+`;
+
+const BranchToggleText = styled.span`
+  display: inline-block;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+`;
+
+const BranchItemText = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  /* Indent all branch names to align with the cart icon space */
+  padding-left: 1.25em;
+`;
+
+const BranchItemWithIcon = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  /* No extra padding - the icon provides the indent */
 `;
 
 const SearchInput = styled(Form.Control)`
@@ -399,24 +436,33 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
         {onBranchChange && (
           <ButtonGroup size="sm">
             {currentBranch && (
-              <Button
-                variant={isCurrentBranchActive ? 'primary' : 'secondary'}
-                onClick={toggleCurrentBranchFilter}
-                title="Filter to current branch"
+              <TooltipTrigger
+                placement="top"
+                overlay={<Tooltip id="tooltip-filter-current-branch">Filter to current branch</Tooltip>}
               >
-                <Icon name={isCurrentBranchActive ? 'fa-eye-slash' : 'fa-eye'} size="sm" />
-              </Button>
+                <Button
+                  variant={isCurrentBranchActive ? 'primary' : 'secondary'}
+                  onClick={toggleCurrentBranchFilter}
+                >
+                  <Icon name={isCurrentBranchActive ? 'fa-eye-slash' : 'fa-eye'} size="sm" />
+                </Button>
+              </TooltipTrigger>
             )}
           <Dropdown
             show={showBranchDropdown}
             onToggle={(open) => setShowBranchDropdown(open)}
             as={ButtonGroup}
           >
-            <Dropdown.Toggle variant="secondary" size="sm">
-              <Icon name="fa-code-branch" className="me-1" />
-              {activeBranch?.name || 'All branches'}
-            </Dropdown.Toggle>
-            <Dropdown.Menu style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id="tooltip-active-branch">{activeBranch?.name || 'All branches'}</Tooltip>}
+            >
+              <Dropdown.Toggle variant="secondary" size="sm">
+                <Icon name="fa-code-branch" className="me-1" />
+                <BranchToggleText>{activeBranch?.name || 'All branches'}</BranchToggleText>
+              </Dropdown.Toggle>
+            </TooltipTrigger>
+            <BranchDropdownMenu>
               <div className="px-2 py-1">
                 <Form.Control
                   size="sm"
@@ -427,8 +473,23 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                 />
               </div>
               <Dropdown.Divider />
+              {currentBranch && (
+                <>
+                  <Dropdown.Header>Current Branch</Dropdown.Header>
+                  <Dropdown.Item
+                    active={activeBranch?.name === currentBranch.name}
+                    onClick={() => handleBranchSelect(currentBranch)}
+                  >
+                    <BranchItemWithIcon>
+                      <Icon name="fa-shopping-cart" className="me-1" />
+                      {currentBranch.name}
+                    </BranchItemWithIcon>
+                  </Dropdown.Item>
+                  <Dropdown.Divider />
+                </>
+              )}
               <Dropdown.Item onClick={() => handleBranchSelect(null)}>
-                All branches
+                <BranchItemText>All branches</BranchItemText>
               </Dropdown.Item>
               <Dropdown.Divider />
               {localBranches.length > 0 && (
@@ -442,10 +503,14 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                         active={activeBranch?.name === branch.name}
                         onClick={() => handleBranchSelect(branch)}
                       >
-                        {branch.isCurrentBranch && (
-                          <Icon name="fa-check" className="me-1" />
+                        {branch.isCurrentBranch ? (
+                          <BranchItemWithIcon>
+                            <Icon name="fa-shopping-cart" className="me-1" />
+                            {branch.name}
+                          </BranchItemWithIcon>
+                        ) : (
+                          <BranchItemText>{branch.name}</BranchItemText>
                         )}
-                        {branch.name}
                       </Dropdown.Item>
                     ))}
                 </>
@@ -461,12 +526,12 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                         active={activeBranch?.name === branch.name}
                         onClick={() => handleBranchSelect(branch)}
                       >
-                        {branch.name}
+                        <BranchItemText>{branch.name}</BranchItemText>
                       </Dropdown.Item>
                     ))}
                 </>
               )}
-            </Dropdown.Menu>
+            </BranchDropdownMenu>
           </Dropdown>
           </ButtonGroup>
         )}
@@ -486,27 +551,19 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
         <CommitListContainer>
           <CommitTable hover size="sm">
             <tbody>
-              {filteredCommits.map((commit, index) => {
+              {filteredCommits.map((commit) => {
                 const isExpanded = expandedCommits.has(commit.hash);
                 const expandable = isExpandable(commit);
                 const tags = commit.currentTags || commit.branchEndings || [];
                 const messageLines = commit.message.split('\n');
                 const firstLine = messageLines[0];
                 const restLines = messageLines.slice(1).join('\n').trim();
-                // prevCommit is newer (above in the list), nextCommit is older (below)
-                const prevCommit = index > 0 ? filteredCommits[index - 1] : null;
-                const nextCommit = index < filteredCommits.length - 1 ? filteredCommits[index + 1] : null;
 
                 return (
-                  <tr key={commit.hash} onClick={() => onClickCommit(commit.hash)}>
+                  <tr key={commit.hash}>
                     <GraphCell>
                       {enableGraphView ? (
-                        <GitGraphCanvas 
-                          commit={commit} 
-                          prevCommit={prevCommit}
-                          nextCommit={nextCommit}
-                          rowHeight={ROW_HEIGHT} 
-                        />
+                        <GitGraphCanvas commit={commit} />
                       ) : (
                         <div
                           style={{
@@ -555,12 +612,16 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                           )}
                         </MessageContent>
                         {expandable && (
-                          <CopyMessageButton
-                            onClick={(e) => copyMessage(commit.message, e)}
-                            title="Copy full message"
+                          <TooltipTrigger
+                            placement="top"
+                            overlay={<Tooltip id={`tooltip-copy-message-${commit.hash}`}>Copy full message</Tooltip>}
                           >
-                            <Icon name="fa-copy" size="sm" />
-                          </CopyMessageButton>
+                            <CopyMessageButton
+                              onClick={(e) => copyMessage(commit.message, e)}
+                            >
+                              <Icon name="fa-copy" size="sm" />
+                            </CopyMessageButton>
+                          </TooltipTrigger>
                         )}
                       </MessageRow>
                       <CommitMeta>
@@ -585,7 +646,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                             Cherry Pick
                           </Dropdown.Item>
                           <Dropdown.Item onClick={() => onCheckout(commit.hash)}>
-                            <Icon name="fa-sign-in-alt" size="sm" className="me-2" />
+                            <Icon name="fa-shopping-cart" size="sm" className="me-2" />
                             Checkout
                           </Dropdown.Item>
                           {onRevert && (
@@ -596,7 +657,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                           )}
                           {onCreateBranchFromCommit && (
                             <Dropdown.Item onClick={() => onCreateBranchFromCommit(commit)}>
-                              <Icon name="fa-plus" size="sm" className="me-2" />
+                              <Icon name="fa-code-branch" size="sm" className="me-2" />
                               Create Branch from Here
                             </Dropdown.Item>
                           )}
