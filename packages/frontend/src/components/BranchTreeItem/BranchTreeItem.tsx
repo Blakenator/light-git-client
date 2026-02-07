@@ -408,7 +408,7 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
               onClick={(e) => toggleActions(branch.name, e)}
             >
               <Icon
-                name={isActionsExpanded ? 'fa-times' : 'fa-ellipsis-h'}
+                name={isActionsExpanded ? 'fa-times' : 'fa-ellipsis-vertical'}
                 size="sm"
               />
             </ExpandButton>

@@ -38,8 +38,9 @@ export const RepoTitle = styled.h1`
 
 export const TitleButtonGroup = styled.div`
   display: inline-flex;
+  align-items: center;
   gap: 0.25rem;
-  margin-left: 0.5rem;
+  margin-left: auto;
 `;
 
 export const CardWrapper = styled.div`
@@ -177,4 +178,102 @@ export const OperationBanner = styled.div<{
         return theme.colors.alertDefaultText;
     }
   }};
+`;
+
+export const DroppableColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+`;
+
+// Edit Sections mode styles
+
+export const EditCardContainer = styled.div<{ $isHidden?: boolean }>`
+  position: relative;
+  ${({ $isHidden }) => $isHidden && `opacity: 0.5;`}
+`;
+
+export const EditOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background-color: rgba(128, 128, 128, 0.5);
+  border: 2px solid #888;
+  border-radius: 4px;
+  z-index: 5;
+  pointer-events: none;
+`;
+
+export const EditOverlayButtons = styled.div`
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  z-index: 6;
+  pointer-events: auto;
+`;
+
+export const EditButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+
+  &:hover {
+    background-color: #fff;
+  }
+`;
+
+export const DragHandle = styled(EditButton)`
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+export const HiddenCardPlaceholder = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background-color: ${({ theme }) => theme.colors.light};
+  border: 2px dashed #aaa;
+  border-radius: 4px;
+  opacity: 0.6;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+export const EllipsisDropdownWrapper = styled.div`
+  margin-left: 0.25rem;
+
+  .dropdown-toggle {
+    background: none !important;
+    border: none !important;
+    color: inherit !important;
+    padding: 0.25rem 0.5rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    box-shadow: none !important;
+
+    &::after {
+      display: none;
+    }
+
+    &:hover {
+      opacity: 0.7;
+    }
+  }
 `;

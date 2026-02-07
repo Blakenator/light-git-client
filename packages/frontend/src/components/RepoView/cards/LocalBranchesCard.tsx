@@ -128,48 +128,6 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
-        {currentBranch && (
-          <Dropdown as={ButtonGroup} size="sm">
-            <TooltipTrigger
-              placement="top"
-              overlay={<Tooltip id="tooltip-pull-local">Pull</Tooltip>}
-            >
-              <Button
-                variant="info"
-                onClick={() => onPull(currentBranch, false)}
-              >
-                <Icon name="fa-arrow-down" />
-              </Button>
-            </TooltipTrigger>
-            <Dropdown.Toggle split variant="info" />
-            <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
-              <Dropdown.Item onClick={() => onPull(currentBranch, true)}>
-                <Icon name="fa-shield-alt" /> Force Pull
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-        )}
-        {currentBranch && (
-          <Dropdown as={ButtonGroup} size="sm">
-            <TooltipTrigger
-              placement="top"
-              overlay={<Tooltip id="tooltip-push-local">Push current branch</Tooltip>}
-            >
-              <Button
-                variant="info"
-                onClick={() => onPush(currentBranch, false)}
-              >
-                <Icon name="fa-arrow-up" />
-              </Button>
-            </TooltipTrigger>
-            <Dropdown.Toggle split variant="info" />
-            <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
-              <Dropdown.Item onClick={() => onPush(currentBranch, true)}>
-                <Icon name="fa-shield-alt" /> Force Push
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-        )}
       </CardHeaderButtons>
     </CardHeaderContent>
   );

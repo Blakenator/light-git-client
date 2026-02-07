@@ -1,18 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, ButtonGroup, Tooltip } from 'react-bootstrap';
+import { Button, ButtonGroup, Dropdown, Tooltip } from 'react-bootstrap';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useRepositoryStore, useSettingsStore, useUiStore, useJobStore, RepoArea } from '../../stores';
+import type { RepoSectionLayout, SectionCardLayout } from '../../stores/settingsStore';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { useIpc, useGitService, useIpcListener } from '../../ipc';
-import { Channels } from '@light-git/shared';
+import { Channels, CardId } from '@light-git/shared';
 import { ConfirmModal } from '../../common/components/ConfirmModal/ConfirmModal';
 import { InputModal } from '../../common/components/InputModal/InputModal';
 import { PruneBranchDialog, MergeBranchDialog } from './dialogs';
 import { calculateGraphBlocks } from '../../utils/calculateGraphBlocks';
+import { EditSectionsContext } from './EditSectionsContext';
+import { EditableCard } from './EditableCard';
 import {
   RepoViewContainer,
   Column,
   RepoTitle,
   TitleButtonGroup,
+  EllipsisDropdownWrapper,
+  DroppableColumn,
 } from './RepoView.styles';
 import {
   LocalBranchesCard,
@@ -28,6 +34,58 @@ import {
   CommitHistoryCard,
   ActiveOperation,
 } from './cards';
+
+// Card configuration: defines the default column and order for each card section
+export interface CardConfig {
+  id: CardId;
+  title: string;
+  defaultColumn: number; // 0=left, 1=middle, 2=right
+  defaultOrder: number;
+}
+
+const CARD_CONFIGS: CardConfig[] = [
+  { id: CardId.LocalBranches, title: 'Local Branches', defaultColumn: 0, defaultOrder: 0 },
+  { id: CardId.RemoteBranches, title: 'Remote Branches', defaultColumn: 0, defaultOrder: 1 },
+  { id: CardId.Worktrees, title: 'Worktrees', defaultColumn: 0, defaultOrder: 2 },
+  { id: CardId.Submodules, title: 'Submodules', defaultColumn: 0, defaultOrder: 3 },
+  { id: CardId.Stashes, title: 'Stashes', defaultColumn: 0, defaultOrder: 4 },
+  { id: CardId.CommandHistory, title: 'Command History', defaultColumn: 0, defaultOrder: 5 },
+  { id: CardId.StagedChanges, title: 'Staged Changes', defaultColumn: 1, defaultOrder: 0 },
+  { id: CardId.UnstagedChanges, title: 'Unstaged Changes', defaultColumn: 1, defaultOrder: 1 },
+  { id: CardId.CommitHistory, title: 'Commit History', defaultColumn: 2, defaultOrder: 0 },
+];
+
+function getDefaultLayout(): RepoSectionLayout {
+  const layout: RepoSectionLayout = {};
+  for (const config of CARD_CONFIGS) {
+    layout[config.id] = {
+      visible: true,
+      order: config.defaultOrder,
+      column: config.defaultColumn,
+    };
+  }
+  return layout;
+}
+
+function getEffectiveLayout(persisted: RepoSectionLayout | undefined): RepoSectionLayout {
+  const defaults = getDefaultLayout();
+  if (!persisted) return defaults;
+  // Merge: persisted values win, but fill in any missing cards from defaults
+  const result: RepoSectionLayout = { ...defaults };
+  for (const [id, val] of Object.entries(persisted)) {
+    if (result[id]) {
+      result[id] = val;
+    }
+  }
+  return result;
+}
+
+function getColumnCards(layout: RepoSectionLayout, column: number): { id: string; config: SectionCardLayout }[] {
+  return Object.entries(layout)
+    .filter(([, cfg]) => cfg.column === column)
+    .sort(([, a], [, b]) => a.order - b.order)
+    .map(([id, config]) => ({ id, config }));
+}
 
 interface MergeInfo {
   sourceBranch?: any;
@@ -1107,6 +1165,27 @@ export const RepoView: React.FC<RepoViewProps> = ({
   const worktrees = useMemo(() => repo.worktrees || [], [repo.worktrees]);
   const submodules = useMemo(() => repo.submodules || [], [repo.submodules]);
   const stashes = useMemo(() => repo.stashes || [], [repo.stashes]);
+  const currentBranch = useMemo(
+    () => localBranches.find((b: any) => b.isCurrentBranch) || null,
+    [localBranches],
+  );
+
+  // Push/Pull handlers for the repo title bar
+  const handlePushCurrent = useCallback(() => {
+    if (currentBranch) handlePush(currentBranch, false);
+  }, [currentBranch, handlePush]);
+
+  const handlePullCurrent = useCallback(() => {
+    if (currentBranch) handlePull(currentBranch, false);
+  }, [currentBranch, handlePull]);
+
+  const handleForcePushCurrent = useCallback(() => {
+    if (currentBranch) handlePush(currentBranch, true);
+  }, [currentBranch, handlePush]);
+
+  const handleForcePullCurrent = useCallback(() => {
+    if (currentBranch) handlePull(currentBranch, true);
+  }, [currentBranch, handlePull]);
 
   // Auto-refresh diff when file change lists update (after stage/unstage/commit/refresh).
   // When no files are selected, refreshSelectedFilesDiff shows diff for all files.
@@ -1120,52 +1199,63 @@ export const RepoView: React.FC<RepoViewProps> = ({
     }
   }, [stagedChanges, unstagedChanges, refreshSelectedFilesDiff]);
 
-  if (!repoPath) {
-    return null;
-  }
+  // ─── Edit Sections mode ───
+  const [isEditingSections, setIsEditingSections] = useState(false);
+  const persistedLayout = useSettingsStore((state) => state.settings.sectionLayouts[repoPath]);
+  const setSectionLayout = useSettingsStore((state) => state.setSectionLayout);
 
-  return (
-    <RepoViewContainer>
-      {/* Left Column */}
-      <Column>
-        <RepoTitle>
-          {activeTab?.name || 'Repository'}
-          <TitleButtonGroup>
-            <TooltipTrigger
-              placement="bottom"
-              overlay={<Tooltip id="tooltip-open-terminal">Open Bash Terminal</Tooltip>}
-            >
-              <Button variant="primary" size="sm" onClick={handleOpenTerminal}>
-                <Icon name="fa-terminal" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipTrigger
-              placement="bottom"
-              overlay={<Tooltip id="tooltip-open-folder">Open Folder</Tooltip>}
-            >
-              <Button variant="info" size="sm" onClick={handleOpenFolderDefault}>
-                <Icon name="fa-folder-open" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipTrigger
-              placement="bottom"
-              overlay={<Tooltip id="tooltip-refresh-all">Refresh All</Tooltip>}
-            >
-              <Button variant="primary" size="sm" onClick={handleFullRefresh}>
-                <Icon name="fa-sync-alt" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipTrigger
-              placement="bottom"
-              overlay={<Tooltip id="tooltip-discard-all">Discard All Changes</Tooltip>}
-            >
-              <Button variant="warning" size="sm" onClick={handleDiscardAll}>
-                <Icon name="fa-undo" /> Discard All
-              </Button>
-            </TooltipTrigger>
-          </TitleButtonGroup>
-        </RepoTitle>
+  const sectionLayout = useMemo(() => getEffectiveLayout(persistedLayout), [persistedLayout]);
 
+  const leftCards = useMemo(() => getColumnCards(sectionLayout, 0), [sectionLayout]);
+  const middleCards = useMemo(() => getColumnCards(sectionLayout, 1), [sectionLayout]);
+  const rightCards = useMemo(() => getColumnCards(sectionLayout, 2), [sectionLayout]);
+
+  const leftHasVisible = useMemo(() => leftCards.some((c) => c.config.visible), [leftCards]);
+  const middleHasVisible = useMemo(
+    () => middleCards.some((c) => c.config.visible),
+    [middleCards],
+  );
+  const rightHasVisible = useMemo(() => rightCards.some((c) => c.config.visible), [rightCards]);
+
+  const handleToggleCardVisibility = useCallback(
+    (cardId: string) => {
+      const current = sectionLayout[cardId];
+      if (!current) return;
+      const newLayout: RepoSectionLayout = {
+        ...sectionLayout,
+        [cardId]: { ...current, visible: !current.visible },
+      };
+      setSectionLayout(repoPath, newLayout);
+    },
+    [sectionLayout, setSectionLayout, repoPath],
+  );
+
+  const handleDragEnd = useCallback(
+    (result: DropResult) => {
+      if (!result.destination) return;
+      const sourceDroppableId = result.source.droppableId;
+      const destDroppableId = result.destination.droppableId;
+      if (sourceDroppableId !== destDroppableId) return; // no cross-column
+
+      const columnIndex = parseInt(sourceDroppableId.replace('column-', ''), 10);
+      const columnCards = getColumnCards(sectionLayout, columnIndex);
+      const reordered = [...columnCards];
+      const [moved] = reordered.splice(result.source.index, 1);
+      reordered.splice(result.destination.index, 0, moved);
+
+      const newLayout: RepoSectionLayout = { ...sectionLayout };
+      reordered.forEach((card, idx) => {
+        newLayout[card.id] = { ...newLayout[card.id], order: idx };
+      });
+      setSectionLayout(repoPath, newLayout);
+    },
+    [sectionLayout, setSectionLayout, repoPath],
+  );
+
+  // Map of card ID -> JSX element
+  const cardComponents: Record<CardId, React.ReactNode> = useMemo(
+    () => ({
+      [CardId.LocalBranches]: (
         <LocalBranchesCard
           branches={localBranches}
           worktrees={worktrees}
@@ -1183,14 +1273,16 @@ export const RepoView: React.FC<RepoViewProps> = ({
           onFastForward={handleFastForward}
           onViewChanges={handleBranchPremerge}
         />
-
+      ),
+      [CardId.RemoteBranches]: (
         <RemoteBranchesCard
           branches={remoteBranches}
           localBranches={localBranches}
           onCheckout={handleRemoteCheckout}
           onDelete={handleDeleteBranch}
         />
-
+      ),
+      [CardId.Worktrees]: (
         <WorktreesCard
           worktrees={worktrees}
           onAddWorktree={handleShowAddWorktree}
@@ -1199,7 +1291,8 @@ export const RepoView: React.FC<RepoViewProps> = ({
           onSwitch={handleSwitchWorktree}
           onDelete={handleDeleteWorktree}
         />
-
+      ),
+      [CardId.Submodules]: (
         <SubmodulesCard
           submodules={submodules}
           onAddSubmodule={handleShowAddSubmodule}
@@ -1207,7 +1300,8 @@ export const RepoView: React.FC<RepoViewProps> = ({
           onOpenNewTab={handleOpenSubmoduleNewTab}
           onViewSubmodule={handleOpenSubmoduleNewTab}
         />
-
+      ),
+      [CardId.Stashes]: (
         <StashesCard
           stashes={stashes}
           onStash={handleStash}
@@ -1216,15 +1310,14 @@ export const RepoView: React.FC<RepoViewProps> = ({
           onViewStash={handleViewStash}
           onRestoreStash={handleShowRestoreStash}
         />
-
+      ),
+      [CardId.CommandHistory]: (
         <CommandHistoryCard
           commandHistory={commandHistory}
           onLoadMore={handleLoadMoreCommands}
         />
-      </Column>
-
-      {/* Middle Column */}
-      <Column>
+      ),
+      [CardId.StagedChanges]: (
         <StagedChangesCard
           changes={stagedChanges}
           selectedChanges={selectedStagedChanges}
@@ -1238,7 +1331,8 @@ export const RepoView: React.FC<RepoViewProps> = ({
           onSetFilenameSplit={handleSetFilenameSplit}
           onFileClick={handleStagedFileClick}
         />
-
+      ),
+      [CardId.UnstagedChanges]: (
         <UnstagedChangesCard
           changes={unstagedChanges}
           selectedChanges={selectedUnstagedChanges}
@@ -1252,34 +1346,8 @@ export const RepoView: React.FC<RepoViewProps> = ({
           onSetFilenameSplit={handleSetFilenameSplit}
           onFileClick={handleUnstagedFileClick}
         />
-
-        <ActiveOperationBanner
-          operation={activeOperation}
-          onAbort={handleAbortOperation}
-          onContinue={handleContinueOperation}
-        />
-
-        {!activeOperation && (
-          <CommitPanel
-            commitMessage={commitMessage}
-            commitAndPush={commitAndPush}
-            hasWatcherAlerts={false}
-            disabledReason={undefined}
-            crlfError={crlfError}
-            stagedChanges={stagedChanges}
-            unstagedChanges={unstagedChanges}
-            currentBranchName={activeBranch?.name || localBranches.find((b: any) => b.isCurrentBranch)?.name || ''}
-            onMessageChange={setCommitMessage}
-            onCommitAndPushChange={handleCommitAndPushChange}
-            onCommit={handleCommit}
-            onShowWatchers={handleShowCodeWatchers}
-            onDismissCrlfError={handleDismissCrlfError}
-          />
-        )}
-      </Column>
-
-      {/* Right Column */}
-      <Column>
+      ),
+      [CardId.CommitHistory]: (
         <CommitHistoryCard
           commits={commitHistory}
           showDiff={showDiff}
@@ -1307,7 +1375,195 @@ export const RepoView: React.FC<RepoViewProps> = ({
           onHunkChange={handleHunkChange}
           onHunkChangeError={handleHunkChangeError}
         />
+      ),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      localBranches, remoteBranches, worktrees, submodules, stashes, commandHistory,
+      stagedChanges, unstagedChanges, selectedStagedChanges, selectedUnstagedChanges,
+      commitHistory, showDiff, currentDiff, commitInfo, activeBranch,
+      splitFilenameDisplay, diffIgnoreWhitespace, commitAndPush,
+      hasMoreDiffs, isLoadingMoreDiffs,
+    ],
+  );
+
+  const cardTitleMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const cfg of CARD_CONFIGS) {
+      map[cfg.id] = cfg.title;
+    }
+    return map;
+  }, []);
+
+  // Render a column's cards, optionally wrapped with drag-and-drop
+  const renderColumnCards = useCallback(
+    (cards: { id: string; config: SectionCardLayout }[], columnIndex: number) => {
+      if (isEditingSections) {
+        return (
+          <Droppable droppableId={`column-${columnIndex}`}>
+            {(provided) => (
+              <DroppableColumn ref={provided.innerRef} {...provided.droppableProps}>
+                {cards.map((card, index) => (
+                  <Draggable key={card.id} draggableId={card.id} index={index}>
+                    {(dragProvided) => (
+                      <div ref={dragProvided.innerRef} {...dragProvided.draggableProps}>
+                        <EditableCard
+                          cardId={card.id}
+                          cardTitle={cardTitleMap[card.id] || card.id}
+                          visible={card.config.visible}
+                          onToggleVisibility={handleToggleCardVisibility}
+                          dragHandleProps={dragProvided.dragHandleProps}
+                        >
+                          {cardComponents[card.id]}
+                        </EditableCard>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </DroppableColumn>
+            )}
+          </Droppable>
+        );
+      }
+
+      // Normal mode: render visible cards without DnD wrappers
+      return cards
+        .filter((card) => card.config.visible)
+        .map((card) => (
+          <React.Fragment key={card.id}>{cardComponents[card.id]}</React.Fragment>
+        ));
+    },
+    [isEditingSections, cardComponents, cardTitleMap, handleToggleCardVisibility],
+  );
+
+  if (!repoPath) {
+    return null;
+  }
+
+  const editSectionsContextValue = { isEditing: isEditingSections, setIsEditing: setIsEditingSections };
+
+  return (
+    <EditSectionsContext.Provider value={editSectionsContextValue}>
+    <DragDropContext onDragEnd={handleDragEnd}>
+    <RepoViewContainer>
+      {/* Left Column */}
+      {(leftHasVisible || isEditingSections) && (
+      <Column>
+        <RepoTitle>
+          {activeTab?.name || 'Repository'}
+          <TitleButtonGroup>
+            <Dropdown as={ButtonGroup} size="sm">
+              <TooltipTrigger
+                placement="bottom"
+                overlay={<Tooltip id="tooltip-pull-repo">Pull</Tooltip>}
+              >
+                <Button variant="info" onClick={handlePullCurrent}>
+                  <Icon name="fa-arrow-down" />
+                </Button>
+              </TooltipTrigger>
+              <Dropdown.Toggle split variant="info" />
+              <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
+                <Dropdown.Item onClick={handleForcePullCurrent}>
+                  <Icon name="fa-shield-alt" /> Force Pull
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+            <Dropdown as={ButtonGroup} size="sm">
+              <TooltipTrigger
+                placement="bottom"
+                overlay={<Tooltip id="tooltip-push-repo">Push</Tooltip>}
+              >
+                <Button variant="info" onClick={handlePushCurrent}>
+                  <Icon name="fa-arrow-up" />
+                </Button>
+              </TooltipTrigger>
+              <Dropdown.Toggle split variant="info" />
+              <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
+                <Dropdown.Item onClick={handleForcePushCurrent}>
+                  <Icon name="fa-shield-alt" /> Force Push
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+            <TooltipTrigger
+              placement="bottom"
+              overlay={<Tooltip id="tooltip-refresh-all">Refresh All</Tooltip>}
+            >
+              <Button variant="primary" size="sm" onClick={handleFullRefresh}>
+                <Icon name="fa-sync-alt" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipTrigger
+              placement="bottom"
+              overlay={<Tooltip id="tooltip-discard-all">Discard All Changes</Tooltip>}
+            >
+              <Button variant="warning" size="sm" onClick={handleDiscardAll}>
+                <Icon name="fa-undo" />
+              </Button>
+            </TooltipTrigger>
+          </TitleButtonGroup>
+          <EllipsisDropdownWrapper>
+            <Dropdown align="end">
+              <Dropdown.Toggle variant="link" size="sm" id="repo-menu-dropdown">
+                <Icon name="fa-ellipsis-vertical" />
+              </Dropdown.Toggle>
+              <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
+                <Dropdown.Item onClick={handleOpenTerminal}>
+                  <Icon name="fa-terminal" /> Open Terminal
+                </Dropdown.Item>
+                <Dropdown.Item onClick={handleOpenFolderDefault}>
+                  <Icon name="fa-folder-open" /> Open Folder
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                <Dropdown.Item onClick={() => setIsEditingSections(!isEditingSections)}>
+                  {isEditingSections ? 'Done Editing' : 'Edit Sections'}
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </EllipsisDropdownWrapper>
+        </RepoTitle>
+
+        {renderColumnCards(leftCards, 0)}
       </Column>
+      )}
+
+      {/* Middle Column */}
+      {(middleHasVisible || isEditingSections) && (
+      <Column>
+        {renderColumnCards(middleCards, 1)}
+
+        <ActiveOperationBanner
+          operation={activeOperation}
+          onAbort={handleAbortOperation}
+          onContinue={handleContinueOperation}
+        />
+
+        {!activeOperation && (
+          <CommitPanel
+            commitMessage={commitMessage}
+            commitAndPush={commitAndPush}
+            hasWatcherAlerts={false}
+            disabledReason={undefined}
+            crlfError={crlfError}
+            stagedChanges={stagedChanges}
+            unstagedChanges={unstagedChanges}
+            currentBranchName={activeBranch?.name || localBranches.find((b: any) => b.isCurrentBranch)?.name || ''}
+            onMessageChange={setCommitMessage}
+            onCommitAndPushChange={handleCommitAndPushChange}
+            onCommit={handleCommit}
+            onShowWatchers={handleShowCodeWatchers}
+            onDismissCrlfError={handleDismissCrlfError}
+          />
+        )}
+      </Column>
+      )}
+
+      {/* Right Column */}
+      {(rightHasVisible || isEditingSections) && (
+      <Column>
+        {renderColumnCards(rightCards, 2)}
+      </Column>
+      )}
 
       {/* Modals */}
       <ConfirmModal
@@ -1383,6 +1639,8 @@ export const RepoView: React.FC<RepoViewProps> = ({
         onOk={handleRenameBranchSubmit}
       />
     </RepoViewContainer>
+    </DragDropContext>
+    </EditSectionsContext.Provider>
   );
 };
 

@@ -47,6 +47,8 @@ interface ThemeColors {
   // Utility colors
   white: string;
   black: string;
+  // Card body
+  cardBodyBg: string;
   // Code output colors
   codeOutputBg: string;
   codeOutputText: string;

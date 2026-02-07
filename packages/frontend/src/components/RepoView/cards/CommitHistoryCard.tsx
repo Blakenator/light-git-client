@@ -658,7 +658,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                     <ActionsCell onClick={(e) => e.stopPropagation()}>
                       <Dropdown align="end">
                         <ActionsToggle variant="outline-secondary" size="sm" id={`commit-actions-${commit.hash}`}>
-                          <Icon name="fa-ellipsis-h" size="sm" />
+                          <Icon name="fa-ellipsis-vertical" size="sm" />
                         </ActionsToggle>
                         <Dropdown.Menu>
                           <Dropdown.Item onClick={() => onClickCommit(commit.hash)}>

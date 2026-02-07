@@ -16,6 +16,15 @@ export interface ConfigShortcut {
   scope?: 'local' | 'global';
 }
 
+export interface SectionCardLayout {
+  visible: boolean;
+  order: number;
+  column: number;
+}
+
+export type RepoSectionLayout = { [cardId: string]: SectionCardLayout };
+export type AllSectionLayouts = { [repoPath: string]: RepoSectionLayout };
+
 export interface SettingsModel {
   darkMode: boolean;
   rebasePull: boolean;
@@ -44,6 +53,7 @@ export interface SettingsModel {
   commitAndPush: boolean;
   branchNamePrefix: string;
   configShortcuts: ConfigShortcut[];
+  sectionLayouts: AllSectionLayouts;
 }
 
 const defaultSettings: SettingsModel = {
@@ -74,6 +84,7 @@ const defaultSettings: SettingsModel = {
   commitAndPush: false,
   branchNamePrefix: '',
   configShortcuts: [],
+  sectionLayouts: {},
 };
 
 interface SettingsState {
@@ -88,6 +99,8 @@ interface SettingsActions {
   setExpandState: (key: string, expanded: boolean) => void;
   getExpandState: (key: string) => boolean;
   setTheme: (dark: boolean) => void;
+  getSectionLayout: (repoPath: string) => RepoSectionLayout | undefined;
+  setSectionLayout: (repoPath: string, layout: RepoSectionLayout) => void;
 }
 
 export const useSettingsStore = create<SettingsState & SettingsActions>((set, get) => ({
@@ -149,6 +162,23 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
       settings: { ...state.settings, darkMode: dark },
     }));
     window.setTheme?.(dark ? 'dark' : 'light');
+    get().saveSettings();
+  },
+
+  getSectionLayout: (repoPath) => {
+    return get().settings.sectionLayouts[repoPath];
+  },
+
+  setSectionLayout: (repoPath, layout) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        sectionLayouts: {
+          ...state.settings.sectionLayouts,
+          [repoPath]: layout,
+        },
+      },
+    }));
     get().saveSettings();
   },
 }));

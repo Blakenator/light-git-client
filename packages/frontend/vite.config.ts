@@ -12,7 +12,7 @@ export default defineConfig({
     rollupOptions: {
       plugins: [
         commonjs({
-          include: [/node_modules/, /packages\/shared/],
+          include: [/node_modules/],
           transformMixedEsModules: true,
           requireReturnsDefault: 'auto',
         }),
@@ -25,12 +25,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@light-git/shared': path.resolve(__dirname, '../shared/dist/index.js'),
-      '@light-git/core': path.resolve(__dirname, '../core/dist/index.js'),
+      '@light-git/shared': path.resolve(__dirname, '../shared/src/index.ts'),
+      '@light-git/core': path.resolve(__dirname, '../core/src/index.ts'),
     },
   },
   optimizeDeps: {
-    include: ['@light-git/shared', '@light-git/core'],
+    exclude: ['@light-git/shared', '@light-git/core'],
   },
   publicDir: path.resolve(__dirname, '../../src/assets'),
   server: {

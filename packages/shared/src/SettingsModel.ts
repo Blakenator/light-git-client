@@ -1,5 +1,17 @@
 import { CodeWatcherModel } from './code-watcher.model';
 
+export enum CardId {
+  LocalBranches = 'localBranches',
+  RemoteBranches = 'remoteBranches',
+  Worktrees = 'worktrees',
+  Submodules = 'submodules',
+  Stashes = 'stashes',
+  CommandHistory = 'commandHistory',
+  StagedChanges = 'stagedChanges',
+  UnstagedChanges = 'unstagedChanges',
+  CommitHistory = 'commitHistory',
+}
+
 export class SettingsModel {
   static defaultCodeWatchers: CodeWatcherModel[] = [
     new CodeWatcherModel(
@@ -47,6 +59,15 @@ export class SettingsModel {
   public splitFilenameDisplay: boolean;
   public commitAndPush: boolean;
   public branchNamePrefix: string;
+  public sectionLayouts: {
+    [repoPath: string]: {
+      [cardId: string]: {
+        visible: boolean;
+        order: number;
+        column: number;
+      };
+    };
+  };
 
   constructor(
     darkMode: boolean = false,
@@ -73,6 +94,11 @@ export class SettingsModel {
     loadedCodeWatchers: CodeWatcherModel[] = [],
     codeWatcherPaths: string[] = [],
     branchNamePrefix: string = '',
+    sectionLayouts: {
+      [repoPath: string]: {
+        [cardId: string]: { visible: boolean; order: number; column: number };
+      };
+    } = {},
   ) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
@@ -99,6 +125,7 @@ export class SettingsModel {
     this.codeWatcherPaths = codeWatcherPaths;
     this.rebasePull = rebasePull;
     this.branchNamePrefix = branchNamePrefix;
+    this.sectionLayouts = sectionLayouts;
   }
 
   static sanitizePath(path) {
@@ -135,6 +162,7 @@ export class SettingsModel {
     res.splitFilenameDisplay = this.splitFilenameDisplay;
     res.statsId = this.statsId + '';
     res.branchNamePrefix = this.branchNamePrefix;
+    res.sectionLayouts = JSON.parse(JSON.stringify(this.sectionLayouts || {}));
     return res;
   }
 }

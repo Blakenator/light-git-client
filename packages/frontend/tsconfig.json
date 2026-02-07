@@ -20,9 +20,11 @@
     "strictPropertyInitialization": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@light-git/shared": ["../shared/src/index.ts"],
+      "@light-git/core": ["../core/src/index.ts"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "../shared/src", "../core/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
