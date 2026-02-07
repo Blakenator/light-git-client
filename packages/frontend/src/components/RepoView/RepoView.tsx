@@ -602,6 +602,12 @@ export const RepoView: React.FC<RepoViewProps> = ({
         : undefined;
       await gitService.commit(commitMessageRef.current, amend, commitAndPush, currentBranch);
       setCommitMessage('');
+      // Clear diff view and switch to commit history tab
+      setShowDiff(false);
+      setCurrentDiff([]);
+      setCommitInfo(null);
+      setDiffCursor(null);
+      setHasMoreDiffs(false);
       addAlert(amend ? 'Commit amended' : 'Committed successfully', 'success');
     } catch (error: any) {
       addAlert(`Commit failed: ${error.message}`, 'error');
