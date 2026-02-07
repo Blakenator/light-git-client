@@ -606,10 +606,16 @@ export const RepoView: React.FC<RepoViewProps> = ({
 
   const handleCommit = useCallback(async (amend: boolean) => {
     try {
+      let message = commitMessageRef.current;
+      // When amending with no message, reuse the previous commit message
+      if (amend && !message.trim()) {
+        const lastCommit = repoRef.current?.commitHistory?.[0];
+        message = lastCommit?.message || '';
+      }
       const currentBranch = commitAndPush
         ? repoRef.current?.localBranches?.find((b: any) => b.isCurrentBranch)
         : undefined;
-      await gitService.commit(commitMessageRef.current, amend, commitAndPush, currentBranch);
+      await gitService.commit(message, amend, commitAndPush, currentBranch);
       setCommitMessage('');
       // Clear diff view and switch to commit history tab
       setShowDiff(false);
@@ -1558,7 +1564,7 @@ export const RepoView: React.FC<RepoViewProps> = ({
             commitMessage={commitMessage}
             commitAndPush={commitAndPush}
             hasWatcherAlerts={false}
-            disabledReason={undefined}
+            disabledReason={stagedChanges.length === 0 ? 'No staged changes to commit' : undefined}
             crlfError={crlfError}
             stagedChanges={stagedChanges}
             unstagedChanges={unstagedChanges}

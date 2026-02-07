@@ -152,6 +152,23 @@ export const GlobalStyles = createGlobalStyle`
   .bold { font-weight: bold; }
 
   /* Disable states */
+  .disabled,
+  .btn:disabled,
+  button:disabled,
+  input:disabled {
+    background-image: linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.07) 25%,
+      rgba(0, 0, 0, 0.07) 25%,
+      rgba(0, 0, 0, 0.07) 50%,
+      rgba(255, 255, 255, 0.07) 50%,
+      rgba(255, 255, 255, 0.07) 75%,
+      rgba(0, 0, 0, 0.07) 75%,
+      rgba(0, 0, 0, 0.07)
+    );
+    background-size: 1rem 1rem;
+  }
+
   .disabled {
     opacity: 0.5;
     pointer-events: none;

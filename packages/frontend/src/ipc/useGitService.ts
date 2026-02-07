@@ -270,7 +270,7 @@ export function useGitService(repoPath: string) {
         createJobConfig(
           Channels.PUSH,
           () => ipc.rpc(Channels.PUSH, rp, branch, force),
-          [RepoArea.LOCAL_BRANCHES, RepoArea.REMOTE_BRANCHES],
+          [RepoArea.LOCAL_BRANCHES, RepoArea.REMOTE_BRANCHES, RepoArea.COMMIT_HISTORY],
         ),
       );
     },

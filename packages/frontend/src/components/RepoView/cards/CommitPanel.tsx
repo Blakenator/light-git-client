@@ -103,6 +103,8 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
     onDismissCrlfError,
   }) => {
     const isDisabled = !!disabledReason;
+    const isCommitDisabled = isDisabled || !commitMessage.trim();
+    const commitDisabledReason = disabledReason || (!commitMessage.trim() ? 'Enter a commit message' : undefined);
 
     // Generate suggestions from file names and branch name
     const suggestions: Suggestion[] = useMemo(() => {
@@ -142,12 +144,12 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
           <Dropdown as={ButtonGroup}>
             <TooltipTrigger
               placement="top"
-              overlay={<Tooltip id="tooltip-commit-changes">{disabledReason || 'Commit changes'}</Tooltip>}
+              overlay={<Tooltip id="tooltip-commit-changes">{commitDisabledReason || 'Commit changes'}</Tooltip>}
             >
               <Button
                 variant="success"
                 onClick={() => onCommit(false)}
-                disabled={isDisabled}
+                disabled={isCommitDisabled}
               >
                 Commit
               </Button>
