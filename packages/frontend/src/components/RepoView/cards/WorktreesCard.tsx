@@ -5,6 +5,7 @@ import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import { useRepositoryStore, useUiStore } from '../../../stores';
 import { useIpc, useGitService } from '../../../ipc';
+import { AddWorktreeDialog } from '../dialogs';
 import { Channels } from '@light-git/shared';
 import type { WorktreeModel } from '@light-git/shared';
 
@@ -25,6 +26,7 @@ export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
 
   const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
   const worktrees = useMemo(() => (repoCache?.worktrees || []) as WorktreeModel[], [repoCache?.worktrees]);
+  const localBranches = useMemo(() => (repoCache?.localBranches || []) as any[], [repoCache?.localBranches]);
 
   const filteredWorktrees = useMemo(() => {
     if (!filter) return worktrees;
@@ -91,29 +93,42 @@ export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
     </CardHeaderContent>
   );
 
+  const handleWorktreeAdded = useCallback(() => {
+    addAlert('Worktree added', 'success');
+  }, [addAlert]);
+
   return (
-    <LayoutCard
-      title="Worktrees"
-      iconClass="fa fa-copy"
-      expandKey="worktrees"
-      headerContent={headerContent}
-    >
-      <div className="card-body">
-        {filteredWorktrees.map((worktree) => (
-          <WorktreeItem
-            key={worktree.path}
-            worktree={worktree}
-            onOpenFolder={handleOpenFolder}
-            onOpenNewTab={handleOpenNewTab}
-            onSwitch={handleSwitch}
-            onDelete={handleDelete}
-          />
-        ))}
-        {filteredWorktrees.length === 0 && (
-          <div className="text-muted text-center py-2">No worktrees found</div>
-        )}
-      </div>
-    </LayoutCard>
+    <>
+      <LayoutCard
+        title="Worktrees"
+        iconClass="fa fa-copy"
+        expandKey="worktrees"
+        headerContent={headerContent}
+      >
+        <div className="card-body">
+          {filteredWorktrees.map((worktree) => (
+            <WorktreeItem
+              key={worktree.path}
+              worktree={worktree}
+              onOpenFolder={handleOpenFolder}
+              onOpenNewTab={handleOpenNewTab}
+              onSwitch={handleSwitch}
+              onDelete={handleDelete}
+            />
+          ))}
+          {filteredWorktrees.length === 0 && (
+            <div className="text-muted text-center py-2">No worktrees found</div>
+          )}
+        </div>
+      </LayoutCard>
+
+      <AddWorktreeDialog
+        branches={localBranches}
+        existingWorktrees={worktrees}
+        repoPath={repoPath}
+        onSuccess={handleWorktreeAdded}
+      />
+    </>
   );
 });
 

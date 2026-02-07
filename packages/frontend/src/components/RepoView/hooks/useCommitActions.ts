@@ -6,6 +6,8 @@ import {
   detectPreCommitStatus,
   detectRemoteMessage,
 } from '../../../utils/warningDetectors';
+import { useCodeWatcherAnalysis } from './useCodeWatcherAnalysis';
+import type { WatcherAlert } from './useCodeWatcherAnalysis';
 
 /**
  * Hook providing commit operations: commit, amend, commit message management.
@@ -21,10 +23,21 @@ export function useCommitActions(repoPath: string) {
   const repoCacheRef = useRef(repoCache);
   repoCacheRef.current = repoCache;
 
+  // Code watcher analysis
+  const {
+    watcherAlerts,
+    checkWatcherAlerts,
+    showWatcherAlerts,
+  } = useCodeWatcherAnalysis(repoPath);
+
+  // Store a pending commit so the watcher modal can trigger it
+  const pendingCommitRef = useRef<{ amend: boolean } | null>(null);
+
   // Commit message from repoViewStore
   const commitMessage = useRepoViewStore((state) => state.commitMessage[repoPath] || '');
 
-  const handleCommit = useCallback(async (amend: boolean) => {
+  /** Perform the actual commit (without watcher check). */
+  const executeCommit = useCallback(async (amend: boolean) => {
     const store = useRepoViewStore.getState();
     let message = store.getCommitMessage(repoPath);
     // When amending with no message, reuse the previous commit message
@@ -82,6 +95,37 @@ export function useCommitActions(repoPath: string) {
     }
   }, [gitService, commitAndPush, addAlert, setPreCommitStatus, showModal, repoPath]);
 
+  /**
+   * Start a commit: check code watchers first, then commit.
+   * If watchers fire, the modal is shown and the user can choose to commit anyway.
+   */
+  const handleCommit = useCallback(async (amend: boolean) => {
+    // Check code watchers on staged changes
+    const alerts = await checkWatcherAlerts();
+    if (alerts.length > 0) {
+      // Store pending commit so "Commit Anyway" can trigger it
+      pendingCommitRef.current = { amend };
+      showModal('codeWatcher');
+    } else {
+      // No alerts — proceed immediately
+      await executeCommit(amend);
+    }
+  }, [checkWatcherAlerts, executeCommit, showModal]);
+
+  /** Called from the watcher modal when user clicks "Commit Anyway". */
+  const handleCommitAnyway = useCallback(async () => {
+    const pending = pendingCommitRef.current;
+    pendingCommitRef.current = null;
+    if (pending) {
+      await executeCommit(pending.amend);
+    }
+  }, [executeCommit]);
+
+  /** Called when the watcher modal is cancelled. */
+  const handleWatcherCancel = useCallback(() => {
+    pendingCommitRef.current = null;
+  }, []);
+
   const handleCommitAndPushChange = useCallback((value: boolean) => {
     const { updateSettings, saveSettings } = useSettingsStore.getState();
     updateSettings({ commitAndPush: value });
@@ -96,7 +140,11 @@ export function useCommitActions(repoPath: string) {
     commitMessage,
     commitAndPush,
     handleCommit,
+    handleCommitAnyway,
+    handleWatcherCancel,
     handleCommitAndPushChange,
     setCommitMessage,
+    watcherAlerts,
+    showWatcherAlerts,
   };
 }

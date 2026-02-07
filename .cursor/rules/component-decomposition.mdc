@@ -1,0 +1,54 @@
+---
+description: Patterns for decomposing RepoView-style card components and Zustand stores
+globs: packages/frontend/src/components/RepoView/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Component & Store Decomposition
+
+## Self-Managed Cards
+
+Card components receive `repoPath` as their primary prop and manage their own data and actions internally. They should **never** receive large lists of callback props from a parent.
+
+```tsx
+// BAD: parent passes data + 15 handler props
+<StashesCard stashes={stashes} onStash={...} onApply={...} onDelete={...} onView={...} />
+
+// GOOD: card reads its own data and uses domain hooks
+<StashesCard repoPath={repoPath} />
+```
+
+Inside the card, use Zustand selectors for data and domain hooks for actions:
+
+```tsx
+const repoCache = useRepositoryStore((s) => s.getCacheFor(repoPath));
+const stashes = useMemo(() => repoCache?.stashes || [], [repoCache?.stashes]);
+const { handleApplyStash, handleDeleteStash } = useStashActions(repoPath);
+```
+
+## Domain Hooks
+
+Group related handlers into a single hook per domain (e.g. `useBranchActions`, `useStagingActions`). Hooks interact with stores directly -- consumers don't need to know which stores are involved.
+
+- One hook per domain, not per card. Hooks may be shared across cards.
+- Hooks accept `repoPath` and return stable callbacks via `useCallback`.
+- Use refs for values that callbacks read at call-time to avoid dependency churn.
+
+## Shared View State (`repoViewStore`)
+
+State that multiple cards need to read/write (diff view, commit message, active operation) lives in `repoViewStore`, keyed by `repoPath`. Cards that only own local UI state (filters, expanded items) keep it as `useState`.
+
+- Per-repo keying: `state.showDiff[repoPath]`, not global `state.showDiff`.
+- Use `store.getState()` inside callbacks to avoid stale closures.
+- Granular selectors: `useRepoViewStore((s) => s.commitMessage[repoPath])`.
+
+## Feature-Owned Modals
+
+Modals belong to the feature that triggers them, not a central parent. `LocalBranchesCard` renders its own create/rename/delete branch modals. `StashesCard` renders its own create stash modal.
+
+## Layout Shell
+
+`RepoView` is a thin layout component (~120 lines). It only handles:
+- Lifecycle (`useRepoLifecycle`)
+- Section layout and drag-drop (`useSectionLayout`)
+- Composing self-managed card components with `repoPath`

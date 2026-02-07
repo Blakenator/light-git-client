@@ -4,6 +4,7 @@ import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import { InputModal } from '../../../common/components/InputModal/InputModal';
+import { RestoreStashDialog } from '../dialogs';
 import { useRepositoryStore } from '../../../stores';
 import { useStashActions } from '../hooks';
 import type { StashModel } from '@light-git/shared';
@@ -137,6 +138,8 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({ repoPath })
         invalidMessage="Stash name cannot include double quotes"
         onOk={handleStashOk}
       />
+
+      <RestoreStashDialog repoPath={repoPath} />
     </>
   );
 });

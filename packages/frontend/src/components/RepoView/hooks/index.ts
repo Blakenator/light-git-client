@@ -4,6 +4,8 @@ export { useBranchActions } from './useBranchActions';
 export type { MergeInfo } from './useBranchActions';
 export { useStagingActions } from './useStagingActions';
 export { useCommitActions } from './useCommitActions';
+export { useCodeWatcherAnalysis } from './useCodeWatcherAnalysis';
+export type { WatcherAlert } from './useCodeWatcherAnalysis';
 export { useCommitHistoryActions } from './useCommitHistoryActions';
 export { useStashActions } from './useStashActions';
 export { useRepoTitleActions } from './useRepoTitleActions';

@@ -6,6 +6,7 @@ import { Icon } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import { useRepositoryStore, useUiStore } from '../../../stores';
 import { useGitService } from '../../../ipc';
+import { AddSubmoduleDialog } from '../dialogs';
 import type { SubmoduleModel } from '@light-git/shared';
 
 interface SubmodulesCardProps {
@@ -32,6 +33,15 @@ export const SubmodulesCard: React.FC<SubmodulesCardProps> = React.memo(({
   }, [submodules, filter]);
 
   const handleAddSubmodule = useCallback(() => showModal('addSubmodule'), [showModal]);
+
+  const handleAddSubmoduleSubmit = useCallback(async (url: string, submodulePath: string) => {
+    try {
+      await gitService.addSubmodule(url, submodulePath);
+      addAlert('Submodule added', 'success');
+    } catch (error: any) {
+      addAlert(`Add submodule failed: ${error.message}`, 'error');
+    }
+  }, [gitService, addAlert]);
 
   const handleUpdateSubmodules = useCallback(async (recursive: boolean) => {
     try {
@@ -91,26 +101,30 @@ export const SubmodulesCard: React.FC<SubmodulesCardProps> = React.memo(({
   );
 
   return (
-    <LayoutCard
-      title="Submodules"
-      iconClass="fa fa-plug"
-      expandKey="submodules"
-      headerContent={headerContent}
-    >
-      <div className="card-body">
-        {filteredSubmodules.map((submodule) => (
-          <SubmoduleItem
-            key={submodule.path}
-            submodule={submodule}
-            onOpenNewTab={handleOpenSubmoduleNewTab}
-            onViewSubmodule={handleOpenSubmoduleNewTab}
-          />
-        ))}
-        {filteredSubmodules.length === 0 && (
-          <div className="text-muted text-center py-2">No submodules found</div>
-        )}
-      </div>
-    </LayoutCard>
+    <>
+      <LayoutCard
+        title="Submodules"
+        iconClass="fa fa-plug"
+        expandKey="submodules"
+        headerContent={headerContent}
+      >
+        <div className="card-body">
+          {filteredSubmodules.map((submodule) => (
+            <SubmoduleItem
+              key={submodule.path}
+              submodule={submodule}
+              onOpenNewTab={handleOpenSubmoduleNewTab}
+              onViewSubmodule={handleOpenSubmoduleNewTab}
+            />
+          ))}
+          {filteredSubmodules.length === 0 && (
+            <div className="text-muted text-center py-2">No submodules found</div>
+          )}
+        </div>
+      </LayoutCard>
+
+      <AddSubmoduleDialog onAdd={handleAddSubmoduleSubmit} />
+    </>
   );
 });
 

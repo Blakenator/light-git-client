@@ -6,6 +6,7 @@ import {
   MarkdownEditor,
   type Suggestion,
 } from '../../../common/components/MarkdownEditor/MarkdownEditor';
+import { CodeWatcherAlertsModal } from '../dialogs';
 import { useRepositoryStore, useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useCommitActions } from '../hooks';
@@ -16,6 +17,7 @@ const CommitContainer = styled.div`
   box-shadow: ${({ theme }) => theme.shadows.material};
   padding: 0.75rem;
 `;
+console.log('test');
 
 const CommitRow = styled.div`
   display: flex;
@@ -73,35 +75,61 @@ interface CommitPanelProps {
 export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
   ({ repoPath }) => {
     // Self-managed: read data from stores and hooks
-    const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-    const stagedChanges = useMemo(() => repoCache?.changes?.stagedChanges || [], [repoCache?.changes?.stagedChanges]);
-    const unstagedChanges = useMemo(() => repoCache?.changes?.unstagedChanges || [], [repoCache?.changes?.unstagedChanges]);
-    const localBranches = useMemo(() => repoCache?.localBranches || [], [repoCache?.localBranches]);
+    const repoCache = useRepositoryStore((state) =>
+      state.getCacheFor(repoPath),
+    );
+    const stagedChanges = useMemo(
+      () => repoCache?.changes?.stagedChanges || [],
+      [repoCache?.changes?.stagedChanges],
+    );
+    const unstagedChanges = useMemo(
+      () => repoCache?.changes?.unstagedChanges || [],
+      [repoCache?.changes?.unstagedChanges],
+    );
+    const localBranches = useMemo(
+      () => repoCache?.localBranches || [],
+      [repoCache?.localBranches],
+    );
     const crlfError = useUiStore((state) => state.crlfError);
     const setCrlfError = useUiStore((state) => state.setCrlfError);
-    const showModal = useUiStore((state) => state.showModal);
-    const activeBranch = useRepoViewStore((state) => state.activeBranch[repoPath] || null);
+    const activeBranch = useRepoViewStore(
+      (state) => state.activeBranch[repoPath] || null,
+    );
 
     const {
       commitMessage,
       commitAndPush,
       handleCommit,
+      handleCommitAnyway,
+      handleWatcherCancel,
       handleCommitAndPushChange,
       setCommitMessage,
+      watcherAlerts,
+      showWatcherAlerts,
     } = useCommitActions(repoPath);
 
+    const hasWatcherAlerts = watcherAlerts.length > 0;
+
     const currentBranchName = useMemo(
-      () => activeBranch?.name || localBranches.find((b: any) => b.isCurrentBranch)?.name || '',
+      () =>
+        activeBranch?.name ||
+        localBranches.find((b: any) => b.isCurrentBranch)?.name ||
+        '',
       [activeBranch, localBranches],
     );
 
-    const disabledReason = stagedChanges.length === 0 ? 'No staged changes to commit' : undefined;
+    const disabledReason =
+      stagedChanges.length === 0 ? 'No staged changes to commit' : undefined;
     const isDisabled = !!disabledReason;
     const isCommitDisabled = isDisabled || !commitMessage.trim();
-    const commitDisabledReason = disabledReason || (!commitMessage.trim() ? 'Enter a commit message' : undefined);
+    const commitDisabledReason =
+      disabledReason ||
+      (!commitMessage.trim() ? 'Enter a commit message' : undefined);
 
-    const handleShowCodeWatchers = useCallback(() => showModal('codeWatchers'), [showModal]);
-    const handleDismissCrlfError = useCallback(() => setCrlfError(null), [setCrlfError]);
+    const handleDismissCrlfError = useCallback(
+      () => setCrlfError(null),
+      [setCrlfError],
+    );
 
     // Generate suggestions from file names and branch name
     const suggestions: Suggestion[] = useMemo(() => {
@@ -122,68 +150,99 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
     }, [handleCommit]);
 
     return (
-      <CommitContainer>
-        <CommitRow>
-          <PrettyCheckbox
-            checked={commitAndPush}
-            onChange={handleCommitAndPushChange}
-          >
-            Commit and Push
-          </PrettyCheckbox>
-          <span className="flex-grow-1" />
-          <Dropdown as={ButtonGroup}>
-            <TooltipTrigger
-              placement="top"
-              overlay={<Tooltip id="tooltip-commit-changes">{commitDisabledReason || 'Commit changes'}</Tooltip>}
+      <>
+        <CommitContainer>
+          <CommitRow>
+            <PrettyCheckbox
+              checked={commitAndPush}
+              onChange={handleCommitAndPushChange}
             >
-              <Button
-                variant="success"
-                onClick={() => handleCommit(false)}
-                disabled={isCommitDisabled}
+              Commit and Push
+            </PrettyCheckbox>
+            <span className="flex-grow-1" />
+            {hasWatcherAlerts && (
+              <TooltipTrigger
+                placement="top"
+                overlay={
+                  <Tooltip id="tooltip-code-watchers">
+                    View code watcher alerts
+                  </Tooltip>
+                }
               >
-                Commit
-              </Button>
-            </TooltipTrigger>
-            <Dropdown.Toggle split variant="success" disabled={isDisabled} />
-            <Dropdown.Menu>
-              <Dropdown.Item
-                onClick={() => handleCommit(true)}
-                disabled={isDisabled}
-              >
-                Amend
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-        </CommitRow>
-        <CommitMessageContainer>
-          <MarkdownEditor
-            value={commitMessage}
-            onChange={setCommitMessage}
-            onSubmit={handleSubmit}
-            placeholder="Commit message..."
-            suggestions={suggestions}
-          />
-
-          <CrlfWarning $show={!!crlfError}>
-            {crlfError && (
-              <>
-                <span>
-                  {crlfError.start} will be replaced by {crlfError.end} on
-                  commit
-                </span>
                 <Button
-                  variant="link"
+                  variant="warning"
                   size="sm"
-                  className="p-0"
-                  onClick={handleDismissCrlfError}
+                  onClick={() => showWatcherAlerts()}
                 >
-                  <Icon name="fa-times" />
+                  <Icon name="fa-glasses" />
                 </Button>
-              </>
+              </TooltipTrigger>
             )}
-          </CrlfWarning>
-        </CommitMessageContainer>
-      </CommitContainer>
+            <Dropdown as={ButtonGroup}>
+              <TooltipTrigger
+                placement="top"
+                overlay={
+                  <Tooltip id="tooltip-commit-changes">
+                    {commitDisabledReason || 'Commit changes'}
+                  </Tooltip>
+                }
+              >
+                <Button
+                  variant="success"
+                  onClick={() => handleCommit(false)}
+                  disabled={isCommitDisabled}
+                >
+                  Commit
+                </Button>
+              </TooltipTrigger>
+              <Dropdown.Toggle split variant="success" disabled={isDisabled} />
+              <Dropdown.Menu>
+                <Dropdown.Item
+                  onClick={() => handleCommit(true)}
+                  disabled={isDisabled}
+                >
+                  Amend
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </CommitRow>
+          <CommitMessageContainer>
+            <MarkdownEditor
+              value={commitMessage}
+              onChange={setCommitMessage}
+              onSubmit={handleSubmit}
+              placeholder="Commit message..."
+              suggestions={suggestions}
+            />
+
+            <CrlfWarning $show={!!crlfError}>
+              {crlfError && (
+                <>
+                  <span>
+                    {crlfError.start} will be replaced by {crlfError.end} on
+                    commit
+                  </span>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0"
+                    onClick={handleDismissCrlfError}
+                  >
+                    <Icon name="fa-times" />
+                  </Button>
+                </>
+              )}
+            </CrlfWarning>
+          </CommitMessageContainer>
+        </CommitContainer>
+
+        <CodeWatcherAlertsModal
+          alerts={watcherAlerts}
+          isCommit={true}
+          onCommit={handleCommitAnyway}
+          onCancel={handleWatcherCancel}
+        />
+      </>
     );
   },
 );
