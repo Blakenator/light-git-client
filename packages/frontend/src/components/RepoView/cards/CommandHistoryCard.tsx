@@ -1,10 +1,13 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { Modal as BsModal, Card as BsCard, Button } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput } from '../RepoView.styles';
 import { useUiStore } from '../../../stores';
+import { useRepoViewStore } from '../../../stores/repoViewStore';
+import { useGitService, useIpcListener } from '../../../ipc';
+import { Channels } from '@light-git/shared';
 
 // ==================== Styled Components ====================
 
@@ -122,7 +125,6 @@ const Separator = styled.hr`
   border-color: ${({ theme }) => theme.colors.border};
 `;
 
-// Modal styled components
 const ModalCardHeader = styled(BsCard.Header)`
   display: flex;
   align-items: center;
@@ -208,19 +210,13 @@ interface CommandHistoryModel {
   executedAt?: Date | string | number;
   isError?: boolean;
   durationMs?: number;
-  // Frontend field names (for compatibility)
   success?: boolean;
   timestamp?: Date | string | number;
   duration?: number;
 }
 
 interface CommandHistoryCardProps {
-  commandHistory: CommandHistoryModel[];
-  maxVisible?: number;
-  pageSize?: number;
-  isLoading?: boolean;
-  hasMore?: boolean;
-  onLoadMore?: () => void;
+  repoPath: string;
 }
 
 // ==================== Modal Sub-component ====================
@@ -251,7 +247,6 @@ const CommandViewerModal: React.FC<{ command: CommandHistoryModel | null; onClos
         </BsModal.Title>
       </BsModal.Header>
       <BsModal.Body>
-        {/* Command Card */}
         <BsCard className="mb-3">
           <ModalCardHeader>
             <span>Command</span>
@@ -276,7 +271,6 @@ const CommandViewerModal: React.FC<{ command: CommandHistoryModel | null; onClos
           </BsCard.Body>
         </BsCard>
 
-        {/* Standard Output Card */}
         <BsCard className="mb-3">
           <ModalCardHeader>
             <Icon name="fa-check-circle" size="sm" />
@@ -297,7 +291,6 @@ const CommandViewerModal: React.FC<{ command: CommandHistoryModel | null; onClos
           </BsCard.Body>
         </BsCard>
 
-        {/* Error Output Card */}
         <BsCard>
           <ModalCardHeader>
             <Icon name="fa-exclamation-triangle" size="sm" />
@@ -330,24 +323,44 @@ const CommandViewerModal: React.FC<{ command: CommandHistoryModel | null; onClos
 // ==================== Main Component ====================
 
 export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(({
-  commandHistory,
-  maxVisible = 50,
-  pageSize = 20,
-  isLoading = false,
-  hasMore = false,
-  onLoadMore,
+  repoPath,
 }) => {
+  const maxVisible = 50;
+  const pageSize = 20;
   const [filter, setFilter] = useState('');
   const [visibleCount, setVisibleCount] = useState(pageSize);
   const [activeCommand, setActiveCommand] = useState<CommandHistoryModel | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const showModal = useUiStore((state) => state.showModal);
+  const gitService = useGitService(repoPath);
+
+  // Self-managed: read command history from repoViewStore
+  const commandHistory = useRepoViewStore((state) => state.commandHistory[repoPath] || []);
+
+  const handleLoadMore = useCallback(async () => {
+    try {
+      const history = await gitService.getCommandHistory();
+      const sorted = (history || []).sort((a: any, b: any) => {
+        const dateA = new Date(a.executedAt ?? a.timestamp).getTime() || 0;
+        const dateB = new Date(b.executedAt ?? b.timestamp).getTime() || 0;
+        return dateB - dateA;
+      });
+      useRepoViewStore.getState().setCommandHistory(repoPath, sorted);
+    } catch (error: any) {
+      console.error('Failed to load command history:', error);
+    }
+  }, [gitService, repoPath]);
+
+  // Listen for command history changes from backend
+  useIpcListener(Channels.COMMANDHISTORYCHANGED, () => {
+    handleLoadMore();
+  });
 
   const filteredHistory = useMemo(() => {
     let items = commandHistory;
     if (filter) {
       const lowerFilter = filter.toLowerCase();
-      items = items.filter((c) => {
+      items = items.filter((c: any) => {
         const filterableText = ((c.name || '') + c.command).toLowerCase();
         return fuzzyFilter(lowerFilter, filterableText);
       });
@@ -355,7 +368,7 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
     return items.slice(0, Math.min(visibleCount, maxVisible));
   }, [commandHistory, filter, visibleCount, maxVisible]);
 
-  const canLoadMore = visibleCount < commandHistory.length || hasMore;
+  const canLoadMore = visibleCount < commandHistory.length;
 
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
@@ -363,15 +376,15 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
       const bottom =
         target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
 
-      if (bottom && !isLoading && canLoadMore) {
+      if (bottom && canLoadMore) {
         if (visibleCount < commandHistory.length) {
           setVisibleCount((prev) => Math.min(prev + pageSize, maxVisible));
-        } else if (onLoadMore) {
-          onLoadMore();
+        } else {
+          handleLoadMore();
         }
       }
     },
-    [isLoading, canLoadMore, visibleCount, commandHistory.length, pageSize, maxVisible, onLoadMore]
+    [canLoadMore, visibleCount, commandHistory.length, pageSize, maxVisible, handleLoadMore]
   );
 
   const handleShowDetails = useCallback((cmd: CommandHistoryModel) => {
@@ -386,10 +399,10 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
   const handleLoadMoreClick = useCallback(() => {
     if (visibleCount < commandHistory.length) {
       setVisibleCount((prev) => Math.min(prev + pageSize, maxVisible));
-    } else if (onLoadMore) {
-      onLoadMore();
+    } else {
+      handleLoadMore();
     }
-  }, [visibleCount, commandHistory.length, pageSize, maxVisible, onLoadMore]);
+  }, [visibleCount, commandHistory.length, pageSize, maxVisible, handleLoadMore]);
 
   const headerContent = (
     <CardHeaderContent>
@@ -410,7 +423,7 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
       headerContent={headerContent}
     >
       <CommandListContainer ref={containerRef} onScroll={handleScroll}>
-        {filteredHistory.map((cmd, index) => {
+        {filteredHistory.map((cmd: any, index: number) => {
           const date = cmd.executedAt ?? cmd.timestamp;
           const isSuccess = cmd.isError !== undefined ? !cmd.isError : !!cmd.success;
           const duration = cmd.durationMs ?? cmd.duration;
@@ -420,7 +433,6 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
           return (
             <div key={`${date}-${index}`}>
               <CommandItem $success={isSuccess}>
-                {/* Header row: icon, name/duration/time, view button */}
                 <CommandHeader>
                   <StatusIcon $success={isSuccess}>
                     <Icon
@@ -446,10 +458,8 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
                   </ViewButton>
                 </CommandHeader>
 
-                {/* Command text */}
                 <CommandText>$ {cmd.command}</CommandText>
 
-                {/* Inline output preview (first 1000 chars) */}
                 {outputText && (
                   <>
                     <InlineOutputLabel>Output Characters 0-1000:</InlineOutputLabel>
@@ -463,14 +473,7 @@ export const CommandHistoryCard: React.FC<CommandHistoryCardProps> = React.memo(
           );
         })}
 
-        {isLoading && (
-          <LoadingIndicator>
-            <Icon name="fa-spinner" className="fa-spin me-1" />
-            Loading more...
-          </LoadingIndicator>
-        )}
-
-        {!isLoading && canLoadMore && filteredHistory.length > 0 && (
+        {canLoadMore && filteredHistory.length > 0 && (
           <LoadMoreButton onClick={handleLoadMoreClick}>
             Load More ({commandHistory.length - visibleCount} remaining)
           </LoadMoreButton>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button, ButtonGroup, Badge, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
@@ -8,45 +8,37 @@ import {
   CardHeaderButtons,
 } from '../RepoView.styles';
 import { ChangeList } from '../../ChangeList/ChangeList';
-
-interface FileChange {
-  file: string;
-  change: string;
-  staged: boolean;
-}
+import { useRepositoryStore, useSettingsStore } from '../../../stores';
+import { useStagingActions, useDiffActions } from '../hooks';
 
 interface StagedChangesCardProps {
-  changes: FileChange[];
-  selectedChanges: { [key: string]: boolean };
-  splitFilenameDisplay: boolean;
-  onSelectChange: (path: string, selected: boolean) => void;
-  onBatchSelectChange?: (changes: Record<string, boolean>) => void;
-  onUnstageAll: () => void;
-  onUnstageSelected: () => void;
-  onUndoFile: (path: string) => void;
-  onDeleteFiles: (paths: string[]) => void;
-  onSetFilenameSplit: (split: boolean) => void;
-  onFileClick: (path: string) => void;
+  repoPath: string;
 }
 
 export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
-  ({
-    changes,
-    selectedChanges,
-    splitFilenameDisplay,
-    onSelectChange,
-    onBatchSelectChange,
-    onUnstageAll,
-    onUnstageSelected,
-    onUndoFile,
-    onDeleteFiles,
-    onSetFilenameSplit,
-    onFileClick,
-  }) => {
+  ({ repoPath }) => {
     const [filter, setFilter] = useState('');
 
+    const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+    const changes = useMemo(() => repoCache?.changes?.stagedChanges || [], [repoCache?.changes?.stagedChanges]);
+    const selectedChanges = useMemo(() => repoCache?.selectedStagedChanges || {}, [repoCache?.selectedStagedChanges]);
+    const splitFilenameDisplay = useSettingsStore((state) => state.settings.splitFilenameDisplay);
+
+    const { refreshSelectedFilesDiff, handleFileClick } = useDiffActions(repoPath);
+    const {
+      handleUnstageAll,
+      handleUnstageSelected,
+      handleUndoFile,
+      handleDeleteFiles,
+      handleSelectStagedChange,
+      handleBatchSelectStagedChange,
+      handleSetFilenameSplit,
+    } = useStagingActions(repoPath, refreshSelectedFilesDiff);
+
+    const handleStagedFileClick = useCallback((path: string) => handleFileClick(path, true), [handleFileClick]);
+
     const normalizedChanges = useMemo(() => {
-      return changes.map((c) => ({
+      return changes.map((c: any) => ({
         path: c.file,
         status: c.change,
         file: c.file,
@@ -83,7 +75,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
                 variant="secondary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onUnstageAll();
+                  handleUnstageAll();
                 }}
               >
                 <Icon name="fa-angle-double-down" />
@@ -97,7 +89,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
                 variant="secondary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onUnstageSelected();
+                  handleUnstageSelected();
                 }}
                 disabled={selectedPaths.length === 0}
               >
@@ -114,7 +106,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
                 variant={splitFilenameDisplay ? 'primary' : 'secondary'}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSetFilenameSplit(true);
+                  handleSetFilenameSplit(true);
                 }}
               >
                 Split
@@ -128,7 +120,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
                 variant={!splitFilenameDisplay ? 'primary' : 'secondary'}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSetFilenameSplit(false);
+                  handleSetFilenameSplit(false);
                 }}
               >
                 Joined
@@ -144,7 +136,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                selectedPaths.forEach(onUndoFile);
+                selectedPaths.forEach(handleUndoFile);
               }}
               disabled={selectedPaths.length === 0}
             >
@@ -160,7 +152,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                onDeleteFiles(selectedPaths);
+                handleDeleteFiles(selectedPaths);
               }}
               disabled={selectedPaths.length === 0}
             >
@@ -182,11 +174,11 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
           selectedChanges={selectedChanges}
           splitFilenameDisplay={splitFilenameDisplay}
           filter={filter}
-          onSelectChange={onSelectChange}
-          onBatchSelectChange={onBatchSelectChange}
-          onFileClick={onFileClick}
-          onUndoFile={onUndoFile}
-          onDeleteFile={(path) => onDeleteFiles([path])}
+          onSelectChange={handleSelectStagedChange}
+          onBatchSelectChange={handleBatchSelectStagedChange}
+          onFileClick={handleStagedFileClick}
+          onUndoFile={handleUndoFile}
+          onDeleteFile={(path) => handleDeleteFiles([path])}
           onCopyPath={handleCopyPath}
         />
       </LayoutCard>

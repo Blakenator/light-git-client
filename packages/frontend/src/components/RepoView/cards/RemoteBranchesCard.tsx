@@ -1,46 +1,39 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Button, Tooltip } from 'react-bootstrap';
 import { TooltipTrigger } from '@light-git/core';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import { BranchTreeItem } from '../../BranchTreeItem/BranchTreeItem';
-import type { BranchModel } from '@light-git/shared';
+import { useRepositoryStore } from '../../../stores';
+import { useBranchActions } from '../hooks';
 
 interface RemoteBranchesCardProps {
-  branches: BranchModel[];
-  localBranches?: BranchModel[];
-  onCheckout: (branch: BranchModel) => void;
-  onDelete: (branch: BranchModel) => void;
-  onFetch?: () => void;
-  onMerge?: (branch: BranchModel) => void;
-  onViewChanges?: (branch: BranchModel) => void;
+  repoPath: string;
 }
 
 export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(({
-  branches,
-  localBranches = [],
-  onCheckout,
-  onDelete,
-  onFetch,
-  onMerge,
-  onViewChanges,
+  repoPath,
 }) => {
   const [filter, setFilter] = useState('');
 
+  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+  const branches = useMemo(() => repoCache?.remoteBranches || [], [repoCache?.remoteBranches]);
+  const localBranches = useMemo(() => repoCache?.localBranches || [], [repoCache?.localBranches]);
+
+  const { handleRemoteCheckout, handleDeleteBranch } = useBranchActions(repoPath);
+
   const handleCheckout = useCallback(
     (info: { branch: string; andPull: boolean }) => {
-      const branch = branches.find((b) => b.name === info.branch);
+      const branch = branches.find((b: any) => b.name === info.branch);
       if (branch) {
-        onCheckout(branch);
+        handleRemoteCheckout(branch);
       }
     },
-    [branches, onCheckout]
+    [branches, handleRemoteCheckout]
   );
 
-  const handleCopyBranchName = useCallback((branch: any) => {
-    // Copy already handled in BranchTreeItem
-  }, []);
+  const handleCopyBranchName = useCallback((branch: any) => {}, []);
 
   const headerContent = (
     <CardHeaderContent>
@@ -49,22 +42,7 @@ export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
       />
-      <CardHeaderButtons>
-        {onFetch && (
-          <TooltipTrigger
-            placement="top"
-            overlay={<Tooltip id="tooltip-fetch-remotes">Fetch all remotes</Tooltip>}
-          >
-            <Button
-              variant="info"
-              size="sm"
-              onClick={() => onFetch()}
-            >
-              <Icon name="fa-sync" />
-            </Button>
-          </TooltipTrigger>
-        )}
-      </CardHeaderButtons>
+      <CardHeaderButtons />
     </CardHeaderContent>
   );
 
@@ -82,10 +60,8 @@ export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(
           filter={filter}
           localBranches={localBranches as any}
           onCheckoutClicked={handleCheckout}
-          onDeleteClicked={(branch) => onDelete(branch as any)}
-          onMergeClicked={onMerge ? (branch) => onMerge(branch as any) : undefined}
+          onDeleteClicked={(branch) => handleDeleteBranch(branch as any)}
           onCopyBranchName={handleCopyBranchName}
-          onViewChanges={onViewChanges ? (branch) => onViewChanges(branch as any) : undefined}
         />
         {branches.length === 0 && (
           <div className="text-muted text-center py-2">No remote branches found</div>

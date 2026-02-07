@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button, ButtonGroup, Badge, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
@@ -8,192 +8,182 @@ import {
   CardHeaderButtons,
 } from '../RepoView.styles';
 import { ChangeList } from '../../ChangeList/ChangeList';
-
-interface FileChange {
-  file: string;
-  change: string;
-  staged: boolean;
-}
+import { useRepositoryStore, useSettingsStore } from '../../../stores';
+import { useStagingActions, useDiffActions } from '../hooks';
 
 interface UnstagedChangesCardProps {
-  changes: FileChange[];
-  selectedChanges: { [key: string]: boolean };
-  splitFilenameDisplay: boolean;
-  onSelectChange: (path: string, selected: boolean) => void;
-  onBatchSelectChange?: (changes: Record<string, boolean>) => void;
-  onStageAll: () => void;
-  onStageSelected: () => void;
-  onUndoFile: (path: string) => void;
-  onDeleteFiles: (paths: string[]) => void;
-  onSetFilenameSplit: (split: boolean) => void;
-  onFileClick: (path: string) => void;
+  repoPath: string;
 }
 
 export const UnstagedChangesCard: React.FC<UnstagedChangesCardProps> =
-  React.memo(
-    ({
-      changes,
-      selectedChanges,
-      splitFilenameDisplay,
-      onSelectChange,
-      onBatchSelectChange,
-      onStageAll,
-      onStageSelected,
-      onUndoFile,
-      onDeleteFiles,
-      onSetFilenameSplit,
-      onFileClick,
-    }) => {
-      const [filter, setFilter] = useState('');
+  React.memo(({ repoPath }) => {
+    const [filter, setFilter] = useState('');
 
-      const normalizedChanges = useMemo(() => {
-        return changes.map((c) => ({
-          path: c.file,
-          status: c.change,
-          file: c.file,
-          change: c.change,
-        }));
-      }, [changes]);
+    const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+    const changes = useMemo(() => repoCache?.changes?.unstagedChanges || [], [repoCache?.changes?.unstagedChanges]);
+    const selectedChanges = useMemo(() => repoCache?.selectedUnstagedChanges || {}, [repoCache?.selectedUnstagedChanges]);
+    const splitFilenameDisplay = useSettingsStore((state) => state.settings.splitFilenameDisplay);
 
-      const selectedPaths = Object.entries(selectedChanges)
-        .filter(([_, selected]) => selected)
-        .map(([path]) => path);
+    const { refreshSelectedFilesDiff, handleFileClick } = useDiffActions(repoPath);
+    const {
+      handleStageAll,
+      handleStageSelected,
+      handleUndoFile,
+      handleDeleteFiles,
+      handleSelectUnstagedChange,
+      handleBatchSelectUnstagedChange,
+      handleSetFilenameSplit,
+    } = useStagingActions(repoPath, refreshSelectedFilesDiff);
 
-      const handleCopyPath = (path: string) => {
-        navigator.clipboard.writeText(path);
-      };
+    const handleUnstagedFileClick = useCallback((path: string) => handleFileClick(path, false), [handleFileClick]);
 
-      const headerContent = (
-        <CardHeaderContent>
-          <Badge bg="light" text="dark" pill className="py-1 px-2">
-            {changes.length}
-          </Badge>
-          <CardFilterInput
-            placeholder="Filter..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
-          <CardHeaderButtons>
-            <ButtonGroup size="sm">
-              <TooltipTrigger
-                placement="top"
-                overlay={<Tooltip id="tooltip-stage-all">Stage All</Tooltip>}
-              >
-                <Button
-                  variant="secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStageAll();
-                  }}
-                >
-                  <Icon name="fa-angle-double-up" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipTrigger
-                placement="top"
-                overlay={<Tooltip id="tooltip-stage-selected">Stage Selected</Tooltip>}
-              >
-                <Button
-                  variant="secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStageSelected();
-                  }}
-                  disabled={selectedPaths.length === 0}
-                >
-                  <Icon name="fa-angle-up" />
-                </Button>
-              </TooltipTrigger>
-            </ButtonGroup>
-            <ButtonGroup size="sm">
-              <TooltipTrigger
-                placement="top"
-                overlay={<Tooltip id="tooltip-split-path">Split path and filename</Tooltip>}
-              >
-                <Button
-                  variant={splitFilenameDisplay ? 'primary' : 'secondary'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSetFilenameSplit(true);
-                  }}
-                >
-                  Split
-                </Button>
-              </TooltipTrigger>
-              <TooltipTrigger
-                placement="top"
-                overlay={<Tooltip id="tooltip-show-full-path">Show full path</Tooltip>}
-              >
-                <Button
-                  variant={!splitFilenameDisplay ? 'primary' : 'secondary'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSetFilenameSplit(false);
-                  }}
-                >
-                  Joined
-                </Button>
-              </TooltipTrigger>
-            </ButtonGroup>
+    const normalizedChanges = useMemo(() => {
+      return changes.map((c: any) => ({
+        path: c.file,
+        status: c.change,
+        file: c.file,
+        change: c.change,
+      }));
+    }, [changes]);
+
+    const selectedPaths = Object.entries(selectedChanges)
+      .filter(([_, selected]) => selected)
+      .map(([path]) => path);
+
+    const handleCopyPath = (path: string) => {
+      navigator.clipboard.writeText(path);
+    };
+
+    const headerContent = (
+      <CardHeaderContent>
+        <Badge bg="light" text="dark" pill className="py-1 px-2">
+          {changes.length}
+        </Badge>
+        <CardFilterInput
+          placeholder="Filter..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+        />
+        <CardHeaderButtons>
+          <ButtonGroup size="sm">
             <TooltipTrigger
               placement="top"
-              overlay={<Tooltip id="tooltip-undo-selected">Undo changes for selected</Tooltip>}
+              overlay={<Tooltip id="tooltip-stage-all">Stage All</Tooltip>}
             >
               <Button
-                variant="warning"
-                size="sm"
+                variant="secondary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  selectedPaths.forEach(onUndoFile);
+                  handleStageAll();
                 }}
-                disabled={selectedPaths.length === 0}
               >
-                <Icon name="fa-undo" />
+                <Icon name="fa-angle-double-up" />
               </Button>
             </TooltipTrigger>
             <TooltipTrigger
               placement="top"
-              overlay={<Tooltip id="tooltip-delete-selected">Delete selected files</Tooltip>}
+              overlay={<Tooltip id="tooltip-stage-selected">Stage Selected</Tooltip>}
             >
               <Button
-                variant="danger"
-                size="sm"
+                variant="secondary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDeleteFiles(selectedPaths);
+                  handleStageSelected();
                 }}
                 disabled={selectedPaths.length === 0}
               >
-                <Icon name="fa-trash" />
+                <Icon name="fa-angle-up" />
               </Button>
             </TooltipTrigger>
-          </CardHeaderButtons>
-        </CardHeaderContent>
-      );
+          </ButtonGroup>
+          <ButtonGroup size="sm">
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id="tooltip-split-path">Split path and filename</Tooltip>}
+            >
+              <Button
+                variant={splitFilenameDisplay ? 'primary' : 'secondary'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSetFilenameSplit(true);
+                }}
+              >
+                Split
+              </Button>
+            </TooltipTrigger>
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id="tooltip-show-full-path">Show full path</Tooltip>}
+            >
+              <Button
+                variant={!splitFilenameDisplay ? 'primary' : 'secondary'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSetFilenameSplit(false);
+                }}
+              >
+                Joined
+              </Button>
+            </TooltipTrigger>
+          </ButtonGroup>
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id="tooltip-undo-selected">Undo changes for selected</Tooltip>}
+          >
+            <Button
+              variant="warning"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                selectedPaths.forEach(handleUndoFile);
+              }}
+              disabled={selectedPaths.length === 0}
+            >
+              <Icon name="fa-undo" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipTrigger
+            placement="top"
+            overlay={<Tooltip id="tooltip-delete-selected">Delete selected files</Tooltip>}
+          >
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteFiles(selectedPaths);
+              }}
+              disabled={selectedPaths.length === 0}
+            >
+              <Icon name="fa-trash" />
+            </Button>
+          </TooltipTrigger>
+        </CardHeaderButtons>
+      </CardHeaderContent>
+    );
 
-      return (
-        <LayoutCard
-          title="Unstaged Changes"
-          expandKey="unstaged"
-          headerContent={headerContent}
-        >
-          <ChangeList
-            changes={normalizedChanges}
-            selectedChanges={selectedChanges}
-            splitFilenameDisplay={splitFilenameDisplay}
-            filter={filter}
-            onSelectChange={onSelectChange}
-            onBatchSelectChange={onBatchSelectChange}
-            onFileClick={onFileClick}
-            onUndoFile={onUndoFile}
-            onDeleteFile={(path) => onDeleteFiles([path])}
-            onCopyPath={handleCopyPath}
-          />
-        </LayoutCard>
-      );
-    },
-  );
+    return (
+      <LayoutCard
+        title="Unstaged Changes"
+        expandKey="unstaged"
+        headerContent={headerContent}
+      >
+        <ChangeList
+          changes={normalizedChanges}
+          selectedChanges={selectedChanges}
+          splitFilenameDisplay={splitFilenameDisplay}
+          filter={filter}
+          onSelectChange={handleSelectUnstagedChange}
+          onBatchSelectChange={handleBatchSelectUnstagedChange}
+          onFileClick={handleUnstagedFileClick}
+          onUndoFile={handleUndoFile}
+          onDeleteFile={(path) => handleDeleteFiles([path])}
+          onCopyPath={handleCopyPath}
+        />
+      </LayoutCard>
+    );
+  });
 
 UnstagedChangesCard.displayName = 'UnstagedChangesCard';
 

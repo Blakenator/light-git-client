@@ -1,11 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Button, ButtonGroup, Badge, Dropdown, Form, Table, DropdownButton, Tooltip } from 'react-bootstrap';
+import { Button, ButtonGroup, Badge, Dropdown, Form, Table, Tooltip } from 'react-bootstrap';
 import { TooltipTrigger } from '@light-git/core';
 import styled, { useTheme } from 'styled-components';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { AgeInfo, Icon, GitGraphCanvas } from '../../../common/components';
 import { CardHeaderContent } from '../RepoView.styles';
 import { DiffViewer } from '../../DiffViewer/DiffViewer';
+import { useRepositoryStore, useSettingsStore } from '../../../stores';
+import { useDiffActions, useCommitHistoryActions } from '../hooks';
+import { calculateGraphBlocks } from '../../../utils/calculateGraphBlocks';
 
 const CommitListContainer = styled.div`
   overflow: hidden;
@@ -194,7 +197,6 @@ const BranchItemText = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   display: block;
-  /* Indent all branch names to align with the cart icon space */
   padding-left: 1.25em;
 `;
 
@@ -203,7 +205,6 @@ const BranchItemWithIcon = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   display: block;
-  /* No extra padding - the icon provides the indent */
 `;
 
 const SearchInput = styled(Form.Control)`
@@ -224,103 +225,14 @@ const ActionsToggle = styled(Dropdown.Toggle)`
   padding: 0.25rem 0.4rem;
 `;
 
-interface BranchModel {
-  name: string;
-  isCurrentBranch?: boolean;
-  trackingPath?: string;
-}
-
-interface GraphBlockTarget {
-  source: number;
-  target: number;
-  isCommit: boolean;
-  isMerge: boolean;
-  branchIndex: number;
-}
-
-interface CommitSummary {
-  hash: string;
-  message: string;
-  authorName: string;
-  authorDate: Date | string | number;
-  parents?: string[];
-  graphBlockTargets?: GraphBlockTarget[];
-  branchEndings?: string[];
-  currentTags?: string[];
-}
-
-interface CommitInfo {
-  hash: string;
-  message: string;
-  author: string;
-  date: string;
-  parents?: string[];
-  tags?: string[];
-}
-
-interface DiffHunk {
-  header: string;
-  lines: any[];
-  fromStartLine: number;
-  toStartLine: number;
-}
-
 interface CommitHistoryCardProps {
-  commits: CommitSummary[];
-  showDiff: boolean;
-  diffHeaders?: any[];
-  commitInfo?: CommitInfo | null;
-  localBranches?: BranchModel[];
-  remoteBranches?: BranchModel[];
-  activeBranch?: BranchModel | null;
-  enableGraphView?: boolean;
-  ignoreWhitespace?: boolean;
-  hasMoreDiffs?: boolean;
-  isLoadingMoreDiffs?: boolean;
-  onToggleView: (showDiff: boolean) => void;
-  onClickCommit: (hash: string) => void;
-  onCherryPick: (commit: CommitSummary) => void;
-  onCheckout: (hash: string) => void;
-  onLoadMore: () => void;
-  onLoadMoreDiffs?: () => void;
-  onBranchChange?: (branch: BranchModel | null) => void;
-  onIgnoreWhitespaceChange?: (value: boolean) => void;
-  onRevert?: (commit: CommitSummary) => void;
-  onCreateBranchFromCommit?: (commit: CommitSummary) => void;
-  onCopyHash?: (hash: string) => void;
-  onResetToCommit?: (commit: CommitSummary, mode: 'soft' | 'mixed' | 'hard') => void;
-  onExitDiffView?: () => void;
-  onHunkChange?: (filename: string, hunk: DiffHunk, newContent: string) => Promise<void>;
-  onHunkChangeError?: (error: Error) => void;
+  repoPath: string;
+  noMoreCommits: React.MutableRefObject<boolean>;
 }
 
 export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
-  commits,
-  showDiff,
-  diffHeaders = [],
-  commitInfo,
-  localBranches = [],
-  remoteBranches = [],
-  activeBranch,
-  enableGraphView = true,
-  ignoreWhitespace = false,
-  hasMoreDiffs = false,
-  isLoadingMoreDiffs = false,
-  onToggleView,
-  onClickCommit,
-  onCherryPick,
-  onCheckout,
-  onLoadMore,
-  onLoadMoreDiffs,
-  onBranchChange,
-  onIgnoreWhitespaceChange,
-  onRevert,
-  onCreateBranchFromCommit,
-  onCopyHash,
-  onExitDiffView,
-  onResetToCommit,
-  onHunkChange,
-  onHunkChangeError,
+  repoPath,
+  noMoreCommits,
 }) => {
   const theme = useTheme();
   const [searchFilter, setSearchFilter] = useState('');
@@ -328,12 +240,48 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
   const [branchFilter, setBranchFilter] = useState('');
   const [expandedCommits, setExpandedCommits] = useState<Set<string>>(new Set());
 
+  // Self-managed: read data from stores
+  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+  const rawCommitHistory = useMemo(() => repoCache?.commitHistory || [], [repoCache?.commitHistory]);
+  const commits = useMemo(() => calculateGraphBlocks(rawCommitHistory), [rawCommitHistory]);
+  const localBranches = useMemo(() => (repoCache?.localBranches || []) as any[], [repoCache?.localBranches]);
+  const remoteBranches = useMemo(() => (repoCache?.remoteBranches || []) as any[], [repoCache?.remoteBranches]);
+  const ignoreWhitespace = useSettingsStore((state) => state.settings.diffIgnoreWhitespace);
+
+  // Hooks for operations
+  const {
+    showDiff,
+    currentDiff: diffHeaders,
+    commitInfo,
+    hasMoreDiffs,
+    isLoadingMoreDiffs,
+    loadMoreDiffs,
+    handleToggleDiffView,
+    handleExitDiffView,
+    handleIgnoreWhitespaceChange,
+    handleHunkChange,
+    handleHunkChangeError,
+  } = useDiffActions(repoPath);
+
+  const {
+    activeBranch,
+    handleLoadMoreCommits,
+    handleClickCommit,
+    handleCherryPick,
+    handleCheckoutCommit,
+    handleRevertCommit,
+    handleCreateBranchFromCommit,
+    handleCopyHash,
+    handleResetToCommit,
+    handleBranchChange,
+  } = useCommitHistoryActions(repoPath, noMoreCommits);
+
   // Filter branches for the dropdown
   const filteredBranches = useMemo(() => {
     const filter = branchFilter.toLowerCase();
     const allBranches = [...localBranches, ...remoteBranches];
     return filter
-      ? allBranches.filter((b) => b.name.toLowerCase().includes(filter))
+      ? allBranches.filter((b: any) => b.name.toLowerCase().includes(filter))
       : allBranches;
   }, [localBranches, remoteBranches, branchFilter]);
 
@@ -342,7 +290,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
     if (!searchFilter) return commits;
     const filter = searchFilter.toLowerCase();
     return commits.filter(
-      (c) =>
+      (c: any) =>
         c.message.toLowerCase().includes(filter) ||
         c.hash.toLowerCase().includes(filter) ||
         c.authorName.toLowerCase().includes(filter)
@@ -350,16 +298,16 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
   }, [commits, searchFilter]);
 
   const handleBranchSelect = useCallback(
-    (branch: BranchModel | null) => {
-      onBranchChange?.(branch);
+    (branch: any | null) => {
+      handleBranchChange(branch);
       setShowBranchDropdown(false);
       setBranchFilter('');
     },
-    [onBranchChange]
+    [handleBranchChange]
   );
 
   const currentBranch = useMemo(
-    () => localBranches.find((b) => b.isCurrentBranch),
+    () => localBranches.find((b: any) => b.isCurrentBranch),
     [localBranches]
   );
 
@@ -367,9 +315,8 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
 
   const toggleCurrentBranchFilter = useCallback(() => {
     if (!currentBranch) return;
-    // If already filtering to current branch, clear filter; otherwise set to current branch
-    onBranchChange?.(isCurrentBranchActive ? null : currentBranch);
-  }, [currentBranch, isCurrentBranchActive, onBranchChange]);
+    handleBranchChange(isCurrentBranchActive ? null : currentBranch);
+  }, [currentBranch, isCurrentBranchActive, handleBranchChange]);
 
   const toggleExpand = useCallback((hash: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -389,7 +336,6 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
     navigator.clipboard.writeText(message);
   }, []);
 
-  // Classify a tag for badge coloring (matches Angular version)
   const getTagType = useCallback((tag: string): 'local' | 'remote' | 'tag' | 'head' => {
     if (tag.startsWith('HEAD')) return 'head';
     if (tag.startsWith('tag: ')) return 'tag';
@@ -407,20 +353,20 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
     return tag.replace('tag: ', '');
   }, []);
 
-  // Determine if a commit message should be expandable
-  const isExpandable = useCallback((commit: CommitSummary): boolean => {
-    const hasMultipleLines = commit.message.includes('\n');
-    return hasMultipleLines;
+  const isExpandable = useCallback((commit: any): boolean => {
+    return commit.message.includes('\n');
   }, []);
 
-  // Route scroll-to-bottom to either commit loading or diff loading
   const handleLayoutScroll = useCallback(() => {
     if (showDiff) {
-      onLoadMoreDiffs?.();
+      loadMoreDiffs();
     } else {
-      onLoadMore();
+      handleLoadMoreCommits();
     }
-  }, [showDiff, onLoadMore, onLoadMoreDiffs]);
+  }, [showDiff, handleLoadMoreCommits, loadMoreDiffs]);
+
+  const onToggleView = handleToggleDiffView;
+  const onExitDiffView = handleExitDiffView;
 
   const headerContent = (
     <CardHeaderContent>
@@ -455,21 +401,20 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
           }
         />
         
-        {onBranchChange && (
-          <ButtonGroup size="sm">
-            {currentBranch && (
-              <TooltipTrigger
-                placement="top"
-                overlay={<Tooltip id="tooltip-filter-current-branch">Filter to current branch</Tooltip>}
+        <ButtonGroup size="sm">
+          {currentBranch && (
+            <TooltipTrigger
+              placement="top"
+              overlay={<Tooltip id="tooltip-filter-current-branch">Filter to current branch</Tooltip>}
+            >
+              <Button
+                variant={isCurrentBranchActive ? 'primary' : 'secondary'}
+                onClick={toggleCurrentBranchFilter}
               >
-                <Button
-                  variant={isCurrentBranchActive ? 'primary' : 'secondary'}
-                  onClick={toggleCurrentBranchFilter}
-                >
-                  <Icon name={isCurrentBranchActive ? 'fa-eye-slash' : 'fa-eye'} size="sm" />
-                </Button>
-              </TooltipTrigger>
-            )}
+                <Icon name={isCurrentBranchActive ? 'fa-eye-slash' : 'fa-eye'} size="sm" />
+              </Button>
+            </TooltipTrigger>
+          )}
           <Dropdown
             show={showBranchDropdown}
             onToggle={(open) => setShowBranchDropdown(open)}
@@ -522,8 +467,8 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                 <>
                   <Dropdown.Header>Local</Dropdown.Header>
                   {filteredBranches
-                    .filter((b) => localBranches.includes(b))
-                    .map((branch) => (
+                    .filter((b: any) => localBranches.includes(b))
+                    .map((branch: any) => (
                       <Dropdown.Item
                         key={branch.name}
                         active={activeBranch?.name === branch.name}
@@ -545,8 +490,8 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                 <>
                   <Dropdown.Header>Remote</Dropdown.Header>
                   {filteredBranches
-                    .filter((b) => remoteBranches.includes(b))
-                    .map((branch) => (
+                    .filter((b: any) => remoteBranches.includes(b))
+                    .map((branch: any) => (
                       <Dropdown.Item
                         key={branch.name}
                         active={activeBranch?.name === branch.name}
@@ -559,8 +504,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
               )}
             </BranchDropdownMenu>
           </Dropdown>
-          </ButtonGroup>
-        )}
+        </ButtonGroup>
       </BranchSelector>
     </CardHeaderContent>
   );
@@ -577,7 +521,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
         <CommitListContainer>
           <CommitTable hover size="sm">
             <tbody>
-              {filteredCommits.map((commit) => {
+              {filteredCommits.map((commit: any) => {
                 const isExpanded = expandedCommits.has(commit.hash);
                 const expandable = isExpandable(commit);
                 const tags = commit.currentTags || commit.branchEndings || [];
@@ -588,26 +532,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                 return (
                   <tr key={commit.hash}>
                     <GraphCell>
-                      {enableGraphView ? (
-                        <GitGraphCanvas commit={commit} />
-                      ) : (
-                        <div
-                          style={{
-                            width: '20px',
-                            display: 'flex',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '10px',
-                              height: '10px',
-                              borderRadius: '50%',
-                              backgroundColor: theme.colors.primary,
-                            }}
-                          />
-                        </div>
-                      )}
+                      <GitGraphCanvas commit={commit} />
                     </GraphCell>
                     <MessageCell>
                       <MessageRow>
@@ -647,7 +572,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                       </CommitMeta>
                       {tags.length > 0 && (
                         <TagRow>
-                          {tags.map((tag) => {
+                          {tags.map((tag: string) => {
                             const tagType = getTagType(tag);
                             const icon = getTagIcon(tag);
                             return (
@@ -666,56 +591,46 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
                           <Icon name="fa-ellipsis-vertical" size="sm" />
                         </ActionsToggle>
                         <Dropdown.Menu>
-                          <Dropdown.Item onClick={() => onClickCommit(commit.hash)}>
+                          <Dropdown.Item onClick={() => handleClickCommit(commit.hash)}>
                             <Icon name="fa-eye" size="sm" className="me-2" />
                             View Diff
                           </Dropdown.Item>
                           <Dropdown.Divider />
-                          <Dropdown.Item onClick={() => onCherryPick(commit)}>
+                          <Dropdown.Item onClick={() => handleCherryPick(commit)}>
                             <Icon name="fa-code-branch" size="sm" className="me-2" />
                             Cherry Pick
                           </Dropdown.Item>
-                          <Dropdown.Item onClick={() => onCheckout(commit.hash)}>
+                          <Dropdown.Item onClick={() => handleCheckoutCommit(commit.hash)}>
                             <Icon name="fa-shopping-cart" size="sm" className="me-2" />
                             Checkout
                           </Dropdown.Item>
-                          {onRevert && (
-                            <Dropdown.Item onClick={() => onRevert(commit)}>
-                              <Icon name="fa-undo" size="sm" className="me-2" />
-                              Revert Commit
-                            </Dropdown.Item>
-                          )}
-                          {onCreateBranchFromCommit && (
-                            <Dropdown.Item onClick={() => onCreateBranchFromCommit(commit)}>
-                              <Icon name="fa-code-branch" size="sm" className="me-2" />
-                              Create Branch from Here
-                            </Dropdown.Item>
-                          )}
+                          <Dropdown.Item onClick={() => handleRevertCommit(commit)}>
+                            <Icon name="fa-undo" size="sm" className="me-2" />
+                            Revert Commit
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleCreateBranchFromCommit(commit)}>
+                            <Icon name="fa-code-branch" size="sm" className="me-2" />
+                            Create Branch from Here
+                          </Dropdown.Item>
                           <Dropdown.Divider />
-                          {onCopyHash && (
-                            <Dropdown.Item onClick={() => onCopyHash(commit.hash)}>
-                              <Icon name="fa-copy" size="sm" className="me-2" />
-                              Copy Hash
-                            </Dropdown.Item>
-                          )}
-                          {onResetToCommit && (
-                            <>
-                              <Dropdown.Divider />
-                              <Dropdown.Header>Reset to this commit</Dropdown.Header>
-                              <Dropdown.Item onClick={() => onResetToCommit(commit, 'soft')}>
-                                <Icon name="fa-arrow-left" size="sm" className="me-2" />
-                                Soft Reset
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => onResetToCommit(commit, 'mixed')}>
-                                <Icon name="fa-arrow-left" size="sm" className="me-2" />
-                                Mixed Reset
-                              </Dropdown.Item>
-                              <Dropdown.Item className="text-danger" onClick={() => onResetToCommit(commit, 'hard')}>
-                                <Icon name="fa-exclamation-triangle" size="sm" className="me-2" />
-                                Hard Reset
-                              </Dropdown.Item>
-                            </>
-                          )}
+                          <Dropdown.Item onClick={() => handleCopyHash(commit.hash)}>
+                            <Icon name="fa-copy" size="sm" className="me-2" />
+                            Copy Hash
+                          </Dropdown.Item>
+                          <Dropdown.Divider />
+                          <Dropdown.Header>Reset to this commit</Dropdown.Header>
+                          <Dropdown.Item onClick={() => handleResetToCommit(commit, 'soft')}>
+                            <Icon name="fa-arrow-left" size="sm" className="me-2" />
+                            Soft Reset
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleResetToCommit(commit, 'mixed')}>
+                            <Icon name="fa-arrow-left" size="sm" className="me-2" />
+                            Mixed Reset
+                          </Dropdown.Item>
+                          <Dropdown.Item className="text-danger" onClick={() => handleResetToCommit(commit, 'hard')}>
+                            <Icon name="fa-exclamation-triangle" size="sm" className="me-2" />
+                            Hard Reset
+                          </Dropdown.Item>
                         </Dropdown.Menu>
                       </Dropdown>
                     </ActionsCell>
@@ -739,11 +654,11 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(({
               ignoreWhitespace={ignoreWhitespace}
               hasMore={hasMoreDiffs}
               isLoadingMore={isLoadingMoreDiffs}
-              onIgnoreWhitespaceClick={onIgnoreWhitespaceChange ? () => onIgnoreWhitespaceChange(!ignoreWhitespace) : undefined}
+              onIgnoreWhitespaceClick={() => handleIgnoreWhitespaceChange(!ignoreWhitespace)}
               onExitCommitView={onExitDiffView || (() => onToggleView(false))}
-              onNavigateToHash={onClickCommit}
-              onHunkChange={onHunkChange}
-              onHunkChangeError={onHunkChangeError}
+              onNavigateToHash={handleClickCommit}
+              onHunkChange={handleHunkChange}
+              onHunkChangeError={handleHunkChangeError}
             />
           ) : (
             <div className="text-muted text-center p-3">

@@ -1,29 +1,38 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Badge, Button, ButtonGroup, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
+import { InputModal } from '../../../common/components/InputModal/InputModal';
+import { useRepositoryStore } from '../../../stores';
+import { useStashActions } from '../hooks';
 import type { StashModel } from '@light-git/shared';
 import styled from 'styled-components';
 
 interface StashesCardProps {
-  stashes: StashModel[];
-  onStash: (unstagedOnly: boolean) => void;
-  onApplyStash: (stash: StashModel) => void;
-  onDeleteStash: (stash: StashModel) => void;
-  onViewStash: (stash: StashModel) => void;
-  onRestoreStash: () => void;
+  repoPath: string;
 }
 
-export const StashesCard: React.FC<StashesCardProps> = React.memo(({
-  stashes,
-  onStash,
-  onApplyStash,
-  onDeleteStash,
-  onViewStash,
-  onRestoreStash,
-}) => {
+export const StashesCard: React.FC<StashesCardProps> = React.memo(({ repoPath }) => {
   const [filter, setFilter] = useState('');
+
+  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+  const stashes = useMemo(() => (repoCache?.stashes || []) as StashModel[], [repoCache?.stashes]);
+  const localBranches = useMemo(() => repoCache?.localBranches || [], [repoCache?.localBranches]);
+  const currentBranch = useMemo(
+    () => localBranches.find((b: any) => b.isCurrentBranch) || null,
+    [localBranches],
+  );
+
+  const {
+    stashOnlyUnstaged,
+    handleStash,
+    handleStashWithName,
+    handleApplyStash,
+    handleDeleteStash,
+    handleViewStash,
+    handleShowRestoreStash,
+  } = useStashActions(repoPath);
 
   const filteredStashes = useMemo(() => {
     if (!filter) return stashes;
@@ -33,6 +42,8 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({
       s.branchName?.toLowerCase().includes(lowerFilter)
     );
   }, [stashes, filter]);
+
+  const handleStashOk = useCallback((name: string) => handleStashWithName(name), [handleStashWithName]);
 
   const headerContent = (
     <CardHeaderContent>
@@ -52,7 +63,7 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({
               variant="secondary"
               onClick={(e) => {
                 e.stopPropagation();
-                onStash(false);
+                handleStash(false);
               }}
             >
               <Icon name="fa-boxes" />
@@ -66,7 +77,7 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({
               variant="secondary"
               onClick={(e) => {
                 e.stopPropagation();
-                onStash(true);
+                handleStash(true);
               }}
             >
               <Icon name="fa-box" />
@@ -82,7 +93,7 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onRestoreStash();
+              handleShowRestoreStash();
             }}
           >
             <Icon name="fa-history" />
@@ -93,27 +104,40 @@ export const StashesCard: React.FC<StashesCardProps> = React.memo(({
   );
 
   return (
-    <LayoutCard
-      title="Stashes"
-      iconClass="fa fa-box"
-      expandKey="stashes"
-      headerContent={headerContent}
-    >
-      <div className="card-body">
-        {filteredStashes.map((stash, index) => (
-          <StashItem
-            key={`${stash.hash}-${index}`}
-            stash={stash}
-            onApply={onApplyStash}
-            onDelete={onDeleteStash}
-            onView={onViewStash}
-          />
-        ))}
-        {filteredStashes.length === 0 && (
-          <div className="text-muted text-center py-2">No stashes found</div>
-        )}
-      </div>
-    </LayoutCard>
+    <>
+      <LayoutCard
+        title="Stashes"
+        iconClass="fa fa-box"
+        expandKey="stashes"
+        headerContent={headerContent}
+      >
+        <div className="card-body">
+          {filteredStashes.map((stash, index) => (
+            <StashItem
+              key={`${stash.hash}-${index}`}
+              stash={stash}
+              onApply={handleApplyStash}
+              onDelete={handleDeleteStash}
+              onView={handleViewStash}
+            />
+          ))}
+          {filteredStashes.length === 0 && (
+            <div className="text-muted text-center py-2">No stashes found</div>
+          )}
+        </div>
+      </LayoutCard>
+
+      <InputModal
+        modalId="createStash"
+        title={`Stash ${stashOnlyUnstaged ? 'Unstaged' : 'All'} Changes`}
+        message="Please enter a name for the stash"
+        placeholder="Stash name..."
+        defaultValue={(currentBranch as any)?.lastCommitText ?? ''}
+        validPattern='^[^"]*$'
+        invalidMessage="Stash name cannot include double quotes"
+        onOk={handleStashOk}
+      />
+    </>
   );
 });
 

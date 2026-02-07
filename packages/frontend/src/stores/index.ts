@@ -9,3 +9,5 @@ export type { Job, JobConfig, Operation } from './jobStore';
 
 export { useUiStore } from './uiStore';
 export type { NotificationModel, ErrorModel } from './uiStore';
+
+export { useRepoViewStore } from './repoViewStore';

@@ -1,34 +1,67 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button, ButtonGroup, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
+import { useRepositoryStore, useUiStore } from '../../../stores';
+import { useIpc, useGitService } from '../../../ipc';
+import { Channels } from '@light-git/shared';
 import type { WorktreeModel } from '@light-git/shared';
 
 interface WorktreesCardProps {
-  worktrees: WorktreeModel[];
-  onAddWorktree: () => void;
-  onOpenFolder: (path: string) => void;
-  onOpenNewTab: (path: string) => void;
-  onSwitch: (path: string) => void;
-  onDelete: (worktree: WorktreeModel) => void;
+  repoPath: string;
+  onOpenRepoNewTab?: (path: string) => void;
 }
 
 export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
-  worktrees,
-  onAddWorktree,
-  onOpenFolder,
-  onOpenNewTab,
-  onSwitch,
-  onDelete,
+  repoPath,
+  onOpenRepoNewTab,
 }) => {
   const [filter, setFilter] = useState('');
+  const ipc = useIpc();
+  const gitService = useGitService(repoPath);
+  const addAlert = useUiStore((state) => state.addAlert);
+  const showModal = useUiStore((state) => state.showModal);
+
+  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+  const worktrees = useMemo(() => (repoCache?.worktrees || []) as WorktreeModel[], [repoCache?.worktrees]);
 
   const filteredWorktrees = useMemo(() => {
     if (!filter) return worktrees;
     const lowerFilter = filter.toLowerCase();
     return worktrees.filter((w) => w.name?.toLowerCase().includes(lowerFilter));
   }, [worktrees, filter]);
+
+  const handleAddWorktree = useCallback(() => showModal('addWorktree'), [showModal]);
+
+  const handleOpenFolder = useCallback(async (path: string) => {
+    try {
+      await gitService.openFolder(path);
+    } catch (error: any) {
+      addAlert(`Failed to open folder: ${error.message}`, 'error');
+    }
+  }, [gitService, addAlert]);
+
+  const handleOpenNewTab = useCallback((path: string) => {
+    onOpenRepoNewTab?.(path);
+  }, [onOpenRepoNewTab]);
+
+  const handleSwitch = useCallback(async (path: string) => {
+    try {
+      await ipc.rpc(Channels.LOADREPO, path);
+    } catch (error: any) {
+      addAlert(`Failed to switch worktree: ${error.message}`, 'error');
+    }
+  }, [ipc, addAlert]);
+
+  const handleDelete = useCallback(async (worktree: WorktreeModel) => {
+    try {
+      await gitService.deleteWorktree(worktree.path);
+      addAlert('Worktree deleted', 'success');
+    } catch (error: any) {
+      addAlert(`Delete worktree failed: ${error.message}`, 'error');
+    }
+  }, [gitService, addAlert]);
 
   const headerContent = (
     <CardHeaderContent>
@@ -48,7 +81,7 @@ export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onAddWorktree();
+              handleAddWorktree();
             }}
           >
             <Icon name="fa-plus" />
@@ -70,10 +103,10 @@ export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
           <WorktreeItem
             key={worktree.path}
             worktree={worktree}
-            onOpenFolder={onOpenFolder}
-            onOpenNewTab={onOpenNewTab}
-            onSwitch={onSwitch}
-            onDelete={onDelete}
+            onOpenFolder={handleOpenFolder}
+            onOpenNewTab={handleOpenNewTab}
+            onSwitch={handleSwitch}
+            onDelete={handleDelete}
           />
         ))}
         {filteredWorktrees.length === 0 && (

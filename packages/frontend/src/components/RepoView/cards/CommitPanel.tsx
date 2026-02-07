@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Button, ButtonGroup, Dropdown, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
 import { Icon, PrettyCheckbox, TooltipTrigger } from '@light-git/core';
@@ -6,6 +6,9 @@ import {
   MarkdownEditor,
   type Suggestion,
 } from '../../../common/components/MarkdownEditor/MarkdownEditor';
+import { useRepositoryStore, useUiStore } from '../../../stores';
+import { useRepoViewStore } from '../../../stores/repoViewStore';
+import { useCommitActions } from '../hooks';
 
 const CommitContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.background};
@@ -44,29 +47,7 @@ const CrlfWarning = styled.div<{ $show: boolean }>`
   z-index: 10;
 `;
 
-interface FileChange {
-  file: string;
-}
-
-interface CommitPanelProps {
-  commitMessage: string;
-  commitAndPush: boolean;
-  hasWatcherAlerts: boolean;
-  disabledReason?: string;
-  crlfError?: { start: string; end: string } | null;
-  stagedChanges?: FileChange[];
-  unstagedChanges?: FileChange[];
-  currentBranchName?: string;
-  enableAutocomplete?: boolean;
-  onMessageChange: (message: string) => void;
-  onCommitAndPushChange: (value: boolean) => void;
-  onCommit: (amend: boolean) => void;
-  onShowWatchers: () => void;
-  onDismissCrlfError: () => void;
-}
-
 // Add filename chunks directly into the target map for autocomplete.
-// Adds both the full segment (e.g. "CommitPanel.tsx") and without extension ("CommitPanel").
 const addFilenameChunks = (
   filename: string,
   source: string,
@@ -85,62 +66,71 @@ const addFilenameChunks = (
   }
 };
 
+interface CommitPanelProps {
+  repoPath: string;
+}
+
 export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
-  ({
-    commitMessage,
-    commitAndPush,
-    hasWatcherAlerts,
-    disabledReason,
-    crlfError,
-    stagedChanges = [],
-    unstagedChanges = [],
-    currentBranchName = '',
-    enableAutocomplete = true,
-    onMessageChange,
-    onCommitAndPushChange,
-    onCommit,
-    onShowWatchers,
-    onDismissCrlfError,
-  }) => {
+  ({ repoPath }) => {
+    // Self-managed: read data from stores and hooks
+    const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+    const stagedChanges = useMemo(() => repoCache?.changes?.stagedChanges || [], [repoCache?.changes?.stagedChanges]);
+    const unstagedChanges = useMemo(() => repoCache?.changes?.unstagedChanges || [], [repoCache?.changes?.unstagedChanges]);
+    const localBranches = useMemo(() => repoCache?.localBranches || [], [repoCache?.localBranches]);
+    const crlfError = useUiStore((state) => state.crlfError);
+    const setCrlfError = useUiStore((state) => state.setCrlfError);
+    const showModal = useUiStore((state) => state.showModal);
+    const activeBranch = useRepoViewStore((state) => state.activeBranch[repoPath] || null);
+
+    const {
+      commitMessage,
+      commitAndPush,
+      handleCommit,
+      handleCommitAndPushChange,
+      setCommitMessage,
+    } = useCommitActions(repoPath);
+
+    const currentBranchName = useMemo(
+      () => activeBranch?.name || localBranches.find((b: any) => b.isCurrentBranch)?.name || '',
+      [activeBranch, localBranches],
+    );
+
+    const disabledReason = stagedChanges.length === 0 ? 'No staged changes to commit' : undefined;
     const isDisabled = !!disabledReason;
     const isCommitDisabled = isDisabled || !commitMessage.trim();
     const commitDisabledReason = disabledReason || (!commitMessage.trim() ? 'Enter a commit message' : undefined);
 
+    const handleShowCodeWatchers = useCallback(() => showModal('codeWatchers'), [showModal]);
+    const handleDismissCrlfError = useCallback(() => setCrlfError(null), [setCrlfError]);
+
     // Generate suggestions from file names and branch name
     const suggestions: Suggestion[] = useMemo(() => {
-      if (!enableAutocomplete) return [];
-
       const chunks = new Map<string, string>();
 
       for (const change of stagedChanges)
-        addFilenameChunks(change.file, 'file', chunks);
+        addFilenameChunks((change as any).file, 'file', chunks);
       for (const change of unstagedChanges)
-        addFilenameChunks(change.file, 'file', chunks);
+        addFilenameChunks((change as any).file, 'file', chunks);
       if (currentBranchName)
         addFilenameChunks(currentBranchName, 'branch', chunks);
 
       return Array.from(chunks, ([label, source]) => ({ label, source }));
-    }, [enableAutocomplete, stagedChanges, unstagedChanges, currentBranchName]);
+    }, [stagedChanges, unstagedChanges, currentBranchName]);
 
     const handleSubmit = useCallback(() => {
-      onCommit(false);
-    }, [onCommit]);
+      handleCommit(false);
+    }, [handleCommit]);
 
     return (
       <CommitContainer>
         <CommitRow>
           <PrettyCheckbox
             checked={commitAndPush}
-            onChange={onCommitAndPushChange}
+            onChange={handleCommitAndPushChange}
           >
             Commit and Push
           </PrettyCheckbox>
           <span className="flex-grow-1" />
-          {hasWatcherAlerts && (
-            <Button variant="warning" size="sm" onClick={onShowWatchers}>
-              <Icon name="fa-glasses" />
-            </Button>
-          )}
           <Dropdown as={ButtonGroup}>
             <TooltipTrigger
               placement="top"
@@ -148,7 +138,7 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
             >
               <Button
                 variant="success"
-                onClick={() => onCommit(false)}
+                onClick={() => handleCommit(false)}
                 disabled={isCommitDisabled}
               >
                 Commit
@@ -157,7 +147,7 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
             <Dropdown.Toggle split variant="success" disabled={isDisabled} />
             <Dropdown.Menu>
               <Dropdown.Item
-                onClick={() => onCommit(true)}
+                onClick={() => handleCommit(true)}
                 disabled={isDisabled}
               >
                 Amend
@@ -168,7 +158,7 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
         <CommitMessageContainer>
           <MarkdownEditor
             value={commitMessage}
-            onChange={onMessageChange}
+            onChange={setCommitMessage}
             onSubmit={handleSubmit}
             placeholder="Commit message..."
             suggestions={suggestions}
@@ -185,7 +175,7 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
                   variant="link"
                   size="sm"
                   className="p-0"
-                  onClick={onDismissCrlfError}
+                  onClick={handleDismissCrlfError}
                 >
                   <Icon name="fa-times" />
                 </Button>

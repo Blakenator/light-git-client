@@ -1,33 +1,50 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button, ButtonGroup, Badge, Tooltip } from 'react-bootstrap';
 import { TooltipTrigger } from '@light-git/core';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
+import { useRepositoryStore, useUiStore } from '../../../stores';
+import { useGitService } from '../../../ipc';
 import type { SubmoduleModel } from '@light-git/shared';
 
 interface SubmodulesCardProps {
-  submodules: SubmoduleModel[];
-  onAddSubmodule: () => void;
-  onUpdateSubmodules: (recursive: boolean) => void;
-  onOpenNewTab: (submodule: SubmoduleModel) => void;
-  onViewSubmodule: (submodule: SubmoduleModel) => void;
+  repoPath: string;
+  onOpenRepoNewTab?: (path: string) => void;
 }
 
 export const SubmodulesCard: React.FC<SubmodulesCardProps> = React.memo(({
-  submodules,
-  onAddSubmodule,
-  onUpdateSubmodules,
-  onOpenNewTab,
-  onViewSubmodule,
+  repoPath,
+  onOpenRepoNewTab,
 }) => {
   const [filter, setFilter] = useState('');
+  const gitService = useGitService(repoPath);
+  const addAlert = useUiStore((state) => state.addAlert);
+  const showModal = useUiStore((state) => state.showModal);
+
+  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+  const submodules = useMemo(() => (repoCache?.submodules || []) as SubmoduleModel[], [repoCache?.submodules]);
 
   const filteredSubmodules = useMemo(() => {
     if (!filter) return submodules;
     const lowerFilter = filter.toLowerCase();
     return submodules.filter((s) => s.path?.toLowerCase().includes(lowerFilter));
   }, [submodules, filter]);
+
+  const handleAddSubmodule = useCallback(() => showModal('addSubmodule'), [showModal]);
+
+  const handleUpdateSubmodules = useCallback(async (recursive: boolean) => {
+    try {
+      await gitService.updateSubmodules(recursive);
+      addAlert('Submodules updated', 'success');
+    } catch (error: any) {
+      addAlert(`Update submodules failed: ${error.message}`, 'error');
+    }
+  }, [gitService, addAlert]);
+
+  const handleOpenSubmoduleNewTab = useCallback((submodule: SubmoduleModel) => {
+    onOpenRepoNewTab?.(repoPath + '/' + submodule.path);
+  }, [onOpenRepoNewTab, repoPath]);
 
   const headerContent = (
     <CardHeaderContent>
@@ -47,7 +64,7 @@ export const SubmodulesCard: React.FC<SubmodulesCardProps> = React.memo(({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onAddSubmodule();
+              handleAddSubmodule();
             }}
           >
             <Icon name="fa-plus" />
@@ -62,7 +79,7 @@ export const SubmodulesCard: React.FC<SubmodulesCardProps> = React.memo(({
               variant="primary"
               onClick={(e) => {
                 e.stopPropagation();
-                onUpdateSubmodules(true);
+                handleUpdateSubmodules(true);
               }}
             >
               <Icon name="fa-sitemap" />
@@ -85,8 +102,8 @@ export const SubmodulesCard: React.FC<SubmodulesCardProps> = React.memo(({
           <SubmoduleItem
             key={submodule.path}
             submodule={submodule}
-            onOpenNewTab={onOpenNewTab}
-            onViewSubmodule={onViewSubmodule}
+            onOpenNewTab={handleOpenSubmoduleNewTab}
+            onViewSubmodule={handleOpenSubmoduleNewTab}
           />
         ))}
         {filteredSubmodules.length === 0 && (

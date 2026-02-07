@@ -4,63 +4,71 @@ import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoView.styles';
 import { BranchTreeItem } from '../../BranchTreeItem/BranchTreeItem';
+import { ConfirmModal } from '../../../common/components/ConfirmModal/ConfirmModal';
+import { InputModal } from '../../../common/components/InputModal/InputModal';
+import { PruneBranchDialog, MergeBranchDialog } from '../dialogs';
+import { useRepositoryStore, useSettingsStore } from '../../../stores';
+import { useBranchActions } from '../hooks';
 import type { BranchModel } from '@light-git/shared';
 
 interface LocalBranchesCardProps {
-  branches: BranchModel[];
-  worktrees?: any[];
-  showTrackingPath?: boolean;
-  onCheckout: (branch: BranchModel, andPull: boolean) => void;
-  onCreateBranch: () => void;
-  onMerge: (branch?: BranchModel) => void;
-  onRebase?: (branch: BranchModel) => void;
-  onInteractiveRebase?: (branch: BranchModel) => void;
-  onPrune: () => void;
-  onPush: (branch: BranchModel, force: boolean) => void;
-  onPull: (branch: BranchModel | null, force: boolean) => void;
-  onDelete: (branch: BranchModel) => void;
-  onRename: (branch: BranchModel) => void;
-  onFastForward?: (branch: BranchModel) => void;
-  onViewChanges?: (branch: BranchModel) => void;
+  repoPath: string;
 }
 
 export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
-  branches,
-  worktrees,
-  showTrackingPath = false,
-  onCheckout,
-  onCreateBranch,
-  onMerge,
-  onRebase,
-  onInteractiveRebase,
-  onPrune,
-  onPush,
-  onPull,
-  onDelete,
-  onRename,
-  onFastForward,
-  onViewChanges,
+  repoPath,
 }) => {
   const [filter, setFilter] = useState('');
+
+  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
+  const branches = useMemo(() => (repoCache?.localBranches || []) as BranchModel[], [repoCache?.localBranches]);
+  const remoteBranches = useMemo(() => (repoCache?.remoteBranches || []) as BranchModel[], [repoCache?.remoteBranches]);
+  const worktrees = useMemo(() => repoCache?.worktrees || [], [repoCache?.worktrees]);
+  const stagedChanges = useMemo(() => repoCache?.changes?.stagedChanges || [], [repoCache?.changes?.stagedChanges]);
+  const unstagedChanges = useMemo(() => repoCache?.changes?.unstagedChanges || [], [repoCache?.changes?.unstagedChanges]);
+  const branchNamePrefix = useSettingsStore((state) => state.settings.branchNamePrefix);
+
+  const {
+    activeMergeInfo,
+    branchToDelete,
+    branchToRename,
+    handleCheckout,
+    handlePush,
+    handlePull,
+    handleMerge,
+    handleRebase,
+    handleInteractiveRebase,
+    handleMergeBranchSubmit,
+    handleCreateBranch,
+    handlePruneBranches,
+    handleConfirmPruneBranches,
+    handleDeleteBranch,
+    handleConfirmDeleteBranch,
+    handleRenameBranch,
+    handleRenameBranchSubmit,
+    handleCreateBranchSubmit,
+    handleFastForward,
+    handleBranchPremerge,
+  } = useBranchActions(repoPath);
 
   const currentBranch = useMemo(
     () => branches.find((b) => b.isCurrentBranch),
     [branches]
   );
 
-  const handleCheckout = useCallback(
+  const handleCheckoutFromTree = useCallback(
     (info: { branch: string; andPull: boolean }) => {
       const branch = branches.find((b) => b.name === info.branch);
       if (branch) {
-        onCheckout(branch, info.andPull);
+        handleCheckout(branch, info.andPull);
       }
     },
-    [branches, onCheckout]
+    [branches, handleCheckout]
   );
 
-  const handleCopyBranchName = useCallback((branch: any) => {
-    // Just copy to clipboard - the BranchTreeItem already does this
-  }, []);
+  const handleCopyBranchName = useCallback((branch: any) => {}, []);
+  const handlePrependClear = useCallback(() => {}, []);
+  const noop = useCallback(() => {}, []);
 
   const headerContent = (
     <CardHeaderContent>
@@ -77,7 +85,7 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
           <Button
             variant="primary"
             size="sm"
-            onClick={() => onCreateBranch()}
+            onClick={() => handleCreateBranch()}
           >
             <Icon name="fa-code-branch" />
           </Button>
@@ -89,7 +97,7 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
           <Button
             variant="warning"
             size="sm"
-            onClick={() => onPrune()}
+            onClick={() => handlePruneBranches()}
           >
             <Icon name="fa-cut" />
           </Button>
@@ -101,7 +109,7 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
           >
             <Button
               variant="success"
-              onClick={() => onMerge()}
+              onClick={() => handleMerge()}
             >
               <Icon name="merge_type" />
             </Button>
@@ -109,19 +117,19 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
           <Dropdown.Toggle split variant="success" />
           <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
             <Dropdown.Item onClick={() => {
-              if (onRebase && currentBranch) {
-                onRebase(currentBranch);
+              if (currentBranch) {
+                handleRebase(currentBranch);
               } else {
-                onMerge();
+                handleMerge();
               }
             }}>
               Rebase
             </Dropdown.Item>
             <Dropdown.Item onClick={() => {
-              if (onInteractiveRebase && currentBranch) {
-                onInteractiveRebase(currentBranch);
+              if (currentBranch) {
+                handleInteractiveRebase(currentBranch);
               } else {
-                onMerge();
+                handleMerge();
               }
             }}>
               Interactive Rebase
@@ -133,36 +141,91 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
   );
 
   return (
-    <LayoutCard
-      title="Locals"
-      iconClass="fa fa-code-branch"
-      expandKey="locals"
-      headerContent={headerContent}
-    >
-      <div className="px-2">
-        <BranchTreeItem
-          branches={branches as any}
-          isLocal={true}
-          filter={filter}
-          showTrackingPath={showTrackingPath}
-          worktrees={worktrees}
-          onCheckoutClicked={handleCheckout}
-          onPushClicked={(branch, force) => onPush(branch as any, force)}
-          onPullClicked={(branch, force) => onPull(branch as any, force)}
-          onDeleteClicked={(branch) => onDelete(branch as any)}
-          onMergeClicked={(branch) => onMerge(branch as any)}
-          onRebaseClicked={onRebase ? (branch) => onRebase(branch as any) : undefined}
-          onInteractiveRebaseClicked={onInteractiveRebase ? (branch) => onInteractiveRebase(branch as any) : undefined}
-          onFastForwardClicked={(branch) => onFastForward?.(branch as any)}
-          onBranchRename={(branch) => onRename(branch as any)}
-          onCopyBranchName={handleCopyBranchName}
-          onViewChanges={onViewChanges ? (branch) => onViewChanges(branch as any) : undefined}
-        />
-        {branches.length === 0 && (
-          <div className="text-muted text-center py-2">No local branches found</div>
+    <>
+      <LayoutCard
+        title="Locals"
+        iconClass="fa fa-code-branch"
+        expandKey="locals"
+        headerContent={headerContent}
+      >
+        <div className="px-2">
+          <BranchTreeItem
+            branches={branches as any}
+            isLocal={true}
+            filter={filter}
+            showTrackingPath={true}
+            worktrees={worktrees}
+            onCheckoutClicked={handleCheckoutFromTree}
+            onPushClicked={(branch, force) => handlePush(branch as any, force)}
+            onPullClicked={(branch, force) => handlePull(branch as any, force)}
+            onDeleteClicked={(branch) => handleDeleteBranch(branch as any)}
+            onMergeClicked={(branch) => handleMerge(branch as any)}
+            onRebaseClicked={(branch) => handleRebase(branch as any)}
+            onInteractiveRebaseClicked={(branch) => handleInteractiveRebase(branch as any)}
+            onFastForwardClicked={(branch) => handleFastForward(branch as any)}
+            onBranchRename={(branch) => handleRenameBranch(branch as any)}
+            onCopyBranchName={handleCopyBranchName}
+            onViewChanges={(branch) => handleBranchPremerge(branch as any)}
+          />
+          {branches.length === 0 && (
+            <div className="text-muted text-center py-2">No local branches found</div>
+          )}
+        </div>
+      </LayoutCard>
+
+      {/* Branch-related modals */}
+      <InputModal
+        modalId="createBranch"
+        title="Create Branch"
+        message="Create branch off current HEAD"
+        placeholder="Branch name..."
+        validPattern="[a-zA-Z0-9/._-]*[a-zA-Z0-9._-]"
+        invalidMessage="Please enter a valid branch name"
+        inputPrepend={branchNamePrefix}
+        showPrependClearButton={!!branchNamePrefix}
+        replaceChars={{ '\\s': '-' }}
+        onOk={handleCreateBranchSubmit}
+        onPrependClear={handlePrependClear}
+      />
+
+      <PruneBranchDialog
+        localBranches={branches}
+        onConfirm={handleConfirmPruneBranches}
+      />
+
+      <MergeBranchDialog
+        localBranches={branches}
+        remoteBranches={remoteBranches}
+        activeMergeInfo={activeMergeInfo}
+        hasUncommittedChanges={(stagedChanges.length || 0) + (unstagedChanges.length || 0) > 0}
+        onMerge={handleMergeBranchSubmit}
+        onCancel={noop}
+      />
+
+      <ConfirmModal
+        modalId="confirmDeleteBranch"
+        title="Confirm Delete Branch"
+        confirmText="Delete"
+        confirmVariant="danger"
+        onConfirm={handleConfirmDeleteBranch}
+      >
+        <p>Are you sure you want to delete branch <strong>{branchToDelete?.name}</strong>?</p>
+        {branchToDelete?.isRemote && (
+          <p className="text-danger"><strong>This will affect everyone and cannot be undone.</strong></p>
         )}
-      </div>
-    </LayoutCard>
+      </ConfirmModal>
+
+      <InputModal
+        modalId="renameBranch"
+        title="Rename Branch"
+        message={`Rename branch "${branchToRename?.name || ''}"`}
+        placeholder="New branch name..."
+        validPattern="[a-zA-Z0-9/._-]*[a-zA-Z0-9._-]"
+        invalidMessage="Please enter a valid branch name"
+        replaceChars={{ '\\s': '-' }}
+        onOk={handleRenameBranchSubmit}
+      />
+    </>
   );
 });
 
