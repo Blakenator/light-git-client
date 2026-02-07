@@ -172,7 +172,7 @@ interface ChangeListProps {
   onSelectChange: (path: string, selected: boolean) => void;
   onBatchSelectChange?: (changes: Record<string, boolean>) => void;
   onFileClick: (path: string) => void;
-  onUndoFile?: (path: string) => void;
+  onUndoFile?: (path: string, changeType: string) => void;
   onUndoSubmodule?: (submodule: SubmoduleModel) => void;
   onMergeFile?: (path: string) => void;
   onResolveConflict?: (path: string, useTheirs: boolean) => void;
@@ -573,7 +573,7 @@ export const ChangeList: React.FC<ChangeListProps> = React.memo(
                       if (submodule && onUndoSubmodule) {
                         onUndoSubmodule(submodule);
                       } else {
-                        onUndoFile(change.path);
+                        onUndoFile(change.path, change.status);
                       }
                     }}
                   >

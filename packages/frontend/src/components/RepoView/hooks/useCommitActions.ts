@@ -49,6 +49,20 @@ export function useCommitActions(repoPath: string) {
           showModal('preCommit');
         } else {
           succeeded = true;
+          // Pre-commit succeeded but the backend rejected due to stderr output,
+          // so the push step in the backend was skipped. Push explicitly now.
+          if (commitAndPush) {
+            try {
+              await gitService.push(currentBranch, false);
+            } catch (pushError: any) {
+              const remoteMsg = detectRemoteMessage(pushError.message || '');
+              if (remoteMsg) {
+                addAlert(remoteMsg.message, 'info', 0);
+              } else {
+                addAlert(`Push failed: ${pushError.message}`, 'error');
+              }
+            }
+          }
         }
       } else {
         const remoteMsg = detectRemoteMessage(errorMsg);

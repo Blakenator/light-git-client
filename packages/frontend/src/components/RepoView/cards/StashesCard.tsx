@@ -160,12 +160,11 @@ const StashMessage = styled.div`
   white-space: nowrap;
 `;
 
-const BranchBadge = styled(Badge)`
-  min-width: 3em;
-  flex-shrink: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+const BranchIcon = styled.span`
+  color: ${({ theme }) => theme.colors.info};
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 `;
 
 interface StashItemProps {
@@ -192,7 +191,9 @@ const StashItem: React.FC<StashItemProps> = ({
           placement="top"
           overlay={<Tooltip id={`tooltip-stash-branch-${stash.hash}`}>{stash.branchName}</Tooltip>}
         >
-          <BranchBadge bg="primary">{stash.branchName}</BranchBadge>
+          <BranchIcon>
+            <Icon name="fa-code-branch" size="sm" />
+          </BranchIcon>
         </TooltipTrigger>
       )}
       <div className="d-inline-block flex-shrink-0">

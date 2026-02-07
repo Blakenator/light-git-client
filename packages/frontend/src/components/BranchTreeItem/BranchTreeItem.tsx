@@ -205,9 +205,12 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
   }>({});
 
   const filteredBranches = useMemo(() => {
-    if (!filter) return branches;
-    const lowerFilter = filter.toLowerCase();
-    return branches.filter((b) => b.name.toLowerCase().includes(lowerFilter));
+    let result = branches;
+    if (filter) {
+      const lowerFilter = filter.toLowerCase();
+      result = result.filter((b) => b.name.toLowerCase().includes(lowerFilter));
+    }
+    return [...result].sort((a, b) => a.name.localeCompare(b.name));
   }, [branches, filter]);
 
   // Build tree structure from flat branch list
@@ -668,7 +671,7 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
     node: TreeNodeData,
     level: number = 0,
   ): React.ReactNode => {
-    const childKeys = Object.keys(node.children);
+    const childKeys = Object.keys(node.children).sort((a, b) => a.localeCompare(b));
     const hasChildren = childKeys.length > 0;
 
     if (node.branch) {

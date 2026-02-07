@@ -29,6 +29,7 @@ export const UnstagedChangesCard: React.FC<UnstagedChangesCardProps> =
       handleStageAll,
       handleStageSelected,
       handleUndoFile,
+      handleUndoSelectedFiles,
       handleDeleteFiles,
       handleSelectUnstagedChange,
       handleBatchSelectUnstagedChange,
@@ -136,7 +137,11 @@ export const UnstagedChangesCard: React.FC<UnstagedChangesCardProps> =
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                selectedPaths.forEach(handleUndoFile);
+                const selectedFiles = selectedPaths.map(p => {
+                  const change = changes.find((c: any) => c.file === p);
+                  return { path: p, changeType: change?.change || 'M' };
+                });
+                handleUndoSelectedFiles(selectedFiles, false);
               }}
               disabled={selectedPaths.length === 0}
             >
@@ -177,7 +182,7 @@ export const UnstagedChangesCard: React.FC<UnstagedChangesCardProps> =
           onSelectChange={handleSelectUnstagedChange}
           onBatchSelectChange={handleBatchSelectUnstagedChange}
           onFileClick={handleUnstagedFileClick}
-          onUndoFile={handleUndoFile}
+          onUndoFile={(path, changeType) => handleUndoFile(path, changeType, false)}
           onDeleteFile={(path) => handleDeleteFiles([path])}
           onCopyPath={handleCopyPath}
         />

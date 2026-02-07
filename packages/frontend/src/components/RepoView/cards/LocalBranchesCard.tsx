@@ -220,6 +220,7 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
         title="Rename Branch"
         message={`Rename branch "${branchToRename?.name || ''}"`}
         placeholder="New branch name..."
+        defaultValue={branchToRename?.name || ''}
         validPattern="[a-zA-Z0-9/._-]*[a-zA-Z0-9._-]"
         invalidMessage="Please enter a valid branch name"
         replaceChars={{ '\\s': '-' }}

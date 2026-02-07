@@ -92,9 +92,70 @@ export function useStagingActions(
     }
   }, [gitService, repoPath, updateRepoCache, addAlert, setCrlfError]);
 
-  const handleUndoFile = useCallback(async (path: string) => {
+  const handleUndoFile = useCallback(async (path: string, changeType?: string, staged = false) => {
     try {
-      await gitService.undoFileChanges([path]);
+      const type = changeType?.[0]?.toUpperCase();
+      if (type === 'A' || type === '?') {
+        // Added/Untracked files: unstage if staged, then delete from filesystem
+        if (staged) {
+          await gitService.unstage([path]);
+        }
+        await gitService.deleteFiles([path]);
+      } else if (type === 'D') {
+        // Deleted files: restore using checkout from HEAD
+        await gitService.undoFileChanges([path], undefined, true);
+      } else {
+        // Modified/Renamed/etc: use standard undo approach
+        await gitService.undoFileChanges([path], undefined, staged);
+      }
+    } catch (error: any) {
+      const crlf = detectCrlfWarning(error.message || '');
+      if (crlf) {
+        setCrlfError(crlf);
+      } else {
+        addAlert(`Undo failed: ${error.message}`, 'error');
+      }
+    }
+  }, [gitService, addAlert, setCrlfError]);
+
+  const handleUndoSelectedFiles = useCallback(async (
+    files: Array<{ path: string; changeType: string }>,
+    staged: boolean,
+  ) => {
+    try {
+      const addedOrUntracked = files.filter(f => {
+        const t = f.changeType?.[0]?.toUpperCase();
+        return t === 'A' || t === '?';
+      });
+      const deleted = files.filter(f => f.changeType?.[0]?.toUpperCase() === 'D');
+      const others = files.filter(f => {
+        const t = f.changeType?.[0]?.toUpperCase();
+        return t !== 'A' && t !== '?' && t !== 'D';
+      });
+
+      const promises: Promise<any>[] = [];
+
+      if (addedOrUntracked.length > 0) {
+        const paths = addedOrUntracked.map(f => f.path);
+        if (staged) {
+          promises.push(
+            gitService.unstage(paths).then(() => gitService.deleteFiles(paths)),
+          );
+        } else {
+          promises.push(gitService.deleteFiles(paths));
+        }
+      }
+
+      if (deleted.length > 0) {
+        // Restore deleted files using checkout from HEAD
+        promises.push(gitService.undoFileChanges(deleted.map(f => f.path), undefined, true));
+      }
+
+      if (others.length > 0) {
+        promises.push(gitService.undoFileChanges(others.map(f => f.path), undefined, staged));
+      }
+
+      await Promise.all(promises);
     } catch (error: any) {
       const crlf = detectCrlfWarning(error.message || '');
       if (crlf) {
@@ -157,6 +218,7 @@ export function useStagingActions(
     handleStageSelected,
     handleUnstageSelected,
     handleUndoFile,
+    handleUndoSelectedFiles,
     handleDeleteFiles,
     handleSelectStagedChange,
     handleSelectUnstagedChange,

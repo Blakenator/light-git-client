@@ -29,6 +29,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
       handleUnstageAll,
       handleUnstageSelected,
       handleUndoFile,
+      handleUndoSelectedFiles,
       handleDeleteFiles,
       handleSelectStagedChange,
       handleBatchSelectStagedChange,
@@ -136,7 +137,11 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                selectedPaths.forEach(handleUndoFile);
+                const selectedFiles = selectedPaths.map(p => {
+                  const change = changes.find((c: any) => c.file === p);
+                  return { path: p, changeType: change?.change || 'M' };
+                });
+                handleUndoSelectedFiles(selectedFiles, true);
               }}
               disabled={selectedPaths.length === 0}
             >
@@ -177,7 +182,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
           onSelectChange={handleSelectStagedChange}
           onBatchSelectChange={handleBatchSelectStagedChange}
           onFileClick={handleStagedFileClick}
-          onUndoFile={handleUndoFile}
+          onUndoFile={(path, changeType) => handleUndoFile(path, changeType, true)}
           onDeleteFile={(path) => handleDeleteFiles([path])}
           onCopyPath={handleCopyPath}
         />
