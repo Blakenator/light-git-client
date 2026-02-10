@@ -4,6 +4,9 @@ import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
 import { normalizeDiff } from './useDiffActions';
 
+/** Imperative read of repo cache (no subscription, no re-renders). */
+const getRepoCache = (repoPath: string) => useRepositoryStore.getState().repoCache[repoPath];
+
 /**
  * Hook providing commit history operations: pagination, cherry-pick, revert, reset,
  * branch filtering, checkout commits.
@@ -17,10 +20,6 @@ export function useCommitHistoryActions(
   const addAlert = useUiStore((state) => state.addAlert);
   const showModal = useUiStore((state) => state.showModal);
 
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const repoCacheRef = useRef(repoCache);
-  repoCacheRef.current = repoCache;
-
   const isLoadingMoreCommits = useRef(false);
 
   // Active branch from repoViewStore
@@ -30,7 +29,7 @@ export function useCommitHistoryActions(
     if (isLoadingMoreCommits.current || noMoreCommits.current) return;
     isLoadingMoreCommits.current = true;
     try {
-      const existing = repoCacheRef.current?.commitHistory || [];
+      const existing = getRepoCache(repoPath)?.commitHistory || [];
       const branchName = useRepoViewStore.getState().getActiveBranch(repoPath)?.name;
       const newCommits = await gitService.getCommitHistory(50, existing.length, branchName);
       if (!newCommits || newCommits.length === 0) {
@@ -49,7 +48,7 @@ export function useCommitHistoryActions(
     try {
       const diffResponse = await gitService.getCommitDiff(hash) as any;
       const diff = Array.isArray(diffResponse) ? diffResponse : (diffResponse?.content || []);
-      const commits = repoCacheRef.current?.commitHistory || [];
+      const commits = getRepoCache(repoPath)?.commitHistory || [];
       const commit = commits.find((c: any) => c.hash === hash) as any;
       const store = useRepoViewStore.getState();
       store.setCurrentDiff(repoPath, normalizeDiff(diff || []));

@@ -9,7 +9,11 @@ import {
 } from '../RepoView.styles';
 import { ChangeList } from '../../ChangeList/ChangeList';
 import { useRepositoryStore, useSettingsStore } from '../../../stores';
-import { useStagingActions, useDiffActions } from '../hooks';
+import { useStagingActions, useDiffFileActions } from '../hooks';
+
+// Stable defaults to avoid new-ref re-renders when the slice is undefined
+const _EMPTY_ARR: any[] = [];
+const _EMPTY_OBJ: Record<string, boolean> = {};
 
 interface UnstagedChangesCardProps {
   repoPath: string;
@@ -19,12 +23,13 @@ export const UnstagedChangesCard: React.FC<UnstagedChangesCardProps> =
   React.memo(({ repoPath }) => {
     const [filter, setFilter] = useState('');
 
-    const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-    const changes = useMemo(() => repoCache?.changes?.unstagedChanges || [], [repoCache?.changes?.unstagedChanges]);
-    const selectedChanges = useMemo(() => repoCache?.selectedUnstagedChanges || {}, [repoCache?.selectedUnstagedChanges]);
+    // Specific selectors: only re-render when unstaged changes or selections change,
+    // NOT when unrelated cache fields (e.g. selectedStagedChanges) change.
+    const changes = useRepositoryStore((state) => state.repoCache[repoPath]?.changes?.unstagedChanges) ?? _EMPTY_ARR;
+    const selectedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.selectedUnstagedChanges) ?? _EMPTY_OBJ;
     const splitFilenameDisplay = useSettingsStore((state) => state.settings.splitFilenameDisplay);
 
-    const { refreshSelectedFilesDiff, handleFileClick } = useDiffActions(repoPath);
+    const { refreshSelectedFilesDiff, handleFileClick } = useDiffFileActions(repoPath);
     const {
       handleStageAll,
       handleStageSelected,

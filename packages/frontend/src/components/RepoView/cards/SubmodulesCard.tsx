@@ -9,6 +9,8 @@ import { useGitService } from '../../../ipc';
 import { AddSubmoduleDialog } from '../dialogs';
 import type { SubmoduleModel } from '@light-git/shared';
 
+const _EMPTY_ARR: any[] = [];
+
 interface SubmodulesCardProps {
   repoPath: string;
   onOpenRepoNewTab?: (path: string) => void;
@@ -23,8 +25,7 @@ export const SubmodulesCard: React.FC<SubmodulesCardProps> = React.memo(({
   const addAlert = useUiStore((state) => state.addAlert);
   const showModal = useUiStore((state) => state.showModal);
 
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const submodules = useMemo(() => (repoCache?.submodules || []) as SubmoduleModel[], [repoCache?.submodules]);
+  const submodules = (useRepositoryStore((state) => state.repoCache[repoPath]?.submodules) ?? _EMPTY_ARR) as SubmoduleModel[];
 
   const filteredSubmodules = useMemo(() => {
     if (!filter) return submodules;

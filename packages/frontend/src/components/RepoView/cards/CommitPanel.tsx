@@ -11,6 +11,8 @@ import { useRepositoryStore, useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useCommitActions } from '../hooks';
 
+const _EMPTY_ARR: any[] = [];
+
 const CommitContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.background};
   border-radius: ${({ theme }) => theme.borderRadius};
@@ -74,21 +76,9 @@ interface CommitPanelProps {
 export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
   ({ repoPath }) => {
     // Self-managed: read data from stores and hooks
-    const repoCache = useRepositoryStore((state) =>
-      state.getCacheFor(repoPath),
-    );
-    const stagedChanges = useMemo(
-      () => repoCache?.changes?.stagedChanges || [],
-      [repoCache?.changes?.stagedChanges],
-    );
-    const unstagedChanges = useMemo(
-      () => repoCache?.changes?.unstagedChanges || [],
-      [repoCache?.changes?.unstagedChanges],
-    );
-    const localBranches = useMemo(
-      () => repoCache?.localBranches || [],
-      [repoCache?.localBranches],
-    );
+    const stagedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.changes?.stagedChanges) ?? _EMPTY_ARR;
+    const unstagedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.changes?.unstagedChanges) ?? _EMPTY_ARR;
+    const localBranches = useRepositoryStore((state) => state.repoCache[repoPath]?.localBranches) ?? _EMPTY_ARR;
     const crlfError = useUiStore((state) => state.crlfError);
     const setCrlfError = useUiStore((state) => state.setCrlfError);
     const activeBranch = useRepoViewStore(

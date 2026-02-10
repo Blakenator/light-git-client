@@ -1,9 +1,12 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRepositoryStore, useSettingsStore, useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
 import { detectCrlfWarning } from '../../../utils/warningDetectors';
 import { normalizeDiff } from './useDiffActions';
+
+/** Imperative read of repo cache (no subscription, no re-renders). */
+const getRepoCache = (repoPath: string) => useRepositoryStore.getState().repoCache[repoPath];
 
 /**
  * Hook providing stash operations: create, apply, delete, view.
@@ -15,10 +18,6 @@ export function useStashActions(repoPath: string) {
   const showModal = useUiStore((state) => state.showModal);
   const setCrlfError = useUiStore((state) => state.setCrlfError);
   const setExpandState = useSettingsStore((state) => state.setExpandState);
-
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const repoCacheRef = useRef(repoCache);
-  repoCacheRef.current = repoCache;
 
   const [stashOnlyUnstaged, setStashOnlyUnstaged] = useState(false);
 
@@ -55,7 +54,7 @@ export function useStashActions(repoPath: string) {
   }, [gitService, repoPath, updateRepoCache, addAlert]);
 
   const handleDeleteStash = useCallback(async (stash: any) => {
-    const currentStashes = repoCacheRef.current?.stashes || [];
+    const currentStashes = getRepoCache(repoPath)?.stashes || [];
     const updatedStashes = currentStashes
       .filter((s: any) => s.hash !== stash.hash)
       .map((s: any, i: number) => ({ ...s, index: i }));

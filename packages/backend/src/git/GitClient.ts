@@ -1575,6 +1575,7 @@ export class GitClient {
             );
           } else {
             if (
+              event.exit === 0 ||
               currentErr
                 .split(/\r?\n/)
                 .every(
@@ -1673,10 +1674,12 @@ export class GitClient {
       this.execute(command, args, name, false, workingDir)
         .then(() => resolve())
         .catch((err: CommandOutputModel<void>) => {
-          if (err && err.errorOutput) {
-            reject(err.errorOutput);
+          if (err instanceof Error) {
+            reject(err);
+          } else if (err && err.errorOutput) {
+            reject(new Error(err.errorOutput));
           } else {
-            reject(serializeError(err));
+            reject(new Error(String(err)));
           }
         });
     });
@@ -1684,12 +1687,14 @@ export class GitClient {
 
   private handleErrorDefault<T>(promise: Promise<T>, reject: Function) {
     return promise.catch((err) => {
-      if (err.message) {
-        reject(err.message);
+      if (err instanceof Error) {
+        reject(err);
+      } else if (err.message) {
+        reject(new Error(err.message));
       } else if (err.errorOutput) {
-        reject(err.errorOutput);
+        reject(new Error(err.errorOutput));
       } else {
-        reject(serializeError(err));
+        reject(new Error(String(err)));
       }
     });
   }

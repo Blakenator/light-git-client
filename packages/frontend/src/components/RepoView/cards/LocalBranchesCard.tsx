@@ -11,6 +11,8 @@ import { useRepositoryStore, useSettingsStore } from '../../../stores';
 import { useBranchActions } from '../hooks';
 import type { BranchModel } from '@light-git/shared';
 
+const _EMPTY_ARR: any[] = [];
+
 interface LocalBranchesCardProps {
   repoPath: string;
 }
@@ -20,12 +22,11 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
 }) => {
   const [filter, setFilter] = useState('');
 
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const branches = useMemo(() => (repoCache?.localBranches || []) as BranchModel[], [repoCache?.localBranches]);
-  const remoteBranches = useMemo(() => (repoCache?.remoteBranches || []) as BranchModel[], [repoCache?.remoteBranches]);
-  const worktrees = useMemo(() => repoCache?.worktrees || [], [repoCache?.worktrees]);
-  const stagedChanges = useMemo(() => repoCache?.changes?.stagedChanges || [], [repoCache?.changes?.stagedChanges]);
-  const unstagedChanges = useMemo(() => repoCache?.changes?.unstagedChanges || [], [repoCache?.changes?.unstagedChanges]);
+  const branches = (useRepositoryStore((state) => state.repoCache[repoPath]?.localBranches) ?? _EMPTY_ARR) as BranchModel[];
+  const remoteBranches = (useRepositoryStore((state) => state.repoCache[repoPath]?.remoteBranches) ?? _EMPTY_ARR) as BranchModel[];
+  const worktrees = useRepositoryStore((state) => state.repoCache[repoPath]?.worktrees) ?? _EMPTY_ARR;
+  const stagedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.changes?.stagedChanges) ?? _EMPTY_ARR;
+  const unstagedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.changes?.unstagedChanges) ?? _EMPTY_ARR;
   const branchNamePrefix = useSettingsStore((state) => state.settings.branchNamePrefix);
 
   const {

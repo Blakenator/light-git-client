@@ -18,12 +18,52 @@ Card components receive `repoPath` as their primary prop and manage their own da
 <StashesCard repoPath={repoPath} />
 ```
 
-Inside the card, use Zustand selectors for data and domain hooks for actions:
+## Zustand Repository Store Selectors (CRITICAL)
+
+`updateRepoCache` spreads the existing cache (`{ ...existing, ...data }`), creating a **new object reference** every time ANY field changes. Selectors that return the whole cache object cause every subscribed component to re-render on every update — even unrelated ones like a checkbox toggling `selectedStagedChanges`.
+
+### In components that RENDER data: use specific field selectors
 
 ```tsx
+// Stable empty default at module level (outside the component)
+const _EMPTY_ARR: any[] = [];
+
+// BAD: re-renders on ANY cache field change (causes multi-second UI freezes)
 const repoCache = useRepositoryStore((s) => s.getCacheFor(repoPath));
 const stashes = useMemo(() => repoCache?.stashes || [], [repoCache?.stashes]);
-const { handleApplyStash, handleDeleteStash } = useStashActions(repoPath);
+
+// GOOD: only re-renders when `stashes` reference actually changes
+const stashes = useRepositoryStore((s) => s.repoCache[repoPath]?.stashes) ?? _EMPTY_ARR;
+```
+
+Use a module-level `_EMPTY_ARR` / `_EMPTY_OBJ` constant as the fallback so `??` returns a stable reference when the field is undefined.
+
+### In hooks that only read cache in callbacks: use imperative `getState()`
+
+When a hook only reads cache data inside `useCallback` handlers (not during render), don't subscribe at all — use `getState()` for zero re-renders:
+
+```ts
+// BAD: subscribes to entire cache, triggers re-renders, only to feed a ref
+const repoCache = useRepositoryStore((s) => s.getCacheFor(repoPath));
+const repoCacheRef = useRef(repoCache);
+repoCacheRef.current = repoCache;
+// ... later in a callback: repoCacheRef.current?.stashes
+
+// GOOD: no subscription, no re-renders, always fresh data
+const getCache = () => useRepositoryStore.getState().repoCache[repoPath];
+// ... later in a callback: getCache()?.stashes
+```
+
+### For derived/content-based keys: compute inside the selector
+
+When you need a stable value derived from array contents (e.g., for `useEffect` deps), compute it inside the selector so Zustand's `Object.is` check returns a stable string:
+
+```ts
+const stagedKey = useRepositoryStore((state) => {
+  const arr = state.repoCache[repoPath]?.changes?.stagedChanges;
+  if (!arr || arr.length === 0) return '';
+  return arr.map((c: any) => `${c.file}:${c.change}`).join(',');
+});
 ```
 
 ## Domain Hooks
@@ -32,7 +72,7 @@ Group related handlers into a single hook per domain (e.g. `useBranchActions`, `
 
 - One hook per domain, not per card. Hooks may be shared across cards.
 - Hooks accept `repoPath` and return stable callbacks via `useCallback`.
-- Use refs for values that callbacks read at call-time to avoid dependency churn.
+- Prefer `getState()` over reactive subscriptions when data is only read inside callbacks.
 
 ## Shared View State (`repoViewStore`)
 

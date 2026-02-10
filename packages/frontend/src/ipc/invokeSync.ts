@@ -39,5 +39,6 @@ export async function invokeSync<C extends SYNC_CHANNELS>(
     throw AppError.fromJSON(response.error);
   }
 
-  return response.content ? JSON.parse(response.content) : undefined;
+  const result = response.content ? JSON.parse(response.content) : undefined;
+  return result;
 }

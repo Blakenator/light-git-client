@@ -3,6 +3,9 @@ import { useSettingsStore, useUiStore } from '../../../stores';
 import { useGitService } from '../../../ipc';
 import { useRepositoryStore } from '../../../stores';
 
+/** Imperative read of repo cache (no subscription, no re-renders). */
+const getRepoCache = (repoPath: string) => useRepositoryStore.getState().repoCache[repoPath];
+
 /**
  * Normalizes a watcher from either the shared CodeWatcherModel (regex/regexFlags/activeFilter)
  * or the React settings model (pattern/flags/filePattern) into a common shape.
@@ -48,10 +51,6 @@ export function useCodeWatcherAnalysis(repoPath: string) {
   const settingsRef = useRef(useSettingsStore.getState().settings);
   // Keep ref fresh without re-renders
   settingsRef.current = useSettingsStore.getState().settings;
-
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const repoCacheRef = useRef(repoCache);
-  repoCacheRef.current = repoCache;
 
   /**
    * Extract text from a hunk's lines for pattern matching.
@@ -176,7 +175,7 @@ export function useCodeWatcherAnalysis(repoPath: string) {
 
     try {
       // Get the staged files from the repo cache
-      const stagedChanges = repoCacheRef.current?.changes?.stagedChanges || [];
+      const stagedChanges = getRepoCache(repoPath)?.changes?.stagedChanges || [];
       if (stagedChanges.length === 0) {
         setWatcherAlerts([]);
         return [];

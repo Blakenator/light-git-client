@@ -4,6 +4,7 @@ import { useGitService } from '../../../ipc';
 import {
   detectRemoteMessage,
   detectSubmoduleCheckout,
+  getIpcErrorMessage,
 } from '../../../utils/warningDetectors';
 
 /**
@@ -29,11 +30,12 @@ export function useRepoTitleActions(
       await gitService.push(branch, force);
       addAlert('Push successful', 'success');
     } catch (error: any) {
-      const remoteMsg = detectRemoteMessage(error.message || '');
+      const errorMsg = getIpcErrorMessage(error);
+      const remoteMsg = detectRemoteMessage(errorMsg);
       if (remoteMsg) {
         addAlert(remoteMsg.message, 'info', 0);
       } else {
-        addAlert(`Push failed: ${error.message}`, 'error');
+        addAlert(`Push failed: ${errorMsg}`, 'error');
       }
     }
   }, [gitService, addAlert]);

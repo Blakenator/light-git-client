@@ -1,6 +1,19 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from 'react';
 import styled from 'styled-components';
-import { Button, ButtonGroup, Form, Badge, Alert, Tooltip } from 'react-bootstrap';
+import {
+  Button,
+  ButtonGroup,
+  Form,
+  Badge,
+  Alert,
+  Tooltip,
+} from 'react-bootstrap';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import hljs from 'highlight.js';
 
@@ -442,7 +455,7 @@ interface DiffViewerProps {
   onHunkChange?: (
     filename: string,
     hunk: DiffHunk,
-    newContent: string
+    newContent: string,
   ) => Promise<void>;
   onHunkChangeError?: (error: Error) => void;
 }
@@ -552,15 +565,21 @@ const highlightLines = (texts: string[], language: string): string[] => {
   if (texts.length === 0) return [];
   try {
     const block = texts.join('\n');
-    const highlighted = hljs.highlight(block, { language, ignoreIllegals: true }).value;
-    return splitHighlightedHtml(highlighted);
+    const highlighted = hljs.highlight(block, {
+      language,
+      ignoreIllegals: true,
+    }).value;
+    const result = splitHighlightedHtml(highlighted);
+    return result;
   } catch {
     return texts.map(escapeHtml);
   }
 };
 
 // Parse raw @@ hunk header into a readable description
-const parseHunkHeader = (header: string): { lineInfo: string; context: string; raw: string } => {
+const parseHunkHeader = (
+  header: string,
+): { lineInfo: string; context: string; raw: string } => {
   const match = header.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)/);
   if (!match) return { lineInfo: header, context: '', raw: header };
 
@@ -583,589 +602,712 @@ const parseHunkHeader = (header: string): { lineInfo: string; context: string; r
   return { lineInfo, context, raw: header };
 };
 
-export const DiffViewer: React.FC<DiffViewerProps> = React.memo(({
-  diffHeaders,
-  commitInfo,
-  ignoreWhitespace = false,
-  isReadOnly = false,
-  hasMore = false,
-  isLoadingMore = false,
-  onIgnoreWhitespaceClick,
-  onExitCommitView,
-  onNavigateToHash,
-  onHunkChange,
-  onHunkChangeError,
-}) => {
-  const [expandedFiles, setExpandedFiles] = useState<{ [key: string]: boolean }>({});
-  const [showAllHunks, setShowAllHunks] = useState<{ [key: string]: boolean }>({});
-  const [filter, setFilter] = useState('');
-  const [editingHunk, setEditingHunk] = useState<{
-    filename: string;
-    hunkIndex: number;
-  } | null>(null);
-  const [editedContent, setEditedContent] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const editorRef = useRef<HTMLTextAreaElement>(null);
-  const highlightRef = useRef<HTMLPreElement>(null);
+export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
+  ({
+    diffHeaders,
+    commitInfo,
+    ignoreWhitespace = false,
+    isReadOnly = false,
+    hasMore = false,
+    isLoadingMore = false,
+    onIgnoreWhitespaceClick,
+    onExitCommitView,
+    onNavigateToHash,
+    onHunkChange,
+    onHunkChangeError,
+  }) => {
+    const [expandedFiles, setExpandedFiles] = useState<{
+      [key: string]: boolean;
+    }>({});
+    const [showAllHunks, setShowAllHunks] = useState<{
+      [key: string]: boolean;
+    }>({});
+    const [filter, setFilter] = useState('');
+    const [editingHunk, setEditingHunk] = useState<{
+      filename: string;
+      hunkIndex: number;
+    } | null>(null);
+    const [editedContent, setEditedContent] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const editorRef = useRef<HTMLTextAreaElement>(null);
+    const highlightRef = useRef<HTMLPreElement>(null);
 
-  // Sync scroll between textarea and highlight layer
-  const handleEditorScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
-    if (highlightRef.current) {
-      highlightRef.current.scrollTop = e.currentTarget.scrollTop;
-      highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
-    }
-  }, []);
+    // Sync scroll between textarea and highlight layer
+    const handleEditorScroll = useCallback(
+      (e: React.UIEvent<HTMLTextAreaElement>) => {
+        if (highlightRef.current) {
+          highlightRef.current.scrollTop = e.currentTarget.scrollTop;
+          highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }
+      },
+      [],
+    );
 
-  // Focus editor when editing starts
-  useEffect(() => {
-    if (editingHunk && editorRef.current) {
-      editorRef.current.focus();
-    }
-  }, [editingHunk]);
-
-  // Compute overall diff stats
-  const diffStats = useMemo(() => {
-    let totalAdditions = 0;
-    let totalDeletions = 0;
-    let addedFiles = 0;
-    let deletedFiles = 0;
-    let modifiedFiles = 0;
-    let renamedFiles = 0;
-
-    for (const header of diffHeaders) {
-      totalAdditions += header.additions || 0;
-      totalDeletions += header.deletions || 0;
-      switch (header.action) {
-        case 'Added':
-          addedFiles++;
-          break;
-        case 'Deleted':
-          deletedFiles++;
-          break;
-        case 'Renamed':
-          renamedFiles++;
-          break;
-        default:
-          modifiedFiles++;
-          break;
+    // Focus editor when editing starts
+    useEffect(() => {
+      if (editingHunk && editorRef.current) {
+        editorRef.current.focus();
       }
-    }
-    return {
-      totalAdditions,
-      totalDeletions,
-      totalFiles: diffHeaders.length,
-      addedFiles,
-      deletedFiles,
-      modifiedFiles,
-      renamedFiles,
-    };
-  }, [diffHeaders]);
+    }, [editingHunk]);
 
-  // Filter diff headers
-  const filteredHeaders = useMemo(() => {
-    let headers = diffHeaders;
-    if (filter) {
-      const lowerFilter = filter.toLowerCase();
-      headers = headers.filter(
-        (h) =>
-          h.fromFilename.toLowerCase().includes(lowerFilter) ||
-          h.toFilename.toLowerCase().includes(lowerFilter)
+    // Compute overall diff stats
+    const diffStats = useMemo(() => {
+      let totalAdditions = 0;
+      let totalDeletions = 0;
+      let addedFiles = 0;
+      let deletedFiles = 0;
+      let modifiedFiles = 0;
+      let renamedFiles = 0;
+
+      for (const header of diffHeaders) {
+        totalAdditions += header.additions || 0;
+        totalDeletions += header.deletions || 0;
+        switch (header.action) {
+          case 'Added':
+            addedFiles++;
+            break;
+          case 'Deleted':
+            deletedFiles++;
+            break;
+          case 'Renamed':
+            renamedFiles++;
+            break;
+          default:
+            modifiedFiles++;
+            break;
+        }
+      }
+      return {
+        totalAdditions,
+        totalDeletions,
+        totalFiles: diffHeaders.length,
+        addedFiles,
+        deletedFiles,
+        modifiedFiles,
+        renamedFiles,
+      };
+    }, [diffHeaders]);
+
+    // Filter diff headers
+    const filteredHeaders = useMemo(() => {
+      let headers = diffHeaders;
+      if (filter) {
+        const lowerFilter = filter.toLowerCase();
+        headers = headers.filter(
+          (h) =>
+            h.fromFilename.toLowerCase().includes(lowerFilter) ||
+            h.toFilename.toLowerCase().includes(lowerFilter),
+        );
+      }
+      // Sort by staged state (staged first), then file path ASC
+      return [...headers].sort((a, b) => {
+        const aStaged = a.stagedState?.toLowerCase() === 'staged';
+        const bStaged = b.stagedState?.toLowerCase() === 'staged';
+        if (aStaged !== bStaged) return aStaged ? -1 : 1;
+        return a.toFilename.localeCompare(b.toFilename);
+      });
+    }, [diffHeaders, filter]);
+
+    // Group by staged state (backend sends capitalized 'Staged'/'Unstaged')
+    const { stagedHeaders, unstagedHeaders } = useMemo(() => {
+      const staged = filteredHeaders.filter(
+        (h) => h.stagedState?.toLowerCase() === 'staged',
       );
-    }
-    // Sort by staged state (staged first), then file path ASC
-    return [...headers].sort((a, b) => {
-      const aStaged = a.stagedState?.toLowerCase() === 'staged';
-      const bStaged = b.stagedState?.toLowerCase() === 'staged';
-      if (aStaged !== bStaged) return aStaged ? -1 : 1;
-      return a.toFilename.localeCompare(b.toFilename);
-    });
-  }, [diffHeaders, filter]);
+      const unstaged = filteredHeaders.filter(
+        (h) => h.stagedState?.toLowerCase() !== 'staged',
+      );
+      return { stagedHeaders: staged, unstagedHeaders: unstaged };
+    }, [filteredHeaders]);
 
-  // Group by staged state (backend sends capitalized 'Staged'/'Unstaged')
-  const { stagedHeaders, unstagedHeaders } = useMemo(() => {
-    const staged = filteredHeaders.filter((h) => h.stagedState?.toLowerCase() === 'staged');
-    const unstaged = filteredHeaders.filter((h) => h.stagedState?.toLowerCase() !== 'staged');
-    return { stagedHeaders: staged, unstagedHeaders: unstaged };
-  }, [filteredHeaders]);
+    const isExpanded = useCallback(
+      (fileName: string, header: DiffHeaderModel) => {
+        if (expandedFiles[fileName] !== undefined) {
+          return expandedFiles[fileName];
+        }
+        const totalLines = header.hunks.reduce(
+          (sum, h) => sum + h.lines.length,
+          0,
+        );
+        return totalLines < MAX_LINES_PER_FILE && header.action !== 'Deleted';
+      },
+      [expandedFiles],
+    );
 
-  const isExpanded = useCallback(
-    (fileName: string, header: DiffHeaderModel) => {
-      if (expandedFiles[fileName] !== undefined) {
-        return expandedFiles[fileName];
+    const toggleFile = useCallback(
+      (fileName: string, header: DiffHeaderModel) => {
+        setExpandedFiles((prev) => ({
+          ...prev,
+          [fileName]: !isExpanded(fileName, header),
+        }));
+      },
+      [isExpanded],
+    );
+
+    const getEditableCode = useCallback((hunk: DiffHunk): string => {
+      return hunk.lines
+        .filter((line) => line.state !== LineState.REMOVED)
+        .map((line) => line.text)
+        .join('\n');
+    }, []);
+
+    const getOriginalCode = useCallback((hunk: DiffHunk): string => {
+      return hunk.lines
+        .filter((line) => line.state !== LineState.ADDED)
+        .map((line) => line.text)
+        .join('\n');
+    }, []);
+
+    const startEdit = useCallback(
+      (filename: string, hunkIndex: number, hunk: DiffHunk) => {
+        setEditingHunk({ filename, hunkIndex });
+        setEditedContent(getEditableCode(hunk));
+      },
+      [getEditableCode],
+    );
+
+    const cancelEdit = useCallback(() => {
+      setEditingHunk(null);
+      setEditedContent('');
+    }, []);
+
+    const saveEdit = useCallback(async () => {
+      if (!editingHunk || !onHunkChange) return;
+
+      const header = diffHeaders.find(
+        (h) => h.toFilename === editingHunk.filename,
+      );
+      if (!header) return;
+
+      const hunk = header.hunks[editingHunk.hunkIndex];
+      if (!hunk) return;
+
+      if (editedContent === getEditableCode(hunk)) {
+        cancelEdit();
+        return;
       }
-      const totalLines = header.hunks.reduce((sum, h) => sum + h.lines.length, 0);
-      return totalLines < MAX_LINES_PER_FILE && header.action !== 'Deleted';
-    },
-    [expandedFiles]
-  );
 
-  const toggleFile = useCallback((fileName: string, header: DiffHeaderModel) => {
-    setExpandedFiles((prev) => ({
-      ...prev,
-      [fileName]: !isExpanded(fileName, header),
-    }));
-  }, [isExpanded]);
-
-  const getEditableCode = useCallback((hunk: DiffHunk): string => {
-    return hunk.lines
-      .filter((line) => line.state !== LineState.REMOVED)
-      .map((line) => line.text)
-      .join('\n');
-  }, []);
-
-  const getOriginalCode = useCallback((hunk: DiffHunk): string => {
-    return hunk.lines
-      .filter((line) => line.state !== LineState.ADDED)
-      .map((line) => line.text)
-      .join('\n');
-  }, []);
-
-  const startEdit = useCallback(
-    (filename: string, hunkIndex: number, hunk: DiffHunk) => {
-      setEditingHunk({ filename, hunkIndex });
-      setEditedContent(getEditableCode(hunk));
-    },
-    [getEditableCode]
-  );
-
-  const cancelEdit = useCallback(() => {
-    setEditingHunk(null);
-    setEditedContent('');
-  }, []);
-
-  const saveEdit = useCallback(async () => {
-    if (!editingHunk || !onHunkChange) return;
-
-    const header = diffHeaders.find((h) => h.toFilename === editingHunk.filename);
-    if (!header) return;
-
-    const hunk = header.hunks[editingHunk.hunkIndex];
-    if (!hunk) return;
-
-    if (editedContent === getEditableCode(hunk)) {
-      cancelEdit();
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await onHunkChange(editingHunk.filename, hunk, editedContent);
-      cancelEdit();
-    } catch (error) {
-      onHunkChangeError?.(error as Error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [editingHunk, editedContent, diffHeaders, getEditableCode, onHunkChange, onHunkChangeError, cancelEdit]);
-
-  const undoHunk = useCallback(
-    async (filename: string, hunkIndex: number, hunk: DiffHunk) => {
-      if (!onHunkChange) return;
-
-      const originalCode = getOriginalCode(hunk);
       setIsSaving(true);
       try {
-        await onHunkChange(filename, hunk, originalCode);
+        await onHunkChange(editingHunk.filename, hunk, editedContent);
+        cancelEdit();
       } catch (error) {
         onHunkChangeError?.(error as Error);
       } finally {
         setIsSaving(false);
       }
-    },
-    [getOriginalCode, onHunkChange, onHunkChangeError]
-  );
+    }, [
+      editingHunk,
+      editedContent,
+      diffHeaders,
+      getEditableCode,
+      onHunkChange,
+      onHunkChangeError,
+      cancelEdit,
+    ]);
 
-  const handleEditorKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        cancelEdit();
-      }
-    },
-    [cancelEdit]
-  );
+    const undoHunk = useCallback(
+      async (filename: string, hunkIndex: number, hunk: DiffHunk) => {
+        if (!onHunkChange) return;
 
-  const copyFilename = useCallback((filename: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(filename);
-  }, []);
-
-  const getLineType = (state: LineState): 'add' | 'delete' | 'context' | 'header' => {
-    switch (state) {
-      case LineState.ADDED:
-        return 'add';
-      case LineState.REMOVED:
-        return 'delete';
-      default:
-        return 'context';
-    }
-  };
-
-  const renderFileNameSplit = (filename: string) => {
-    const parts = filename.split('/');
-    const file = parts.pop() || '';
-    return (
-      <>
-        {parts.map((part, i) => (
-          <PathSegment key={i} bg="secondary" className="me-1">
-            {part}
-          </PathSegment>
-        ))}
-        <FileName>{file}</FileName>
-      </>
-    );
-  };
-
-  const renderFileHeader = (header: DiffHeaderModel) => {
-    const displayName = header.fromFilename !== header.toFilename
-      ? `${header.fromFilename} → ${header.toFilename}`
-      : header.toFilename;
-
-    return (
-      <DiffHeader onClick={() => toggleFile(header.toFilename, header)}>
-        <Icon
-          name={isExpanded(header.toFilename, header) ? 'fa-chevron-down' : 'fa-chevron-right'}
-          size="sm"
-        />
-        <TooltipTrigger
-          placement="top"
-          overlay={<Tooltip id={`tooltip-filename-${header.toFilename}`}>{displayName}</Tooltip>}
-        >
-          <FileNameContainer>
-            {renderFileNameSplit(header.toFilename)}
-          </FileNameContainer>
-        </TooltipTrigger>
-        <TooltipTrigger
-          placement="top"
-          overlay={<Tooltip id={`tooltip-copy-filename-${header.toFilename}`}>Copy filename</Tooltip>}
-        >
-          <CopyButton
-            variant="link"
-            size="sm"
-            onClick={(e) => copyFilename(header.toFilename, e)}
-          >
-            <Icon name="fa-copy" size="sm" />
-          </CopyButton>
-        </TooltipTrigger>
-        {header.action && (
-          <ActionBadge $action={header.action}>{header.action}</ActionBadge>
-        )}
-        <DiffStats>
-          <Additions>+{header.additions}</Additions>
-          <Deletions>-{header.deletions}</Deletions>
-        </DiffStats>
-      </DiffHeader>
-    );
-  };
-
-  const renderHunks = (header: DiffHeaderModel) => {
-    const showAll = showAllHunks[header.toFilename];
-    let totalLines = 0;
-    let truncatedHunks = header.hunks;
-    let isTruncated = false;
-
-    if (!showAll) {
-      truncatedHunks = [];
-      for (const hunk of header.hunks) {
-        if (totalLines + hunk.lines.length > MAX_LINES_PER_FILE) {
-          isTruncated = true;
-          break;
+        const originalCode = getOriginalCode(hunk);
+        setIsSaving(true);
+        try {
+          await onHunkChange(filename, hunk, originalCode);
+        } catch (error) {
+          onHunkChangeError?.(error as Error);
+        } finally {
+          setIsSaving(false);
         }
-        truncatedHunks.push(hunk);
-        totalLines += hunk.lines.length;
-      }
-    }
-
-    return (
-      <>
-        {truncatedHunks.map((hunk, hunkIndex) => {
-          const isEditing =
-            editingHunk?.filename === header.toFilename &&
-            editingHunk?.hunkIndex === hunkIndex;
-
-          return (
-            <HunkContainer key={hunkIndex}>
-              <HunkHeader>
-                {(() => {
-                  const parsed = parseHunkHeader(hunk.header);
-                  return (
-                    <TooltipTrigger
-                      placement="bottom"
-                      overlay={<Tooltip id={`tooltip-hunk-header-${header.toFilename}-${hunkIndex}`}>{parsed.raw}</Tooltip>}
-                    >
-                      <HunkHeaderText>
-                        <HunkHeaderLines>{parsed.lineInfo}</HunkHeaderLines>
-                        {parsed.context && <HunkHeaderContext>{parsed.context}</HunkHeaderContext>}
-                      </HunkHeaderText>
-                    </TooltipTrigger>
-                  );
-                })()}
-                {!isReadOnly && !commitInfo && onHunkChange && !isEditing && (
-                  <HunkActions>
-                    <TooltipTrigger
-                      placement="top"
-                      overlay={<Tooltip id={`tooltip-edit-hunk-${header.toFilename}-${hunkIndex}`}>Edit this hunk</Tooltip>}
-                    >
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEdit(header.toFilename, hunkIndex, hunk);
-                        }}
-                        disabled={isSaving}
-                      >
-                        <Icon name="edit" size="sm" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipTrigger
-                      placement="top"
-                      overlay={<Tooltip id={`tooltip-undo-hunk-${header.toFilename}-${hunkIndex}`}>Undo this hunk</Tooltip>}
-                    >
-                      <Button
-                        variant="outline-warning"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          undoHunk(header.toFilename, hunkIndex, hunk);
-                        }}
-                        disabled={isSaving}
-                      >
-                        <Icon name="fa-undo" size="sm" />
-                      </Button>
-                    </TooltipTrigger>
-                  </HunkActions>
-                )}
-              </HunkHeader>
-
-              {isEditing ? (
-                <>
-                  <HunkEditorContainer>
-                    <HunkEditorHighlight ref={highlightRef}>
-                      <code
-                        dangerouslySetInnerHTML={{
-                          __html: hljs.highlight(editedContent || ' ', {
-                            language: getLanguageFromFilename(header.toFilename),
-                            ignoreIllegals: true,
-                          }).value,
-                        }}
-                      />
-                    </HunkEditorHighlight>
-                    <HunkEditorTextarea
-                      ref={editorRef}
-                      value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
-                      onKeyDown={handleEditorKeyDown}
-                      onScroll={handleEditorScroll}
-                      disabled={isSaving}
-                      spellCheck={false}
-                    />
-                  </HunkEditorContainer>
-                  <HunkEditorActions>
-                    <Button variant="secondary" size="sm" onClick={cancelEdit} disabled={isSaving}>
-                      Cancel (Esc)
-                    </Button>
-                    <Button variant="primary" size="sm" onClick={saveEdit} disabled={isSaving}>
-                      {isSaving ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </HunkEditorActions>
-                </>
-              ) : (
-                <HunkLines>
-                  {(() => {
-                    const lang = getLanguageFromFilename(header.toFilename);
-                    const highlightedHtml = highlightLines(
-                      hunk.lines.map((l) => l.text),
-                      lang,
-                    );
-                    return hunk.lines.map((line, lineIndex) => {
-                      const prefix =
-                        line.state === LineState.ADDED ? '+' :
-                        line.state === LineState.REMOVED ? '-' : ' ';
-                      return (
-                        <DiffLine key={lineIndex} $type={getLineType(line.state)}>
-                          <LineNumber>
-                            {line.state !== LineState.ADDED ? line.oldLineNumber : ''}
-                          </LineNumber>
-                          <LineNumber>
-                            {line.state !== LineState.REMOVED ? line.newLineNumber : ''}
-                          </LineNumber>
-                          <LineContent>
-                            <LinePrefix>{prefix}</LinePrefix>
-                            <span dangerouslySetInnerHTML={{ __html: highlightedHtml[lineIndex] || '' }} />
-                          </LineContent>
-                        </DiffLine>
-                      );
-                    });
-                  })()}
-                </HunkLines>
-              )}
-            </HunkContainer>
-          );
-        })}
-        {isTruncated && (
-          <TruncationWarning>
-            Too many changed lines, remaining hunks hidden...{' '}
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => setShowAllHunks((prev) => ({ ...prev, [header.toFilename]: true }))}
-            >
-              Show All
-            </Button>
-          </TruncationWarning>
-        )}
-      </>
+      },
+      [getOriginalCode, onHunkChange, onHunkChangeError],
     );
-  };
 
-  const renderFile = (header: DiffHeaderModel) => (
-    <div key={header.toFilename}>
-      {renderFileHeader(header)}
-      {isExpanded(header.toFilename, header) && (
-        <div>
-          {header.hunks.length > 0 ? (
-            renderHunks(header)
-          ) : (
-            <div className="text-muted text-center py-2">No differences detected</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+    const handleEditorKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          cancelEdit();
+        }
+      },
+      [cancelEdit],
+    );
 
-  return (
-    <DiffContainer>
-      {commitInfo && (
-        <CommitInfoContainer>
+    const copyFilename = useCallback(
+      (filename: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(filename);
+      },
+      [],
+    );
+
+    const getLineType = (
+      state: LineState,
+    ): 'add' | 'delete' | 'context' | 'header' => {
+      switch (state) {
+        case LineState.ADDED:
+          return 'add';
+        case LineState.REMOVED:
+          return 'delete';
+        default:
+          return 'context';
+      }
+    };
+
+    const renderFileNameSplit = (filename: string) => {
+      const parts = filename.split('/');
+      const file = parts.pop() || '';
+      return (
+        <>
+          {parts.map((part, i) => (
+            <PathSegment key={i} bg="secondary" className="me-1">
+              {part}
+            </PathSegment>
+          ))}
+          <FileName>{file}</FileName>
+        </>
+      );
+    };
+
+    const renderFileHeader = (header: DiffHeaderModel) => {
+      const displayName =
+        header.fromFilename !== header.toFilename
+          ? `${header.fromFilename} → ${header.toFilename}`
+          : header.toFilename;
+
+      return (
+        <DiffHeader onClick={() => toggleFile(header.toFilename, header)}>
+          <Icon
+            name={
+              isExpanded(header.toFilename, header)
+                ? 'fa-chevron-down'
+                : 'fa-chevron-right'
+            }
+            size="sm"
+          />
           <TooltipTrigger
             placement="top"
-            overlay={<Tooltip id="tooltip-close-diff-view">Close diff view</Tooltip>}
+            overlay={
+              <Tooltip id={`tooltip-filename-${header.toFilename}`}>
+                {displayName}
+              </Tooltip>
+            }
           >
-            <CloseButton variant="outline-secondary" size="sm" onClick={onExitCommitView}>
-              <Icon name="fa-times" />
-            </CloseButton>
+            <FileNameContainer>
+              {renderFileNameSplit(header.toFilename)}
+            </FileNameContainer>
           </TooltipTrigger>
-          <CommitInfoHeader>
-            <CommitHash>{commitInfo.hash.substring(0, 8)}</CommitHash>
-            {commitInfo.tags?.map((tag) => (
-              <Badge key={tag} bg="info" className="me-1">
-                {tag}
-              </Badge>
-            ))}
-          </CommitInfoHeader>
-          <CommitMessage>{commitInfo.message}</CommitMessage>
-          <CommitMeta>
-            <span>
-              <Icon name="fa-user" size="sm" className="me-1" />
-              {commitInfo.author}
-            </span>
-            <span>
-              <Icon name="fa-clock" size="sm" className="me-1" />
-              {commitInfo.date?new Date(commitInfo.date).toLocaleString():'Missing Date'
-                }
-            </span>
-          </CommitMeta>
-          {commitInfo.parents && commitInfo.parents.length > 0 && (
-            <ParentButtons>
-              <span className="text-muted me-2">Parents:</span>
-              {commitInfo.parents.map((parent, i) => (
-                <Button
-                  key={parent}
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={() => onNavigateToHash?.(parent)}
-                >
-                  {parent.substring(0, 8)}
-                </Button>
-              ))}
-            </ParentButtons>
+          <TooltipTrigger
+            placement="top"
+            overlay={
+              <Tooltip id={`tooltip-copy-filename-${header.toFilename}`}>
+                Copy filename
+              </Tooltip>
+            }
+          >
+            <CopyButton
+              variant="link"
+              size="sm"
+              onClick={(e) => copyFilename(header.toFilename, e)}
+            >
+              <Icon name="fa-copy" size="sm" />
+            </CopyButton>
+          </TooltipTrigger>
+          {header.action && (
+            <ActionBadge $action={header.action}>{header.action}</ActionBadge>
           )}
-        </CommitInfoContainer>
-      )}
+          <DiffStats>
+            <Additions>+{header.additions}</Additions>
+            <Deletions>-{header.deletions}</Deletions>
+          </DiffStats>
+        </DiffHeader>
+      );
+    };
 
-      <DiffToolbar>
-        <FilterInput
-          size="sm"
-          placeholder="Filter files..."
-          value={filter}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilter(e.target.value)}
-        />
-        {filter && (
-          <Badge bg="secondary" className="me-2">
-            {filteredHeaders.length} of {diffHeaders.length}
-          </Badge>
+    const renderHunks = (header: DiffHeaderModel) => {
+      const showAll = showAllHunks[header.toFilename];
+      let totalLines = 0;
+      let truncatedHunks = header.hunks;
+      let isTruncated = false;
+
+      if (!showAll) {
+        truncatedHunks = [];
+        for (const hunk of header.hunks) {
+          if (totalLines + hunk.lines.length > MAX_LINES_PER_FILE) {
+            isTruncated = true;
+            break;
+          }
+          truncatedHunks.push(hunk);
+          totalLines += hunk.lines.length;
+        }
+      }
+
+      return (
+        <>
+          {truncatedHunks.map((hunk, hunkIndex) => {
+            const isEditing =
+              editingHunk?.filename === header.toFilename &&
+              editingHunk?.hunkIndex === hunkIndex;
+
+            return (
+              <HunkContainer key={hunkIndex}>
+                <HunkHeader>
+                  {(() => {
+                    const parsed = parseHunkHeader(hunk.header);
+                    return (
+                      <TooltipTrigger
+                        placement="bottom"
+                        overlay={
+                          <Tooltip
+                            id={`tooltip-hunk-header-${header.toFilename}-${hunkIndex}`}
+                          >
+                            {parsed.raw}
+                          </Tooltip>
+                        }
+                      >
+                        <HunkHeaderText>
+                          <HunkHeaderLines>{parsed.lineInfo}</HunkHeaderLines>
+                          {parsed.context && (
+                            <HunkHeaderContext>
+                              {parsed.context}
+                            </HunkHeaderContext>
+                          )}
+                        </HunkHeaderText>
+                      </TooltipTrigger>
+                    );
+                  })()}
+                  {!isReadOnly && !commitInfo && onHunkChange && !isEditing && (
+                    <HunkActions>
+                      <TooltipTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip
+                            id={`tooltip-edit-hunk-${header.toFilename}-${hunkIndex}`}
+                          >
+                            Edit this hunk
+                          </Tooltip>
+                        }
+                      >
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEdit(header.toFilename, hunkIndex, hunk);
+                          }}
+                          disabled={isSaving}
+                        >
+                          <Icon name="edit" size="sm" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip
+                            id={`tooltip-undo-hunk-${header.toFilename}-${hunkIndex}`}
+                          >
+                            Undo this hunk
+                          </Tooltip>
+                        }
+                      >
+                        <Button
+                          variant="outline-warning"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            undoHunk(header.toFilename, hunkIndex, hunk);
+                          }}
+                          disabled={isSaving}
+                        >
+                          <Icon name="fa-undo" size="sm" />
+                        </Button>
+                      </TooltipTrigger>
+                    </HunkActions>
+                  )}
+                </HunkHeader>
+
+                {isEditing ? (
+                  <>
+                    <HunkEditorContainer>
+                      <HunkEditorHighlight ref={highlightRef}>
+                        <code
+                          dangerouslySetInnerHTML={{
+                            __html: hljs.highlight(editedContent || ' ', {
+                              language: getLanguageFromFilename(
+                                header.toFilename,
+                              ),
+                              ignoreIllegals: true,
+                            }).value,
+                          }}
+                        />
+                      </HunkEditorHighlight>
+                      <HunkEditorTextarea
+                        ref={editorRef}
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        onKeyDown={handleEditorKeyDown}
+                        onScroll={handleEditorScroll}
+                        disabled={isSaving}
+                        spellCheck={false}
+                      />
+                    </HunkEditorContainer>
+                    <HunkEditorActions>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={cancelEdit}
+                        disabled={isSaving}
+                      >
+                        Cancel (Esc)
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={saveEdit}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                    </HunkEditorActions>
+                  </>
+                ) : (
+                  <HunkLines>
+                    {(() => {
+                      const lang = getLanguageFromFilename(header.toFilename);
+                      const highlightedHtml = highlightLines(
+                        hunk.lines.map((l) => l.text),
+                        lang,
+                      );
+                      return hunk.lines.map((line, lineIndex) => {
+                        const prefix =
+                          line.state === LineState.ADDED
+                            ? '+'
+                            : line.state === LineState.REMOVED
+                              ? '-'
+                              : ' ';
+                        return (
+                          <DiffLine
+                            key={lineIndex}
+                            $type={getLineType(line.state)}
+                          >
+                            <LineNumber>
+                              {line.state !== LineState.ADDED
+                                ? line.oldLineNumber
+                                : ''}
+                            </LineNumber>
+                            <LineNumber>
+                              {line.state !== LineState.REMOVED
+                                ? line.newLineNumber
+                                : ''}
+                            </LineNumber>
+                            <LineContent>
+                              <LinePrefix>{prefix}</LinePrefix>
+                              <span
+                                dangerouslySetInnerHTML={{
+                                  __html: highlightedHtml[lineIndex] || '',
+                                }}
+                              />
+                            </LineContent>
+                          </DiffLine>
+                        );
+                      });
+                    })()}
+                  </HunkLines>
+                )}
+              </HunkContainer>
+            );
+          })}
+          {isTruncated && (
+            <TruncationWarning>
+              Too many changed lines, remaining hunks hidden...{' '}
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() =>
+                  setShowAllHunks((prev) => ({
+                    ...prev,
+                    [header.toFilename]: true,
+                  }))
+                }
+              >
+                Show All
+              </Button>
+            </TruncationWarning>
+          )}
+        </>
+      );
+    };
+
+    const renderFile = (header: DiffHeaderModel) => (
+      <div key={header.toFilename}>
+        {renderFileHeader(header)}
+        {isExpanded(header.toFilename, header) && (
+          <div>
+            {header.hunks.length > 0 ? (
+              renderHunks(header)
+            ) : (
+              <div className="text-muted text-center py-2">
+                No differences detected
+              </div>
+            )}
+          </div>
         )}
-        <Form.Check
-          type="switch"
-          id="ignore-whitespace"
-          label="Ignore Whitespace"
-          checked={ignoreWhitespace}
-          onChange={onIgnoreWhitespaceClick}
-        />
-        {diffHeaders.length > 0 && (
-          <DiffSummary>
-            <span>
-              <SummaryAdditions>+{diffStats.totalAdditions}</SummaryAdditions>
-              {' '}
-              <SummaryDeletions>-{diffStats.totalDeletions}</SummaryDeletions>
-            </span>
+      </div>
+    );
+
+    return (
+      <DiffContainer>
+        {commitInfo && (
+          <CommitInfoContainer>
             <TooltipTrigger
-              placement="bottom"
+              placement="top"
               overlay={
-                <Tooltip id="file-stats-tooltip">
-                  <div>{diffStats.totalFiles} file{diffStats.totalFiles !== 1 ? 's' : ''} total</div>
-                  {diffStats.modifiedFiles > 0 && <div>{diffStats.modifiedFiles} modified</div>}
-                  {diffStats.addedFiles > 0 && <div>{diffStats.addedFiles} added</div>}
-                  {diffStats.deletedFiles > 0 && <div>{diffStats.deletedFiles} deleted</div>}
-                  {diffStats.renamedFiles > 0 && <div>{diffStats.renamedFiles} renamed</div>}
-                </Tooltip>
+                <Tooltip id="tooltip-close-diff-view">Close diff view</Tooltip>
               }
             >
-              <FileCountBadge>
-                <Icon name="fa-file" size="sm" />
-                {diffStats.totalFiles}
-              </FileCountBadge>
+              <CloseButton
+                variant="outline-secondary"
+                size="sm"
+                onClick={onExitCommitView}
+              >
+                <Icon name="fa-times" />
+              </CloseButton>
             </TooltipTrigger>
-          </DiffSummary>
+            <CommitInfoHeader>
+              <CommitHash>{commitInfo.hash.substring(0, 8)}</CommitHash>
+              {commitInfo.tags?.map((tag) => (
+                <Badge key={tag} bg="info" className="me-1">
+                  {tag}
+                </Badge>
+              ))}
+            </CommitInfoHeader>
+            <CommitMessage>{commitInfo.message}</CommitMessage>
+            <CommitMeta>
+              <span>
+                <Icon name="fa-user" size="sm" className="me-1" />
+                {commitInfo.author}
+              </span>
+              <span>
+                <Icon name="fa-clock" size="sm" className="me-1" />
+                {commitInfo.date
+                  ? new Date(commitInfo.date).toLocaleString()
+                  : 'Missing Date'}
+              </span>
+            </CommitMeta>
+            {commitInfo.parents && commitInfo.parents.length > 0 && (
+              <ParentButtons>
+                <span className="text-muted me-2">Parents:</span>
+                {commitInfo.parents.map((parent, i) => (
+                  <Button
+                    key={parent}
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={() => onNavigateToHash?.(parent)}
+                  >
+                    {parent.substring(0, 8)}
+                  </Button>
+                ))}
+              </ParentButtons>
+            )}
+          </CommitInfoContainer>
         )}
-      </DiffToolbar>
 
-      {stagedHeaders.length > 0 && (
-        <>
-          <StagedSeparator variant="info">
-            <Icon name="fa-arrow-down" />
-            <span>Staged Changes</span>
-            <Icon name="fa-arrow-down" />
-          </StagedSeparator>
-          {stagedHeaders.map(renderFile)}
-        </>
-      )}
+        <DiffToolbar>
+          <FilterInput
+            size="sm"
+            placeholder="Filter files..."
+            value={filter}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFilter(e.target.value)
+            }
+          />
+          {filter && (
+            <Badge bg="secondary" className="me-2">
+              {filteredHeaders.length} of {diffHeaders.length}
+            </Badge>
+          )}
+          <Form.Check
+            type="switch"
+            id="ignore-whitespace"
+            label="Ignore Whitespace"
+            checked={ignoreWhitespace}
+            onChange={onIgnoreWhitespaceClick}
+          />
+          {diffHeaders.length > 0 && (
+            <DiffSummary>
+              <span>
+                <SummaryAdditions>+{diffStats.totalAdditions}</SummaryAdditions>{' '}
+                <SummaryDeletions>-{diffStats.totalDeletions}</SummaryDeletions>
+              </span>
+              <TooltipTrigger
+                placement="bottom"
+                overlay={
+                  <Tooltip id="file-stats-tooltip">
+                    <div>
+                      {diffStats.totalFiles} file
+                      {diffStats.totalFiles !== 1 ? 's' : ''} total
+                    </div>
+                    {diffStats.modifiedFiles > 0 && (
+                      <div>{diffStats.modifiedFiles} modified</div>
+                    )}
+                    {diffStats.addedFiles > 0 && (
+                      <div>{diffStats.addedFiles} added</div>
+                    )}
+                    {diffStats.deletedFiles > 0 && (
+                      <div>{diffStats.deletedFiles} deleted</div>
+                    )}
+                    {diffStats.renamedFiles > 0 && (
+                      <div>{diffStats.renamedFiles} renamed</div>
+                    )}
+                  </Tooltip>
+                }
+              >
+                <FileCountBadge>
+                  <Icon name="fa-file" size="sm" />
+                  {diffStats.totalFiles}
+                </FileCountBadge>
+              </TooltipTrigger>
+            </DiffSummary>
+          )}
+        </DiffToolbar>
 
-      {unstagedHeaders.length > 0 && (
-        <>
-          {stagedHeaders.length > 0 && (
-            <StagedSeparator variant="primary">
+        {stagedHeaders.length > 0 && (
+          <>
+            <StagedSeparator variant="info">
               <Icon name="fa-arrow-down" />
-              <span>Unstaged Changes</span>
+              <span>Staged Changes</span>
               <Icon name="fa-arrow-down" />
             </StagedSeparator>
-          )}
-          {unstagedHeaders.map(renderFile)}
-        </>
-      )}
+            {stagedHeaders.map(renderFile)}
+          </>
+        )}
 
-      {filteredHeaders.length === 0 && !hasMore && (
-        <div className="text-muted text-center py-4">No changes to display</div>
-      )}
+        {unstagedHeaders.length > 0 && (
+          <>
+            {stagedHeaders.length > 0 && (
+              <StagedSeparator variant="primary">
+                <Icon name="fa-arrow-down" />
+                <span>Unstaged Changes</span>
+                <Icon name="fa-arrow-down" />
+              </StagedSeparator>
+            )}
+            {unstagedHeaders.map(renderFile)}
+          </>
+        )}
 
-      {hasMore && (
-        <LoadMoreSentinel>
-          {isLoadingMore ? 'Loading more files...' : 'Scroll for more...'}
-        </LoadMoreSentinel>
-      )}
-    </DiffContainer>
-  );
-});
+        {filteredHeaders.length === 0 && !hasMore && (
+          <div className="text-muted text-center py-4">
+            No changes to display
+          </div>
+        )}
+
+        {hasMore && (
+          <LoadMoreSentinel>
+            {isLoadingMore ? 'Loading more files...' : 'Scroll for more...'}
+          </LoadMoreSentinel>
+        )}
+      </DiffContainer>
+    );
+  },
+);
 
 DiffViewer.displayName = 'DiffViewer';
 

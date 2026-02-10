@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useRepositoryStore, useSettingsStore, useUiStore } from '../../../stores';
 import { useGitService } from '../../../ipc';
 import { detectCrlfWarning } from '../../../utils/warningDetectors';
@@ -18,9 +18,10 @@ export function useStagingActions(
   const addAlert = useUiStore((state) => state.addAlert);
   const setCrlfError = useUiStore((state) => state.setCrlfError);
 
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const repoCacheRef = useRef(repoCache);
-  repoCacheRef.current = repoCache;
+  // Read cache imperatively (no reactive subscription) to avoid triggering
+  // re-renders in StagedChangesCard / UnstagedChangesCard when unrelated
+  // cache fields change.
+  const getCache = () => useRepositoryStore.getState().repoCache[repoPath];
 
   const handleStageAll = useCallback(async () => {
     try {
@@ -54,7 +55,7 @@ export function useStagingActions(
 
   const handleStageSelected = useCallback(async () => {
     try {
-      const files = Object.entries(repoCacheRef.current?.selectedUnstagedChanges || {})
+      const files = Object.entries(getCache()?.selectedUnstagedChanges || {})
         .filter(([_, selected]) => selected)
         .map(([file]) => file.replace(/.*?->\s*/, ''));
       if (files.length > 0) {
@@ -74,7 +75,7 @@ export function useStagingActions(
 
   const handleUnstageSelected = useCallback(async () => {
     try {
-      const files = Object.entries(repoCacheRef.current?.selectedStagedChanges || {})
+      const files = Object.entries(getCache()?.selectedStagedChanges || {})
         .filter(([_, selected]) => selected)
         .map(([file]) => file.replace(/.*?->\s*/, ''));
       if (files.length > 0) {
@@ -175,35 +176,45 @@ export function useStagingActions(
   }, [gitService, addAlert]);
 
   const handleSelectStagedChange = useCallback((path: string, selected: boolean) => {
-    const current = repoCacheRef.current;
+    const current = getCache();
     const currentStaged = current?.selectedStagedChanges || {};
     const newStagedChanges = { ...currentStaged, [path]: selected };
     updateRepoCache(repoPath, { selectedStagedChanges: newStagedChanges });
-    refreshSelectedFilesDiff(newStagedChanges, current?.selectedUnstagedChanges || {});
+    const staged = newStagedChanges;
+    const unstaged = current?.selectedUnstagedChanges || {};
+    setTimeout(() => refreshSelectedFilesDiff(staged, unstaged), 0);
   }, [repoPath, updateRepoCache, refreshSelectedFilesDiff]);
 
   const handleSelectUnstagedChange = useCallback((path: string, selected: boolean) => {
-    const current = repoCacheRef.current;
+    const current = getCache();
     const currentUnstaged = current?.selectedUnstagedChanges || {};
     const newUnstagedChanges = { ...currentUnstaged, [path]: selected };
     updateRepoCache(repoPath, { selectedUnstagedChanges: newUnstagedChanges });
-    refreshSelectedFilesDiff(current?.selectedStagedChanges || {}, newUnstagedChanges);
+    const staged = current?.selectedStagedChanges || {};
+    const unstaged = newUnstagedChanges;
+    setTimeout(() => refreshSelectedFilesDiff(staged, unstaged), 0);
   }, [repoPath, updateRepoCache, refreshSelectedFilesDiff]);
 
   const handleBatchSelectStagedChange = useCallback((changes: Record<string, boolean>) => {
-    const current = repoCacheRef.current;
+    const current = getCache();
     const currentStaged = current?.selectedStagedChanges || {};
     const newStagedChanges = { ...currentStaged, ...changes };
     updateRepoCache(repoPath, { selectedStagedChanges: newStagedChanges });
-    refreshSelectedFilesDiff(newStagedChanges, current?.selectedUnstagedChanges || {});
+    // Defer diff refresh so React can paint the selection state immediately
+    const staged = newStagedChanges;
+    const unstaged = current?.selectedUnstagedChanges || {};
+    setTimeout(() => refreshSelectedFilesDiff(staged, unstaged), 0);
   }, [repoPath, updateRepoCache, refreshSelectedFilesDiff]);
 
   const handleBatchSelectUnstagedChange = useCallback((changes: Record<string, boolean>) => {
-    const current = repoCacheRef.current;
+    const current = getCache();
     const currentUnstaged = current?.selectedUnstagedChanges || {};
     const newUnstagedChanges = { ...currentUnstaged, ...changes };
     updateRepoCache(repoPath, { selectedUnstagedChanges: newUnstagedChanges });
-    refreshSelectedFilesDiff(current?.selectedStagedChanges || {}, newUnstagedChanges);
+    // Defer diff refresh so React can paint the selection state immediately
+    const staged = current?.selectedStagedChanges || {};
+    const unstaged = newUnstagedChanges;
+    setTimeout(() => refreshSelectedFilesDiff(staged, unstaged), 0);
   }, [repoPath, updateRepoCache, refreshSelectedFilesDiff]);
 
   const handleSetFilenameSplit = useCallback((split: boolean) => {

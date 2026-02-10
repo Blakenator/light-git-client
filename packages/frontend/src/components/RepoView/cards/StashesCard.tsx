@@ -10,6 +10,8 @@ import { useStashActions } from '../hooks';
 import type { StashModel } from '@light-git/shared';
 import styled from 'styled-components';
 
+const _EMPTY_ARR: any[] = [];
+
 interface StashesCardProps {
   repoPath: string;
 }
@@ -17,9 +19,8 @@ interface StashesCardProps {
 export const StashesCard: React.FC<StashesCardProps> = React.memo(({ repoPath }) => {
   const [filter, setFilter] = useState('');
 
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const stashes = useMemo(() => (repoCache?.stashes || []) as StashModel[], [repoCache?.stashes]);
-  const localBranches = useMemo(() => repoCache?.localBranches || [], [repoCache?.localBranches]);
+  const stashes = (useRepositoryStore((state) => state.repoCache[repoPath]?.stashes) ?? _EMPTY_ARR) as StashModel[];
+  const localBranches = useRepositoryStore((state) => state.repoCache[repoPath]?.localBranches) ?? _EMPTY_ARR;
   const currentBranch = useMemo(
     () => localBranches.find((b: any) => b.isCurrentBranch) || null,
     [localBranches],

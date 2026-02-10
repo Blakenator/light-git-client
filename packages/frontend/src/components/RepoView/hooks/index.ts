@@ -1,5 +1,5 @@
 export { useRepoLifecycle } from './useRepoLifecycle';
-export { useDiffActions, normalizeDiff } from './useDiffActions';
+export { useDiffActions, useDiffFileActions, normalizeDiff } from './useDiffActions';
 export { useBranchActions } from './useBranchActions';
 export type { MergeInfo } from './useBranchActions';
 export { useStagingActions } from './useStagingActions';

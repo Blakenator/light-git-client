@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button, Tooltip } from 'react-bootstrap';
 import { TooltipTrigger } from '@light-git/core';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
@@ -7,6 +7,8 @@ import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoVi
 import { BranchTreeItem } from '../../BranchTreeItem/BranchTreeItem';
 import { useRepositoryStore } from '../../../stores';
 import { useBranchActions } from '../hooks';
+
+const _EMPTY_ARR: any[] = [];
 
 interface RemoteBranchesCardProps {
   repoPath: string;
@@ -17,9 +19,8 @@ export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(
 }) => {
   const [filter, setFilter] = useState('');
 
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const branches = useMemo(() => repoCache?.remoteBranches || [], [repoCache?.remoteBranches]);
-  const localBranches = useMemo(() => repoCache?.localBranches || [], [repoCache?.localBranches]);
+  const branches = useRepositoryStore((state) => state.repoCache[repoPath]?.remoteBranches) ?? _EMPTY_ARR;
+  const localBranches = useRepositoryStore((state) => state.repoCache[repoPath]?.localBranches) ?? _EMPTY_ARR;
 
   const { handleRemoteCheckout, handleDeleteBranch } = useBranchActions(repoPath);
 

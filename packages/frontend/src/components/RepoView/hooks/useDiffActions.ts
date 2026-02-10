@@ -56,33 +56,29 @@ export function normalizeDiff(diffHeaders: any[]): any[] {
   });
 }
 
+// Stable default to avoid new-ref re-renders when currentDiff[repoPath] is undefined
+const _EMPTY_DIFF: any[] = [];
+
+// Module-level state shared between ALL useDiffFileActions instances.
+// This ensures the auto-refresh guard in CommitHistoryCard can see fetches
+// initiated from StagedChangesCard/UnstagedChangesCard file clicks.
+let _diffFetchInProgress = false;
+let _lastDiffFetchEnd = 0;
+
 /**
- * Hook providing diff viewing actions: fetching, pagination, toggling.
- * Reads/writes to repoViewStore for shared diff state.
+ * Lightweight hook providing only file-click and refresh actions.
+ * Does NOT subscribe to diff display state (showDiff, currentDiff, etc.)
+ * and does NOT register auto-refresh effects.
+ *
+ * Use in StagedChangesCard / UnstagedChangesCard where only the action
+ * functions are needed.
  */
-export function useDiffActions(repoPath: string) {
+export function useDiffFileActions(repoPath: string) {
   const gitService = useGitService(repoPath);
   const addAlert = useUiStore((state) => state.addAlert);
 
-  // Subscribe to store state
-  const showDiff = useRepoViewStore((state) => state.showDiff[repoPath] || false);
-  const currentDiff = useRepoViewStore((state) => state.currentDiff[repoPath] || []);
-  const commitInfo = useRepoViewStore((state) => state.commitInfo[repoPath] || null);
-  const diffCursor = useRepoViewStore((state) => state.diffCursor[repoPath] ?? null);
-  const hasMoreDiffs = useRepoViewStore((state) => state.hasMoreDiffs[repoPath] || false);
-  const isLoadingMoreDiffs = useRepoViewStore((state) => state.isLoadingMoreDiffs[repoPath] || false);
-
-  // Store actions (stable references from zustand)
+  // Store reference (stable)
   const store = useRepoViewStore;
-
-  // Refs for values callbacks read at call time
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const repoCacheRef = useRef(repoCache);
-  repoCacheRef.current = repoCache;
-  const commitInfoRef = useRef(commitInfo);
-  commitInfoRef.current = commitInfo;
-  const showDiffRef = useRef(showDiff);
-  showDiffRef.current = showDiff;
 
   // Fetch a single page of file diffs
   const fetchDiffPage = useCallback(async (
@@ -91,6 +87,7 @@ export function useDiffActions(repoPath: string) {
     cursor: string | null,
     append: boolean,
   ) => {
+    _diffFetchInProgress = true;
     try {
       const diffResponse = await gitService.getFileDiff(unstagedFiles, stagedFiles, cursor) as any;
       const content = diffResponse?.content ?? diffResponse;
@@ -109,6 +106,9 @@ export function useDiffActions(repoPath: string) {
       store.getState().setShowDiff(repoPath, true);
     } catch (error: any) {
       addAlert(`Failed to show file: ${error.message}`, 'error');
+    } finally {
+      _diffFetchInProgress = false;
+      _lastDiffFetchEnd = Date.now();
     }
   }, [gitService, addAlert, repoPath, store]);
 
@@ -116,22 +116,6 @@ export function useDiffActions(repoPath: string) {
   const fetchDiffForFiles = useCallback(async (unstagedFiles: string[], stagedFiles: string[]) => {
     store.getState().setCurrentDiffFiles(repoPath, { unstaged: unstagedFiles, staged: stagedFiles });
     await fetchDiffPage(unstagedFiles, stagedFiles, null, false);
-  }, [fetchDiffPage, repoPath, store]);
-
-  // Load the next page of file diffs
-  const loadMoreDiffs = useCallback(async () => {
-    const state = store.getState();
-    const cursor = state.getDiffCursor(repoPath);
-    const hasMore = state.getHasMoreDiffs(repoPath);
-    const isLoading = state.getIsLoadingMoreDiffs(repoPath);
-    if (!hasMore || isLoading || !cursor) return;
-    state.setIsLoadingMoreDiffs(repoPath, true);
-    try {
-      const files = state.getCurrentDiffFiles(repoPath);
-      await fetchDiffPage(files.unstaged, files.staged, cursor, true);
-    } finally {
-      store.getState().setIsLoadingMoreDiffs(repoPath, false);
-    }
   }, [fetchDiffPage, repoPath, store]);
 
   // Handler for clicking on staged/unstaged file changes
@@ -157,7 +141,8 @@ export function useDiffActions(repoPath: string) {
     if (stagedFiles.length > 0 || unstagedFiles.length > 0) {
       await fetchDiffForFiles(unstagedFiles, stagedFiles);
     } else {
-      const current = repoCacheRef.current;
+      // Read cache imperatively to avoid subscribing to store in this hook
+      const current = useRepositoryStore.getState().getCacheFor(repoPath);
       const allStaged = (current?.changes?.stagedChanges || [])
         .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
         .filter(Boolean);
@@ -168,12 +153,83 @@ export function useDiffActions(repoPath: string) {
         await fetchDiffForFiles(allUnstaged, allStaged);
       }
     }
-  }, [fetchDiffForFiles]);
+  }, [fetchDiffForFiles, repoPath]);
+
+  return {
+    fetchDiffPage,
+    fetchDiffForFiles,
+    handleFileClick,
+    refreshSelectedFilesDiff,
+  };
+}
+
+/**
+ * Full diff viewing hook: fetching, pagination, toggling, auto-refresh.
+ * Subscribes to diff display state from repoViewStore.
+ *
+ * Use ONLY in CommitHistoryCard (or similar) where the diff display
+ * state and auto-refresh logic are actually needed.
+ */
+export function useDiffActions(repoPath: string) {
+  const gitService = useGitService(repoPath);
+  const addAlert = useUiStore((state) => state.addAlert);
+
+  const {
+    fetchDiffPage,
+    fetchDiffForFiles,
+    handleFileClick,
+    refreshSelectedFilesDiff,
+  } = useDiffFileActions(repoPath);
+
+  // Subscribe to store state — only needed by the diff *viewer*
+  const showDiff = useRepoViewStore((state) => state.showDiff[repoPath] || false);
+  const currentDiff = useRepoViewStore((state) => state.currentDiff[repoPath]) ?? _EMPTY_DIFF;
+  const commitInfo = useRepoViewStore((state) => state.commitInfo[repoPath] || null);
+  const hasMoreDiffs = useRepoViewStore((state) => state.hasMoreDiffs[repoPath] || false);
+  const isLoadingMoreDiffs = useRepoViewStore((state) => state.isLoadingMoreDiffs[repoPath] || false);
+
+  // Store actions (stable references from zustand)
+  const store = useRepoViewStore;
+
+  // Derive content-based keys INSIDE the selector so Zustand returns a
+  // stable string.  This avoids re-rendering CommitHistoryCard on every
+  // repo poll (polls create new array references even when content is identical).
+  const stagedKey = useRepositoryStore((state) => {
+    const arr = state.repoCache[repoPath]?.changes?.stagedChanges;
+    if (!arr || arr.length === 0) return '';
+    return arr.map((c: any) => `${c.file || c.path}:${c.change || c.status}`).join(',');
+  });
+  const unstagedKey = useRepositoryStore((state) => {
+    const arr = state.repoCache[repoPath]?.changes?.unstagedChanges;
+    if (!arr || arr.length === 0) return '';
+    return arr.map((c: any) => `${c.file || c.path}:${c.change || c.status}`).join(',');
+  });
+
+  const commitInfoRef = useRef(commitInfo);
+  commitInfoRef.current = commitInfo;
+  const showDiffRef = useRef(showDiff);
+  showDiffRef.current = showDiff;
+
+  // Load the next page of file diffs
+  const loadMoreDiffs = useCallback(async () => {
+    const state = store.getState();
+    const cursor = state.getDiffCursor(repoPath);
+    const hasMore = state.getHasMoreDiffs(repoPath);
+    const isLoading = state.getIsLoadingMoreDiffs(repoPath);
+    if (!hasMore || isLoading || !cursor) return;
+    state.setIsLoadingMoreDiffs(repoPath, true);
+    try {
+      const files = state.getCurrentDiffFiles(repoPath);
+      await fetchDiffPage(files.unstaged, files.staged, cursor, true);
+    } finally {
+      store.getState().setIsLoadingMoreDiffs(repoPath, false);
+    }
+  }, [fetchDiffPage, repoPath, store]);
 
   const handleToggleDiffView = useCallback((show: boolean) => {
     store.getState().setShowDiff(repoPath, show);
     if (show && !commitInfoRef.current) {
-      const current = repoCacheRef.current;
+      const current = useRepositoryStore.getState().repoCache[repoPath];
       refreshSelectedFilesDiff(
         current?.selectedStagedChanges || {},
         current?.selectedUnstagedChanges || {},
@@ -206,18 +262,38 @@ export function useDiffActions(repoPath: string) {
   }, [addAlert]);
 
   // Auto-refresh diff when file change lists update
-  const stagedChanges = repoCache?.changes?.stagedChanges;
-  const unstagedChanges = repoCache?.changes?.unstagedChanges;
+  // This effect only runs in the ONE component that uses useDiffActions (CommitHistoryCard)
+  //
+  // The stagedKey / unstagedKey selectors above already derive stable
+  // content-based strings so neither this hook nor CommitHistoryCard
+  // re-render on every repo poll.
+  // We use a ref for the callback so the effect ONLY depends on the
+  // content keys, not on callback reference stability.
 
+  // Use ref so the effect closure always calls the latest version
+  // without needing refreshSelectedFilesDiff as a dependency
+  const refreshDiffRef = useRef(refreshSelectedFilesDiff);
+  refreshDiffRef.current = refreshSelectedFilesDiff;
+
+  // Skip the initial mount — only react to actual changes after first render
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    // Don't auto-refresh while ANY diff fetch is in flight, or within 3s of the last fetch
+    if (_diffFetchInProgress || Date.now() - _lastDiffFetchEnd < 3000) return;
     if (showDiffRef.current && !commitInfoRef.current) {
-      const current = repoCacheRef.current;
-      refreshSelectedFilesDiff(
+      const current = useRepositoryStore.getState().repoCache[repoPath];
+      refreshDiffRef.current(
         current?.selectedStagedChanges || {},
         current?.selectedUnstagedChanges || {},
       );
     }
-  }, [stagedChanges, unstagedChanges, refreshSelectedFilesDiff]);
+    // Only fire when the actual file list content changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stagedKey, unstagedKey]);
 
   return {
     showDiff,

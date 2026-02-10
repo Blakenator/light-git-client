@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRepositoryStore, useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
 import {
   detectSubmoduleCheckout,
   detectRemoteMessage,
+  getIpcErrorMessage,
 } from '../../../utils/warningDetectors';
 import { normalizeDiff } from './useDiffActions';
 
@@ -15,6 +16,9 @@ export interface MergeInfo {
   isInteractive?: boolean;
 }
 
+/** Imperative read of repo cache (no subscription, no re-renders). */
+const getRepoCache = (repoPath: string) => useRepositoryStore.getState().repoCache[repoPath];
+
 /**
  * Hook providing branch operation handlers and related modal state.
  */
@@ -22,10 +26,6 @@ export function useBranchActions(repoPath: string) {
   const gitService = useGitService(repoPath);
   const addAlert = useUiStore((state) => state.addAlert);
   const showModal = useUiStore((state) => state.showModal);
-
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const repoCacheRef = useRef(repoCache);
-  repoCacheRef.current = repoCache;
 
   // Modal state
   const [activeMergeInfo, setActiveMergeInfo] = useState<MergeInfo | null>(null);
@@ -50,11 +50,12 @@ export function useBranchActions(repoPath: string) {
       await gitService.push(branch, force);
       addAlert('Push successful', 'success');
     } catch (error: any) {
-      const remoteMsg = detectRemoteMessage(error.message || '');
+      const errorMsg = getIpcErrorMessage(error);
+      const remoteMsg = detectRemoteMessage(errorMsg);
       if (remoteMsg) {
         addAlert(remoteMsg.message, 'info', 0);
       } else {
-        addAlert(`Push failed: ${error.message}`, 'error');
+        addAlert(`Push failed: ${errorMsg}`, 'error');
       }
     }
   }, [gitService, addAlert]);
@@ -97,7 +98,7 @@ export function useBranchActions(repoPath: string) {
     options: { rebase: boolean; interactive: boolean }
   ) => {
     try {
-      const currentBranch = repoCacheRef.current?.localBranches?.find((b: any) => b.isCurrentBranch);
+      const currentBranch = getRepoCache(repoPath)?.localBranches?.find((b: any) => b.isCurrentBranch);
       if (options.rebase) {
         if (currentBranch?.name !== source) {
           await gitService.checkout(source, false, false);
@@ -193,7 +194,7 @@ export function useBranchActions(repoPath: string) {
   const handleRemoteCheckout = useCallback(async (branch: any) => {
     try {
       const localBranchName = branch.name.replace('origin/', '');
-      const localBranch = repoCacheRef.current?.localBranches?.find(
+      const localBranch = getRepoCache(repoPath)?.localBranches?.find(
         (b: any) => b.name === localBranchName
       );
       const branchName = localBranch ? localBranchName : branch.name;

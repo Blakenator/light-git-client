@@ -9,6 +9,8 @@ import { AddWorktreeDialog } from '../dialogs';
 import { SYNC_CHANNELS } from '@light-git/shared';
 import type { WorktreeModel } from '@light-git/shared';
 
+const _EMPTY_ARR: any[] = [];
+
 interface WorktreesCardProps {
   repoPath: string;
   onOpenRepoNewTab?: (path: string) => void;
@@ -23,9 +25,8 @@ export const WorktreesCard: React.FC<WorktreesCardProps> = React.memo(({
   const addAlert = useUiStore((state) => state.addAlert);
   const showModal = useUiStore((state) => state.showModal);
 
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const worktrees = useMemo(() => (repoCache?.worktrees || []) as WorktreeModel[], [repoCache?.worktrees]);
-  const localBranches = useMemo(() => (repoCache?.localBranches || []) as any[], [repoCache?.localBranches]);
+  const worktrees = (useRepositoryStore((state) => state.repoCache[repoPath]?.worktrees) ?? _EMPTY_ARR) as WorktreeModel[];
+  const localBranches = (useRepositoryStore((state) => state.repoCache[repoPath]?.localBranches) ?? _EMPTY_ARR) as any[];
 
   const filteredWorktrees = useMemo(() => {
     if (!filter) return worktrees;

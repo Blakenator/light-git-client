@@ -5,9 +5,13 @@ import { useGitService } from '../../../ipc';
 import {
   detectPreCommitStatus,
   detectRemoteMessage,
+  getIpcErrorMessage,
 } from '../../../utils/warningDetectors';
 import { useCodeWatcherAnalysis } from './useCodeWatcherAnalysis';
 import type { WatcherAlert } from './useCodeWatcherAnalysis';
+
+/** Imperative read of repo cache (no subscription, no re-renders). */
+const getRepoCache = (repoPath: string) => useRepositoryStore.getState().repoCache[repoPath];
 
 /**
  * Hook providing commit operations: commit, amend, commit message management.
@@ -18,10 +22,6 @@ export function useCommitActions(repoPath: string) {
   const showModal = useUiStore((state) => state.showModal);
   const setPreCommitStatus = useUiStore((state) => state.setPreCommitStatus);
   const commitAndPush = useSettingsStore((state) => state.settings.commitAndPush);
-
-  const repoCache = useRepositoryStore((state) => state.getCacheFor(repoPath));
-  const repoCacheRef = useRef(repoCache);
-  repoCacheRef.current = repoCache;
 
   // Code watcher analysis
   const {
@@ -42,11 +42,11 @@ export function useCommitActions(repoPath: string) {
     let message = store.getCommitMessage(repoPath);
     // When amending with no message, reuse the previous commit message
     if (amend && !message.trim()) {
-      const lastCommit = repoCacheRef.current?.commitHistory?.[0];
+      const lastCommit = getRepoCache(repoPath)?.commitHistory?.[0];
       message = lastCommit?.message || '';
     }
     const currentBranch = commitAndPush
-      ? repoCacheRef.current?.localBranches?.find((b: any) => b.isCurrentBranch)
+      ? getRepoCache(repoPath)?.localBranches?.find((b: any) => b.isCurrentBranch)
       : undefined;
 
     let succeeded = false;
@@ -54,7 +54,7 @@ export function useCommitActions(repoPath: string) {
       await gitService.commit(message, amend, commitAndPush, currentBranch);
       succeeded = true;
     } catch (error: any) {
-      const errorMsg = error.message || '';
+      const errorMsg = getIpcErrorMessage(error);
       const preCommit = detectPreCommitStatus(errorMsg);
       if (preCommit) {
         setPreCommitStatus(preCommit);
@@ -68,11 +68,12 @@ export function useCommitActions(repoPath: string) {
             try {
               await gitService.push(currentBranch, false);
             } catch (pushError: any) {
-              const remoteMsg = detectRemoteMessage(pushError.message || '');
+              const pushMsg = getIpcErrorMessage(pushError);
+              const remoteMsg = detectRemoteMessage(pushMsg);
               if (remoteMsg) {
                 addAlert(remoteMsg.message, 'info', 0);
               } else {
-                addAlert(`Push failed: ${pushError.message}`, 'error');
+                addAlert(`Push failed: ${pushMsg}`, 'error');
               }
             }
           }

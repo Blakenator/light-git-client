@@ -5,6 +5,22 @@ import {
 } from '@light-git/shared';
 
 // =============================================================================
+// IPC Error Message Extractor
+// =============================================================================
+
+/**
+ * Extracts the actual error message from an IPC error.
+ *
+ * super-ipc wraps backend errors as `AppError('error', { inner })`, so the
+ * top-level `message` is always the literal string "error" while the real
+ * content lives in `inner.message`. This helper checks `inner` first and
+ * falls back to the top-level `message`.
+ */
+export function getIpcErrorMessage(error: any): string {
+  return error?.inner?.message || error?.message || '';
+}
+
+// =============================================================================
 // Pre-commit Status Detector
 // Ported from: src/app/services/warning-listeners/pre-commit-status.listener.ts
 // =============================================================================

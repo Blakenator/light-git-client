@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { orderBy } from 'lodash';
 import styled from 'styled-components';
 import { Button, ButtonGroup, Dropdown, Tooltip } from 'react-bootstrap';
 import { Icon, TooltipTrigger } from '@light-git/core';
@@ -8,9 +9,15 @@ const TreeContainer = styled.div`
 `;
 
 const ChildrenContainer = styled.div<{ $level: number }>`
-  margin-left: 0.5em;
-  border-left: dashed 2px rgba(128, 128, 128, 0.3);
-  padding-left: 0.5em;
+  margin-left: ${({ $level }) => ($level > 0 ? '0.5em' : '0')};
+  border-left: ${({ $level }) =>
+    $level > 0 ? 'dashed 0.15em rgba(128, 128, 128, 0.3)' : 'none'};
+  padding-left: ${({ $level }) => ($level > 0 ? '0.5em' : '0')};
+  transition: border-left-color 0.5s;
+
+  &:hover {
+    border-left-color: rgba(225, 128, 128, 0.5);
+  }
 `;
 
 const BranchRow = styled.div<{ $current?: boolean }>`
@@ -36,9 +43,14 @@ const FolderRow = styled.div`
   cursor: pointer;
   border-radius: ${({ theme }) => theme.borderRadius};
   color: ${({ theme }) => theme.colors.text};
+  transition: background-color 0.5s;
 
   &:hover {
-    background-color: rgba(128, 128, 128, 0.2);
+    background-color: rgba(128, 128, 128, 0.3);
+  }
+
+  &:hover + ${ChildrenContainer} {
+    border-left-color: rgba(225, 128, 128, 0.5);
   }
 `;
 
@@ -671,7 +683,11 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
     node: TreeNodeData,
     level: number = 0,
   ): React.ReactNode => {
-    const childKeys = Object.keys(node.children).sort((a, b) => a.localeCompare(b));
+    const childKeys = orderBy(
+      Object.keys(node.children),
+      [(key) => !node.children[key].branch, (key) => key.toLowerCase()],
+      ['asc', 'asc'],
+    );
     const hasChildren = childKeys.length > 0;
 
     if (node.branch) {
