@@ -6,17 +6,12 @@
   },
   "artifactName": "light-git-${version}.${ext}",
   "files": [
-    "**/*",
-    "!*.ts",
-    "!*.code-workspace",
-    "!LICENSE.md",
-    "package.json",
-    "!package-lock.json",
-    "!src/",
-    "src/*.png",
-    "!e2e/",
-    "!hooks/",
-    "!docs/"
+    "dist/**",
+    "packages/backend/dist/**",
+    "packages/backend/src/preload.js",
+    "packages/shared/dist/**",
+    "packages/core/dist/**",
+    "src/*.png"
   ],
   "extraFiles": ["extra/**/*"],
   "publish": [
