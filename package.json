@@ -16,7 +16,7 @@
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "start": "pnpm run build && concurrently -k -n dev,electron \"pnpm run dev\" \"wait-on http://localhost:4200 && cross-env VITE_DEV_SERVER_URL=http://localhost:4200 electron .\"",
-    "build": "pnpm -r --sort --filter '!@light-git/docs' run build",
+    "build": "pnpm -r --sort --filter=!@light-git/docs run build",
     "dev": "pnpm -r --parallel run dev",
     "electron:serve": "nodemon --ignore dist --ignore packages --watch packages/backend/src -e ts --exec \"pnpm --filter @light-git/backend run build && electron --inspect --remote-debugging-port=9223 .\"",
     "electron:local": "pnpm run build && electron .",
