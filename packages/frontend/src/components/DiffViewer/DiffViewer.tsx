@@ -29,6 +29,9 @@ const DiffToolbar = styled.div`
   padding: 0.5rem;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   background-color: ${({ theme }) => theme.colors.background};
+  position: sticky;
+  top: 0;
+  z-index: 20;
 `;
 
 const FilterInput = styled(Form.Control)`
@@ -111,7 +114,7 @@ const DiffHeader = styled.div`
   cursor: pointer;
   gap: 0.5rem;
   position: sticky;
-  top: 0;
+  top: var(--toolbar-height, 0px);
   z-index: 10;
 
   &:hover {
@@ -660,6 +663,27 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
     const [isSaving, setIsSaving] = useState(false);
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const toolbarRef = useRef<HTMLDivElement>(null);
+
+    // Keep --toolbar-height CSS variable in sync with the toolbar's actual height
+    useEffect(() => {
+      const toolbar = toolbarRef.current;
+      const container = containerRef.current;
+      if (!toolbar || !container) return;
+
+      const updateHeight = () => {
+        container.style.setProperty(
+          '--toolbar-height',
+          `${toolbar.offsetHeight}px`,
+        );
+      };
+
+      updateHeight();
+      const observer = new ResizeObserver(updateHeight);
+      observer.observe(toolbar);
+      return () => observer.disconnect();
+    }, []);
 
     // Debounce editor syntax highlighting so hljs doesn't run on every keystroke
     useEffect(() => {
@@ -1235,7 +1259,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
     );
 
     return (
-      <DiffContainer>
+      <DiffContainer ref={containerRef}>
         {commitInfo && (
           <CommitInfoContainer>
             <TooltipTrigger
@@ -1291,7 +1315,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
           </CommitInfoContainer>
         )}
 
-        <DiffToolbar>
+        <DiffToolbar ref={toolbarRef}>
           <FilterInput
             size="sm"
             placeholder="Filter files..."

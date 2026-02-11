@@ -223,22 +223,25 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
         jobsByChannel.get(channel)!.push(job);
       });
 
-      // Queue jobs by channel
+      // Queue jobs by channel (all operations produce new arrays -- never mutate in place)
       jobsByChannel.forEach((channelJobs, channel) => {
-        if (!newQueues.has(channel)) {
-          newQueues.set(channel, []);
-        }
-        const queue = newQueues.get(channel)!;
+        // Start with a fresh copy of the existing queue (or empty)
+        let queue = [...(newQueues.get(channel) || [])];
 
         // Handle immediate jobs
         const immediate = channelJobs.filter((j) => j.config.immediate);
         if (immediate.length > 0) {
           let nextNonImmediate = queue.findIndex((jobId, i) => {
-            const job = newJobs.get(jobId);
-            return i > 0 && job && !job.config.immediate;
+            const existingJob = newJobs.get(jobId);
+            return i > 0 && existingJob && !existingJob.config.immediate;
           });
           if (nextNonImmediate === -1) nextNonImmediate = queue.length;
-          queue.splice(nextNonImmediate, 0, ...immediate.map((j) => j.id));
+          const immediateIds = immediate.map((j) => j.id);
+          queue = [
+            ...queue.slice(0, nextNonImmediate),
+            ...immediateIds,
+            ...queue.slice(nextNonImmediate),
+          ];
         }
 
         // Handle non-immediate jobs (with reorderable deduplication)
@@ -247,15 +250,13 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
           const commands = new Set(nonImmediate.map((j) => j.config.command));
 
           // Remove reorderable jobs with matching commands, but never remove the
-          // currently executing job (head of queue for a running channel). Removing
-          // it would cause the completion handler's q.shift() to remove the NEXT job,
-          // cascading into both the old and new callers hanging indefinitely.
+          // currently executing job (head of queue for a running channel).
           const isChannelRunning = state.runningChannels.has(channel);
-          for (let i = queue.length - 1; i >= 0; i--) {
-            // Skip the currently executing job (index 0 of a running channel)
-            if (i === 0 && isChannelRunning) continue;
+          queue = queue.filter((jobId, idx) => {
+            // Never remove the currently executing job (index 0 of a running channel)
+            if (idx === 0 && isChannelRunning) return true;
 
-            const existingJob = newJobs.get(queue[i]);
+            const existingJob = newJobs.get(jobId);
             if (
               existingJob &&
               existingJob.config.reorderable &&
@@ -270,20 +271,21 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
                 op.deferred?.resolve(undefined as any);
               }
 
-              queue.splice(i, 1);
+              return false; // remove superseded job
             }
-          }
+            return true; // keep
+          });
 
-          queue.push(...nonImmediate.map((j) => j.id));
+          queue = [...queue, ...nonImmediate.map((j) => j.id)];
         }
 
+        // Store the new array in the new Map
         newQueues.set(channel, queue);
       });
 
-      // Update job statuses
+      // Update job statuses (always create new job objects -- never mutate)
       jobs.forEach((job) => {
-        job.status = JobStatus.SCHEDULED;
-        newJobs.set(job.id, { ...job });
+        newJobs.set(job.id, { ...job, status: JobStatus.SCHEDULED });
       });
 
       return { queues: newQueues, jobs: newJobs };
@@ -344,12 +346,11 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
       const jobId = queue[0];
       const job = state.jobs.get(jobId);
       if (!job) {
-        // Remove invalid job from queue
+        // Remove invalid job from queue (immutable -- new array without first element)
         set((state) => {
           const newQueues = new Map(state.queues);
           const q = newQueues.get(channel) || [];
-          q.shift();
-          newQueues.set(channel, q);
+          newQueues.set(channel, q.slice(1));
           return { queues: newQueues };
         });
         return;
@@ -365,8 +366,7 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
           const updatedJob = { ...job, status: JobStatus.SKIPPED };
           newJobs.set(job.id, updatedJob);
           const q = newQueues.get(channel) || [];
-          q.shift();
-          newQueues.set(channel, q);
+          newQueues.set(channel, q.slice(1));
           return { jobs: newJobs, queues: newQueues };
         });
         return;
@@ -420,10 +420,9 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
             newAffectedAreas.add(area),
           );
 
-          // Remove job from queue
+          // Remove job from queue (immutable -- new array without first element)
           const q = newQueues.get(channel) || [];
-          q.shift();
-          newQueues.set(channel, q);
+          newQueues.set(channel, q.slice(1));
 
           // Add to past jobs
           const newPastJobIds = [...state.pastJobIds, job.id];
@@ -461,10 +460,9 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
             newAffectedAreas.add(area),
           );
 
-          // Remove job from queue
+          // Remove job from queue (immutable -- new array without first element)
           const q = newQueues.get(channel) || [];
-          q.shift();
-          newQueues.set(channel, q);
+          newQueues.set(channel, q.slice(1));
 
           // Add to past jobs
           const newPastJobIds = [...state.pastJobIds, job.id];
@@ -485,10 +483,10 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
     const { queues, jobs } = get();
     const result: Job[] = [];
     queues.forEach((queue) => {
-      if (queue.length > 0) {
-        const job = jobs.get(queue[0]);
+      queue.forEach((jobId) => {
+        const job = jobs.get(jobId);
         if (job) result.push(job);
-      }
+      });
     });
     return result;
   },

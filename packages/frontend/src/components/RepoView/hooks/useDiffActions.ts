@@ -64,6 +64,12 @@ const _EMPTY_DIFF: any[] = [];
 // initiated from StagedChangesCard/UnstagedChangesCard file clicks.
 let _diffFetchInProgress = false;
 
+// Monotonically increasing version counter used to discard stale diff
+// responses. Each call to fetchDiffPage increments the counter; when
+// the async response arrives the counter is checked and the result is
+// only applied when it still matches the latest request.
+let _diffFetchVersion = 0;
+
 /**
  * Lightweight hook providing only file-click and refresh actions.
  * Does NOT subscribe to diff display state (showDiff, currentDiff, etc.)
@@ -86,9 +92,16 @@ export function useDiffFileActions(repoPath: string) {
     cursor: string | null,
     append: boolean,
   ) => {
+    // Capture a version token so we can discard stale responses when a
+    // newer fetchDiffPage call has been initiated in the meantime.
+    const version = ++_diffFetchVersion;
     _diffFetchInProgress = true;
     try {
       const diffResponse = await gitService.getFileDiff(unstagedFiles, stagedFiles, cursor) as any;
+
+      // A newer fetch was started while we were waiting — discard this result.
+      if (version !== _diffFetchVersion) return;
+
       const content = diffResponse?.content ?? diffResponse;
       const items = content?.items ?? (Array.isArray(content) ? content : []);
       const normalized = normalizeDiff(Array.isArray(items) ? items : []);
@@ -104,9 +117,15 @@ export function useDiffFileActions(repoPath: string) {
       store.getState().setCommitInfo(repoPath, null); // Not a commit diff
       store.getState().setShowDiff(repoPath, true);
     } catch (error: any) {
-      addAlert(`Failed to show file: ${error.message}`, 'error');
+      // Only surface the error if this is still the latest request
+      if (version === _diffFetchVersion) {
+        addAlert(`Failed to show file: ${error.message}`, 'error');
+      }
     } finally {
-      _diffFetchInProgress = false;
+      // Only clear the in-progress flag for the latest request
+      if (version === _diffFetchVersion) {
+        _diffFetchInProgress = false;
+      }
     }
   }, [gitService, addAlert, repoPath, store]);
 
@@ -203,6 +222,18 @@ export function useDiffActions(repoPath: string) {
     return arr.map((c: any) => `${c.file || c.path}:${c.change || c.status}`).join(',');
   });
 
+  // Track whether ANY files are truly selected (value=true).  When this
+  // flips from true → false (user deselects the last file) the auto-refresh
+  // effect fires and refreshSelectedFilesDiff falls into its "show all" branch.
+  const hasAnySelected = useRepositoryStore((state) => {
+    const cache = state.repoCache[repoPath];
+    const staged = cache?.selectedStagedChanges;
+    const unstaged = cache?.selectedUnstagedChanges;
+    if (staged) { for (const v of Object.values(staged)) { if (v) return true; } }
+    if (unstaged) { for (const v of Object.values(unstaged)) { if (v) return true; } }
+    return false;
+  });
+
   const commitInfoRef = useRef(commitInfo);
   commitInfoRef.current = commitInfo;
   const showDiffRef = useRef(showDiff);
@@ -289,9 +320,11 @@ export function useDiffActions(repoPath: string) {
         current?.selectedUnstagedChanges || {},
       );
     }
-    // Only fire when the actual file list content changes
+    // Fire when file list content changes OR when selection empties/fills
+    // (e.g. user deselects the last file → hasAnySelected becomes false →
+    // refreshSelectedFilesDiff falls into its "show all" branch).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stagedKey, unstagedKey]);
+  }, [stagedKey, unstagedKey, hasAnySelected]);
 
   return {
     showDiff,
