@@ -36,7 +36,9 @@ export function calculateGraphBlocks<T extends CommitForGraph>(commits: T[]): T[
     const graphBlockTargets: GraphBlockTarget[] = [];
 
     let newIndex = 0;
-    const encounteredSeeking: string[] = [];
+    // Map from seeking hash -> the newIndex at which it was first encountered.
+    // Replaces the previous string[] + indexOf pattern for O(1) lookups.
+    const encounteredSeeking = new Map<string, number>();
     let added = false;
     const newStack: { seeking: string; from: number; branchIndex: number }[] = [];
 
@@ -49,19 +51,19 @@ export function calculateGraphBlocks<T extends CommitForGraph>(commits: T[]): T[
           branchIndex: stack[j].branchIndex,
           isMerge: false,
         });
-        encounteredSeeking.push(stack[j].seeking);
+        encounteredSeeking.set(stack[j].seeking, newIndex);
         newStack.push({ ...stack[j], from: newIndex });
         newIndex++;
-      } else if (encounteredSeeking.indexOf(commit.hash) >= 0) {
+      } else if (encounteredSeeking.has(commit.hash)) {
         graphBlockTargets.push({
           target: stack[j].from,
-          source: encounteredSeeking.indexOf(commit.hash),
+          source: encounteredSeeking.get(commit.hash)!,
           isCommit: true,
           branchIndex: stack[j].branchIndex,
           isMerge: false,
         });
         added = true;
-      } else if (encounteredSeeking.indexOf(commit.hash) < 0) {
+      } else {
         graphBlockTargets.push({
           target: stack[j].from,
           source: newIndex,
@@ -69,7 +71,7 @@ export function calculateGraphBlocks<T extends CommitForGraph>(commits: T[]): T[
           branchIndex: stack[j].branchIndex,
           isMerge: parentHashes.length > 1,
         });
-        encounteredSeeking.push(commit.hash);
+        encounteredSeeking.set(commit.hash, newIndex);
         added = true;
         let useCurrentBranch = true;
         for (const p of parentHashes) {

@@ -218,10 +218,10 @@ const HunkHeaderLines = styled.span`
   font-weight: 500;
 `;
 
-const HunkActions = styled.div`
+const HunkActions = styled.div<{ $visible?: boolean }>`
   display: flex;
   gap: 0.25rem;
-  opacity: 0;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity 0.2s;
 
   ${HunkContainer}:hover & {
@@ -352,13 +352,6 @@ const HunkEditorTextarea = styled.textarea`
   }
 `;
 
-const HunkEditorActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background-color: ${({ theme }) => theme.colors.light};
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-`;
 
 const TruncationWarning = styled.div`
   padding: 0.5rem 1rem;
@@ -557,23 +550,58 @@ const splitHighlightedHtml = (html: string): string[] => {
 };
 
 /**
+ * Fast djb2 hash – produces a compact numeric key from a string.
+ * Used to avoid storing full hunk text as Map keys.
+ */
+const djb2Hash = (str: string): number => {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+  }
+  return hash;
+};
+
+/** Module-level cache for highlighted HTML keyed on hash(text+language). */
+const _highlightCache = new Map<string, string[]>();
+const HIGHLIGHT_CACHE_MAX_SIZE = 500;
+
+/**
  * Highlight an array of code lines as a single block for accurate
  * multi-line syntax (comments, strings, template literals, etc.),
  * then split the result back into per-line HTML strings.
+ *
+ * Results are cached by a djb2 hash of the content + language so
+ * repeated renders with the same hunk content skip highlight.js entirely.
  */
 const highlightLines = (texts: string[], language: string): string[] => {
   if (texts.length === 0) return [];
+
+  const block = texts.join('\n');
+  // Use hash + length as cache key to make collisions virtually impossible
+  const cacheKey = `${djb2Hash(block + language)}:${block.length}`;
+
+  const cached = _highlightCache.get(cacheKey);
+  if (cached) return cached;
+
+  let result: string[];
   try {
-    const block = texts.join('\n');
     const highlighted = hljs.highlight(block, {
       language,
       ignoreIllegals: true,
     }).value;
-    const result = splitHighlightedHtml(highlighted);
-    return result;
+    result = splitHighlightedHtml(highlighted);
   } catch {
-    return texts.map(escapeHtml);
+    result = texts.map(escapeHtml);
   }
+
+  // Evict oldest entries when the cache grows too large
+  if (_highlightCache.size >= HIGHLIGHT_CACHE_MAX_SIZE) {
+    const firstKey = _highlightCache.keys().next().value;
+    if (firstKey !== undefined) _highlightCache.delete(firstKey);
+  }
+  _highlightCache.set(cacheKey, result);
+
+  return result;
 };
 
 // Parse raw @@ hunk header into a readable description
@@ -628,9 +656,34 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
       hunkIndex: number;
     } | null>(null);
     const [editedContent, setEditedContent] = useState('');
+    const [debouncedEditorHtml, setDebouncedEditorHtml] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
+
+    // Debounce editor syntax highlighting so hljs doesn't run on every keystroke
+    useEffect(() => {
+      if (editingHunk == null) return;
+
+      const lang = editingHunk
+        ? getLanguageFromFilename(editingHunk.filename)
+        : 'plaintext';
+
+      const timerId = setTimeout(() => {
+        try {
+          setDebouncedEditorHtml(
+            hljs.highlight(editedContent || ' ', {
+              language: lang,
+              ignoreIllegals: true,
+            }).value,
+          );
+        } catch {
+          setDebouncedEditorHtml(escapeHtml(editedContent || ' '));
+        }
+      }, 100);
+
+      return () => clearTimeout(timerId);
+    }, [editedContent, editingHunk]);
 
     // Sync scroll between textarea and highlight layer
     const handleEditorScroll = useCallback(
@@ -974,52 +1027,103 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
                       </TooltipTrigger>
                     );
                   })()}
-                  {!isReadOnly && !commitInfo && onHunkChange && !isEditing && (
-                    <HunkActions>
-                      <TooltipTrigger
-                        placement="top"
-                        overlay={
-                          <Tooltip
-                            id={`tooltip-edit-hunk-${header.toFilename}-${hunkIndex}`}
+                  {!isReadOnly && !commitInfo && onHunkChange && (
+                    <HunkActions $visible={isEditing}>
+                      {isEditing ? (
+                        <>
+                          <TooltipTrigger
+                            placement="top"
+                            overlay={
+                              <Tooltip
+                                id={`tooltip-cancel-edit-${header.toFilename}-${hunkIndex}`}
+                              >
+                                Cancel (Esc)
+                              </Tooltip>
+                            }
                           >
-                            Edit this hunk
-                          </Tooltip>
-                        }
-                      >
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEdit(header.toFilename, hunkIndex, hunk);
-                          }}
-                          disabled={isSaving}
-                        >
-                          <Icon name="edit" size="sm" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipTrigger
-                        placement="top"
-                        overlay={
-                          <Tooltip
-                            id={`tooltip-undo-hunk-${header.toFilename}-${hunkIndex}`}
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelEdit();
+                              }}
+                              disabled={isSaving}
+                            >
+                              <Icon name="fa-times" size="sm" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipTrigger
+                            placement="top"
+                            overlay={
+                              <Tooltip
+                                id={`tooltip-save-edit-${header.toFilename}-${hunkIndex}`}
+                              >
+                                {isSaving ? 'Saving...' : 'Save changes'}
+                              </Tooltip>
+                            }
                           >
-                            Undo this hunk
-                          </Tooltip>
-                        }
-                      >
-                        <Button
-                          variant="outline-warning"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            undoHunk(header.toFilename, hunkIndex, hunk);
-                          }}
-                          disabled={isSaving}
-                        >
-                          <Icon name="fa-undo" size="sm" />
-                        </Button>
-                      </TooltipTrigger>
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveEdit();
+                              }}
+                              disabled={isSaving}
+                            >
+                              <Icon name="fa-check" size="sm" />
+                            </Button>
+                          </TooltipTrigger>
+                        </>
+                      ) : (
+                        <>
+                          <TooltipTrigger
+                            placement="top"
+                            overlay={
+                              <Tooltip
+                                id={`tooltip-edit-hunk-${header.toFilename}-${hunkIndex}`}
+                              >
+                                Edit this hunk
+                              </Tooltip>
+                            }
+                          >
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEdit(header.toFilename, hunkIndex, hunk);
+                              }}
+                              disabled={isSaving}
+                            >
+                              <Icon name="edit" size="sm" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipTrigger
+                            placement="top"
+                            overlay={
+                              <Tooltip
+                                id={`tooltip-undo-hunk-${header.toFilename}-${hunkIndex}`}
+                              >
+                                Undo this hunk
+                              </Tooltip>
+                            }
+                          >
+                            <Button
+                              variant="outline-warning"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                undoHunk(header.toFilename, hunkIndex, hunk);
+                              }}
+                              disabled={isSaving}
+                            >
+                              <Icon name="fa-undo" size="sm" />
+                            </Button>
+                          </TooltipTrigger>
+                        </>
+                      )}
                     </HunkActions>
                   )}
                 </HunkHeader>
@@ -1030,12 +1134,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
                       <HunkEditorHighlight ref={highlightRef}>
                         <code
                           dangerouslySetInnerHTML={{
-                            __html: hljs.highlight(editedContent || ' ', {
-                              language: getLanguageFromFilename(
-                                header.toFilename,
-                              ),
-                              ignoreIllegals: true,
-                            }).value,
+                            __html: debouncedEditorHtml,
                           }}
                         />
                       </HunkEditorHighlight>
@@ -1049,24 +1148,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
                         spellCheck={false}
                       />
                     </HunkEditorContainer>
-                    <HunkEditorActions>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={cancelEdit}
-                        disabled={isSaving}
-                      >
-                        Cancel (Esc)
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={saveEdit}
-                        disabled={isSaving}
-                      >
-                        {isSaving ? 'Saving...' : 'Save Changes'}
-                      </Button>
-                    </HunkEditorActions>
                   </>
                 ) : (
                   <HunkLines>

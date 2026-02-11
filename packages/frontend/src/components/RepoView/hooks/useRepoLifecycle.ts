@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useRepositoryStore, useJobStore, RepoArea, useUiStore } from '../../../stores';
+import {
+  useRepositoryStore,
+  useJobStore,
+  RepoArea,
+  useUiStore,
+} from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
 
@@ -32,12 +37,15 @@ export function useRepoLifecycle(
       // cause the job scheduler to supersede (deduplicate) pending read jobs.
       const update: Record<string, any> = {};
       if (data.changes !== undefined) update.changes = data.changes;
-      if (data.localBranches !== undefined) update.localBranches = data.localBranches;
-      if (data.remoteBranches !== undefined) update.remoteBranches = data.remoteBranches;
+      if (data.localBranches !== undefined)
+        update.localBranches = data.localBranches;
+      if (data.remoteBranches !== undefined)
+        update.remoteBranches = data.remoteBranches;
       if (data.stashes !== undefined) update.stashes = data.stashes;
       if (data.worktrees !== undefined) update.worktrees = data.worktrees;
       if (data.submodules !== undefined) update.submodules = data.submodules;
-      if (data.commitHistory !== undefined) update.commitHistory = data.commitHistory;
+      if (data.commitHistory !== undefined)
+        update.commitHistory = data.commitHistory;
 
       if (Object.keys(update).length > 0) {
         updateRepoCache(repoPath, update);
@@ -58,9 +66,12 @@ export function useRepoLifecycle(
       refreshRepo();
       // Also load command history on initial load
       const setCommandHistory = useRepoViewStore.getState().setCommandHistory;
-      gitService.getCommandHistory().then(history => {
-        setCommandHistory(repoPath, history || []);
-      }).catch(console.error);
+      gitService
+        .getCommandHistory()
+        .then((history) => {
+          setCommandHistory(repoPath, history || []);
+        })
+        .catch(console.error);
     }
   }, [repoPath, refreshRepo, gitService]);
 
@@ -78,57 +89,101 @@ export function useRepoLifecycle(
     const unsubscribe = onFinishQueue(({ affectedAreas, path }) => {
       if (affectedAreas.size === 0 || path !== repoPath) return;
 
-      const activeBranch = useRepoViewStore.getState().getActiveBranch(repoPath);
+      const activeBranch = useRepoViewStore
+        .getState()
+        .getActiveBranch(repoPath);
       const promises: Promise<any>[] = [];
 
       if (affectedAreas.has(RepoArea.LOCAL_BRANCHES)) {
         promises.push(
-          gitService.getLocalBranches()
-            .then((result: any) => result !== undefined ? { localBranches: result } : null)
-            .catch((err: any) => { console.error('Failed to refresh local branches:', err); return null; })
+          gitService
+            .getLocalBranches()
+            .then((result: any) =>
+              result !== undefined ? { localBranches: result } : null,
+            )
+            .catch((err: any) => {
+              console.error('Failed to refresh local branches:', err);
+              return null;
+            }),
         );
       }
       if (affectedAreas.has(RepoArea.REMOTE_BRANCHES)) {
         promises.push(
-          gitService.getRemoteBranches()
-            .then((result: any) => result !== undefined ? { remoteBranches: result } : null)
-            .catch((err: any) => { console.error('Failed to refresh remote branches:', err); return null; })
+          gitService
+            .getRemoteBranches()
+            .then((result: any) =>
+              result !== undefined ? { remoteBranches: result } : null,
+            )
+            .catch((err: any) => {
+              console.error('Failed to refresh remote branches:', err);
+              return null;
+            }),
         );
       }
       if (affectedAreas.has(RepoArea.LOCAL_CHANGES)) {
         promises.push(
-          gitService.getFileChanges()
-            .then((result: any) => result !== undefined ? { changes: result } : null)
-            .catch((err: any) => { console.error('Failed to refresh file changes:', err); return null; })
+          gitService
+            .getFileChanges()
+            .then((result: any) =>
+              result !== undefined ? { changes: result } : null,
+            )
+            .catch((err: any) => {
+              console.error('Failed to refresh file changes:', err);
+              return null;
+            }),
         );
       }
       if (affectedAreas.has(RepoArea.COMMIT_HISTORY)) {
         noMoreCommits.current = false;
         promises.push(
-          gitService.getCommitHistory(50, 0, activeBranch?.name)
-            .then((result: any) => result !== undefined ? { commitHistory: result } : null)
-            .catch((err: any) => { console.error('Failed to refresh commit history:', err); return null; })
+          gitService
+            .getCommitHistory(50, 0, activeBranch?.name)
+            .then((result: any) =>
+              result !== undefined ? { commitHistory: result } : null,
+            )
+            .catch((err: any) => {
+              console.error('Failed to refresh commit history:', err);
+              return null;
+            }),
         );
       }
       if (affectedAreas.has(RepoArea.STASHES)) {
         promises.push(
-          gitService.getStashes()
-            .then((result: any) => result !== undefined ? { stashes: result } : null)
-            .catch((err: any) => { console.error('Failed to refresh stashes:', err); return null; })
+          gitService
+            .getStashes()
+            .then((result: any) =>
+              result !== undefined ? { stashes: result } : null,
+            )
+            .catch((err: any) => {
+              console.error('Failed to refresh stashes:', err);
+              return null;
+            }),
         );
       }
       if (affectedAreas.has(RepoArea.WORKTREES)) {
         promises.push(
-          gitService.getWorktrees()
-            .then((result: any) => result !== undefined ? { worktrees: result } : null)
-            .catch((err: any) => { console.error('Failed to refresh worktrees:', err); return null; })
+          gitService
+            .getWorktrees()
+            .then((result: any) =>
+              result !== undefined ? { worktrees: result } : null,
+            )
+            .catch((err: any) => {
+              console.error('Failed to refresh worktrees:', err);
+              return null;
+            }),
         );
       }
       if (affectedAreas.has(RepoArea.SUBMODULES)) {
         promises.push(
-          gitService.getSubmodules()
-            .then((result: any) => result !== undefined ? { submodules: result } : null)
-            .catch((err: any) => { console.error('Failed to refresh submodules:', err); return null; })
+          gitService
+            .getSubmodules()
+            .then((result: any) =>
+              result !== undefined ? { submodules: result } : null,
+            )
+            .catch((err: any) => {
+              console.error('Failed to refresh submodules:', err);
+              return null;
+            }),
         );
       }
 

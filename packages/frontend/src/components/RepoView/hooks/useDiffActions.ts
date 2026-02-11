@@ -63,7 +63,6 @@ const _EMPTY_DIFF: any[] = [];
 // This ensures the auto-refresh guard in CommitHistoryCard can see fetches
 // initiated from StagedChangesCard/UnstagedChangesCard file clicks.
 let _diffFetchInProgress = false;
-let _lastDiffFetchEnd = 0;
 
 /**
  * Lightweight hook providing only file-click and refresh actions.
@@ -108,7 +107,6 @@ export function useDiffFileActions(repoPath: string) {
       addAlert(`Failed to show file: ${error.message}`, 'error');
     } finally {
       _diffFetchInProgress = false;
-      _lastDiffFetchEnd = Date.now();
     }
   }, [gitService, addAlert, repoPath, store]);
 
@@ -282,8 +280,8 @@ export function useDiffActions(repoPath: string) {
       mountedRef.current = true;
       return;
     }
-    // Don't auto-refresh while ANY diff fetch is in flight, or within 3s of the last fetch
-    if (_diffFetchInProgress || Date.now() - _lastDiffFetchEnd < 3000) return;
+    // Don't auto-refresh while ANY diff fetch is in flight
+    if (_diffFetchInProgress) return;
     if (showDiffRef.current && !commitInfoRef.current) {
       const current = useRepositoryStore.getState().repoCache[repoPath];
       refreshDiffRef.current(

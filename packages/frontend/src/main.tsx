@@ -62,7 +62,7 @@ const ThemedApp: React.FC = () => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemedApp />
-  </React.StrictMode>
+  </React.StrictMode>,
 );
 
 // Hide loading screen once React is ready
