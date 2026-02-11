@@ -5,6 +5,7 @@
     "output": "app-builds"
   },
   "artifactName": "light-git-${version}.${ext}",
+  "npmRebuild": false,
   "files": [
     "dist/**",
     "packages/backend/dist/**",

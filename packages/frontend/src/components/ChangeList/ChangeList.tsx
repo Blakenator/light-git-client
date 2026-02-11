@@ -171,7 +171,6 @@ interface ChangeListProps {
   submodules?: SubmoduleModel[];
   onSelectChange: (path: string, selected: boolean) => void;
   onBatchSelectChange?: (changes: Record<string, boolean>) => void;
-  onFileClick: (path: string) => void;
   onUndoFile?: (path: string, changeType: string) => void;
   onUndoSubmodule?: (submodule: SubmoduleModel) => void;
   onMergeFile?: (path: string) => void;
@@ -244,7 +243,6 @@ export const ChangeList: React.FC<ChangeListProps> = React.memo(
     submodules = [],
     onSelectChange,
     onBatchSelectChange,
-    onFileClick,
     onUndoFile,
     onUndoSubmodule,
     onMergeFile,
@@ -415,13 +413,7 @@ export const ChangeList: React.FC<ChangeListProps> = React.memo(
                   placement="bottom"
                   overlay={<Tooltip id={`tooltip-filename-${row.original.path}`}>{row.original.path}</Tooltip>}
                 >
-                  <FileBaseName
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFileClick(row.original.path);
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
+                  <FileBaseName>
                     {getValue()}
                   </FileBaseName>
                 </TooltipTrigger>
@@ -442,13 +434,7 @@ export const ChangeList: React.FC<ChangeListProps> = React.memo(
                   placement="bottom"
                   overlay={<Tooltip id={`tooltip-path-${row.original.path}`}>{getValue()}</Tooltip>}
                 >
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFileClick(row.original.path);
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
+                  <span>
                     {getValue()}
                   </span>
                 </TooltipTrigger>
@@ -471,7 +457,7 @@ export const ChangeList: React.FC<ChangeListProps> = React.memo(
       });
 
       return cols;
-    }, [columnHelper, splitFilenameDisplay, submoduleSet, onFileClick]);
+    }, [columnHelper, splitFilenameDisplay, submoduleSet]);
 
     const table = useReactTable({
       data,

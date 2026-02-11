@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button, ButtonGroup, Badge, Tooltip } from 'react-bootstrap';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { Icon, TooltipTrigger } from '@light-git/core';
@@ -29,7 +29,7 @@ export const UnstagedChangesCard: React.FC<UnstagedChangesCardProps> =
     const selectedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.selectedUnstagedChanges) ?? _EMPTY_OBJ;
     const splitFilenameDisplay = useSettingsStore((state) => state.settings.splitFilenameDisplay);
 
-    const { refreshSelectedFilesDiff, handleFileClick } = useDiffFileActions(repoPath);
+    const { refreshSelectedFilesDiff } = useDiffFileActions(repoPath);
     const {
       handleStageAll,
       handleStageSelected,
@@ -40,8 +40,6 @@ export const UnstagedChangesCard: React.FC<UnstagedChangesCardProps> =
       handleBatchSelectUnstagedChange,
       handleSetFilenameSplit,
     } = useStagingActions(repoPath, refreshSelectedFilesDiff);
-
-    const handleUnstagedFileClick = useCallback((path: string) => handleFileClick(path, false), [handleFileClick]);
 
     const normalizedChanges = useMemo(() => {
       return changes.map((c: any) => ({
@@ -186,7 +184,6 @@ export const UnstagedChangesCard: React.FC<UnstagedChangesCardProps> =
           filter={filter}
           onSelectChange={handleSelectUnstagedChange}
           onBatchSelectChange={handleBatchSelectUnstagedChange}
-          onFileClick={handleUnstagedFileClick}
           onUndoFile={(path, changeType) => handleUndoFile(path, changeType, false)}
           onDeleteFile={(path) => handleDeleteFiles([path])}
           onCopyPath={handleCopyPath}
