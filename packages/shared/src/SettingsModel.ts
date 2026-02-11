@@ -53,8 +53,6 @@ export class SettingsModel {
   public includeUnchangedInWatcherAnalysis: boolean;
   public username: string;
   public email: string;
-  public allowStats: boolean;
-  public statsId: string;
   public allowPrerelease: boolean;
   public splitFilenameDisplay: boolean;
   public commitAndPush: boolean;
@@ -87,7 +85,6 @@ export class SettingsModel {
     email: string = '',
     allowPrerelease: boolean = false,
     airplaneMode: boolean = false,
-    allowStats: boolean = false,
     splitFilenameDisplay: boolean = false,
     commitAndPush: boolean = false,
     rebasePull: boolean = false,
@@ -115,8 +112,6 @@ export class SettingsModel {
     this.includeUnchangedInWatcherAnalysis = includeUnchangedInWatcherAnalysis;
     this.username = username;
     this.email = email;
-    this.allowStats = allowStats;
-    this.statsId = Math.pow(32, 16).toString(32);
     this.allowPrerelease = allowPrerelease;
     this.airplaneMode = airplaneMode;
     this.splitFilenameDisplay = splitFilenameDisplay;
@@ -154,13 +149,11 @@ export class SettingsModel {
       this.includeUnchangedInWatcherAnalysis;
     res.username = this.username + '';
     res.email = this.email + '';
-    res.allowStats = !!this.allowStats;
     res.allowPrerelease = this.allowPrerelease;
     res.airplaneMode = this.airplaneMode;
     res.commitAndPush = this.commitAndPush;
     res.rebasePull = this.rebasePull;
     res.splitFilenameDisplay = this.splitFilenameDisplay;
-    res.statsId = this.statsId + '';
     res.branchNamePrefix = this.branchNamePrefix;
     res.sectionLayouts = JSON.parse(JSON.stringify(this.sectionLayouts || {}));
     return res;

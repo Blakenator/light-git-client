@@ -36,6 +36,7 @@
     "dev": "tsc --watch"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {

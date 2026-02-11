@@ -74,6 +74,9 @@ importers:
       fs-extra:
         specifier: ^10.1.0
         version: 10.1.0
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.23
       mkdirp:
         specifier: ^1.0.4
         version: 1.0.4
@@ -83,6 +86,9 @@ importers:
       opn:
         specifier: ^5.3.0
         version: 5.5.0
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.2
       serialize-error:
         specifier: ^3.0.0
         version: 3.0.0
@@ -93,6 +99,9 @@ importers:
       '@types/fs-extra':
         specifier: ^11.0.4
         version: 11.0.4
+      '@types/lodash':
+        specifier: ^4.17.0
+        version: 4.17.23
       '@types/node':
         specifier: ^20.19.6
         version: 20.19.30
@@ -276,6 +285,9 @@ importers:
         specifier: ^4.17.21
         version: 4.17.23
     devDependencies:
+      '@types/lodash':
+        specifier: ^4.17.0
+        version: 4.17.23
       typescript:
         specifier: ^5.3.3
         version: 5.9.3

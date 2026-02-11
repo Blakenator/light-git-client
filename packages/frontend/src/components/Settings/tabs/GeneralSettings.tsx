@@ -214,17 +214,6 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
             />
           </Col>
         </Row>
-        <Row className="mb-2">
-          <Col>
-            <Form.Check
-              type="switch"
-              id="setting-allowStats"
-              label="Send anonymized statistics to help improve Light-Git"
-              checked={settings.allowStats}
-              onChange={(e) => onChange('allowStats', e.target.checked)}
-            />
-          </Col>
-        </Row>
       </FormSection>
 
       <FormSection>

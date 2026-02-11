@@ -52,7 +52,13 @@ jobs:
           restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile --ignore-scripts --filter @light-git/docs...
+        run: pnpm install --no-frozen-lockfile --ignore-scripts --filter @light-git/docs... --filter @light-git/frontend...
+
+      - name: Build workspace libraries
+        run: pnpm --filter @light-git/shared --filter @light-git/core run build
+
+      - name: Generate screenshots
+        run: pnpm --filter @light-git/docs test
 
       - name: Build documentation
         run: pnpm --filter @light-git/docs build

@@ -11,7 +11,6 @@ import { CommitSummaryModel } from '@light-git/shared/src/git/CommitSummary.mode
 import { CommandHistoryModel } from '@light-git/shared/src/git/command-history.model';
 import { SettingsModel } from '@light-git/shared/src/SettingsModel';
 import { WorktreeModel } from '@light-git/shared/src/git/worktree.model';
-import { logger } from 'codelyzer/util/logger';
 import { StashModel } from '@light-git/shared/src/git/stash.model';
 import {
   DiffHeaderAction,
@@ -448,7 +447,7 @@ export class GitClient {
     exec(startCommand, { cwd: this.workingDir }, (error) => {
       if (error) {
         console.error(JSON.stringify(serializeError(error)));
-        logger.error(JSON.stringify(serializeError(error)));
+        GitClient.logger.error(JSON.stringify(serializeError(error)));
       }
     });
   }

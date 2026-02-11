@@ -17,7 +17,6 @@ import type { BackendSyncHandlersType, BackendAsyncHandlersType } from '@superfl
 const opn = require('opn');
 
 export class MainApplication extends GenericApplication {
-  private static readonly STATS_GENERAL = 'general';
   private updateDownloaded = false;
   private updateDownloadedVersion: string;
   private settings: SettingsModel = new SettingsModel();
@@ -27,7 +26,6 @@ export class MainApplication extends GenericApplication {
   private gitClients: { [key: string]: GitClient } = {};
   private readonly iconFile = './src/favicon.512x512.png';
   private readonly notificationTitle = 'Light Git';
-  private analytics;
 
   constructor(logger: Console) {
     super(logger);
@@ -88,12 +86,6 @@ export class MainApplication extends GenericApplication {
         }
         Object.assign(this.settings, res);
         GitClient.settings = this.settings;
-        this.sendEvent(
-          MainApplication.STATS_GENERAL,
-          'tabs-open',
-          this.settings.tabNames.length,
-        );
-        this.sendEvent(MainApplication.STATS_GENERAL, 'version', this.version);
 
         let done: { [path: string]: CodeWatcherModel[] } = {};
         if (this.settings.codeWatcherPaths.length > 0) {
@@ -181,24 +173,6 @@ export class MainApplication extends GenericApplication {
     }
   }
 
-  sendEvent(
-    category: string,
-    action: string,
-    label: string | number,
-    value?: number,
-  ) {
-    if (this.analytics) {
-      this.analytics
-        .event({
-          ec: category,
-          ea: action,
-          el: label + '',
-          ev: value,
-        })
-        .send();
-    }
-  }
-
   getSettingsPath() {
     return path.join(app.getPath('userData'), 'settings.json');
   }
@@ -224,10 +198,6 @@ export class MainApplication extends GenericApplication {
     this.checkForUpdates();
     this.configureApp();
     setupApiHandlers(app, this.getSyncHandlers(), this.getAsyncHandlers(), ipcMain);
-    setTimeout(
-      () => this.sendEvent('general', 'window-opened', 'main-window'),
-      20000,
-    );
   }
 
   checkForUpdates() {

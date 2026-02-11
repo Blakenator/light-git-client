@@ -61,8 +61,6 @@
     "includeUnchangedInWatcherAnalysis": true,
     "username": "Blake Stacks",
     "email": "blake@blakestacks.com",
-    "allowStats": false,
-    "statsId": "",
     "allowPrerelease": false,
     "splitFilenameDisplay": false,
     "commitAndPush": true,

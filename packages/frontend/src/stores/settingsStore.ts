@@ -48,8 +48,6 @@ const defaultSettings: SettingsModel = {
   includeUnchangedInWatcherAnalysis: true,
   username: '',
   email: '',
-  allowStats: false,
-  statsId: '',
   allowPrerelease: false,
   splitFilenameDisplay: false,
   commitAndPush: false,
