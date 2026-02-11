@@ -28,8 +28,7 @@
   ],
   "win": {
     "icon": "dist",
-    "target": ["nsis", "portable", "7z", "zip"],
-    "publisherName": "Blake Stacks"
+    "target": ["nsis", "portable", "7z", "zip"]
   },
   "mac": {
     "icon": "dist",
