@@ -10,6 +10,24 @@ const BranchSelectGroup = styled.div`
   gap: 0.5rem;
 `;
 
+const SwapButtonWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1.75rem;
+`;
+
+const SwapButton = styled(Button)`
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
 const BranchFilter = styled(Form.Control)`
   margin-bottom: 0.5rem;
 `;
@@ -158,6 +176,17 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
     onCancel();
   }, [hideModal, onCancel]);
 
+  const handleSwapDirection = useCallback(() => {
+    const prevSource = sourceBranch;
+    const prevTarget = targetBranch;
+    setSourceBranch(prevTarget);
+    setTargetBranch(prevSource);
+    const prevSourceFilter = sourceFilter;
+    const prevTargetFilter = targetFilter;
+    setSourceFilter(prevTargetFilter);
+    setTargetFilter(prevSourceFilter);
+  }, [sourceBranch, targetBranch, sourceFilter, targetFilter]);
+
   const handleSubmit = useCallback(() => {
     if (sourceBranch && targetBranch) {
       onMerge(sourceBranch, targetBranch, {
@@ -184,7 +213,7 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
               $current={b.isCurrentBranch}
               onClick={() => onSelect(b.name)}
             >
-              {b.isCurrentBranch && <Icon name="fa-check" size="sm" />}
+              {selectedBranch === b.name && <Icon name="fa-check" size="sm" />}
               {b.name}
               {b.isCurrentBranch && (
                 <Badge bg="success" className="ms-auto">
@@ -204,7 +233,7 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
               $selected={selectedBranch === b.name}
               onClick={() => onSelect(b.name)}
             >
-              <Icon name="fa-cloud" size="sm" />
+              {selectedBranch === b.name ? <Icon name="fa-check" size="sm" /> : <Icon name="fa-cloud" size="sm" />}
               {b.name}
             </BranchOption>
           ))}
@@ -269,8 +298,8 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
           </ButtonGroup>
         </Form.Group>
 
-        <div className="row">
-          <div className="col-md-6">
+        <div className="d-flex align-items-start gap-2">
+          <div className="flex-fill">
             <Form.Group className="mb-3">
               <Form.Label>
                 {isRebase ? 'Branch to rebase' : 'Branch to merge from'}
@@ -292,7 +321,17 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
             </Form.Group>
           </div>
 
-          <div className="col-md-6">
+          <SwapButtonWrapper>
+            <SwapButton
+              variant="outline-secondary"
+              onClick={handleSwapDirection}
+              title="Swap source and target branches"
+            >
+              <Icon name="fa-exchange-alt" />
+            </SwapButton>
+          </SwapButtonWrapper>
+
+          <div className="flex-fill">
             <Form.Group className="mb-3">
               <Form.Label>{isRebase ? 'Rebase onto' : 'Merge into'}</Form.Label>
               <BranchFilter
@@ -314,13 +353,12 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
         </div>
 
         {sourceBranch && targetBranch && (
-          <Alert variant="info" className="mb-0">
-            <strong>
-              {isRebase
-                ? `Rebasing ${sourceBranch} onto ${targetBranch}`
-                : `Merging ${sourceBranch} into ${targetBranch}`}
-            </strong>
-            {isInteractive && ' (interactive mode)'}
+          <Alert variant="info" className="mb-0 d-flex align-items-center gap-2 flex-wrap">
+            <span>{isRebase ? 'Rebase' : 'Merge'}</span>
+            <Badge bg="primary">{sourceBranch}</Badge>
+            <Icon name="fa-arrow-right" size="sm" />
+            <Badge bg="primary">{targetBranch}</Badge>
+            {isInteractive && <Badge bg="warning" text="dark">interactive</Badge>}
           </Alert>
         )}
       </Modal.Body>
