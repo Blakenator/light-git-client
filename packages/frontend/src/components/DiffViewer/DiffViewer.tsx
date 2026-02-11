@@ -1,19 +1,12 @@
 import React, {
-  useState,
-  useMemo,
   useCallback,
-  useRef,
   useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 import styled from 'styled-components';
-import {
-  Button,
-  ButtonGroup,
-  Form,
-  Badge,
-  Alert,
-  Tooltip,
-} from 'react-bootstrap';
+import { Alert, Badge, Button, Form, Tooltip } from 'react-bootstrap';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import hljs from 'highlight.js';
 
@@ -355,7 +348,6 @@ const HunkEditorTextarea = styled.textarea`
   }
 `;
 
-
 const TruncationWarning = styled.div`
   padding: 0.5rem 1rem;
   background-color: ${({ theme }) => theme.colors.light};
@@ -417,6 +409,8 @@ export interface DiffHunk {
   lines: DiffLineModel[];
   fromStartLine: number;
   toStartLine: number;
+  fromNumLines: number;
+  toNumLines: number;
 }
 
 export interface DiffHeaderModel {

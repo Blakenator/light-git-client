@@ -15,6 +15,8 @@ export function normalizeDiff(diffHeaders: any[]): any[] {
       header: hunk.header || `@@ -${hunk.fromStartLine},${hunk.fromNumLines} +${hunk.toStartLine},${hunk.toNumLines} @@`,
       fromStartLine: hunk.fromStartLine || 0,
       toStartLine: hunk.toStartLine || 0,
+      fromNumLines: hunk.fromNumLines || 0,
+      toNumLines: hunk.toNumLines || 0,
       lines: (hunk.lines || []).map((line: any) => {
         let state = 'unchanged';
         if (line.state === 0 || line.state === 'ADDED' || line.state === 'added') {
@@ -270,12 +272,36 @@ export function useDiffActions(repoPath: string) {
     store.getState().resetDiffState(repoPath);
   }, [repoPath, store]);
 
-  const handleIgnoreWhitespaceChange = useCallback((value: boolean) => {
+  const handleIgnoreWhitespaceChange = useCallback(async (value: boolean) => {
     const updateSettings = useSettingsStore.getState().updateSettings;
     const saveSettings = useSettingsStore.getState().saveSettings;
     updateSettings({ diffIgnoreWhitespace: value });
-    saveSettings();
-  }, []);
+    await saveSettings();
+
+    // Refresh the current diff with the new whitespace setting
+    if (!showDiffRef.current) return;
+
+    if (commitInfoRef.current) {
+      // Re-fetch commit diff
+      const hash = commitInfoRef.current.hash;
+      if (hash) {
+        try {
+          const diffResponse = await gitService.getCommitDiff(hash) as any;
+          const diff = Array.isArray(diffResponse) ? diffResponse : (diffResponse?.content || []);
+          store.getState().setCurrentDiff(repoPath, normalizeDiff(diff || []));
+        } catch (error: any) {
+          addAlert(`Failed to refresh diff: ${error.message}`, 'error');
+        }
+      }
+    } else {
+      // Re-fetch file diff
+      const current = useRepositoryStore.getState().repoCache[repoPath];
+      refreshDiffRef.current(
+        current?.selectedStagedChanges || {},
+        current?.selectedUnstagedChanges || {},
+      );
+    }
+  }, [gitService, repoPath, store, addAlert]);
 
   // Hunk editing handlers
   const handleHunkChange = useCallback(async (filename: string, hunk: any, newContent: string) => {
