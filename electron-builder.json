@@ -16,39 +16,28 @@
     "src/*.png",
     "!e2e/",
     "!hooks/",
-    "!.angular-cli.json",
-    "!_config.yml",
-    "!karma.conf.js",
-    "!tsconfig.json",
-    "!tslint.json"
+    "!docs/"
   ],
   "extraFiles": ["extra/**/*"],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "Blakenator",
+      "repo": "light-git-client"
+    }
+  ],
   "win": {
     "icon": "dist",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "Blakenator",
-        "repo": "light-git-client"
-      }
-    ],
     "target": ["nsis", "portable", "7z", "zip"],
     "publisherName": "Blake Stacks"
   },
   "mac": {
     "icon": "dist",
-    "target": ["dmg"]
+    "target": ["dmg", "zip"]
   },
   "linux": {
     "icon": "dist",
     "category": "Development",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "Blakenator",
-        "repo": "light-git-client"
-      }
-    ],
     "target": ["AppImage", "deb"]
   }
 }

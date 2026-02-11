@@ -12,7 +12,7 @@
     "@superflag/super-ipc-backend": "^0.0.21",
     "@superflag/super-ipc-preloader": "^0.0.21",
     "electron-log": "^4.0.3",
-    "electron-updater": "^4.3.5",
+    "electron-updater": "^6.7.3",
     "fs-extra": "^10.1.0",
     "mkdirp": "^1.0.4",
     "node-notifier": "^9.0.0",
