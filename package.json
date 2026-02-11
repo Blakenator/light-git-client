@@ -53,6 +53,6 @@
       "esbuild",
       "electron",
       "electron-winstaller"
-    ],
+    ]
   }
 }
