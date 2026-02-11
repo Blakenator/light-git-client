@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ActiveOperation } from '@light-git/shared';
+import type { ActiveOperation, DiffStatsResult } from '@light-git/shared';
 
 export interface RepoViewState {
   // Diff state per repo
@@ -11,6 +11,9 @@ export interface RepoViewState {
   isLoadingMoreDiffs: { [repoPath: string]: boolean };
   // Files currently being diffed (for pagination)
   currentDiffFiles: { [repoPath: string]: { unstaged: string[]; staged: string[] } };
+
+  // Pre-fetched diff stats for the entire file selection (stable across pages)
+  diffStats: { [repoPath: string]: DiffStatsResult | null };
 
   // Commit message per repo
   commitMessage: { [repoPath: string]: string };
@@ -42,6 +45,8 @@ export interface RepoViewActions {
   setIsLoadingMoreDiffs: (repoPath: string, loading: boolean) => void;
   getCurrentDiffFiles: (repoPath: string) => { unstaged: string[]; staged: string[] };
   setCurrentDiffFiles: (repoPath: string, files: { unstaged: string[]; staged: string[] }) => void;
+  getDiffStats: (repoPath: string) => DiffStatsResult | null;
+  setDiffStats: (repoPath: string, stats: DiffStatsResult | null) => void;
   resetDiffState: (repoPath: string) => void;
 
   // Commit message actions
@@ -70,6 +75,7 @@ export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, ge
   hasMoreDiffs: {},
   isLoadingMoreDiffs: {},
   currentDiffFiles: {},
+  diffStats: {},
   commitMessage: {},
   activeOperation: {},
   commandHistory: {},
@@ -112,6 +118,10 @@ export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, ge
   setCurrentDiffFiles: (repoPath, files) => {
     set((state) => ({ currentDiffFiles: { ...state.currentDiffFiles, [repoPath]: files } }));
   },
+  getDiffStats: (repoPath) => get().diffStats[repoPath] ?? null,
+  setDiffStats: (repoPath, stats) => {
+    set((state) => ({ diffStats: { ...state.diffStats, [repoPath]: stats } }));
+  },
   resetDiffState: (repoPath) => {
     set((state) => ({
       showDiff: { ...state.showDiff, [repoPath]: false },
@@ -121,6 +131,7 @@ export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, ge
       hasMoreDiffs: { ...state.hasMoreDiffs, [repoPath]: false },
       isLoadingMoreDiffs: { ...state.isLoadingMoreDiffs, [repoPath]: false },
       currentDiffFiles: { ...state.currentDiffFiles, [repoPath]: { unstaged: [], staged: [] } },
+      diffStats: { ...state.diffStats, [repoPath]: null },
     }));
   },
 

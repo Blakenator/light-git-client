@@ -158,26 +158,6 @@ const TagBadge = styled(Badge)<{
   }} !important;
 `;
 
-const CopyMessageButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.125rem 0.25rem;
-  color: ${({ theme }) => theme.colors.secondary};
-  opacity: 0;
-  transition: opacity 0.15s;
-  flex-shrink: 0;
-
-  tr:hover & {
-    opacity: 0.6;
-  }
-
-  &:hover {
-    opacity: 1 !important;
-    color: ${({ theme }) => theme.colors.primary};
-  }
-`;
-
 const CommitMeta = styled.div`
   font-size: 0.75rem;
   color: ${({ theme }) => theme.colors.secondary};
@@ -291,6 +271,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
       commitInfo,
       hasMoreDiffs,
       isLoadingMoreDiffs,
+      diffStats,
       loadMoreDiffs,
       handleToggleDiffView,
       handleExitDiffView,
@@ -394,7 +375,10 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
     }, []);
 
     const isExpandable = useCallback((commit: any): boolean => {
-      return commit.message.includes('\n');
+      if (commit.message.includes('\n')) return true;
+      // Also expandable when the first line is long enough to be truncated
+      const firstLine = commit.message.split('\n')[0];
+      return firstLine.length > 72;
     }, []);
 
     const handleLayoutScroll = useCallback(() => {
@@ -631,24 +615,6 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
                               <MessageBody>{restLines}</MessageBody>
                             )}
                           </MessageContent>
-                          {expandable && (
-                            <TooltipTrigger
-                              placement="top"
-                              overlay={
-                                <Tooltip
-                                  id={`tooltip-copy-message-${commit.hash}`}
-                                >
-                                  Copy full message
-                                </Tooltip>
-                              }
-                            >
-                              <CopyMessageButton
-                                onClick={(e) => copyMessage(commit.message, e)}
-                              >
-                                <Icon name="fa-copy" size="sm" />
-                              </CopyMessageButton>
-                            </TooltipTrigger>
-                          )}
                         </MessageRow>
                         <CommitMeta>
                           <CommitHash>{commit.hash.substring(0, 7)}</CommitHash>
@@ -738,6 +704,18 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
                               <Icon name="fa-copy" size="sm" className="me-2" />
                               Copy Hash
                             </Dropdown.Item>
+                            <Dropdown.Item
+                              onClick={(e: React.MouseEvent) =>
+                                copyMessage(commit.message, e)
+                              }
+                            >
+                              <Icon
+                                name="fa-clipboard"
+                                size="sm"
+                                className="me-2"
+                              />
+                              Copy Description
+                            </Dropdown.Item>
                             <Dropdown.Divider />
                             <Dropdown.Header>
                               Reset to this commit
@@ -802,6 +780,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
                 ignoreWhitespace={ignoreWhitespace}
                 hasMore={hasMoreDiffs}
                 isLoadingMore={isLoadingMoreDiffs}
+                preloadedStats={!commitInfo ? diffStats : null}
                 onIgnoreWhitespaceClick={handleIgnoreWhitespaceClick}
                 onExitCommitView={handleExitCommitOrDiff}
                 onNavigateToHash={handleClickCommit}

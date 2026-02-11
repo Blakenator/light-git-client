@@ -7,6 +7,7 @@ import {
 } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
+import type { DiffStatsResult } from '@light-git/shared';
 
 /**
  * Manages repo lifecycle: initial loading, auto-refresh on focus, and
@@ -49,6 +50,28 @@ export function useRepoLifecycle(
 
       if (Object.keys(update).length > 0) {
         updateRepoCache(repoPath, update);
+      }
+
+      // Fetch diff stats for the initial file lists
+      if (data.changes) {
+        const allStaged = (data.changes.stagedChanges || [])
+          .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
+          .filter(Boolean);
+        const allUnstaged = (data.changes.unstagedChanges || [])
+          .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
+          .filter(Boolean);
+        if (allStaged.length > 0 || allUnstaged.length > 0) {
+          gitService
+            .getDiffStats(allUnstaged, allStaged)
+            .then((stats: DiffStatsResult) => {
+              useRepoViewStore.getState().setDiffStats(repoPath, stats);
+            })
+            .catch(() => {
+              // Non-critical
+            });
+        } else {
+          useRepoViewStore.getState().setDiffStats(repoPath, null);
+        }
       }
     } catch (error) {
       console.error('Failed to refresh repo:', error);
@@ -124,9 +147,29 @@ export function useRepoLifecycle(
         promises.push(
           gitService
             .getFileChanges()
-            .then((result: any) =>
-              result !== undefined ? { changes: result } : null,
-            )
+            .then((result: any) => {
+              if (result === undefined) return null;
+              // Also refresh diff stats for the updated file lists
+              const allStaged = (result.stagedChanges || [])
+                .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
+                .filter(Boolean);
+              const allUnstaged = (result.unstagedChanges || [])
+                .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
+                .filter(Boolean);
+              if (allStaged.length > 0 || allUnstaged.length > 0) {
+                gitService
+                  .getDiffStats(allUnstaged, allStaged)
+                  .then((stats: DiffStatsResult) => {
+                    useRepoViewStore.getState().setDiffStats(repoPath, stats);
+                  })
+                  .catch(() => {
+                    // Non-critical: stats are a nice-to-have
+                  });
+              } else {
+                useRepoViewStore.getState().setDiffStats(repoPath, null);
+              }
+              return { changes: result };
+            })
             .catch((err: any) => {
               console.error('Failed to refresh file changes:', err);
               return null;

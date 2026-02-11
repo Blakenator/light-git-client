@@ -323,6 +323,12 @@ export class MainApplication extends GenericApplication {
           args.maxLines ?? 500,
         );
       },
+      [SYNC_CHANNELS.GetDiffStats]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getDiffStats(
+          args.unstaged,
+          args.staged,
+        );
+      },
       [SYNC_CHANNELS.CommitDiff]: async ({ args }) => {
         return await this.gitClients[args.repoPath].getCommitDiff(args.hash);
       },

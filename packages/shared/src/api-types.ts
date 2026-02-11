@@ -11,6 +11,7 @@ import type { DiffHeaderModel } from './git/diff.header.model';
 import type { PaginatedDiffResponse } from './git/paginated-diff.model';
 import type { ConfigItemModel } from './git/config-item.model';
 import type { CommandHistoryModel } from './git/command-history.model';
+import type { DiffStatsResult } from './git/diff-stat.model';
 import type { CommandOutputModel } from './common/command.output.model';
 
 // ---- Re-usable shapes ----
@@ -57,6 +58,10 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
   [SYNC_CHANNELS.GetFileDiff]: {
     props: { repoPath: string; unstaged: string[]; staged: string[]; cursor?: string | null; maxLines?: number };
     result: CommandOutputModel<PaginatedDiffResponse>;
+  };
+  [SYNC_CHANNELS.GetDiffStats]: {
+    props: { repoPath: string; unstaged: string[]; staged: string[] };
+    result: DiffStatsResult;
   };
   [SYNC_CHANNELS.CommitDiff]: {
     props: { repoPath: string; hash: string };

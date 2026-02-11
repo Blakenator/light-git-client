@@ -131,11 +131,26 @@ export function useDiffFileActions(repoPath: string) {
     }
   }, [gitService, addAlert, repoPath, store]);
 
+  // Fetch diff stats for all given files (runs in parallel with diff page fetch)
+  const fetchDiffStats = useCallback(async (unstagedFiles: string[], stagedFiles: string[]) => {
+    try {
+      const stats = await gitService.getDiffStats(unstagedFiles, stagedFiles) as any;
+      store.getState().setDiffStats(repoPath, stats);
+    } catch {
+      // Non-critical: stats are a nice-to-have, don't block on failures
+      store.getState().setDiffStats(repoPath, null);
+    }
+  }, [gitService, repoPath, store]);
+
   // Start fetching diffs for given files (resets pagination)
   const fetchDiffForFiles = useCallback(async (unstagedFiles: string[], stagedFiles: string[]) => {
     store.getState().setCurrentDiffFiles(repoPath, { unstaged: unstagedFiles, staged: stagedFiles });
-    await fetchDiffPage(unstagedFiles, stagedFiles, null, false);
-  }, [fetchDiffPage, repoPath, store]);
+    // Fetch diff page and stats in parallel
+    await Promise.all([
+      fetchDiffPage(unstagedFiles, stagedFiles, null, false),
+      fetchDiffStats(unstagedFiles, stagedFiles),
+    ]);
+  }, [fetchDiffPage, fetchDiffStats, repoPath, store]);
 
   // Handler for clicking on staged/unstaged file changes
   const handleFileClick = useCallback(async (filePath: string, isStaged: boolean) => {
@@ -177,6 +192,7 @@ export function useDiffFileActions(repoPath: string) {
   return {
     fetchDiffPage,
     fetchDiffForFiles,
+    fetchDiffStats,
     handleFileClick,
     refreshSelectedFilesDiff,
   };
@@ -206,6 +222,7 @@ export function useDiffActions(repoPath: string) {
   const commitInfo = useRepoViewStore((state) => state.commitInfo[repoPath] || null);
   const hasMoreDiffs = useRepoViewStore((state) => state.hasMoreDiffs[repoPath] || false);
   const isLoadingMoreDiffs = useRepoViewStore((state) => state.isLoadingMoreDiffs[repoPath] || false);
+  const diffStats = useRepoViewStore((state) => state.diffStats[repoPath] ?? null);
 
   // Store actions (stable references from zustand)
   const store = useRepoViewStore;
@@ -358,6 +375,7 @@ export function useDiffActions(repoPath: string) {
     commitInfo,
     hasMoreDiffs,
     isLoadingMoreDiffs,
+    diffStats,
     fetchDiffForFiles,
     loadMoreDiffs,
     handleFileClick,

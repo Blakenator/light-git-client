@@ -7,8 +7,9 @@ import {
   CardFilterInput,
   CardHeaderButtons,
 } from '../RepoView.styles';
-import { ChangeList } from '../../ChangeList/ChangeList';
+import { ChangeList, FileStatInfo } from '../../ChangeList/ChangeList';
 import { useRepositoryStore, useSettingsStore } from '../../../stores';
+import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useStagingActions, useDiffFileActions } from '../hooks';
 
 // Stable defaults to avoid new-ref re-renders when the slice is undefined
@@ -28,6 +29,16 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
     const changes = useRepositoryStore((state) => state.repoCache[repoPath]?.changes?.stagedChanges) ?? _EMPTY_ARR;
     const selectedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.selectedStagedChanges) ?? _EMPTY_OBJ;
     const splitFilenameDisplay = useSettingsStore((state) => state.settings.splitFilenameDisplay);
+    const stagedStats = useRepoViewStore((state) => state.diffStats[repoPath]?.staged);
+
+    const diffStatsMap = useMemo(() => {
+      if (!stagedStats || stagedStats.length === 0) return undefined;
+      const map = new Map<string, FileStatInfo>();
+      for (const s of stagedStats) {
+        map.set(s.file, { additions: s.additions, deletions: s.deletions, isBinary: s.isBinary });
+      }
+      return map;
+    }, [stagedStats]);
 
     const { refreshSelectedFilesDiff } = useDiffFileActions(repoPath);
     const {
@@ -182,6 +193,7 @@ export const StagedChangesCard: React.FC<StagedChangesCardProps> = React.memo(
           selectedChanges={selectedChanges}
           splitFilenameDisplay={splitFilenameDisplay}
           filter={filter}
+          diffStats={diffStatsMap}
           onSelectChange={handleSelectStagedChange}
           onBatchSelectChange={handleBatchSelectStagedChange}
           onUndoFile={(path, changeType) => handleUndoFile(path, changeType, true)}

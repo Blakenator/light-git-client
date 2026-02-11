@@ -23,6 +23,7 @@ import { ErrorModel } from '@light-git/shared/src/common/error.model';
 import { DiffHunkModel } from '@light-git/shared/src/git/diff.hunk.model';
 import { DiffLineModel, LineState } from '@light-git/shared/src/git/diff.line.model';
 import { PaginatedDiffResponse } from '@light-git/shared/src/git/paginated-diff.model';
+import type { FileDiffStat, DiffStatsResult } from '@light-git/shared/src/git/diff-stat.model';
 const serializeError = require('serialize-error').default || require('serialize-error');
 import { SubmoduleModel } from '@light-git/shared/src/git/submodule.model';
 import { app } from 'electron';
@@ -526,6 +527,121 @@ export class GitClient {
         );
       },
     );
+  }
+
+  /**
+   * Fetch diff stats (additions/deletions per file) for all given files at once
+   * using `git diff --numstat`. This returns stats for the ENTIRE set of files,
+   * independent of any pagination, so summary stats remain stable.
+   */
+  getDiffStats(
+    unstaged: string[],
+    staged: string[],
+  ): Promise<DiffStatsResult> {
+    return new Promise<DiffStatsResult>((resolve, reject) => {
+      const promises: Promise<{ stats: FileDiffStat[]; type: 'staged' | 'unstaged' }>[] = [];
+
+      if (staged && staged.length > 0) {
+        promises.push(
+          this.execute(
+            this.getGitPath(),
+            [
+              'diff',
+              GitClient.settings.diffIgnoreWhitespace ? '-w' : '',
+              '--numstat',
+              '--staged',
+              '--',
+              ...staged,
+            ].filter(Boolean),
+            'Get Staged Diff Stats',
+            true,
+          ).then((output) => ({
+            stats: this.parseNumstat(output.standardOutput),
+            type: 'staged' as const,
+          })),
+        );
+      }
+
+      if (unstaged && unstaged.length > 0) {
+        promises.push(
+          this.execute(
+            this.getGitPath(),
+            [
+              'diff',
+              GitClient.settings.diffIgnoreWhitespace ? '-w' : '',
+              '--numstat',
+              '--',
+              ...unstaged,
+            ].filter(Boolean),
+            'Get Unstaged Diff Stats',
+            true,
+          ).then((output) => ({
+            stats: this.parseNumstat(output.standardOutput),
+            type: 'unstaged' as const,
+          })),
+        );
+      }
+
+      this.handleErrorDefault(
+        Promise.all(promises).then((results) => {
+          const stagedStats: FileDiffStat[] = [];
+          const unstagedStats: FileDiffStat[] = [];
+          let totalAdditions = 0;
+          let totalDeletions = 0;
+          let totalFiles = 0;
+
+          for (const result of results) {
+            const target = result.type === 'staged' ? stagedStats : unstagedStats;
+            for (const stat of result.stats) {
+              target.push(stat);
+              totalAdditions += stat.additions;
+              totalDeletions += stat.deletions;
+              totalFiles++;
+            }
+          }
+
+          resolve({
+            staged: stagedStats,
+            unstaged: unstagedStats,
+            totalAdditions,
+            totalDeletions,
+            totalFiles,
+          });
+        }),
+        reject,
+      );
+    });
+  }
+
+  /**
+   * Parse `git diff --numstat` output into per-file stats.
+   * Format: `<additions>\t<deletions>\t<filename>`
+   * Binary files show as: `-\t-\t<filename>`
+   */
+  private parseNumstat(output: string): FileDiffStat[] {
+    const stats: FileDiffStat[] = [];
+    if (!output) return stats;
+
+    const lines = output.trim().split('\n');
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const parts = line.split('\t');
+      if (parts.length < 3) continue;
+
+      const addStr = parts[0];
+      const delStr = parts[1];
+      // Handle renamed files: `{old => new}` or `old => new` in the path
+      const file = parts.slice(2).join('\t');
+      const isBinary = addStr === '-' && delStr === '-';
+
+      stats.push({
+        file,
+        additions: isBinary ? 0 : parseInt(addStr, 10) || 0,
+        deletions: isBinary ? 0 : parseInt(delStr, 10) || 0,
+        isBinary,
+      });
+    }
+    return stats;
   }
 
   getDiffPaginated(

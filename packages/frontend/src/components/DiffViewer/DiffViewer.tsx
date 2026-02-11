@@ -423,6 +423,23 @@ export interface DiffHeaderModel {
   stagedState?: 'staged' | 'unstaged' | 'Staged' | 'Unstaged' | string;
 }
 
+/** Pre-fetched per-file diff stat */
+export interface FileDiffStatEntry {
+  file: string;
+  additions: number;
+  deletions: number;
+  isBinary: boolean;
+}
+
+/** Pre-fetched diff stats for the entire file selection */
+export interface PreloadedDiffStats {
+  staged: FileDiffStatEntry[];
+  unstaged: FileDiffStatEntry[];
+  totalAdditions: number;
+  totalDeletions: number;
+  totalFiles: number;
+}
+
 interface DiffViewerProps {
   diffHeaders: DiffHeaderModel[];
   commitInfo?: {
@@ -439,6 +456,8 @@ interface DiffViewerProps {
   hasMore?: boolean;
   /** Whether the next page is currently being fetched */
   isLoadingMore?: boolean;
+  /** Pre-fetched diff stats for the entire file selection (stable across pages) */
+  preloadedStats?: PreloadedDiffStats | null;
   onIgnoreWhitespaceClick?: () => void;
   onExitCommitView?: () => void;
   onNavigateToHash?: (hash: string) => void;
@@ -635,6 +654,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
     isReadOnly = false,
     hasMore = false,
     isLoadingMore = false,
+    preloadedStats,
     onIgnoreWhitespaceClick,
     onExitCommitView,
     onNavigateToHash,
@@ -721,8 +741,59 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
       }
     }, [editingHunk]);
 
-    // Compute overall diff stats
+    // Build a lookup map from preloaded stats for per-file stat resolution
+    const preloadedStatMap = useMemo(() => {
+      if (!preloadedStats) return null;
+      const map = new Map<string, FileDiffStatEntry>();
+      for (const s of preloadedStats.staged) map.set(`Staged:${s.file}`, s);
+      for (const s of preloadedStats.unstaged) map.set(`Unstaged:${s.file}`, s);
+      // Also index without prefix for fallback matching
+      for (const s of [...preloadedStats.staged, ...preloadedStats.unstaged]) {
+        if (!map.has(s.file)) map.set(s.file, s);
+      }
+      return map;
+    }, [preloadedStats]);
+
+    // Compute overall diff stats — prefer preloaded stats when available
     const diffStats = useMemo(() => {
+      // When preloaded stats are available, use them for totals (stable across pages)
+      if (preloadedStats) {
+        // Count file types from the preloaded per-file data
+        let addedFiles = 0;
+        let deletedFiles = 0;
+        let modifiedFiles = 0;
+        let renamedFiles = 0;
+
+        // Use diffHeaders for action type classification (preloaded stats don't carry action)
+        for (const header of diffHeaders) {
+          switch (header.action) {
+            case 'Added':
+              addedFiles++;
+              break;
+            case 'Deleted':
+              deletedFiles++;
+              break;
+            case 'Renamed':
+              renamedFiles++;
+              break;
+            default:
+              modifiedFiles++;
+              break;
+          }
+        }
+
+        return {
+          totalAdditions: preloadedStats.totalAdditions,
+          totalDeletions: preloadedStats.totalDeletions,
+          totalFiles: preloadedStats.totalFiles,
+          addedFiles,
+          deletedFiles,
+          modifiedFiles,
+          renamedFiles,
+        };
+      }
+
+      // Fallback: compute from visible page data (for commit diffs, stash diffs, etc.)
       let totalAdditions = 0;
       let totalDeletions = 0;
       let addedFiles = 0;
@@ -757,7 +828,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
         modifiedFiles,
         renamedFiles,
       };
-    }, [diffHeaders]);
+    }, [diffHeaders, preloadedStats]);
 
     // Filter diff headers
     const filteredHeaders = useMemo(() => {
@@ -944,6 +1015,19 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
           ? `${header.fromFilename} → ${header.toFilename}`
           : header.toFilename;
 
+      // Resolve per-file stats: prefer preloaded stats, fall back to page-computed
+      let fileAdditions = header.additions;
+      let fileDeletions = header.deletions;
+      if (preloadedStatMap) {
+        const stagedState = header.stagedState?.charAt(0).toUpperCase() + (header.stagedState?.slice(1).toLowerCase() || '');
+        const key = `${stagedState}:${header.toFilename}`;
+        const stat = preloadedStatMap.get(key) || preloadedStatMap.get(header.toFilename);
+        if (stat) {
+          fileAdditions = stat.additions;
+          fileDeletions = stat.deletions;
+        }
+      }
+
       return (
         <DiffHeader onClick={() => toggleFile(header.toFilename, header)}>
           <Icon
@@ -986,8 +1070,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
             <ActionBadge $action={header.action}>{header.action}</ActionBadge>
           )}
           <DiffStats>
-            <Additions>+{header.additions}</Additions>
-            <Deletions>-{header.deletions}</Deletions>
+            <Additions>+{fileAdditions}</Additions>
+            <Deletions>-{fileDeletions}</Deletions>
           </DiffStats>
         </DiffHeader>
       );

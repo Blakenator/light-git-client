@@ -17,6 +17,7 @@ export * from './git/diff.header.model';
 export * from './git/diff.hunk.model';
 export * from './git/diff.line.model';
 export * from './git/paginated-diff.model';
+export * from './git/diff-stat.model';
 export * from './git/stash.model';
 export * from './git/submodule.model';
 export * from './git/worktree.model';

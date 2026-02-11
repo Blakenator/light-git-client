@@ -32,7 +32,6 @@ const StyledTable = styled(Table)`
     position: sticky;
     top: 0;
     z-index: 1;
-    position: relative;
 
     &:hover {
       background-color: ${({ theme }) => theme.colors.border};
@@ -138,6 +137,23 @@ const FileBaseName = styled.span`
   color: ${({ theme }) => theme.colors.text};
 `;
 
+const StatCell = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: ${({ theme }) => theme.fonts.monospace};
+  font-size: 0.75rem;
+  white-space: nowrap;
+`;
+
+const StatAdditions = styled.span`
+  color: ${({ theme }) => theme.colors.diffAddText || theme.colors.success};
+`;
+
+const StatDeletions = styled.span`
+  color: ${({ theme }) => theme.colors.diffDeleteText || theme.colors.danger};
+`;
+
 const ActionButtons = styled.div`
   display: flex;
   gap: 0.25rem;
@@ -148,6 +164,13 @@ const ActionButtons = styled.div`
     opacity: 1;
   }
 `;
+
+/** Per-file diff stat for display in the change list */
+export interface FileStatInfo {
+  additions: number;
+  deletions: number;
+  isBinary: boolean;
+}
 
 export interface FileChange {
   path: string;
@@ -169,6 +192,8 @@ interface ChangeListProps {
   splitFilenameDisplay?: boolean;
   filter?: string;
   submodules?: SubmoduleModel[];
+  /** Per-file diff stats keyed by file path */
+  diffStats?: Map<string, FileStatInfo>;
   onSelectChange: (path: string, selected: boolean) => void;
   onBatchSelectChange?: (changes: Record<string, boolean>) => void;
   onUndoFile?: (path: string, changeType: string) => void;
@@ -241,6 +266,7 @@ export const ChangeList: React.FC<ChangeListProps> = React.memo(
     splitFilenameDisplay = false,
     filter = '',
     submodules = [],
+    diffStats,
     onSelectChange,
     onBatchSelectChange,
     onUndoFile,
@@ -389,6 +415,31 @@ export const ChangeList: React.FC<ChangeListProps> = React.memo(
         }),
       ];
 
+      // +/- lines column (only rendered when diffStats are available)
+      if (diffStats && diffStats.size > 0) {
+        cols.push({
+          id: 'lines',
+          header: '+/-',
+          size: 80,
+          minSize: 60,
+          maxSize: 120,
+          enableResizing: true,
+          cell: ({ row }: { row: any }) => {
+            const stat = diffStats.get(row.original.path);
+            if (!stat) return null;
+            if (stat.isBinary) {
+              return <StatCell>binary</StatCell>;
+            }
+            return (
+              <StatCell>
+                <StatAdditions>+{stat.additions}</StatAdditions>
+                <StatDeletions>-{stat.deletions}</StatDeletions>
+              </StatCell>
+            );
+          },
+        });
+      }
+
       if (splitFilenameDisplay) {
         cols.push(
           columnHelper.accessor('dirPath', {
@@ -457,7 +508,7 @@ export const ChangeList: React.FC<ChangeListProps> = React.memo(
       });
 
       return cols;
-    }, [columnHelper, splitFilenameDisplay, submoduleSet]);
+    }, [columnHelper, splitFilenameDisplay, submoduleSet, diffStats]);
 
     const table = useReactTable({
       data,
