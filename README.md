@@ -5,7 +5,7 @@ A light, elegant git client
 
 
 ## Installation
-[Download](https://blake.industries/p/light-git-client)
+[Download](https://github.com/Blakenator/light-git-client/releases)
 
 Options:
 * Portable

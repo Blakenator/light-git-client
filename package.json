@@ -14,9 +14,9 @@
   "private": true,
   "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "postinstall": "pnpm -r --sort run build && npx electron-builder install-app-deps",
+    "postinstall": "pnpm -r --sort --filter '!@light-git/docs' run build && npx electron-builder install-app-deps",
     "start": "pnpm run build && concurrently -k -n dev,electron \"pnpm run dev\" \"wait-on http://localhost:4200 && cross-env VITE_DEV_SERVER_URL=http://localhost:4200 electron .\"",
-    "build": "pnpm -r --sort run build",
+    "build": "pnpm -r --sort --filter '!@light-git/docs' run build",
     "dev": "pnpm -r --parallel run dev",
     "electron:serve": "nodemon --ignore dist --ignore packages --watch packages/backend/src -e ts --exec \"pnpm --filter @light-git/backend run build && electron --inspect --remote-debugging-port=9223 .\"",
     "electron:local": "pnpm run build && electron .",
@@ -29,6 +29,8 @@
     "test-node-watch": "nodemon --watch testing --watch packages/backend/src/git --watch packages/shared -e ts --exec \"pnpm --filter @light-git/backend run build && pnpm run test-node\"",
     "test-node": "pnpm --filter @light-git/backend run build && nyc -r lcov -e .ts -x \"*.spec.ts\" jasmine-ts",
     "clean": "rimraf dist packages/*/dist packages/*/node_modules node_modules",
+    "docs:dev": "pnpm --filter @light-git/docs dev",
+    "docs:build": "pnpm --filter @light-git/docs build",
     "docs:screenshots": "pnpm --filter @light-git/docs test"
   },
   "devDependencies": {
