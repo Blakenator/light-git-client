@@ -1,0 +1,349 @@
+{
+  "loadSettings": {
+    "darkMode": false,
+    "rebasePull": false,
+    "openRepos": ["/mock/repo/light-git-client"],
+    "tabNames": ["light-git-client"],
+    "activeTab": 0,
+    "gitPath": "git",
+    "bashPath": "bash",
+    "showTrackingPath": false,
+    "commitMessageAutocomplete": false,
+    "diffIgnoreWhitespace": false,
+    "airplaneMode": false,
+    "mergetool": "sourcetree",
+    "expandStates": {},
+    "commandTimeoutSeconds": 10,
+    "codeWatchers": [],
+    "loadedCodeWatchers": [],
+    "codeWatcherPaths": [],
+    "includeUnchangedInWatcherAnalysis": true,
+    "username": "Blake Stacks",
+    "email": "blake@blakestacks.com",
+    "allowStats": false,
+    "statsId": "",
+    "allowPrerelease": false,
+    "splitFilenameDisplay": false,
+    "commitAndPush": false,
+    "branchNamePrefix": "",
+    "configShortcuts": [],
+    "sectionLayouts": {}
+  },
+  "loadRepo": null,
+  "getVersion": "0.13.0",
+  "checkGitBashVersions": { "bash": true, "git": true },
+  "isUpdateDownloaded": { "downloaded": false, "version": "" },
+  "getFileChanges": {
+    "description": "",
+    "stagedChanges": [
+      { "change": "M", "file": "src/components/Header.tsx", "staged": true },
+      { "change": "A", "file": "src/utils/helpers.ts", "staged": true }
+    ],
+    "unstagedChanges": [
+      { "change": "M", "file": "src/App.tsx", "staged": false },
+      { "change": "M", "file": "src/styles/theme.ts", "staged": false },
+      { "change": "?", "file": "src/components/NewFeature.tsx", "staged": false },
+      { "change": "D", "file": "src/deprecated/old-utils.ts", "staged": false }
+    ],
+    "activeOperations": {
+      "MERGE": false,
+      "REBASE": false,
+      "CHERRY_PICK": false,
+      "REVERT": false
+    }
+  },
+  "getLocalBranches": [
+    {
+      "name": "main",
+      "isCurrentBranch": true,
+      "isRemote": false,
+      "currentHash": "a1b2c3d4e5f6",
+      "trackingPath": "origin/main",
+      "isTrackingPathGone": false,
+      "lastCommitText": "feat: add screenshot documentation tooling",
+      "lastCommitDate": "2026-02-10T14:30:00Z",
+      "ahead": 2,
+      "behind": 0
+    },
+    {
+      "name": "feature/user-auth",
+      "isCurrentBranch": false,
+      "isRemote": false,
+      "currentHash": "b2c3d4e5f6a7",
+      "trackingPath": "origin/feature/user-auth",
+      "isTrackingPathGone": false,
+      "lastCommitText": "wip: add login form component",
+      "lastCommitDate": "2026-02-09T10:15:00Z",
+      "ahead": 0,
+      "behind": 3
+    },
+    {
+      "name": "fix/header-layout",
+      "isCurrentBranch": false,
+      "isRemote": false,
+      "currentHash": "c3d4e5f6a7b8",
+      "trackingPath": "origin/fix/header-layout",
+      "isTrackingPathGone": false,
+      "lastCommitText": "fix: correct header alignment on mobile",
+      "lastCommitDate": "2026-02-08T16:45:00Z",
+      "ahead": 1,
+      "behind": 0
+    },
+    {
+      "name": "refactor/store-cleanup",
+      "isCurrentBranch": false,
+      "isRemote": false,
+      "currentHash": "d4e5f6a7b8c9",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "refactor: simplify zustand store structure",
+      "lastCommitDate": "2026-02-07T09:00:00Z",
+      "ahead": 0,
+      "behind": 0
+    },
+    {
+      "name": "bugfix/old-tooltip-fix",
+      "isCurrentBranch": false,
+      "isRemote": false,
+      "currentHash": "e5f6a7b8c9d0",
+      "trackingPath": "origin/bugfix/old-tooltip-fix",
+      "isTrackingPathGone": true,
+      "lastCommitText": "fix: tooltip positioning in navbar",
+      "lastCommitDate": "2025-12-15T09:00:00Z",
+      "ahead": 0,
+      "behind": 0
+    },
+    {
+      "name": "experiment/new-layout",
+      "isCurrentBranch": false,
+      "isRemote": false,
+      "currentHash": "f6a7b8c9d0e1",
+      "trackingPath": "origin/experiment/new-layout",
+      "isTrackingPathGone": true,
+      "lastCommitText": "experiment: try flex-based card layout",
+      "lastCommitDate": "2025-11-20T14:00:00Z",
+      "ahead": 0,
+      "behind": 0
+    },
+    {
+      "name": "chore/cleanup-deps",
+      "isCurrentBranch": false,
+      "isRemote": false,
+      "currentHash": "a7b8c9d0e1f2",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "chore: remove unused dependencies",
+      "lastCommitDate": "2025-10-05T11:30:00Z",
+      "ahead": 0,
+      "behind": 0
+    }
+  ],
+  "getRemoteBranches": [
+    {
+      "name": "origin/main",
+      "isCurrentBranch": false,
+      "isRemote": true,
+      "currentHash": "a1b2c3d4e5f6",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "feat: add screenshot documentation tooling",
+      "lastCommitDate": "2026-02-10T14:30:00Z",
+      "ahead": 0,
+      "behind": 0
+    },
+    {
+      "name": "origin/feature/user-auth",
+      "isCurrentBranch": false,
+      "isRemote": true,
+      "currentHash": "e5f6a7b8c9d0",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "feat: implement OAuth2 flow",
+      "lastCommitDate": "2026-02-09T12:00:00Z",
+      "ahead": 0,
+      "behind": 0
+    },
+    {
+      "name": "origin/fix/header-layout",
+      "isCurrentBranch": false,
+      "isRemote": true,
+      "currentHash": "f6a7b8c9d0e1",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "fix: correct header alignment on mobile",
+      "lastCommitDate": "2026-02-08T16:45:00Z",
+      "ahead": 0,
+      "behind": 0
+    },
+    {
+      "name": "origin/release/v0.12",
+      "isCurrentBranch": false,
+      "isRemote": true,
+      "currentHash": "a7b8c9d0e1f2",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "chore: bump version to 0.12.0",
+      "lastCommitDate": "2026-01-15T08:00:00Z",
+      "ahead": 0,
+      "behind": 0
+    }
+  ],
+  "getStashes": [
+    {
+      "message": "WIP: dark mode tweaks",
+      "hash": "s1a2b3c4",
+      "parentHashes": ["a1b2c3d4e5f6"],
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-09T18:30:00Z",
+      "index": 0,
+      "branchName": "main"
+    },
+    {
+      "message": "experiment: new diff viewer layout",
+      "hash": "s2b3c4d5",
+      "parentHashes": ["b2c3d4e5f6a7"],
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-05T11:00:00Z",
+      "index": 1,
+      "branchName": "feature/user-auth"
+    }
+  ],
+  "getWorktrees": [
+    {
+      "path": "/mock/repo/light-git-client",
+      "isCurrent": true,
+      "name": "light-git-client",
+      "currentBranch": "main",
+      "currentHash": "a1b2c3d4e5f6"
+    }
+  ],
+  "getSubmodules": [],
+  "getCommitHistory": [
+    {
+      "hash": "a1b2c3d4e5f6",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-10T14:30:00Z",
+      "commitDate": "2026-02-10T14:30:00Z",
+      "message": "feat: add screenshot documentation tooling",
+      "currentTags": [],
+      "parentHashes": ["b2c3d4e5f6a7"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    },
+    {
+      "hash": "b2c3d4e5f6a7",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-09T10:15:00Z",
+      "commitDate": "2026-02-09T10:15:00Z",
+      "message": "refactor: migrate settings store to zustand",
+      "currentTags": [],
+      "parentHashes": ["c3d4e5f6a7b8"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    },
+    {
+      "hash": "c3d4e5f6a7b8",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-08T16:45:00Z",
+      "commitDate": "2026-02-08T16:45:00Z",
+      "message": "fix: correct header alignment on mobile viewports",
+      "currentTags": [],
+      "parentHashes": ["d4e5f6a7b8c9"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    },
+    {
+      "hash": "d4e5f6a7b8c9",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-07T09:00:00Z",
+      "commitDate": "2026-02-07T09:00:00Z",
+      "message": "chore: update dependencies to latest versions",
+      "currentTags": ["v0.13.0"],
+      "parentHashes": ["e5f6a7b8c9d0"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    },
+    {
+      "hash": "e5f6a7b8c9d0",
+      "authorName": "Jane Doe",
+      "authorEmail": "jane@example.com",
+      "authorDate": "2026-02-06T13:20:00Z",
+      "commitDate": "2026-02-06T13:20:00Z",
+      "message": "feat: implement drag-and-drop section reordering",
+      "currentTags": [],
+      "parentHashes": ["f6a7b8c9d0e1"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    },
+    {
+      "hash": "f6a7b8c9d0e1",
+      "authorName": "Jane Doe",
+      "authorEmail": "jane@example.com",
+      "authorDate": "2026-02-05T11:00:00Z",
+      "commitDate": "2026-02-05T11:00:00Z",
+      "message": "Merge branch 'feature/diff-viewer' into main",
+      "currentTags": [],
+      "parentHashes": ["a7b8c9d0e1f2", "1a2b3c4d5e6f"],
+      "graphBlockTargets": [
+        { "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": true },
+        { "target": 0, "source": 1, "isCommit": false, "branchIndex": 1, "isMerge": true }
+      ]
+    },
+    {
+      "hash": "a7b8c9d0e1f2",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-04T08:00:00Z",
+      "commitDate": "2026-02-04T08:00:00Z",
+      "message": "docs: update README with new feature list",
+      "currentTags": [],
+      "parentHashes": ["b8c9d0e1f2a3"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    },
+    {
+      "hash": "b8c9d0e1f2a3",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-03T15:30:00Z",
+      "commitDate": "2026-02-03T15:30:00Z",
+      "message": "feat: add code watcher pre-commit integration",
+      "currentTags": ["v0.12.0"],
+      "parentHashes": ["c9d0e1f2a3b4"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    }
+  ],
+  "getFileDiff": {
+    "content": {
+      "items": [],
+      "nextCursor": null,
+      "hasMore": false
+    },
+    "standardOutput": "",
+    "errorOutput": "",
+    "exitCode": 0
+  },
+  "getCommandHistory": [
+    {
+      "name": "status",
+      "command": "git status --porcelain -uall",
+      "errorOutput": "",
+      "output": "M  src/components/Header.tsx\nA  src/utils/helpers.ts\n M src/App.tsx\n M src/styles/theme.ts\n?? src/components/NewFeature.tsx\n D src/deprecated/old-utils.ts",
+      "executedAt": "2026-02-10T14:30:00Z",
+      "durationMs": 45,
+      "isError": false
+    },
+    {
+      "name": "log",
+      "command": "git log --oneline -8",
+      "errorOutput": "",
+      "output": "a1b2c3d feat: add screenshot documentation tooling\nb2c3d4e refactor: migrate settings store to zustand\nc3d4e5f fix: correct header alignment on mobile viewports",
+      "executedAt": "2026-02-10T14:29:50Z",
+      "durationMs": 32,
+      "isError": false
+    }
+  ],
+  "getConfigItems": [],
+  "getDeletedStashes": [],
+  "saveSettings": null
+}

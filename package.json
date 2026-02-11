@@ -28,7 +28,8 @@
     "release:mac": "pnpm run build && npx electron-builder build --mac -p always",
     "test-node-watch": "nodemon --watch testing --watch packages/backend/src/git --watch packages/shared -e ts --exec \"pnpm --filter @light-git/backend run build && pnpm run test-node\"",
     "test-node": "pnpm --filter @light-git/backend run build && nyc -r lcov -e .ts -x \"*.spec.ts\" jasmine-ts",
-    "clean": "rimraf dist packages/*/dist packages/*/node_modules node_modules"
+    "clean": "rimraf dist packages/*/dist packages/*/node_modules node_modules",
+    "docs:screenshots": "pnpm --filter @light-git/docs test"
   },
   "devDependencies": {
     "@electron/packager": "^18.3.6",

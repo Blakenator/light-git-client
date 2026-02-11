@@ -51,8 +51,10 @@ This is a WIP project to address the following failings of other git clients:
 * More force- options &check; (Nov 2018)
 
 ## Screenshots
-![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/dark1.png "Dark Main Screen")
-![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/dark2.png "Dark with diff and code watchers")
-![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/dark3.png "Dark with settings menu")
-![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/light1.png "Light with git config screen")
-![alt text](https://github.com/Blakenator/light-git-client/raw/master/docs/light2.png "Light Main Screen")
+![Dark Main Screen](docs/screenshots/dark1.png)
+![Light Main Screen](docs/screenshots/light1.png)
+![New Tab Screen](docs/screenshots/empty-tab.png)
+![Diff Viewer](docs/screenshots/diff-viewer.png)
+![Active Merge Operation](docs/screenshots/merge-conflict.png)
+![Prune Branches Dialog](docs/screenshots/prune-branches.png)
+![Merge Branches Dialog](docs/screenshots/merge-branches.png)

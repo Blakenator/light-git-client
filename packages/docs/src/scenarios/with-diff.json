@@ -1,0 +1,196 @@
+{
+  "loadSettings": {
+    "darkMode": false,
+    "rebasePull": false,
+    "openRepos": ["/mock/repo/light-git-client"],
+    "tabNames": ["light-git-client"],
+    "activeTab": 0,
+    "gitPath": "git",
+    "bashPath": "bash",
+    "showTrackingPath": false,
+    "commitMessageAutocomplete": false,
+    "diffIgnoreWhitespace": false,
+    "airplaneMode": false,
+    "mergetool": "sourcetree",
+    "expandStates": {},
+    "commandTimeoutSeconds": 10,
+    "codeWatchers": [],
+    "loadedCodeWatchers": [],
+    "codeWatcherPaths": [],
+    "includeUnchangedInWatcherAnalysis": true,
+    "username": "Blake Stacks",
+    "email": "blake@blakestacks.com",
+    "allowStats": false,
+    "statsId": "",
+    "allowPrerelease": false,
+    "splitFilenameDisplay": false,
+    "commitAndPush": false,
+    "branchNamePrefix": "",
+    "configShortcuts": [],
+    "sectionLayouts": {}
+  },
+  "loadRepo": null,
+  "getVersion": "0.13.0",
+  "checkGitBashVersions": { "bash": true, "git": true },
+  "isUpdateDownloaded": { "downloaded": false, "version": "" },
+  "getFileChanges": {
+    "description": "",
+    "stagedChanges": [
+      { "change": "M", "file": "src/components/Header.tsx", "staged": true }
+    ],
+    "unstagedChanges": [
+      { "change": "M", "file": "src/App.tsx", "staged": false },
+      { "change": "M", "file": "src/styles/theme.ts", "staged": false },
+      { "change": "?", "file": "src/components/NewFeature.tsx", "staged": false }
+    ],
+    "activeOperations": {
+      "MERGE": false,
+      "REBASE": false,
+      "CHERRY_PICK": false,
+      "REVERT": false
+    }
+  },
+  "getLocalBranches": [
+    {
+      "name": "main",
+      "isCurrentBranch": true,
+      "isRemote": false,
+      "currentHash": "a1b2c3d4e5f6",
+      "trackingPath": "origin/main",
+      "isTrackingPathGone": false,
+      "lastCommitText": "feat: add screenshot documentation tooling",
+      "lastCommitDate": "2026-02-10T14:30:00Z",
+      "ahead": 2,
+      "behind": 0
+    },
+    {
+      "name": "feature/user-auth",
+      "isCurrentBranch": false,
+      "isRemote": false,
+      "currentHash": "b2c3d4e5f6a7",
+      "trackingPath": "origin/feature/user-auth",
+      "isTrackingPathGone": false,
+      "lastCommitText": "wip: add login form component",
+      "lastCommitDate": "2026-02-09T10:15:00Z",
+      "ahead": 0,
+      "behind": 3
+    }
+  ],
+  "getRemoteBranches": [
+    {
+      "name": "origin/main",
+      "isCurrentBranch": false,
+      "isRemote": true,
+      "currentHash": "a1b2c3d4e5f6",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "feat: add screenshot documentation tooling",
+      "lastCommitDate": "2026-02-10T14:30:00Z",
+      "ahead": 0,
+      "behind": 0
+    }
+  ],
+  "getStashes": [],
+  "getWorktrees": [
+    {
+      "path": "/mock/repo/light-git-client",
+      "isCurrent": true,
+      "name": "light-git-client",
+      "currentBranch": "main",
+      "currentHash": "a1b2c3d4e5f6"
+    }
+  ],
+  "getSubmodules": [],
+  "getCommitHistory": [
+    {
+      "hash": "a1b2c3d4e5f6",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-10T14:30:00Z",
+      "commitDate": "2026-02-10T14:30:00Z",
+      "message": "feat: add screenshot documentation tooling",
+      "currentTags": [],
+      "parentHashes": ["b2c3d4e5f6a7"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    }
+  ],
+  "getFileDiff": {
+    "content": {
+      "items": [
+        {
+          "fromFilename": "src/App.tsx",
+          "toFilename": "src/App.tsx",
+          "stagedState": "Unstaged",
+          "action": "Changed",
+          "hunks": [
+            {
+              "header": "@@ -1,12 +1,18 @@",
+              "fromStartLine": 1,
+              "toStartLine": 1,
+              "fromNumLines": 12,
+              "toNumLines": 18,
+              "lines": [
+                { "state": 2, "text": "import React from 'react';", "fromLineNumber": 1, "toLineNumber": 1 },
+                { "state": 2, "text": "import { HashRouter } from 'react-router-dom';", "fromLineNumber": 2, "toLineNumber": 2 },
+                { "state": 1, "text": "import { ThemeProvider } from 'styled-components';", "fromLineNumber": 3, "toLineNumber": -1 },
+                { "state": 0, "text": "import { ThemeProvider, createGlobalStyle } from 'styled-components';", "fromLineNumber": -1, "toLineNumber": 3 },
+                { "state": 0, "text": "import { ToastContainer } from 'react-toastify';", "fromLineNumber": -1, "toLineNumber": 4 },
+                { "state": 2, "text": "", "fromLineNumber": 4, "toLineNumber": 5 },
+                { "state": 2, "text": "import App from './App';", "fromLineNumber": 5, "toLineNumber": 6 },
+                { "state": 2, "text": "import { lightTheme, darkTheme } from './styles/theme';", "fromLineNumber": 6, "toLineNumber": 7 },
+                { "state": 1, "text": "import { GlobalStyles } from './styles/GlobalStyles';", "fromLineNumber": 7, "toLineNumber": -1 },
+                { "state": 0, "text": "import { GlobalStyles, AppContainer } from './styles/GlobalStyles';", "fromLineNumber": -1, "toLineNumber": 8 },
+                { "state": 2, "text": "import { useSettingsStore } from './stores';", "fromLineNumber": 8, "toLineNumber": 9 },
+                { "state": 2, "text": "", "fromLineNumber": 9, "toLineNumber": 10 },
+                { "state": 0, "text": "// Import notification styles", "fromLineNumber": -1, "toLineNumber": 11 },
+                { "state": 0, "text": "import 'react-toastify/dist/ReactToastify.css';", "fromLineNumber": -1, "toLineNumber": 12 },
+                { "state": 0, "text": "", "fromLineNumber": -1, "toLineNumber": 13 },
+                { "state": 2, "text": "// Import Bootstrap CSS", "fromLineNumber": 10, "toLineNumber": 14 },
+                { "state": 2, "text": "import 'bootstrap/dist/css/bootstrap.min.css';", "fromLineNumber": 11, "toLineNumber": 15 },
+                { "state": 2, "text": "", "fromLineNumber": 12, "toLineNumber": 16 }
+              ]
+            }
+          ]
+        },
+        {
+          "fromFilename": "src/styles/theme.ts",
+          "toFilename": "src/styles/theme.ts",
+          "stagedState": "Unstaged",
+          "action": "Changed",
+          "hunks": [
+            {
+              "header": "@@ -18,6 +18,12 @@",
+              "fromStartLine": 18,
+              "toStartLine": 18,
+              "fromNumLines": 6,
+              "toNumLines": 12,
+              "lines": [
+                { "state": 2, "text": "  colors: {", "fromLineNumber": 18, "toLineNumber": 18 },
+                { "state": 2, "text": "    primary: '#0d6efd',", "fromLineNumber": 19, "toLineNumber": 19 },
+                { "state": 2, "text": "    secondary: '#6c757d',", "fromLineNumber": 20, "toLineNumber": 20 },
+                { "state": 0, "text": "    accent: '#198754',", "fromLineNumber": -1, "toLineNumber": 21 },
+                { "state": 0, "text": "    warning: '#ffc107',", "fromLineNumber": -1, "toLineNumber": 22 },
+                { "state": 0, "text": "    danger: '#dc3545',", "fromLineNumber": -1, "toLineNumber": 23 },
+                { "state": 0, "text": "    info: '#0dcaf0',", "fromLineNumber": -1, "toLineNumber": 24 },
+                { "state": 0, "text": "    surface: '#f8f9fa',", "fromLineNumber": -1, "toLineNumber": 25 },
+                { "state": 0, "text": "    border: '#dee2e6',", "fromLineNumber": -1, "toLineNumber": 26 },
+                { "state": 2, "text": "    success: '#198754',", "fromLineNumber": 21, "toLineNumber": 27 },
+                { "state": 2, "text": "    light: '#f8f9fa',", "fromLineNumber": 22, "toLineNumber": 28 },
+                { "state": 2, "text": "    white: '#ffffff',", "fromLineNumber": 23, "toLineNumber": 29 }
+              ]
+            }
+          ]
+        }
+      ],
+      "nextCursor": null,
+      "hasMore": false
+    },
+    "standardOutput": "",
+    "errorOutput": "",
+    "exitCode": 0
+  },
+  "getCommandHistory": [],
+  "getConfigItems": [],
+  "getDeletedStashes": [],
+  "saveSettings": null
+}
