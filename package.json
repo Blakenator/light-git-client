@@ -14,7 +14,7 @@
   "private": true,
   "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "postinstall": "pnpm -r --sort --filter '!@light-git/docs' run build && npx electron-builder install-app-deps",
+    "postinstall": "npx electron-builder install-app-deps",
     "start": "pnpm run build && concurrently -k -n dev,electron \"pnpm run dev\" \"wait-on http://localhost:4200 && cross-env VITE_DEV_SERVER_URL=http://localhost:4200 electron .\"",
     "build": "pnpm -r --sort --filter '!@light-git/docs' run build",
     "dev": "pnpm -r --parallel run dev",

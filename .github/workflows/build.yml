@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build Electron app
+        run: pnpm run build
+
       # ──────────────────────────────────────────────────────
       # Code Signing (optional — uncomment when certs are set up)
       #
@@ -48,9 +51,6 @@ jobs:
       #     WIN_CSC_LINK         — Base64-encoded .pfx certificate
       #     WIN_CSC_KEY_PASSWORD — Password for the .pfx file
       # ──────────────────────────────────────────────────────
-
-      - name: Build Electron app
-        run: pnpm run build
 
       # On tagged commits (e.g. v1.0.0), build and publish a GitHub release.
       # On non-tagged commits, just build to verify the packaging works.
