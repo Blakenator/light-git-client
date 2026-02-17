@@ -582,6 +582,9 @@ export class MainApplication extends GenericApplication {
       [SYNC_CHANNELS.CommandHistoryChanged]: async () => {
         throw new Error('CommandHistoryChanged is a push-only channel and should not be invoked directly.');
       },
+      [SYNC_CHANNELS.WindowFocused]: async () => {
+        throw new Error('WindowFocused is a push-only channel and should not be invoked directly.');
+      },
     };
   }
 

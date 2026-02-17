@@ -69,6 +69,7 @@ export enum SYNC_CHANNELS {
   ResolveConflictUsing = 'resolveConflictUsing',
   OpenFileDialog = 'openFileDialog',
   ChangeActiveOperation = 'changeActiveOperation',
+  WindowFocused = 'windowFocused',
 }
 
 /**
@@ -153,4 +154,5 @@ export const Channels = {
   RESOLVECONFLICTUSING: SYNC_CHANNELS.ResolveConflictUsing,
   OPENFILEDIALOG: SYNC_CHANNELS.OpenFileDialog,
   CHANGEACTIVEOPERATION: SYNC_CHANNELS.ChangeActiveOperation,
+  WINDOWFOCUSED: SYNC_CHANNELS.WindowFocused,
 } as const;

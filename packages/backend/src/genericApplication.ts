@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as NodeNotifier from 'node-notifier';
 import * as url from 'url';
 import { UrlObject } from 'url';
+import { SYNC_CHANNELS } from '@light-git/shared/src/Channels';
 
 const notifier = require('node-notifier');
 const version = require('../../../package.json');
@@ -101,6 +102,13 @@ export abstract class GenericApplication {
       }
       this.window.loadURL(url.format(aurl));
     }
+
+    // Notify the renderer when the window regains focus (reliable alt-tab detection)
+    this.window.on('focus', () => {
+      if (!this.window.webContents.isDestroyed()) {
+        this.window.webContents.send(SYNC_CHANNELS.WindowFocused);
+      }
+    });
 
     // Emitted when the window is closed.
     this.window.on('closed', () => {

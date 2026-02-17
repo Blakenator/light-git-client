@@ -7,6 +7,8 @@ import {
 } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
+import { useBackendListener } from '../../../ipc/useBackendListener';
+import { SYNC_CHANNELS } from '@light-git/shared';
 import type { DiffStatsResult } from '@light-git/shared';
 
 /**
@@ -98,14 +100,13 @@ export function useRepoLifecycle(
     }
   }, [repoPath, refreshRepo, gitService]);
 
-  // Refresh repo state when the window regains focus
-  useEffect(() => {
-    const handleFocus = () => {
-      refreshRepo();
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [refreshRepo]);
+  // Refresh repo state when the window regains focus.
+  // Uses BrowserWindow 'focus' from the main process (pushed via IPC) which
+  // is reliable across all platforms — the renderer-side window 'focus' event
+  // does not fire consistently on macOS alt-tab.
+  useBackendListener(SYNC_CHANNELS.WindowFocused, () => {
+    refreshRepo();
+  });
 
   // Auto-refresh affected areas when the job queue finishes
   useEffect(() => {

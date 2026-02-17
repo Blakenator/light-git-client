@@ -305,6 +305,10 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
     props: void;
     result: CommandHistoryModel[];
   };
+  [SYNC_CHANNELS.WindowFocused]: {
+    props: void;
+    result: void;
+  };
 }
 
 // ---- Async API contract (streaming operations) ----
