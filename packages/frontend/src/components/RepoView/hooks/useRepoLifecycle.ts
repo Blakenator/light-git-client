@@ -104,7 +104,10 @@ export function useRepoLifecycle(
   // Uses BrowserWindow 'focus' from the main process (pushed via IPC) which
   // is reliable across all platforms — the renderer-side window 'focus' event
   // does not fire consistently on macOS alt-tab.
+  // Throttle: multiple listeners and rapid macOS focus events are collapsed
+  // into a single refreshRepo per repoPath via a Zustand timestamp check.
   useBackendListener(SYNC_CHANNELS.WindowFocused, () => {
+    if (!useUiStore.getState().shouldRefreshOnFocus(repoPath)) return;
     refreshRepo();
   });
 
@@ -134,7 +137,7 @@ export function useRepoLifecycle(
       if (affectedAreas.has(RepoArea.REMOTE_BRANCHES)) {
         promises.push(
           gitService
-            .getRemoteBranches()
+            .getRemoteBranches(200)
             .then((result: any) =>
               result !== undefined ? { remoteBranches: result } : null,
             )

@@ -245,6 +245,8 @@ export class GitClient {
       this.getGitPath(),
       [command, `--${abort ? 'abort' : 'continue'}`],
       `Abort ${command}`,
+      undefined,
+      !abort, // include stdout for --continue (triggers pre-commit hooks)
     ).catch((reason: string | Error) => {
       const err = typeof reason === 'string' ? reason : reason.message + '';
       const headFilePath = path.join(this.workingDir, '.git', `${op}_HEAD`);
@@ -809,38 +811,46 @@ export class GitClient {
     return new Promise<void>((resolve, reject) => {
       const commitFilePath = path.join(app.getPath('userData'), 'commit.msg');
       fs.writeFileSync(commitFilePath, message, { encoding: 'utf8' });
-      this.handleErrorDefault(
-        this.execute(
-          this.getGitPath(),
-          ['commit', '--file', commitFilePath, amend ? '--amend' : ''],
-          'Commit',
-        ).then(async () => {
-          fs.unlinkSync(commitFilePath);
-          if (!push) {
-            resolve();
-          } else {
-            try {
-              let pushBranch = branch;
-              if (!pushBranch) {
-                // No branch provided — resolve the current branch name so we
-                // can push (including the first push of a local-only branch).
-                const out = await this.execute(
-                  this.getGitPath(),
-                  ['rev-parse', '--abbrev-ref', 'HEAD'],
-                  'Get Current Branch',
-                );
-                const name = out.standardOutput.trim();
-                pushBranch = { name } as BranchModel;
-              }
-              await this.pushBranch(pushBranch, false);
-              resolve();
-            } catch (err) {
-              reject(serializeError(err));
+      this.execute(
+        this.getGitPath(),
+        ['commit', '--file', commitFilePath, amend ? '--amend' : ''],
+        'Commit',
+      ).then(async () => {
+        fs.unlinkSync(commitFilePath);
+        if (!push) {
+          resolve();
+        } else {
+          try {
+            let pushBranch = branch;
+            if (!pushBranch) {
+              // No branch provided — resolve the current branch name so we
+              // can push (including the first push of a local-only branch).
+              const out = await this.execute(
+                this.getGitPath(),
+                ['rev-parse', '--abbrev-ref', 'HEAD'],
+                'Get Current Branch',
+              );
+              const name = out.standardOutput.trim();
+              pushBranch = { name } as BranchModel;
             }
+            await this.pushBranch(pushBranch, false);
+            resolve();
+          } catch (err) {
+            reject(serializeError(err));
           }
-        }),
-        reject,
-      );
+        }
+      }).catch((err) => {
+        if (err instanceof Error) {
+          reject(err);
+        } else {
+          // Include both stdout and stderr — pre-commit hook output
+          // goes to stdout while git errors go to stderr.
+          const combined = [err.standardOutput, err.errorOutput]
+            .filter(Boolean)
+            .join('\n');
+          reject(new Error(combined || String(err)));
+        }
+      });
     });
   }
 
@@ -1410,25 +1420,36 @@ export class GitClient {
       });
   }
 
-  getRemoteBranches(): Promise<BranchModel[]> {
+  getRemoteBranches(limit?: number, filter?: string): Promise<BranchModel[]> {
+    const args = ['branch', '-r', BRANCH_FORMAT];
+    if (limit && !filter) args.push('--sort=-committerdate');
     return this.execute(
       this.getGitPath(),
-      ['branch', '-r', BRANCH_FORMAT],
+      args,
       'Get Remote Branches',
     )
       .then((output) => {
         const text = output.standardOutput;
         let match = BRANCH_REGEX.exec(text);
         const remoteBranches: BranchModel[] = [];
+        const lowerFilter = filter?.toLowerCase();
         while (match) {
-          const branchModel = new BranchModel();
-          branchModel.name = match[2];
-          branchModel.currentHash = match[3];
-          branchModel.lastCommitDate = match[13];
-          branchModel.lastCommitText = match[14];
-          branchModel.isRemote = true;
+          const name = match[2];
 
-          remoteBranches.push(branchModel);
+          if (!lowerFilter || name.toLowerCase().includes(lowerFilter)) {
+            const branchModel = new BranchModel();
+            branchModel.name = name;
+            branchModel.currentHash = match[3];
+            branchModel.lastCommitDate = match[13];
+            branchModel.lastCommitText = match[14];
+            branchModel.isRemote = true;
+
+            remoteBranches.push(branchModel);
+            if (limit && remoteBranches.length >= limit) {
+              BRANCH_REGEX.lastIndex = 0;
+              break;
+            }
+          }
           match = BRANCH_REGEX.exec(text);
         }
         return remoteBranches;
@@ -1784,6 +1805,7 @@ export class GitClient {
     args: string[],
     name: string,
     workingDir?: string,
+    includeStdout = false,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.execute(command, args, name, false, workingDir)
@@ -1791,6 +1813,13 @@ export class GitClient {
         .catch((err: CommandOutputModel<void>) => {
           if (err instanceof Error) {
             reject(err);
+          } else if (includeStdout) {
+            // Include both stdout and stderr — pre-commit hook output
+            // goes to stdout while git errors go to stderr.
+            const combined = [err.standardOutput, err.errorOutput]
+              .filter(Boolean)
+              .join('\n');
+            reject(new Error(combined || String(err)));
           } else if (err && err.errorOutput) {
             reject(new Error(err.errorOutput));
           } else {

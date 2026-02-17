@@ -5,7 +5,7 @@ import { Icon, TooltipTrigger } from '@light-git/core';
 import { useRepositoryStore, useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
-import { detectPreCommitStatus } from '../../../utils/warningDetectors';
+import { detectPreCommitStatus, getIpcErrorMessage } from '../../../utils/warningDetectors';
 import { ActiveOperation } from '@light-git/shared';
 
 const operationConfig: Record<ActiveOperation, { name: string; icon: string; isFa: boolean; variant: 'warning' | 'info' | 'danger' }> = {
@@ -68,7 +68,7 @@ export const ActiveOperationBanner: React.FC<ActiveOperationBannerProps> = React
       useRepoViewStore.getState().setActiveOperation(repoPath, null);
       addAlert('Operation aborted', 'info');
     } catch (error: any) {
-      addAlert(`Abort failed: ${error.message}`, 'error');
+      addAlert(`Abort failed: ${getIpcErrorMessage(error)}`, 'error');
     }
   }, [gitService, addAlert, activeOperation, repoPath]);
 
@@ -79,7 +79,8 @@ export const ActiveOperationBanner: React.FC<ActiveOperationBannerProps> = React
       await gitService.changeActiveOperation(activeOperation, false);
       succeeded = true;
     } catch (error: any) {
-      const preCommit = detectPreCommitStatus(error.message || '');
+      const errorMsg = getIpcErrorMessage(error);
+      const preCommit = detectPreCommitStatus(errorMsg);
       if (preCommit) {
         setPreCommitStatus(preCommit);
         if (preCommit.isError()) {
@@ -88,7 +89,7 @@ export const ActiveOperationBanner: React.FC<ActiveOperationBannerProps> = React
           succeeded = true;
         }
       } else {
-        addAlert(`Continue failed: ${error.message}`, 'error');
+        addAlert(`Continue failed: ${errorMsg}`, 'error');
       }
     }
     if (succeeded) {

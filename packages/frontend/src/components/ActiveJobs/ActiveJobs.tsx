@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Tooltip } from 'react-bootstrap';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { useJobStore, JobStatus } from '../../stores';
+import type { Job } from '../../stores/jobStore';
 
 const WideTooltip = styled(Tooltip)`
   .tooltip-inner {
@@ -134,12 +135,59 @@ const CountWrapper = styled.span<{ $spinning: boolean }>`
   animation-direction: reverse;
 `;
 
+// Derive a compact fingerprint of active jobs so the component only re-renders
+// when the set of jobs or their running state actually changes.
+function selectActiveJobSummary(state: { queues: Map<string, string[]>; jobs: Map<string, Job>; runningChannels: Set<string> }) {
+  let totalJobs = 0;
+  let hasRunning = false;
+  const ids: string[] = [];
+  state.queues.forEach((queue) => {
+    queue.forEach((jobId) => {
+      const job = state.jobs.get(jobId);
+      if (job) {
+        totalJobs++;
+        ids.push(jobId);
+        if (job.status === JobStatus.IN_PROGRESS) hasRunning = true;
+      }
+    });
+  });
+  return { totalJobs, hasRunning, ids };
+}
+
+function activeJobSummaryEqual(
+  a: ReturnType<typeof selectActiveJobSummary>,
+  b: ReturnType<typeof selectActiveJobSummary>,
+) {
+  if (a.totalJobs !== b.totalJobs || a.hasRunning !== b.hasRunning) return false;
+  if (a.ids.length !== b.ids.length) return false;
+  for (let i = 0; i < a.ids.length; i++) {
+    if (a.ids[i] !== b.ids[i]) return false;
+  }
+  return true;
+}
+
 export const ActiveJobs: React.FC = () => {
-  const activeJobs = useJobStore((state) => state.getActiveJobs());
-  const isRunning = activeJobs.some(
-    (job) => job.status === JobStatus.IN_PROGRESS,
+  const { totalJobs, hasRunning, ids } = useJobStore(
+    selectActiveJobSummary,
+    activeJobSummaryEqual,
   );
-  const hasJobs = activeJobs.length > 0;
+  const isRunning = hasRunning;
+  const hasJobs = totalJobs > 0;
+
+  // Build the full job list only when we actually need it (tooltip hover).
+  // The list is memoized on the ids fingerprint so it doesn't rebuild each render.
+  const activeJobs = useMemo(() => {
+    const { queues, jobs } = useJobStore.getState();
+    const result: Job[] = [];
+    queues.forEach((queue) => {
+      queue.forEach((jobId) => {
+        const job = jobs.get(jobId);
+        if (job) result.push(job);
+      });
+    });
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids]);
 
   /* Idle state — no active jobs */
   if (!hasJobs) {

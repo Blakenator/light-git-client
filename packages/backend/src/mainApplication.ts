@@ -297,7 +297,7 @@ export class MainApplication extends GenericApplication {
         return await this.gitClients[args.repoPath].getLocalBranches();
       },
       [SYNC_CHANNELS.GetRemoteBranches]: async ({ args }) => {
-        return await this.gitClients[args.repoPath].getRemoteBranches();
+        return await this.gitClients[args.repoPath].getRemoteBranches(args.limit, args.filter);
       },
       [SYNC_CHANNELS.GetSubmodules]: async ({ args }) => {
         return await this.gitClients[args.repoPath].getSubmodules();

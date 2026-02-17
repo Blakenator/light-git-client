@@ -36,6 +36,10 @@ interface UiState {
   
   // Pre-commit status
   preCommitStatus: PreCommitStatusModel | null;
+
+  // Focus-refresh throttle: tracks the last refresh timestamp per repoPath
+  // so that duplicate WindowFocused events collapse into a single refresh.
+  focusRefreshTimestamps: { [repoPath: string]: number };
 }
 
 interface UiActions {
@@ -65,6 +69,9 @@ interface UiActions {
   
   // Pre-commit status
   setPreCommitStatus: (status: PreCommitStatusModel | null) => void;
+
+  // Focus-refresh throttle
+  shouldRefreshOnFocus: (repoPath: string) => boolean;
 }
 
 let alertIdCounter = 0;
@@ -79,6 +86,7 @@ export const useUiStore = create<UiState & UiActions>((set, get) => ({
   errors: [],
   crlfError: null,
   preCommitStatus: null,
+  focusRefreshTimestamps: {},
 
   // Modal actions
   showModal: (modalId) => {
@@ -183,5 +191,17 @@ export const useUiStore = create<UiState & UiActions>((set, get) => ({
   // Pre-commit status
   setPreCommitStatus: (status) => {
     set({ preCommitStatus: status });
+  },
+
+  // Focus-refresh throttle: returns true (and records the timestamp) if
+  // this repoPath hasn't been refreshed within the last 100ms.
+  shouldRefreshOnFocus: (repoPath) => {
+    const now = Date.now();
+    const last = get().focusRefreshTimestamps[repoPath] || 0;
+    if (now - last < 100) return false;
+    set((state) => ({
+      focusRefreshTimestamps: { ...state.focusRefreshTimestamps, [repoPath]: now },
+    }));
+    return true;
   },
 }));

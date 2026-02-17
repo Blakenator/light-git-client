@@ -36,7 +36,7 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
     result: BranchModel[];
   };
   [SYNC_CHANNELS.GetRemoteBranches]: {
-    props: RepoProps;
+    props: { repoPath: string; limit?: number; filter?: string };
     result: BranchModel[];
   };
   [SYNC_CHANNELS.GetSubmodules]: {

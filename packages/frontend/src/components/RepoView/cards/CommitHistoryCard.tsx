@@ -2,6 +2,8 @@ import React, {
   useState,
   useMemo,
   useCallback,
+  useRef,
+  useEffect,
 } from 'react';
 import {
   Button,
@@ -20,7 +22,10 @@ import { CardHeaderContent } from '../RepoView.styles';
 import { DiffViewer } from '../../DiffViewer/DiffViewer';
 import { useRepositoryStore, useSettingsStore } from '../../../stores';
 import { useDiffActions, useCommitHistoryActions } from '../hooks';
+import { useGitService } from '../../../ipc';
 import { calculateGraphBlocks } from '../../../utils/calculateGraphBlocks';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 // Stable defaults so that Zustand's Object.is check doesn't see a new ref each render
 const _EMPTY_ARR: any[] = [];
@@ -242,6 +247,12 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
     const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
       new Set(),
     );
+    const [searchedRemoteBranches, setSearchedRemoteBranches] = useState<
+      any[] | null
+    >(null);
+    const branchSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null,
+    );
 
     // Specific selectors: only re-render when commit/branch data actually changes.
     // Using getCacheFor(repoPath) would re-render on ANY cache field change
@@ -257,12 +268,47 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
     const localBranches = (useRepositoryStore(
       (state) => state.repoCache[repoPath]?.localBranches,
     ) ?? _EMPTY_ARR) as any[];
-    const remoteBranches = (useRepositoryStore(
+    const storeRemoteBranches = (useRepositoryStore(
       (state) => state.repoCache[repoPath]?.remoteBranches,
     ) ?? _EMPTY_ARR) as any[];
     const ignoreWhitespace = useSettingsStore(
       (state) => state.settings.diffIgnoreWhitespace,
     );
+
+    const gitService = useGitService(repoPath);
+
+    // Debounced backend search for remote branches when the branch
+    // dropdown filter is active, so results include branches beyond
+    // the initial 200 loaded into the store.
+    useEffect(() => {
+      if (branchSearchTimerRef.current)
+        clearTimeout(branchSearchTimerRef.current);
+
+      if (!branchFilter) {
+        setSearchedRemoteBranches(null);
+        return;
+      }
+
+      branchSearchTimerRef.current = setTimeout(() => {
+        gitService
+          .getRemoteBranches(200, branchFilter)
+          .then((result: any) => {
+            if (result !== undefined) setSearchedRemoteBranches(result);
+          })
+          .catch(() => {});
+      }, SEARCH_DEBOUNCE_MS);
+
+      return () => {
+        if (branchSearchTimerRef.current)
+          clearTimeout(branchSearchTimerRef.current);
+      };
+    }, [branchFilter, gitService]);
+
+    // Use search results when filtering, otherwise the store's initial set
+    const remoteBranches =
+      searchedRemoteBranches !== null
+        ? searchedRemoteBranches
+        : storeRemoteBranches;
 
     // Hooks for operations
     const {
@@ -319,6 +365,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
         handleBranchChange(branch);
         setShowBranchDropdown(false);
         setBranchFilter('');
+        setSearchedRemoteBranches(null);
       },
       [handleBranchChange],
     );

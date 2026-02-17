@@ -31,7 +31,7 @@ export function calculateGraphBlocks<T extends CommitForGraph>(commits: T[]): T[
   let currentBranch = 0;
   let stack: { seeking: string; from: number; branchIndex: number }[] = [];
 
-  return commits.map((commit) => {
+  const result = commits.map((commit) => {
     const parentHashes = commit.parentHashes || commit.parents || [];
     const graphBlockTargets: GraphBlockTarget[] = [];
 
@@ -115,4 +115,5 @@ export function calculateGraphBlocks<T extends CommitForGraph>(commits: T[]): T[
     stack = newStack;
     return { ...commit, graphBlockTargets };
   });
+  return result;
 }

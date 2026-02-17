@@ -66,12 +66,12 @@ export function useGitService(repoPath: string) {
     );
   }, [runJob, createJobConfig]);
 
-  const getRemoteBranches = useCallback(() => {
+  const getRemoteBranches = useCallback((limit?: number, filter?: string) => {
     const rp = repoPathRef.current;
     return runJob(
       createJobConfig(
         SYNC_CHANNELS.GetRemoteBranches,
-        () => invokeSync(SYNC_CHANNELS.GetRemoteBranches, { repoPath: rp }),
+        () => invokeSync(SYNC_CHANNELS.GetRemoteBranches, { repoPath: rp, limit, filter }),
         [],
         { reorderable: true },
       ),
@@ -769,7 +769,7 @@ export function useGitService(repoPath: string) {
     ] = await Promise.all([
       getFileChanges(),
       getLocalBranches(),
-      getRemoteBranches(),
+      getRemoteBranches(200),
       getStashes(),
       getWorktrees(),
       getSubmodules(),

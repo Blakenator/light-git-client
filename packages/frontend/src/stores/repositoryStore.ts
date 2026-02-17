@@ -197,10 +197,54 @@ export const useRepositoryStore = create<RepositoryState & RepositoryActions>((s
   updateRepoCache: (path, data) => {
     set((state) => {
       const existing = state.repoCache[path] || createEmptyRepoCache(path);
+
+      // Reference preservation: only replace fields whose data has actually
+      // changed. This prevents Zustand selectors from returning new
+      // references for unchanged fields, which in turn prevents React
+      // from re-rendering components whose data is identical.
+      const changedFields: Record<string, unknown> = {};
+      let changedCount = 0;
+
+      for (const key of Object.keys(data)) {
+        const oldVal = (existing as Record<string, unknown>)[key];
+        const newVal = (data as Record<string, unknown>)[key];
+
+        // Fast path: same reference — nothing to do
+        if (oldVal === newVal) {
+          continue;
+        }
+
+        // Fast path: different array lengths — definitely changed
+        if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+          if (oldVal.length !== newVal.length) {
+            changedFields[key] = newVal;
+            changedCount++;
+            continue;
+          }
+          if (oldVal.length === 0) {
+            continue; // both empty arrays
+          }
+        }
+
+        // Structural comparison for non-trivial values
+        if (
+          oldVal != null &&
+          newVal != null &&
+          JSON.stringify(oldVal) === JSON.stringify(newVal)
+        ) {
+          continue; // structurally identical — keep old reference
+        }
+
+        changedFields[key] = newVal;
+        changedCount++;
+      }
+
+      if (changedCount === 0) return state; // nothing changed — skip re-render
+
       return {
         repoCache: {
           ...state.repoCache,
-          [path]: { ...existing, ...data } as RepoCacheEntry,
+          [path]: { ...existing, ...changedFields } as RepoCacheEntry,
         },
       };
     });

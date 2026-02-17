@@ -309,7 +309,7 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
         onStartQueueCallbacks.forEach((cb) => cb(channel));
 
         // Process queue
-        const processQueue = async () => {
+          const processQueue = async () => {
           let currentQueue = get().queues.get(channel) || [];
 
           while (currentQueue.length > 0) {
