@@ -23,7 +23,7 @@ import { DiffViewer } from '../../DiffViewer/DiffViewer';
 import { useRepositoryStore, useSettingsStore } from '../../../stores';
 import { useDiffActions, useCommitHistoryActions } from '../hooks';
 import { useGitService } from '../../../ipc';
-import { calculateGraphBlocks } from '../../../utils/calculateGraphBlocks';
+import { useGraphBlocksWorker } from '../../../utils/useGraphBlocksWorker';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -39,22 +39,20 @@ const CommitTable = styled(Table)`
   border-collapse: separate;
   border-spacing: 0;
 
-  tbody tr {
-    &:hover td {
-      background-color: ${({ theme }) => theme.colors.light};
-    }
-  }
-
   td {
     vertical-align: top;
     padding: 0.375rem 0.5rem;
     border: none;
     position: relative;
-    background-color: transparent;
+    background-color: ${({ theme }) => theme.colors.background};
   }
 
   tbody tr:nth-child(odd) td {
     background-color: ${({ theme }) => theme.colors.text}08;
+  }
+
+  tbody tr:hover td {
+    background-color: ${({ theme }) => theme.colors.light};
   }
 `;
 
@@ -65,7 +63,6 @@ const GraphCell = styled.td`
   overflow: hidden;
   position: relative;
   vertical-align: middle !important;
-  background-color: transparent !important;
 `;
 
 const MessageCell = styled.td`
@@ -261,10 +258,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
     const rawCommitHistory =
       useRepositoryStore((state) => state.repoCache[repoPath]?.commitHistory) ??
       _EMPTY_ARR;
-    const commits = useMemo(
-      () => calculateGraphBlocks(rawCommitHistory),
-      [rawCommitHistory],
-    );
+    const commits = useGraphBlocksWorker(rawCommitHistory);
     const localBranches = (useRepositoryStore(
       (state) => state.repoCache[repoPath]?.localBranches,
     ) ?? _EMPTY_ARR) as any[];

@@ -841,14 +841,15 @@ export class GitClient {
         }
       }).catch((err) => {
         if (err instanceof Error) {
+          Object.defineProperty(err, 'message', { enumerable: true });
           reject(err);
         } else {
-          // Include both stdout and stderr — pre-commit hook output
-          // goes to stdout while git errors go to stderr.
           const combined = [err.standardOutput, err.errorOutput]
             .filter(Boolean)
             .join('\n');
-          reject(new Error(combined || String(err)));
+          const error = new Error(combined || String(err));
+          Object.defineProperty(error, 'message', { enumerable: true });
+          reject(error);
         }
       });
     });
@@ -1812,18 +1813,15 @@ export class GitClient {
         .then(() => resolve())
         .catch((err: CommandOutputModel<void>) => {
           if (err instanceof Error) {
+            Object.defineProperty(err, 'message', { enumerable: true });
             reject(err);
-          } else if (includeStdout) {
-            // Include both stdout and stderr — pre-commit hook output
-            // goes to stdout while git errors go to stderr.
-            const combined = [err.standardOutput, err.errorOutput]
-              .filter(Boolean)
-              .join('\n');
-            reject(new Error(combined || String(err)));
-          } else if (err && err.errorOutput) {
-            reject(new Error(err.errorOutput));
           } else {
-            reject(new Error(String(err)));
+            const msg = includeStdout
+              ? [err.standardOutput, err.errorOutput].filter(Boolean).join('\n')
+              : (err?.errorOutput || String(err));
+            const error = new Error(msg);
+            Object.defineProperty(error, 'message', { enumerable: true });
+            reject(error);
           }
         });
     });
@@ -1832,13 +1830,13 @@ export class GitClient {
   private handleErrorDefault<T>(promise: Promise<T>, reject: Function) {
     return promise.catch((err) => {
       if (err instanceof Error) {
+        Object.defineProperty(err, 'message', { enumerable: true });
         reject(err);
-      } else if (err.message) {
-        reject(new Error(err.message));
-      } else if (err.errorOutput) {
-        reject(new Error(err.errorOutput));
       } else {
-        reject(new Error(String(err)));
+        const msg = err?.message || err?.errorOutput || String(err);
+        const error = new Error(msg);
+        Object.defineProperty(error, 'message', { enumerable: true });
+        reject(error);
       }
     });
   }

@@ -57,6 +57,7 @@ export class SettingsModel {
   public splitFilenameDisplay: boolean;
   public commitAndPush: boolean;
   public branchNamePrefix: string;
+  public autocompletePhrases: { keyword: string; value: string }[];
   public sectionLayouts: {
     [repoPath: string]: {
       [cardId: string]: {
@@ -91,6 +92,7 @@ export class SettingsModel {
     loadedCodeWatchers: CodeWatcherModel[] = [],
     codeWatcherPaths: string[] = [],
     branchNamePrefix: string = '',
+    autocompletePhrases: { keyword: string; value: string }[] = [],
     sectionLayouts: {
       [repoPath: string]: {
         [cardId: string]: { visible: boolean; order: number; column: number };
@@ -120,6 +122,7 @@ export class SettingsModel {
     this.codeWatcherPaths = codeWatcherPaths;
     this.rebasePull = rebasePull;
     this.branchNamePrefix = branchNamePrefix;
+    this.autocompletePhrases = autocompletePhrases;
     this.sectionLayouts = sectionLayouts;
   }
 
@@ -155,6 +158,7 @@ export class SettingsModel {
     res.rebasePull = this.rebasePull;
     res.splitFilenameDisplay = this.splitFilenameDisplay;
     res.branchNamePrefix = this.branchNamePrefix;
+    res.autocompletePhrases = (this.autocompletePhrases || []).map((p) => ({ ...p }));
     res.sectionLayouts = JSON.parse(JSON.stringify(this.sectionLayouts || {}));
     return res;
   }

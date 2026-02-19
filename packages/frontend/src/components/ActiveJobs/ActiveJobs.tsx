@@ -89,6 +89,15 @@ const JobItem = styled.div`
   }
 `;
 
+const JobIndex = styled.span`
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.secondary};
+  min-width: 1.25rem;
+  text-align: right;
+`;
+
 const JobName = styled.span`
   flex: 1;
   min-width: 0;
@@ -210,8 +219,9 @@ export const ActiveJobs: React.FC = () => {
   const tooltip = (
     <WideTooltip id="active-jobs-tooltip">
       <JobList>
-        {activeJobs.map((job) => (
+        {activeJobs.map((job, index) => (
           <JobItem key={job.id}>
+            <JobIndex>{index + 1}</JobIndex>
             <JobName>{job.config.command}</JobName>
             <JobStatusBadge status={job.status}>
               {job.status === JobStatus.IN_PROGRESS ? 'Running' : 'Queued'}

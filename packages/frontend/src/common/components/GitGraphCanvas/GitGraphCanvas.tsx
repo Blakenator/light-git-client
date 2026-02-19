@@ -76,13 +76,14 @@ interface SpacerEntry {
 /**
  * Git graph visualization for a single commit row.
  *
- * Rendering strategy (matching the proven Angular approach):
- *   1. Curves UP   — from (source, CENTER_Y) to (target, 0) — connect to the row above
- *   2. Spacers DOWN — from (source, CENTER_Y) to (source, SPACER_Y) — extend into the row below
- *   3. Commit nodes — drawn last on top of all lines
+ * Rendering strategy:
+ *   1. Define SVG masks that cut out circles where commit dots live
+ *   2. Draw curves + spacer lines inside a masked group (lines become
+ *      transparent around commit dots, letting the td background show through)
+ *   3. Draw commit dots on top, with merge chevrons carved out via masks
  *
- * Each row is fully self-contained: no neighbor commit data needed.
- * The spacer overflow from row N visually connects to the curves in row N+1.
+ * This approach is background-color-agnostic: hover highlights and
+ * tiger-striping show through the masked areas automatically.
  */
 export const GitGraphCanvas: React.FC<GitGraphCanvasProps> = ({ commit }) => {
   const theme = useTheme();
@@ -103,6 +104,11 @@ export const GitGraphCanvas: React.FC<GitGraphCanvasProps> = ({ commit }) => {
     return bySlot.filter((x): x is SpacerEntry => x !== undefined);
   }, [blocks]);
 
+  const commitNodes = useMemo(
+    () => spacerList.filter((s) => s.isCommit),
+    [spacerList],
+  );
+
   // Blocks with target >= 0 draw curves connecting to the row above
   const curveBlocks = useMemo(
     () => blocks.filter((x) => x.target >= 0),
@@ -118,25 +124,29 @@ export const GitGraphCanvas: React.FC<GitGraphCanvasProps> = ({ commit }) => {
     return getSafeHoriz(maxSlot + 1) + 4;
   }, [blocks]);
 
+  const lineMaskId = `lm-${commit.hash}`;
+
   // Fallback: no graph data — simple dot with vertical line
   if (blocks.length === 0) {
     return (
       <>
         <GraphSvg width={30} height="100%">
-          <line
-            x1={LEFT_PADDING}
-            y1={0}
-            x2={LEFT_PADDING}
-            y2={SPACER_Y}
-            stroke={theme.colors.primary}
-            strokeWidth={2}
-          />
-          <circle
-            cx={LEFT_PADDING}
-            cy={CENTER_Y}
-            r={NODE_RADIUS + 2}
-            fill={theme.colors.background}
-          />
+          <defs>
+            <mask id={lineMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="9999" height="9999">
+              <rect x="0" y="0" width="9999" height="9999" fill="white" />
+              <circle cx={LEFT_PADDING} cy={CENTER_Y} r={NODE_RADIUS + 2} fill="black" />
+            </mask>
+          </defs>
+          <g mask={`url(#${lineMaskId})`}>
+            <line
+              x1={LEFT_PADDING}
+              y1={0}
+              x2={LEFT_PADDING}
+              y2={SPACER_Y}
+              stroke={theme.colors.primary}
+              strokeWidth={2}
+            />
+          </g>
           <circle
             cx={LEFT_PADDING}
             cy={CENTER_Y}
@@ -152,70 +162,87 @@ export const GitGraphCanvas: React.FC<GitGraphCanvasProps> = ({ commit }) => {
   return (
     <>
       <GraphSvg width={svgWidth} height="100%">
-        {/* Layer 1: Curves connecting this row up to the previous row */}
-        {curveBlocks.map((block, i) => {
-          const sx = getSafeHoriz(block.source);
-          const tx = getSafeHoriz(block.target);
-          return (
-            <path
-              key={`c-${i}`}
-              d={`M${sx} ${CENTER_Y} C ${sx} ${CENTER_Y * 0.5}, ${tx} ${CENTER_Y * 0.36}, ${tx} 0`}
-              stroke={getCommitBranchColor(block.branchIndex, theme)}
+        <defs>
+          {/* Mask that hides lines behind commit dots */}
+          <mask id={lineMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width="9999" height="9999">
+            <rect x="0" y="0" width="9999" height="9999" fill="white" />
+            {commitNodes.map((s) => (
+              <circle
+                key={`mh-${s.source}`}
+                cx={getSafeHoriz(s.source)}
+                cy={CENTER_Y}
+                r={NODE_RADIUS + 2}
+                fill="black"
+              />
+            ))}
+          </mask>
+          {/* Per-merge masks that carve the chevron out of the commit dot */}
+          {commitNodes
+            .filter((s) => s.isMerge)
+            .map((s) => {
+              const cx = getSafeHoriz(s.source);
+              return (
+                <mask id={`cm-${commit.hash}-${s.source}`} key={`cm-${s.source}`} maskUnits="userSpaceOnUse" x="0" y="0" width="9999" height="9999">
+                  <rect x="0" y="0" width="9999" height="9999" fill="white" />
+                  <path
+                    d={`M${cx - 3} ${CENTER_Y + 1.5} L${cx} ${CENTER_Y - 2.5} L${cx + 3} ${CENTER_Y + 1.5}`}
+                    stroke="black"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                </mask>
+              );
+            })}
+        </defs>
+
+        {/* Lines group — masked so commit dot areas are transparent */}
+        <g mask={`url(#${lineMaskId})`}>
+          {/* Layer 1: Curves connecting this row up to the previous row */}
+          {curveBlocks.map((block, i) => {
+            const sx = getSafeHoriz(block.source);
+            const tx = getSafeHoriz(block.target);
+            return (
+              <path
+                key={`c-${i}`}
+                d={`M${sx} ${CENTER_Y} C ${sx} ${CENTER_Y * 0.5}, ${tx} ${CENTER_Y * 0.36}, ${tx} 0`}
+                stroke={getCommitBranchColor(block.branchIndex, theme)}
+                strokeWidth={2}
+                fill="none"
+              />
+            );
+          })}
+
+          {/* Layer 2: Spacer lines extending downward from each active slot */}
+          {spacerList.map((s) => (
+            <line
+              key={`s-${s.source}`}
+              x1={getSafeHoriz(s.source)}
+              y1={CENTER_Y}
+              x2={getSafeHoriz(s.source)}
+              y2={SPACER_Y}
+              stroke={getCommitBranchColor(s.branchIndex, theme)}
               strokeWidth={2}
-              fill="none"
+            />
+          ))}
+        </g>
+
+        {/* Layer 3: Commit dots — drawn on top, merge dots have chevron carved out */}
+        {commitNodes.map((s) => {
+          const cx = getSafeHoriz(s.source);
+          const color = getCommitBranchColor(s.branchIndex, theme);
+          return (
+            <circle
+              key={`n-${s.source}`}
+              cx={cx}
+              cy={CENTER_Y}
+              r={NODE_RADIUS}
+              fill={color}
+              mask={s.isMerge ? `url(#cm-${commit.hash}-${s.source})` : undefined}
             />
           );
         })}
-
-        {/* Layer 2: Spacer lines extending downward from each active slot */}
-        {spacerList.map((s) => (
-          <line
-            key={`s-${s.source}`}
-            x1={getSafeHoriz(s.source)}
-            y1={CENTER_Y}
-            x2={getSafeHoriz(s.source)}
-            y2={SPACER_Y}
-            stroke={getCommitBranchColor(s.branchIndex, theme)}
-            strokeWidth={2}
-          />
-        ))}
-
-        {/* Layer 3: Commit nodes — drawn last so they sit on top */}
-        {spacerList
-          .filter((s) => s.isCommit)
-          .map((s) => {
-            const cx = getSafeHoriz(s.source);
-            const color = getCommitBranchColor(s.branchIndex, theme);
-            return (
-              <g key={`n-${s.source}`}>
-                {/* Background circle to mask lines underneath */}
-                <circle
-                  cx={cx}
-                  cy={CENTER_Y}
-                  r={NODE_RADIUS + 2}
-                  fill={theme.colors.background}
-                />
-                {/* Outer ring for merge commits */}
-                {s.isMerge && (
-                  <circle
-                    cx={cx}
-                    cy={CENTER_Y}
-                    r={NODE_RADIUS + 1}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={2}
-                  />
-                )}
-                {/* Filled commit dot */}
-                <circle
-                  cx={cx}
-                  cy={CENTER_Y}
-                  r={s.isMerge ? NODE_RADIUS - 1 : NODE_RADIUS}
-                  fill={color}
-                />
-              </g>
-            );
-          })}
       </GraphSvg>
       {/* Invisible spacer that gives the table cell its width */}
       <div style={{ width: svgWidth }} />

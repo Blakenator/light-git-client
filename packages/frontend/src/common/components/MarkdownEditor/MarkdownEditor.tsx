@@ -28,7 +28,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   LexicalTypeaheadMenuPlugin,
   MenuOption,
-  useBasicTypeaheadTriggerMatch,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 
@@ -184,8 +183,11 @@ const AutocompleteDropdown = styled.div`
 `;
 
 const AutocompleteItem = styled.div<{ $active?: boolean }>`
-  padding: 0.5rem 1rem;
+  padding: 0.375rem 0.75rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   background-color: ${({ $active, theme }) =>
     $active ? theme.colors.primary : 'transparent'};
   color: ${({ $active }) => ($active ? 'white' : 'inherit')};
@@ -196,17 +198,30 @@ const AutocompleteItem = styled.div<{ $active?: boolean }>`
   }
 `;
 
+const SuggestionIconWrapper = styled.span`
+  width: 1rem;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+  font-size: 0.75rem;
+`;
+
+const SuggestionLabel = styled.span`
+  flex: 1;
+  min-width: 0;
+`;
+
+const SuggestionValue = styled.span`
+  opacity: 0.6;
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+`;
+
 const NoMatchesItem = styled.div`
   padding: 0.5rem 1rem;
   color: ${({ theme }) => theme.colors.secondary};
   font-style: italic;
   font-size: 0.875rem;
-`;
-
-const SuggestionSource = styled.span`
-  opacity: 0.6;
-  font-size: 0.75rem;
-  margin-left: 0.5rem;
 `;
 
 // ---- Lexical Configuration ----
@@ -252,11 +267,13 @@ const EDITOR_NODES = [
 class SuggestionOption extends MenuOption {
   label: string;
   source: string;
+  type: 'file' | 'branch' | 'phrase';
 
-  constructor(label: string, source: string = 'file') {
+  constructor(label: string, source: string = 'file', type: 'file' | 'branch' | 'phrase' = 'file') {
     super(label);
     this.label = label;
     this.source = source;
+    this.type = type;
   }
 }
 
@@ -336,27 +353,52 @@ function EditablePlugin({ disabled }: { disabled: boolean }) {
 export interface Suggestion {
   label: string;
   source: string;
+  type: 'file' | 'branch' | 'phrase';
 }
+
+const SUGGESTION_ICONS: Record<string, string> = {
+  file: 'description',
+  branch: 'account_tree',
+  phrase: 'bolt',
+};
+
+function SuggestionTypeIcon({ type }: { type: string }) {
+  const name = SUGGESTION_ICONS[type] || SUGGESTION_ICONS.file;
+  return (
+    <SuggestionIconWrapper className="material-icons">
+      {name}
+    </SuggestionIconWrapper>
+  );
+}
+
+const TRIGGER_REGEX = /(^|\s|\()(@([^\s@]{1,75}))$/;
 
 function AutocompletePlugin({ suggestions }: { suggestions: Suggestion[] }) {
   const [queryString, setQueryString] = useState<string | null>(null);
 
-  const triggerFn = useBasicTypeaheadTriggerMatch('@', {
-    minLength: 1,
-  });
+  const triggerFn = useCallback(
+    (text: string) => {
+      const match = TRIGGER_REGEX.exec(text);
+      if (match !== null && match[3].length >= 1) {
+        return {
+          leadOffset: match.index + match[1].length,
+          matchingString: match[3],
+          replaceableString: match[2],
+        };
+      }
+      return null;
+    },
+    [],
+  );
 
   const filteredOptions = useMemo(() => {
     if (!queryString || !suggestions.length) return [];
 
     const lowerQuery = queryString.toLowerCase();
     return suggestions
-      .filter(
-        (s) =>
-          s.label.toLowerCase().includes(lowerQuery) &&
-          s.label.toLowerCase() !== lowerQuery,
-      )
+      .filter((s) => s.label.toLowerCase().includes(lowerQuery))
       .slice(0, 8)
-      .map((s) => new SuggestionOption(s.label, s.source));
+      .map((s) => new SuggestionOption(s.label, s.source, s.type));
   }, [queryString, suggestions]);
 
   const onSelectOption = useCallback(
@@ -365,8 +407,6 @@ function AutocompletePlugin({ suggestions }: { suggestions: Suggestion[] }) {
       textNodeContainingQuery: TextNode | null,
       closeMenu: () => void,
     ) => {
-      // This callback is already invoked inside editor.update() by the plugin.
-      // textNodeContainingQuery contains "@query" — replace with just the label.
       if (textNodeContainingQuery) {
         textNodeContainingQuery.setTextContent(option.label + ' ');
         textNodeContainingQuery.select();
@@ -404,8 +444,13 @@ function AutocompletePlugin({ suggestions }: { suggestions: Suggestion[] }) {
                   }}
                   onMouseEnter={() => setHighlightedIndex(index)}
                 >
-                  {option.label}
-                  <SuggestionSource>({option.source})</SuggestionSource>
+                  <SuggestionTypeIcon type={option.type} />
+                  <SuggestionLabel>
+                    {option.label}
+                    {option.type === 'phrase' && option.source && (
+                      <SuggestionValue>({option.source})</SuggestionValue>
+                    )}
+                  </SuggestionLabel>
                 </AutocompleteItem>
               ))
             )}

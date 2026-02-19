@@ -52,6 +52,7 @@ const defaultSettings: SettingsModel = {
   splitFilenameDisplay: false,
   commitAndPush: false,
   branchNamePrefix: '',
+  autocompletePhrases: [],
   configShortcuts: [],
   sectionLayouts: {},
 };

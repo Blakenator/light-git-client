@@ -7,6 +7,7 @@ import { GeneralSettings } from './tabs/GeneralSettings';
 import { CodeWatcherSettings } from './tabs/CodeWatcherSettings';
 import { GitConfigSettings } from './tabs/GitConfigSettings';
 import { ConfigShortcutsSettings } from './tabs/ConfigShortcutsSettings';
+import { AutocompletePhrasesSettings } from './tabs/AutocompletePhrasesSettings';
 
 const SettingsContainer = styled.div`
   min-height: 400px;
@@ -67,6 +68,14 @@ export const Settings: React.FC = () => {
             <Tab eventKey="shortcuts" title="Config Shortcuts">
               <TabContent>
                 <ConfigShortcutsSettings
+                  settings={settings}
+                  onChange={handleSettingChange}
+                />
+              </TabContent>
+            </Tab>
+            <Tab eventKey="autocomplete" title="Autocomplete Phrases">
+              <TabContent>
+                <AutocompletePhrasesSettings
                   settings={settings}
                   onChange={handleSettingChange}
                 />

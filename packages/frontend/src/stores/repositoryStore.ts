@@ -206,8 +206,8 @@ export const useRepositoryStore = create<RepositoryState & RepositoryActions>((s
       let changedCount = 0;
 
       for (const key of Object.keys(data)) {
-        const oldVal = (existing as Record<string, unknown>)[key];
-        const newVal = (data as Record<string, unknown>)[key];
+        const oldVal = (existing as unknown as Record<string, unknown>)[key];
+        const newVal = (data as unknown as Record<string, unknown>)[key];
 
         // Fast path: same reference — nothing to do
         if (oldVal === newVal) {

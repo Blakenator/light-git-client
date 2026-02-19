@@ -7,7 +7,7 @@ import {
   type Suggestion,
 } from '../../../common/components/MarkdownEditor/MarkdownEditor';
 import { CodeWatcherAlertsModal } from '../dialogs';
-import { useRepositoryStore, useUiStore } from '../../../stores';
+import { useRepositoryStore, useSettingsStore, useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useCommitActions } from '../hooks';
 
@@ -81,6 +81,9 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
     const localBranches = useRepositoryStore((state) => state.repoCache[repoPath]?.localBranches) ?? _EMPTY_ARR;
     const crlfError = useUiStore((state) => state.crlfError);
     const setCrlfError = useUiStore((state) => state.setCrlfError);
+    const autocompletePhrases = useSettingsStore(
+      (state) => state.settings.autocompletePhrases,
+    );
     const activeBranch = useRepoViewStore(
       (state) => state.activeBranch[repoPath] || null,
     );
@@ -120,7 +123,6 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
       [setCrlfError],
     );
 
-    // Generate suggestions from file names and branch name
     const suggestions: Suggestion[] = useMemo(() => {
       const chunks = new Map<string, string>();
 
@@ -131,8 +133,21 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
       if (currentBranchName)
         addFilenameChunks(currentBranchName, 'branch', chunks);
 
-      return Array.from(chunks, ([label, source]) => ({ label, source }));
-    }, [stagedChanges, unstagedChanges, currentBranchName]);
+      const result: Suggestion[] = Array.from(chunks, ([label, source]) => ({
+        label,
+        source,
+        type: source as 'file' | 'branch',
+      }));
+
+      if (autocompletePhrases?.length) {
+        for (const phrase of autocompletePhrases) {
+          if (phrase.keyword)
+            result.push({ label: phrase.keyword, source: phrase.value, type: 'phrase' });
+        }
+      }
+
+      return result;
+    }, [stagedChanges, unstagedChanges, currentBranchName, autocompletePhrases]);
 
     const handleSubmit = useCallback(() => {
       handleCommit(false);

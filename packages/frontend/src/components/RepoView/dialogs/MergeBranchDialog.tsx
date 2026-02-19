@@ -61,6 +61,18 @@ const BranchOption = styled.div<{ $selected?: boolean; $current?: boolean }>`
   `}
 `;
 
+const BranchName = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+`;
+
+const BranchColumn = styled.div`
+  flex: 1 1 0;
+  min-width: 0;
+`;
+
 const BranchSection = styled.div`
   margin-bottom: 0.25rem;
   
@@ -214,9 +226,9 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
               onClick={() => onSelect(b.name)}
             >
               {selectedBranch === b.name && <Icon name="fa-check" size="sm" />}
-              {b.name}
+              <BranchName title={b.name}>{b.name}</BranchName>
               {b.isCurrentBranch && (
-                <Badge bg="success" className="ms-auto">
+                <Badge bg="success" className="ms-auto" style={{ flexShrink: 0 }}>
                   current
                 </Badge>
               )}
@@ -234,7 +246,7 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
               onClick={() => onSelect(b.name)}
             >
               {selectedBranch === b.name ? <Icon name="fa-check" size="sm" /> : <Icon name="fa-cloud" size="sm" />}
-              {b.name}
+              <BranchName title={b.name}>{b.name}</BranchName>
             </BranchOption>
           ))}
         </BranchSection>
@@ -299,7 +311,7 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
         </Form.Group>
 
         <div className="d-flex align-items-start gap-2">
-          <div className="flex-fill">
+          <BranchColumn>
             <Form.Group className="mb-3">
               <Form.Label>
                 {isRebase ? 'Branch to rebase' : 'Branch to merge from'}
@@ -319,7 +331,7 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
                 </Form.Text>
               )}
             </Form.Group>
-          </div>
+          </BranchColumn>
 
           <SwapButtonWrapper>
             <SwapButton
@@ -331,7 +343,7 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
             </SwapButton>
           </SwapButtonWrapper>
 
-          <div className="flex-fill">
+          <BranchColumn>
             <Form.Group className="mb-3">
               <Form.Label>{isRebase ? 'Rebase onto' : 'Merge into'}</Form.Label>
               <BranchFilter
@@ -349,7 +361,7 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
                 </Form.Text>
               )}
             </Form.Group>
-          </div>
+          </BranchColumn>
         </div>
 
         {sourceBranch && targetBranch && (
