@@ -131,26 +131,13 @@ export function useDiffFileActions(repoPath: string) {
     }
   }, [gitService, addAlert, repoPath, store]);
 
-  // Fetch diff stats for all given files (runs in parallel with diff page fetch)
-  const fetchDiffStats = useCallback(async (unstagedFiles: string[], stagedFiles: string[]) => {
-    try {
-      const stats = await gitService.getDiffStats(unstagedFiles, stagedFiles) as any;
-      store.getState().setDiffStats(repoPath, stats);
-    } catch {
-      // Non-critical: stats are a nice-to-have, don't block on failures
-      store.getState().setDiffStats(repoPath, null);
-    }
-  }, [gitService, repoPath, store]);
-
-  // Start fetching diffs for given files (resets pagination)
+  // Start fetching diffs for given files (resets pagination).
+  // Does NOT re-fetch diff stats — those are maintained by useRepoLifecycle
+  // for the full file list so the +/- column in ChangeList stays stable.
   const fetchDiffForFiles = useCallback(async (unstagedFiles: string[], stagedFiles: string[]) => {
     store.getState().setCurrentDiffFiles(repoPath, { unstaged: unstagedFiles, staged: stagedFiles });
-    // Fetch diff page and stats in parallel
-    await Promise.all([
-      fetchDiffPage(unstagedFiles, stagedFiles, null, false),
-      fetchDiffStats(unstagedFiles, stagedFiles),
-    ]);
-  }, [fetchDiffPage, fetchDiffStats, repoPath, store]);
+    await fetchDiffPage(unstagedFiles, stagedFiles, null, false);
+  }, [fetchDiffPage, repoPath, store]);
 
   // Handler for clicking on staged/unstaged file changes
   const handleFileClick = useCallback(async (filePath: string, isStaged: boolean) => {
@@ -192,7 +179,6 @@ export function useDiffFileActions(repoPath: string) {
   return {
     fetchDiffPage,
     fetchDiffForFiles,
-    fetchDiffStats,
     handleFileClick,
     refreshSelectedFilesDiff,
   };
