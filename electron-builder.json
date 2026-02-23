@@ -9,9 +9,6 @@
   "files": [
     "dist/**",
     "packages/backend/dist/**",
-    "packages/backend/src/preload.js",
-    "packages/shared/dist/**",
-    "packages/core/dist/**",
     "src/*.png"
   ],
   "extraFiles": ["extra/**/*"],

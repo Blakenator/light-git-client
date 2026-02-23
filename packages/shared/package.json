@@ -6,29 +6,29 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.js"
     },
     "./src/Channels": {
+      "types": "./dist/Channels.d.ts",
       "require": "./dist/Channels.js",
-      "import": "./dist/Channels.js",
-      "types": "./dist/Channels.d.ts"
+      "import": "./dist/Channels.js"
     },
     "./src/git/*": {
+      "types": "./dist/git/*.d.ts",
       "require": "./dist/git/*.js",
-      "import": "./dist/git/*.js",
-      "types": "./dist/git/*.d.ts"
+      "import": "./dist/git/*.js"
     },
     "./src/common/*": {
+      "types": "./dist/common/*.d.ts",
       "require": "./dist/common/*.js",
-      "import": "./dist/common/*.js",
-      "types": "./dist/common/*.d.ts"
+      "import": "./dist/common/*.js"
     },
     "./src/*": {
+      "types": "./dist/*.d.ts",
       "require": "./dist/*.js",
-      "import": "./dist/*.js",
-      "types": "./dist/*.d.ts"
+      "import": "./dist/*.js"
     }
   },
   "scripts": {

@@ -4,7 +4,7 @@
   "private": true,
   "main": "./dist/main.js",
   "scripts": {
-    "build": "tsc && cp src/preload.js dist/",
+    "build": "node esbuild.config.mjs",
     "dev": "cp src/preload.js dist/ && tsc --watch"
   },
   "dependencies": {
@@ -28,6 +28,7 @@
     "@types/node": "^20.19.6",
     "@types/node-notifier": "0.0.28",
     "electron": "^37.2.0",
+    "esbuild": "^0.27.3",
     "typescript": "^5.3.3"
   }
 }

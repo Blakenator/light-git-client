@@ -13,6 +13,7 @@ export default defineConfig({
       plugins: [
         commonjs({
           include: [/node_modules/],
+          exclude: [/node_modules\/highlight\.js/],
           transformMixedEsModules: true,
           requireReturnsDefault: 'auto',
         }),

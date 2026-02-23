@@ -5,7 +5,7 @@ import { GitClient } from './git/GitClient';
 import { AskPassApplication } from './askPassApplication';
 import { take } from 'rxjs/operators';
 import { MainApplication } from './mainApplication';
-import * as mkdirp from 'mkdirp';
+import mkdirp from 'mkdirp';
 
 const userDataPath = app.getPath('userData');
 if (!fs.existsSync(userDataPath)) {
