@@ -19,12 +19,16 @@
     {
       "provider": "github",
       "owner": "Blakenator",
-      "repo": "light-git-client"
+      "repo": "light-git-client",
+      "timeout": 120000
     }
   ],
   "win": {
     "icon": "dist",
     "target": ["nsis", "portable", "7z", "zip"]
+  },
+  "portable": {
+    "artifactName": "light-git-${version}-portable.${ext}"
   },
   "mac": {
     "icon": "dist",
