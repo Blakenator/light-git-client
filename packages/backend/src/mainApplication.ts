@@ -354,6 +354,20 @@ export class MainApplication extends GenericApplication {
         return await new GitClient(args.repoPath).checkGitBashVersions();
       },
 
+      // --- Code Watcher ---
+      [SYNC_CHANNELS.CheckCodeWatchers]: async ({ args }) => {
+        const watchers = [
+          ...(this.settings.loadedCodeWatchers || []),
+          ...(this.settings.codeWatchers || []),
+        ];
+        const includeUnchanged = this.settings.includeUnchangedInWatcherAnalysis;
+        return await this.gitClients[args.repoPath].checkCodeWatchers(
+          args.stagedFiles,
+          watchers,
+          includeUnchanged,
+        );
+      },
+
       // --- Git Write Operations ---
       [SYNC_CHANNELS.GitStage]: async ({ args }) => {
         await this.gitClients[args.repoPath].stage(args.files);

@@ -7,24 +7,15 @@ import {
   type Suggestion,
 } from '../../../common/components/MarkdownEditor/MarkdownEditor';
 import { CodeWatcherAlertsModal } from '../dialogs';
+import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { useRepositoryStore, useSettingsStore, useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useCommitActions } from '../hooks';
 
 const _EMPTY_ARR: any[] = [];
 
-const CommitContainer = styled.div`
-  background-color: ${({ theme }) => theme.colors.background};
-  border-radius: ${({ theme }) => theme.borderRadius};
-  box-shadow: ${({ theme }) => theme.shadows.material};
+const CommitBody = styled.div`
   padding: 0.75rem;
-`;
-
-const CommitRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
 `;
 
 const CommitMessageContainer = styled.div`
@@ -153,92 +144,104 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
       handleCommit(false);
     }, [handleCommit]);
 
+    const headerContent = (
+      <>
+        <span className="flex-grow-1" />
+        {hasWatcherAlerts && (
+          <TooltipTrigger
+            placement="top"
+            overlay={
+              <Tooltip id="tooltip-code-watchers">
+                View code watcher alerts
+              </Tooltip>
+            }
+          >
+            <Button
+              variant="warning"
+              size="sm"
+              onClick={() => showWatcherAlerts()}
+            >
+              <Icon name="fa-glasses" />
+            </Button>
+          </TooltipTrigger>
+        )}
+        <PrettyCheckbox
+          checked={commitAndPush}
+          onChange={handleCommitAndPushChange}
+        >
+          Push
+        </PrettyCheckbox>
+        <Dropdown as={ButtonGroup}>
+          <TooltipTrigger
+            placement="top"
+            overlay={
+              <Tooltip id="tooltip-commit-changes">
+                {commitDisabledReason || 'Commit changes'}
+              </Tooltip>
+            }
+          >
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => handleCommit(false)}
+              disabled={isCommitDisabled}
+            >
+              Commit
+            </Button>
+          </TooltipTrigger>
+          <Dropdown.Toggle split variant="success" size="sm" disabled={isDisabled} />
+          <Dropdown.Menu>
+            <Dropdown.Item
+              onClick={() => handleCommit(true)}
+              disabled={isDisabled}
+            >
+              Amend
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+      </>
+    );
+
     return (
       <>
-        <CommitContainer>
-          <CommitRow>
-            <PrettyCheckbox
-              checked={commitAndPush}
-              onChange={handleCommitAndPushChange}
-            >
-              Commit and Push
-            </PrettyCheckbox>
-            <span className="flex-grow-1" />
-            {hasWatcherAlerts && (
-              <TooltipTrigger
-                placement="top"
-                overlay={
-                  <Tooltip id="tooltip-code-watchers">
-                    View code watcher alerts
-                  </Tooltip>
-                }
-              >
-                <Button
-                  variant="warning"
-                  size="sm"
-                  onClick={() => showWatcherAlerts()}
-                >
-                  <Icon name="fa-glasses" />
-                </Button>
-              </TooltipTrigger>
-            )}
-            <Dropdown as={ButtonGroup}>
-              <TooltipTrigger
-                placement="top"
-                overlay={
-                  <Tooltip id="tooltip-commit-changes">
-                    {commitDisabledReason || 'Commit changes'}
-                  </Tooltip>
-                }
-              >
-                <Button
-                  variant="success"
-                  onClick={() => handleCommit(false)}
-                  disabled={isCommitDisabled}
-                >
-                  Commit
-                </Button>
-              </TooltipTrigger>
-              <Dropdown.Toggle split variant="success" disabled={isDisabled} />
-              <Dropdown.Menu>
-                <Dropdown.Item
-                  onClick={() => handleCommit(true)}
-                  disabled={isDisabled}
-                >
-                  Amend
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-          </CommitRow>
-          <CommitMessageContainer>
-            <MarkdownEditor
-              value={commitMessage}
-              onChange={setCommitMessage}
-              onSubmit={handleSubmit}
-              placeholder="Commit message..."
-              suggestions={suggestions}
-            />
+        <LayoutCard
+          title="Commit"
+          iconClass="fa-solid fa-pen"
+          expandKey="commit-panel"
+          headerContent={headerContent}
+          shrinkWrap
+        >
+          <CommitBody>
+            <CommitMessageContainer>
+              <MarkdownEditor
+                value={commitMessage}
+                onChange={setCommitMessage}
+                onSubmit={handleSubmit}
+                placeholder="Commit message..."
+                suggestions={suggestions}
+              />
 
-            <CrlfWarning $show={!!crlfError}>
-              {crlfError && (
-                <>
-                  <span>
-                    {crlfError.start} will be replaced by {crlfError.end} on
-                    commit
-                  </span>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="p-0"
-                    onClick={handleDismissCrlfError}
-                  >
-                    <Icon name="fa-times" />
-                  </Button>
-                </>
-              )}
-            </CrlfWarning>
-          </CommitMessageContainer>
-        </CommitContainer>
+              <CrlfWarning $show={!!crlfError}>
+                {crlfError && (
+                  <>
+                    <span>
+                      {crlfError.start} will be replaced by {crlfError.end} on
+                      commit
+                    </span>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="p-0"
+                      onClick={handleDismissCrlfError}
+                    >
+                      <Icon name="fa-times" />
+                    </Button>
+                  </>
+                )}
+              </CrlfWarning>
+            </CommitMessageContainer>
+          </CommitBody>
+        </LayoutCard>
 
         <CodeWatcherAlertsModal
           alerts={watcherAlerts}

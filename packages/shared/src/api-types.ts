@@ -13,6 +13,7 @@ import type { ConfigItemModel } from './git/config-item.model';
 import type { CommandHistoryModel } from './git/command-history.model';
 import type { DiffStatsResult } from './git/diff-stat.model';
 import type { CommandOutputModel } from './common/command.output.model';
+import type { WatcherAlert } from './code-watcher-analysis';
 
 // ---- Re-usable shapes ----
 
@@ -298,6 +299,12 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
   [SYNC_CHANNELS.RestartAndInstallUpdate]: {
     props: void;
     result: void;
+  };
+
+  // --- Code Watcher ---
+  [SYNC_CHANNELS.CheckCodeWatchers]: {
+    props: { repoPath: string; stagedFiles: string[] };
+    result: WatcherAlert[];
   };
 
   // --- Events (reply-only channels, not directly invoked) ---

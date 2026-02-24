@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Modal, Button, Form, Badge, Accordion, Card } from 'react-bootstrap';
 import styled from 'styled-components';
 import { useUiStore } from '../../../stores';
 import { Icon } from '@light-git/core';
+import { ReadOnlyHunkView } from '../../DiffViewer/ReadOnlyHunkView';
+import type { WatcherAlert } from '@light-git/shared';
 
 const AlertContainer = styled.div`
   max-height: 500px;
@@ -22,14 +24,15 @@ const FileSection = styled(Card)`
   }
 `;
 
-const HunkCode = styled.pre`
+const HunkViewWrapper = styled.div`
+  font-family: ${({ theme }) => theme.fonts.monospace};
   font-size: 0.75rem;
-  background-color: ${({ theme }) => theme.colors.light};
-  padding: 0.5rem;
   border-radius: 4px;
   margin: 0.5rem 0;
   overflow-x: auto;
-  max-height: 150px;
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
 const WatcherBadge = styled(Badge)`
@@ -42,28 +45,6 @@ const LineNumbers = styled.span`
   color: ${({ theme }) => theme.colors.secondary};
   margin-left: 0.5rem;
 `;
-
-interface DiffHunkModel {
-  fromStartLine: number;
-  toStartLine: number;
-  lines: { text: string; state: string }[];
-}
-
-interface WatcherAlertWatcher {
-  name: string;
-  regex: string;
-  message?: string;
-  severity?: string;
-}
-
-interface WatcherAlert {
-  file: string;
-  hunks: {
-    hunk: DiffHunkModel;
-    watchers: WatcherAlertWatcher[];
-    matchingLines?: number[];
-  }[];
-}
 
 interface CodeWatcherAlertsModalProps {
   alerts: WatcherAlert[];
@@ -92,28 +73,25 @@ export const CodeWatcherAlertsModal: React.FC<CodeWatcherAlertsModalProps> = ({
     hideModal('codeWatcher');
   }, [onCommit, hideModal]);
 
-  const getHunkCode = (hunk: DiffHunkModel, includeLineNumbers: boolean = true): string => {
-    return hunk.lines
-      .map((line, index) => {
-        const lineNum = includeLineNumbers ? `${hunk.toStartLine + index}: ` : '';
-        return `${lineNum}${line.text}`;
-      })
-      .join('\n');
-  };
-
-  const filteredAlerts = alerts.filter(
-    (alert) =>
-      !filter ||
-      alert.file.toLowerCase().includes(filter.toLowerCase()) ||
-      alert.hunks.some((h) =>
-        h.watchers.some((w) => w.name.toLowerCase().includes(filter.toLowerCase()))
-      )
+  const filteredAlerts = useMemo(() =>
+    alerts.filter(
+      (alert) =>
+        !filter ||
+        alert.file.toLowerCase().includes(filter.toLowerCase()) ||
+        alert.hunks.some((h) =>
+          h.watchers.some((w) => w.name.toLowerCase().includes(filter.toLowerCase()))
+        )
+    ),
+    [alerts, filter],
   );
 
-  const totalWatchers = alerts.reduce(
-    (sum, alert) =>
-      sum + alert.hunks.reduce((hSum, h) => hSum + h.watchers.length, 0),
-    0
+  const totalWatchers = useMemo(() =>
+    alerts.reduce(
+      (sum, alert) =>
+        sum + alert.hunks.reduce((hSum, h) => hSum + h.watchers.length, 0),
+      0
+    ),
+    [alerts],
   );
 
   return (
@@ -175,7 +153,17 @@ export const CodeWatcherAlertsModal: React.FC<CodeWatcherAlertsModalProps> = ({
                               {hunkData.watchers[0].message}
                             </div>
                           )}
-                          <HunkCode>{getHunkCode(hunkData.hunk)}</HunkCode>
+                          <HunkViewWrapper>
+                            <ReadOnlyHunkView
+                              hunk={hunkData.hunk}
+                              filename={alert.file}
+                              highlightedLineNumbers={
+                                hunkData.matchingLines && hunkData.matchingLines.length > 0
+                                  ? new Set(hunkData.matchingLines)
+                                  : undefined
+                              }
+                            />
+                          </HunkViewWrapper>
                         </div>
                       ))}
                     </Accordion.Body>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ActiveOperation, DiffStatsResult } from '@light-git/shared';
+import type { ActiveOperation, DiffStatsResult, WatcherAlert } from '@light-git/shared';
 
 export interface RepoViewState {
   // Diff state per repo
@@ -14,6 +14,9 @@ export interface RepoViewState {
 
   // Pre-fetched diff stats for the entire file selection (stable across pages)
   diffStats: { [repoPath: string]: DiffStatsResult | null };
+
+  // Code watcher alerts for staged changes (computed on backend)
+  watcherAlerts: { [repoPath: string]: WatcherAlert[] };
 
   // Commit message per repo
   commitMessage: { [repoPath: string]: string };
@@ -47,6 +50,8 @@ export interface RepoViewActions {
   setCurrentDiffFiles: (repoPath: string, files: { unstaged: string[]; staged: string[] }) => void;
   getDiffStats: (repoPath: string) => DiffStatsResult | null;
   setDiffStats: (repoPath: string, stats: DiffStatsResult | null) => void;
+  getWatcherAlerts: (repoPath: string) => WatcherAlert[];
+  setWatcherAlerts: (repoPath: string, alerts: WatcherAlert[]) => void;
   resetDiffState: (repoPath: string) => void;
 
   // Commit message actions
@@ -76,6 +81,7 @@ export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, ge
   isLoadingMoreDiffs: {},
   currentDiffFiles: {},
   diffStats: {},
+  watcherAlerts: {},
   commitMessage: {},
   activeOperation: {},
   commandHistory: {},
@@ -122,6 +128,10 @@ export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, ge
   setDiffStats: (repoPath, stats) => {
     set((state) => ({ diffStats: { ...state.diffStats, [repoPath]: stats } }));
   },
+  getWatcherAlerts: (repoPath) => get().watcherAlerts[repoPath] || [],
+  setWatcherAlerts: (repoPath, alerts) => {
+    set((state) => ({ watcherAlerts: { ...state.watcherAlerts, [repoPath]: alerts } }));
+  },
   resetDiffState: (repoPath) => {
     set((state) => ({
       showDiff: { ...state.showDiff, [repoPath]: false },
@@ -132,6 +142,7 @@ export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, ge
       isLoadingMoreDiffs: { ...state.isLoadingMoreDiffs, [repoPath]: false },
       currentDiffFiles: { ...state.currentDiffFiles, [repoPath]: { unstaged: [], staged: [] } },
       diffStats: { ...state.diffStats, [repoPath]: null },
+      watcherAlerts: { ...state.watcherAlerts, [repoPath]: [] },
     }));
   },
 

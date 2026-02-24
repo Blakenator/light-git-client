@@ -20,7 +20,8 @@ import { LayoutCard } from '../../LayoutCard/LayoutCard';
 import { AgeInfo, Icon, GitGraphCanvas } from '../../../common/components';
 import { CardHeaderContent } from '../RepoView.styles';
 import { DiffViewer } from '../../DiffViewer/DiffViewer';
-import { useRepositoryStore, useSettingsStore } from '../../../stores';
+import { useRepositoryStore, useSettingsStore, useUiStore } from '../../../stores';
+import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useDiffActions, useCommitHistoryActions } from '../hooks';
 import { useGitService } from '../../../ipc';
 import { useGraphBlocksWorker } from '../../../utils/useGraphBlocksWorker';
@@ -319,6 +320,18 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
       handleHunkChange,
       handleHunkChangeError,
     } = useDiffActions(repoPath);
+
+    const watcherAlerts = useRepoViewStore(
+      (state) => state.watcherAlerts[repoPath] || [],
+    );
+    const showModal = useUiStore((state) => state.showModal);
+
+    const handleWatcherClick = useCallback(
+      (_file: string, _hunkStartLine: number) => {
+        showModal('codeWatcher');
+      },
+      [showModal],
+    );
 
     const {
       activeBranch,
@@ -827,6 +840,9 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
                 onNavigateToHash={handleClickCommit}
                 onHunkChange={handleHunkChange}
                 onHunkChangeError={handleHunkChangeError}
+                onLoadMore={loadMoreDiffs}
+                watcherAlerts={!commitInfo ? watcherAlerts : undefined}
+                onWatcherClick={!commitInfo ? handleWatcherClick : undefined}
               />
             ) : (
               <div className="text-muted text-center p-3">

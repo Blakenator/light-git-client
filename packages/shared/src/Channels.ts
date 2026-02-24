@@ -70,6 +70,7 @@ export enum SYNC_CHANNELS {
   OpenFileDialog = 'openFileDialog',
   ChangeActiveOperation = 'changeActiveOperation',
   WindowFocused = 'windowFocused',
+  CheckCodeWatchers = 'checkCodeWatchers',
 }
 
 /**

@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { useSettingsStore } from '../../stores';
 import { Icon } from '@light-git/core';
 
-const CardContainer = styled.div<{ $isExpanded?: boolean }>`
+const CardContainer = styled.div<{ $isExpanded?: boolean; $shrinkWrap?: boolean }>`
   background-color: ${({ theme }) => theme.colors.background};
   border-radius: ${({ theme }) => theme.borderRadius};
   box-shadow: ${({ theme }) => theme.shadows.material};
@@ -11,9 +11,10 @@ const CardContainer = styled.div<{ $isExpanded?: boolean }>`
   display: flex;
   flex-direction: column;
   min-height: 0;
-  ${({ $isExpanded }) => $isExpanded
-    ? `flex: 1 1 0;`
-    : `flex: 0 0 auto;`
+  ${({ $isExpanded, $shrinkWrap }) =>
+    $isExpanded && !$shrinkWrap
+      ? `flex: 1 1 0;`
+      : `flex: 0 0 auto;`
   }
 `;
 
@@ -71,6 +72,8 @@ interface LayoutCardProps {
   customBodyClass?: string;
   defaultExpanded?: boolean;
   fillHeight?: boolean; // kept for API compat, no longer used
+  /** When true, the card stays content-sized instead of growing to fill available space */
+  shrinkWrap?: boolean;
   onScroll?: () => void;
   onScrollUp?: () => void;
 }
@@ -83,6 +86,7 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
   headerContent,
   customBodyClass,
   defaultExpanded = true,
+  shrinkWrap = false,
   onScroll,
   onScrollUp,
 }) => {
@@ -95,7 +99,7 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
   const toggleExpand = useCallback((e: React.MouseEvent) => {
     // Don't toggle the card when clicking on buttons, dropdowns, or inputs
     const target = e.target as HTMLElement;
-    if (target.closest('button, a, input, .dropdown-menu, .dropdown-item, .dropdown-toggle, .btn')) {
+    if (target.closest('button, a, input, label, .dropdown-menu, .dropdown-item, .dropdown-toggle, .btn, .form-check, .form-switch')) {
       return;
     }
     setExpandState(expandKey, !isExpanded);
@@ -119,7 +123,7 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
   );
 
   return (
-    <CardContainer $isExpanded={isExpanded}>
+    <CardContainer $isExpanded={isExpanded} $shrinkWrap={shrinkWrap}>
       <CardHeader onClick={toggleExpand}>
         <ExpandIcon expanded={isExpanded}>
           <Icon name="fa-chevron-right" size="sm" />

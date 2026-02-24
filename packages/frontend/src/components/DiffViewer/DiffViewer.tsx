@@ -8,7 +8,11 @@ import React, {
 import styled from 'styled-components';
 import { Alert, Badge, Button, Form, Tooltip } from 'react-bootstrap';
 import { Icon, TooltipTrigger } from '@light-git/core';
+import { getLanguageFromFilename, escapeHtml } from './highlightUtils';
+import { ReadOnlyHunkView } from './ReadOnlyHunkView';
 import hljs from 'highlight.js';
+import { LineState } from '@light-git/shared';
+import type { WatcherAlert } from '@light-git/shared';
 
 const DiffContainer = styled.div`
   font-family: ${({ theme }) => theme.fonts.monospace};
@@ -182,6 +186,22 @@ const Deletions = styled.span`
   color: ${({ theme }) => theme.colors.diffDeleteText};
 `;
 
+const WatcherBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: ${({ theme }) => theme.colors.alertWarningBg || 'rgba(255, 193, 7, 0.15)'};
+  border-left: 3px solid ${({ theme }) => theme.colors.warning || '#ffc107'};
+  color: ${({ theme }) => theme.colors.alertWarningText || theme.colors.text};
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.alertWarningBg ? theme.colors.alertWarningBg + '88' : 'rgba(255, 193, 7, 0.25)'};
+  }
+`;
+
 const HunkContainer = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   position: relative;
@@ -223,54 +243,6 @@ const HunkActions = styled.div<{ $visible?: boolean }>`
   ${HunkContainer}:hover & {
     opacity: 1;
   }
-`;
-
-const DiffLine = styled.div<{ $type: 'add' | 'delete' | 'context' | 'header' }>`
-  display: flex;
-  white-space: pre;
-
-  background-color: ${({ $type, theme }) => {
-    switch ($type) {
-      case 'add':
-        return theme.colors.diffAddBg;
-      case 'delete':
-        return theme.colors.diffDeleteBg;
-      case 'header':
-        return theme.colors.diffHunkHeaderBg;
-      default:
-        return 'transparent';
-    }
-  }};
-`;
-
-const LineNumber = styled.span`
-  width: 50px;
-  padding: 0 0.5rem;
-  text-align: right;
-  color: ${({ theme }) => theme.colors.secondary};
-  user-select: none;
-  border-right: 1px solid ${({ theme }) => theme.colors.border};
-  flex-shrink: 0;
-`;
-
-const LinePrefix = styled.span`
-  user-select: none;
-  flex-shrink: 0;
-`;
-
-const LineContent = styled.span`
-  flex: 1;
-  padding: 0 0.5rem;
-
-  .hljs {
-    background: none !important;
-    padding: 0 !important;
-  }
-`;
-
-const HunkLines = styled.div`
-  min-width: 100%;
-  width: fit-content;
 `;
 
 const HunkEditorContainer = styled.div`
@@ -391,17 +363,11 @@ const FileCountBadge = styled.span`
   font-weight: 500;
 `;
 
-export enum LineState {
-  ADDED = 'added',
-  REMOVED = 'removed',
-  UNCHANGED = 'unchanged',
-}
-
 export interface DiffLineModel {
   text: string;
   state: LineState;
-  oldLineNumber?: number;
-  newLineNumber?: number;
+  fromLineNumber: number;
+  toLineNumber: number;
 }
 
 export interface DiffHunk {
@@ -467,158 +433,13 @@ interface DiffViewerProps {
     newContent: string,
   ) => Promise<void>;
   onHunkChangeError?: (error: Error) => void;
+  /** Callback to load the next page of diffs */
+  onLoadMore?: () => void;
+  watcherAlerts?: WatcherAlert[];
+  onWatcherClick?: (file: string, hunkStartLine: number) => void;
 }
 
 const MAX_LINES_PER_FILE = 500;
-
-// Helper to detect programming language from filename for syntax highlighting
-const getLanguageFromFilename = (filename: string): string => {
-  const ext = filename.split('.').pop()?.toLowerCase() || '';
-  const langMap: { [key: string]: string } = {
-    ts: 'typescript',
-    tsx: 'typescript',
-    js: 'javascript',
-    jsx: 'javascript',
-    py: 'python',
-    rb: 'ruby',
-    java: 'java',
-    cs: 'csharp',
-    cpp: 'cpp',
-    c: 'c',
-    h: 'c',
-    hpp: 'cpp',
-    go: 'go',
-    rs: 'rust',
-    php: 'php',
-    swift: 'swift',
-    kt: 'kotlin',
-    scala: 'scala',
-    html: 'html',
-    css: 'css',
-    scss: 'scss',
-    less: 'less',
-    json: 'json',
-    yaml: 'yaml',
-    yml: 'yaml',
-    xml: 'xml',
-    md: 'markdown',
-    sql: 'sql',
-    sh: 'bash',
-    bash: 'bash',
-    zsh: 'bash',
-    dockerfile: 'dockerfile',
-  };
-  return langMap[ext] || 'plaintext';
-};
-
-// HTML-escape plain text
-const escapeHtml = (text: string): string =>
-  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-/**
- * Split highlighted HTML into individual lines, properly closing and
- * reopening <span> tags at line boundaries so every line is valid HTML
- * with the correct syntax-highlighting context.
- */
-const splitHighlightedHtml = (html: string): string[] => {
-  const lines: string[] = [];
-  let current = '';
-  const openTags: string[] = []; // stack of full opening tags, e.g. '<span class="hljs-comment">'
-  let i = 0;
-
-  while (i < html.length) {
-    if (html[i] === '\n') {
-      // Close all open tags for this line
-      for (let t = openTags.length - 1; t >= 0; t--) current += '</span>';
-      lines.push(current);
-      // Start new line, reopening all tags
-      current = openTags.join('');
-      i++;
-    } else if (html[i] === '<') {
-      const closeMatch = html.startsWith('</span>', i);
-      if (closeMatch) {
-        openTags.pop();
-        current += '</span>';
-        i += 7; // length of '</span>'
-      } else {
-        // Opening tag – find its end
-        const end = html.indexOf('>', i);
-        if (end === -1) {
-          current += html.slice(i);
-          i = html.length;
-        } else {
-          const tag = html.slice(i, end + 1);
-          openTags.push(tag);
-          current += tag;
-          i = end + 1;
-        }
-      }
-    } else {
-      current += html[i];
-      i++;
-    }
-  }
-  // Push the last line
-  for (let t = openTags.length - 1; t >= 0; t--) current += '</span>';
-  lines.push(current);
-
-  return lines;
-};
-
-/**
- * Fast djb2 hash – produces a compact numeric key from a string.
- * Used to avoid storing full hunk text as Map keys.
- */
-const djb2Hash = (str: string): number => {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
-  }
-  return hash;
-};
-
-/** Module-level cache for highlighted HTML keyed on hash(text+language). */
-const _highlightCache = new Map<string, string[]>();
-const HIGHLIGHT_CACHE_MAX_SIZE = 500;
-
-/**
- * Highlight an array of code lines as a single block for accurate
- * multi-line syntax (comments, strings, template literals, etc.),
- * then split the result back into per-line HTML strings.
- *
- * Results are cached by a djb2 hash of the content + language so
- * repeated renders with the same hunk content skip highlight.js entirely.
- */
-const highlightLines = (texts: string[], language: string): string[] => {
-  if (texts.length === 0) return [];
-
-  const block = texts.join('\n');
-  // Use hash + length as cache key to make collisions virtually impossible
-  const cacheKey = `${djb2Hash(block + language)}:${block.length}`;
-
-  const cached = _highlightCache.get(cacheKey);
-  if (cached) return cached;
-
-  let result: string[];
-  try {
-    const highlighted = hljs.highlight(block, {
-      language,
-      ignoreIllegals: true,
-    }).value;
-    result = splitHighlightedHtml(highlighted);
-  } catch {
-    result = texts.map(escapeHtml);
-  }
-
-  // Evict oldest entries when the cache grows too large
-  if (_highlightCache.size >= HIGHLIGHT_CACHE_MAX_SIZE) {
-    const firstKey = _highlightCache.keys().next().value;
-    if (firstKey !== undefined) _highlightCache.delete(firstKey);
-  }
-  _highlightCache.set(cacheKey, result);
-
-  return result;
-};
 
 // Parse raw @@ hunk header into a readable description
 const parseHunkHeader = (
@@ -660,6 +481,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
     onNavigateToHash,
     onHunkChange,
     onHunkChangeError,
+    onLoadMore,
+    watcherAlerts,
+    onWatcherClick,
   }) => {
     const [expandedFiles, setExpandedFiles] = useState<{
       [key: string]: boolean;
@@ -698,6 +522,26 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
       observer.observe(toolbar);
       return () => observer.disconnect();
     }, []);
+
+    // When the content is too short to trigger scroll-based pagination,
+    // automatically load the next page.
+    const sentinelRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (!hasMore || isLoadingMore || !onLoadMore) return;
+      const sentinel = sentinelRef.current;
+      if (!sentinel) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting) {
+            onLoadMore();
+          }
+        },
+        { threshold: 0 },
+      );
+      observer.observe(sentinel);
+      return () => observer.disconnect();
+    }, [hasMore, isLoadingMore, onLoadMore, diffHeaders.length]);
 
     // Debounce editor syntax highlighting so hljs doesn't run on every keystroke
     useEffect(() => {
@@ -968,9 +812,12 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
       (e: React.KeyboardEvent) => {
         if (e.key === 'Escape') {
           cancelEdit();
+        } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          saveEdit();
         }
       },
-      [cancelEdit],
+      [cancelEdit, saveEdit],
     );
 
     const copyFilename = useCallback(
@@ -980,19 +827,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
       },
       [],
     );
-
-    const getLineType = (
-      state: LineState,
-    ): 'add' | 'delete' | 'context' | 'header' => {
-      switch (state) {
-        case LineState.ADDED:
-          return 'add';
-        case LineState.REMOVED:
-          return 'delete';
-        default:
-          return 'context';
-      }
-    };
 
     const renderFileNameSplit = (filename: string) => {
       const parts = filename.split('/');
@@ -1077,6 +911,20 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
       );
     };
 
+    const watcherLookup = useMemo(() => {
+      const map = new Map<string, WatcherAlert['hunks']>();
+      if (!watcherAlerts) return map;
+      for (const alert of watcherAlerts) {
+        for (const hunkEntry of alert.hunks) {
+          const key = `${alert.file}:${hunkEntry.hunk.toStartLine}`;
+          const existing = map.get(key) || [];
+          existing.push(hunkEntry);
+          map.set(key, existing);
+        }
+      }
+      return map;
+    }, [watcherAlerts]);
+
     const renderHunks = (header: DiffHeaderModel) => {
       const showAll = showAllHunks[header.toFilename];
       let totalLines = 0;
@@ -1102,8 +950,21 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
               editingHunk?.filename === header.toFilename &&
               editingHunk?.hunkIndex === hunkIndex;
 
+            const hunkWatcherKey = `${header.toFilename}:${hunk.toStartLine}`;
+            const hunkWatcherEntries = watcherLookup.get(hunkWatcherKey);
+
             return (
               <HunkContainer key={hunkIndex}>
+                {hunkWatcherEntries && hunkWatcherEntries.length > 0 && (
+                  <WatcherBanner
+                    onClick={() => onWatcherClick?.(header.toFilename, hunk.toStartLine)}
+                  >
+                    <Icon name="fa-exclamation-triangle" />
+                    <span>
+                      Code watcher warnings ({hunkWatcherEntries.reduce((sum, e) => sum + e.watchers.length, 0)})
+                    </span>
+                  </WatcherBanner>
+                )}
                 <HunkHeader>
                   {(() => {
                     const parsed = parseHunkHeader(hunk.header);
@@ -1161,7 +1022,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
                               <Tooltip
                                 id={`tooltip-save-edit-${header.toFilename}-${hunkIndex}`}
                               >
-                                {isSaving ? 'Saving...' : 'Save changes'}
+                                {isSaving ? 'Saving...' : 'Save changes (⌘/Ctrl+Enter)'}
                               </Tooltip>
                             }
                           >
@@ -1252,48 +1113,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
                     </HunkEditorContainer>
                   </>
                 ) : (
-                  <HunkLines>
-                    {(() => {
-                      const lang = getLanguageFromFilename(header.toFilename);
-                      const highlightedHtml = highlightLines(
-                        hunk.lines.map((l) => l.text),
-                        lang,
-                      );
-                      return hunk.lines.map((line, lineIndex) => {
-                        const prefix =
-                          line.state === LineState.ADDED
-                            ? '+'
-                            : line.state === LineState.REMOVED
-                              ? '-'
-                              : ' ';
-                        return (
-                          <DiffLine
-                            key={lineIndex}
-                            $type={getLineType(line.state)}
-                          >
-                            <LineNumber>
-                              {line.state !== LineState.ADDED
-                                ? line.oldLineNumber
-                                : ''}
-                            </LineNumber>
-                            <LineNumber>
-                              {line.state !== LineState.REMOVED
-                                ? line.newLineNumber
-                                : ''}
-                            </LineNumber>
-                            <LineContent>
-                              <LinePrefix>{prefix}</LinePrefix>
-                              <span
-                                dangerouslySetInnerHTML={{
-                                  __html: highlightedHtml[lineIndex] || '',
-                                }}
-                              />
-                            </LineContent>
-                          </DiffLine>
-                        );
-                      });
-                    })()}
-                  </HunkLines>
+                  <ReadOnlyHunkView hunk={hunk} filename={header.toFilename} />
                 )}
               </HunkContainer>
             );
@@ -1483,8 +1303,18 @@ export const DiffViewer: React.FC<DiffViewerProps> = React.memo(
         )}
 
         {hasMore && (
-          <LoadMoreSentinel>
-            {isLoadingMore ? 'Loading more files...' : 'Scroll for more...'}
+          <LoadMoreSentinel ref={sentinelRef}>
+            {isLoadingMore ? (
+              'Loading more files...'
+            ) : (
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={onLoadMore}
+              >
+                Load More Files
+              </Button>
+            )}
           </LoadMoreSentinel>
         )}
       </DiffContainer>

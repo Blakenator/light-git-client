@@ -44,11 +44,11 @@ const WatcherEditForm = styled.div`
 
 interface CodeWatcherModel {
   name: string;
-  pattern: string;
-  flags?: string;
-  filePattern?: string;
+  regex: string;
+  regexFlags?: string;
+  activeFilter?: string;
   message?: string;
-  disabled?: boolean;
+  enabled?: boolean;
   source?: 'user' | 'file';
 }
 
@@ -63,9 +63,9 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newPattern, setNewPattern] = useState('');
+  const [newRegex, setNewRegex] = useState('');
   const [newFlags, setNewFlags] = useState('gi');
-  const [newFilePattern, setNewFilePattern] = useState('');
+  const [newActiveFilter, setNewActiveFilter] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [expandedWatcher, setExpandedWatcher] = useState<number | null>(null);
 
@@ -83,14 +83,15 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
   }, [settings.codeWatchers, settings.loadedCodeWatchers]);
 
   const handleAddWatcher = useCallback(() => {
-    if (!newName.trim() || !newPattern.trim()) return;
+    if (!newName.trim() || !newRegex.trim()) return;
 
     const newWatcher: CodeWatcherModel = {
       name: newName.trim(),
-      pattern: newPattern.trim(),
-      flags: newFlags || 'gi',
-      filePattern: newFilePattern.trim() || undefined,
+      regex: newRegex.trim(),
+      regexFlags: newFlags || 'gi',
+      activeFilter: newActiveFilter.trim() || undefined,
       message: newMessage.trim() || undefined,
+      enabled: true,
     };
 
     const currentWatchers = settings.codeWatchers || [];
@@ -98,12 +99,12 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
 
     // Reset form
     setNewName('');
-    setNewPattern('');
+    setNewRegex('');
     setNewFlags('gi');
-    setNewFilePattern('');
+    setNewActiveFilter('');
     setNewMessage('');
     setShowAddForm(false);
-  }, [newName, newPattern, newFlags, newFilePattern, newMessage, settings.codeWatchers, onChange]);
+  }, [newName, newRegex, newFlags, newActiveFilter, newMessage, settings.codeWatchers, onChange]);
 
   const handleUpdateWatcher = useCallback(
     (index: number, updates: Partial<CodeWatcherModel>) => {
@@ -112,7 +113,7 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
         // Move from loaded to user watchers with updates
         const loadedWatchers = settings.loadedCodeWatchers || [];
         const loadedIndex = loadedWatchers.findIndex((w: any) => 
-          w.name === watcher.name && w.pattern === watcher.pattern
+          w.name === watcher.name && w.regex === watcher.regex
         );
         if (loadedIndex >= 0) {
           const newLoaded = loadedWatchers.filter((_: any, i: number) => i !== loadedIndex);
@@ -123,7 +124,7 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
       } else {
         // Update user watcher
         const userIndex = (settings.codeWatchers || []).findIndex((w: any) =>
-          w.name === watcher.name && w.pattern === watcher.pattern
+          w.name === watcher.name && w.regex === watcher.regex
         );
         if (userIndex >= 0) {
           const currentWatchers = [...(settings.codeWatchers || [])];
@@ -141,7 +142,7 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
       if (watcher.source === 'file') {
         const loadedWatchers = settings.loadedCodeWatchers || [];
         const loadedIndex = loadedWatchers.findIndex((w: any) => 
-          w.name === watcher.name && w.pattern === watcher.pattern
+          w.name === watcher.name && w.regex === watcher.regex
         );
         if (loadedIndex >= 0) {
           const newLoaded = loadedWatchers.filter((_: any, i: number) => i !== loadedIndex);
@@ -149,7 +150,7 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
         }
       } else {
         const userIndex = (settings.codeWatchers || []).findIndex((w: any) =>
-          w.name === watcher.name && w.pattern === watcher.pattern
+          w.name === watcher.name && w.regex === watcher.regex
         );
         if (userIndex >= 0) {
           const currentWatchers = (settings.codeWatchers || []).filter((_: any, i: number) => i !== userIndex);
@@ -165,11 +166,11 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
       const watcher = allWatchers[index];
       const copy: CodeWatcherModel = {
         name: (watcher.name || '') + ' (copy)',
-        pattern: watcher.pattern,
-        flags: watcher.flags,
-        filePattern: watcher.filePattern,
+        regex: watcher.regex,
+        regexFlags: watcher.regexFlags,
+        activeFilter: watcher.activeFilter,
         message: watcher.message,
-        disabled: watcher.disabled,
+        enabled: watcher.enabled,
       };
       const currentWatchers = settings.codeWatchers || [];
       onChange('codeWatchers', [...currentWatchers, copy]);
@@ -279,14 +280,14 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
                   <WatcherHeader>
                     <Form.Check
                       type="switch"
-                      checked={!watcher.disabled}
+                      checked={watcher.enabled !== false}
                       onChange={(e) => {
                         e.stopPropagation();
-                        handleUpdateWatcher(index, { disabled: !e.target.checked });
+                        handleUpdateWatcher(index, { enabled: e.target.checked });
                       }}
                       onClick={(e) => e.stopPropagation()}
                     />
-                    <WatcherName className={watcher.disabled ? 'text-muted' : ''}>
+                    <WatcherName className={watcher.enabled === false ? 'text-muted' : ''}>
                       {watcher.name || 'Unnamed Watcher'}
                     </WatcherName>
                     {watcher.source === 'file' && (
@@ -298,7 +299,7 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
                       </TooltipTrigger>
                     )}
                     <WatcherPattern>
-                      /{(watcher.pattern || '').length > 20 ? (watcher.pattern || '').substring(0, 20) + '...' : watcher.pattern || ''}/
+                      /{(watcher.regex || '').length > 20 ? (watcher.regex || '').substring(0, 20) + '...' : watcher.regex || ''}/
                     </WatcherPattern>
                   </WatcherHeader>
                 </Accordion.Header>
@@ -316,25 +317,32 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
                       <InputGroup>
                         <InputGroup.Text>/</InputGroup.Text>
                         <Form.Control
-                          value={watcher.pattern || ''}
-                          onChange={(e) => handleUpdateWatcher(index, { pattern: e.target.value })}
-                          isInvalid={!isPatternValid(watcher.pattern || '')}
+                          value={watcher.regex || ''}
+                          onChange={(e) => handleUpdateWatcher(index, { regex: e.target.value })}
+                          isInvalid={!isPatternValid(watcher.regex || '')}
                         />
                         <InputGroup.Text>/</InputGroup.Text>
                         <Form.Control
-                          value={watcher.flags || 'gi'}
-                          onChange={(e) => handleUpdateWatcher(index, { flags: e.target.value })}
+                          value={watcher.regexFlags || 'gi'}
+                          onChange={(e) => handleUpdateWatcher(index, { regexFlags: e.target.value })}
                           style={{ maxWidth: '60px' }}
                         />
                       </InputGroup>
+                      {!isPatternValid(watcher.regex || '') && (
+                        <Form.Text className="text-danger">Invalid regular expression</Form.Text>
+                      )}
                     </Form.Group>
                     <Form.Group>
-                      <Form.Label>File Pattern (optional)</Form.Label>
+                      <Form.Label>Filename Filter (RegEx, optional)</Form.Label>
                       <Form.Control
-                        placeholder="e.g., *.ts,*.tsx"
-                        value={watcher.filePattern || ''}
-                        onChange={(e) => handleUpdateWatcher(index, { filePattern: e.target.value })}
+                        placeholder="e.g., \.test\.ts$ or \.(ts|tsx)$"
+                        value={watcher.activeFilter || ''}
+                        onChange={(e) => handleUpdateWatcher(index, { activeFilter: e.target.value })}
+                        isInvalid={!isPatternValid(watcher.activeFilter || '')}
                       />
+                      {!isPatternValid(watcher.activeFilter || '') && (
+                        <Form.Text className="text-danger">Invalid regular expression &mdash; this field uses regex, not glob patterns</Form.Text>
+                      )}
                     </Form.Group>
                     <Form.Group>
                       <Form.Label>Warning Message (optional)</Form.Label>
@@ -390,9 +398,9 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
                     <InputGroup.Text>/</InputGroup.Text>
                     <Form.Control
                       placeholder="e.g., console\\.log"
-                      value={newPattern}
-                      onChange={(e) => setNewPattern(e.target.value)}
-                      isInvalid={newPattern && !isPatternValid(newPattern)}
+                      value={newRegex}
+                      onChange={(e) => setNewRegex(e.target.value)}
+                      isInvalid={!!newRegex && !isPatternValid(newRegex)}
                     />
                     <InputGroup.Text>/</InputGroup.Text>
                     <Form.Control
@@ -402,17 +410,21 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
                       style={{ maxWidth: '60px' }}
                     />
                   </InputGroup>
-                  {newPattern && !isPatternValid(newPattern) && (
+                  {newRegex && !isPatternValid(newRegex) && (
                     <Form.Text className="text-danger">Invalid regular expression</Form.Text>
                   )}
                 </Form.Group>
                 <Form.Group>
-                  <Form.Label>File Pattern (optional)</Form.Label>
+                  <Form.Label>Filename Filter (RegEx, optional)</Form.Label>
                   <Form.Control
-                    placeholder="e.g., *.ts,*.tsx"
-                    value={newFilePattern}
-                    onChange={(e) => setNewFilePattern(e.target.value)}
+                    placeholder="e.g., \.test\.ts$ or \.(ts|tsx)$"
+                    value={newActiveFilter}
+                    onChange={(e) => setNewActiveFilter(e.target.value)}
+                    isInvalid={!!newActiveFilter && !isPatternValid(newActiveFilter)}
                   />
+                  {newActiveFilter && !isPatternValid(newActiveFilter) && (
+                    <Form.Text className="text-danger">Invalid regular expression &mdash; this field uses regex, not glob patterns</Form.Text>
+                  )}
                 </Form.Group>
                 <Form.Group>
                   <Form.Label>Warning Message (optional)</Form.Label>
@@ -431,7 +443,11 @@ export const CodeWatcherSettings: React.FC<CodeWatcherSettingsProps> = ({
                   <Button
                     variant="primary"
                     onClick={handleAddWatcher}
-                    disabled={!newName.trim() || !newPattern.trim() || !isPatternValid(newPattern)}
+                    disabled={
+                      !newName.trim() || !newRegex.trim()
+                      || !isPatternValid(newRegex)
+                      || !isPatternValid(newActiveFilter)
+                    }
                   >
                     Add Watcher
                   </Button>

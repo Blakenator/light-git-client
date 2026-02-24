@@ -182,6 +182,25 @@ export function useGitService(repoPath: string) {
     [runJob, createJobConfig],
   );
 
+  const checkCodeWatchers = useCallback(
+    (stagedFiles: string[]) => {
+      const rp = repoPathRef.current;
+      return runJob(
+        createJobConfig(
+          SYNC_CHANNELS.CheckCodeWatchers,
+          () =>
+            invokeSync(SYNC_CHANNELS.CheckCodeWatchers, {
+              repoPath: rp,
+              stagedFiles,
+            }),
+          [],
+          { reorderable: true },
+        ),
+      );
+    },
+    [runJob, createJobConfig],
+  );
+
   const getStashDiff = useCallback(
     (index: number) => {
       const rp = repoPathRef.current;
@@ -808,6 +827,7 @@ export function useGitService(repoPath: string) {
       getCommitHistory,
       getFileDiff,
       getDiffStats,
+      checkCodeWatchers,
       getStashDiff,
       getCommitDiff,
       getCommandHistory,
@@ -863,6 +883,7 @@ export function useGitService(repoPath: string) {
       getCommitHistory,
       getFileDiff,
       getDiffStats,
+      checkCodeWatchers,
       getStashDiff,
       getCommitDiff,
       getCommandHistory,

@@ -24,6 +24,8 @@ import { DiffHunkModel } from '@light-git/shared/src/git/diff.hunk.model';
 import { DiffLineModel, LineState } from '@light-git/shared/src/git/diff.line.model';
 import { PaginatedDiffResponse } from '@light-git/shared/src/git/paginated-diff.model';
 import type { FileDiffStat, DiffStatsResult } from '@light-git/shared/src/git/diff-stat.model';
+import { CodeWatcherModel } from '@light-git/shared/src/code-watcher.model';
+import { analyzeWatchersOnDiffs, type WatcherAlert } from '@light-git/shared/src/code-watcher-analysis';
 const serializeError = require('serialize-error').default || require('serialize-error');
 import { SubmoduleModel } from '@light-git/shared/src/git/submodule.model';
 import { app } from 'electron';
@@ -805,6 +807,29 @@ export class GitClient {
         );
       },
     );
+  }
+
+  async checkCodeWatchers(
+    stagedFiles: string[],
+    watchers: CodeWatcherModel[],
+    includeUnchanged: boolean,
+  ): Promise<WatcherAlert[]> {
+    if (stagedFiles.length === 0 || watchers.filter((w) => w.enabled && w.regex).length === 0) {
+      return [];
+    }
+
+    const allAlerts: WatcherAlert[] = [];
+    let cursor: string | null = null;
+
+    do {
+      const result = await this.getDiffPaginated([], stagedFiles, cursor);
+      const page = result.content;
+      const pageAlerts = analyzeWatchersOnDiffs(page.items, watchers, includeUnchanged);
+      allAlerts.push(...pageAlerts);
+      cursor = page.nextCursor;
+    } while (cursor);
+
+    return allAlerts;
   }
 
   commit(message: string, push: boolean, branch: BranchModel, amend: boolean) {

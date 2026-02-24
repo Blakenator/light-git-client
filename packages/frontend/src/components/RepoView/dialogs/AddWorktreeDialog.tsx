@@ -112,7 +112,7 @@ export const AddWorktreeDialog: React.FC<AddWorktreeDialogProps> = ({
 
         <Form.Group className="mb-3">
           <Form.Check
-            type="checkbox"
+            type="switch"
             label="Create new branch"
             checked={createNewBranch}
             onChange={(e) => setCreateNewBranch(e.target.checked)}

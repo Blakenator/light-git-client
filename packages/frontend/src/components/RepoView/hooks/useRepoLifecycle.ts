@@ -9,7 +9,7 @@ import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
 import { useBackendListener } from '../../../ipc/useBackendListener';
 import { SYNC_CHANNELS } from '@light-git/shared';
-import type { DiffStatsResult } from '@light-git/shared';
+import type { DiffStatsResult, WatcherAlert } from '@light-git/shared';
 
 /**
  * Manages repo lifecycle: initial loading, auto-refresh on focus, and
@@ -54,12 +54,16 @@ export function useRepoLifecycle(
         updateRepoCache(repoPath, update);
       }
 
-      // Fetch diff stats for the initial file lists
-      if (data.changes) {
-        const allStaged = (data.changes.stagedChanges || [])
+      // Fetch diff stats and code watcher alerts for the file lists.
+      // Use data.changes if available, otherwise fall back to the repo cache
+      // (data.changes may be undefined when the job was superseded by deduplication).
+      const changes = data.changes
+        ?? useRepositoryStore.getState().repoCache[repoPath]?.changes;
+      if (changes) {
+        const allStaged = (changes.stagedChanges || [])
           .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
           .filter(Boolean);
-        const allUnstaged = (data.changes.unstagedChanges || [])
+        const allUnstaged = (changes.unstagedChanges || [])
           .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
           .filter(Boolean);
         if (allStaged.length > 0 || allUnstaged.length > 0) {
@@ -68,11 +72,25 @@ export function useRepoLifecycle(
             .then((stats: DiffStatsResult) => {
               useRepoViewStore.getState().setDiffStats(repoPath, stats);
             })
-            .catch(() => {
-              // Non-critical
-            });
+            .catch(() => {});
         } else {
           useRepoViewStore.getState().setDiffStats(repoPath, null);
+        }
+
+        if (allStaged.length > 0) {
+          gitService
+            .checkCodeWatchers(allStaged)
+            .then((alerts: WatcherAlert[]) => {
+              useRepoViewStore.getState().setWatcherAlerts(
+                repoPath,
+                Array.isArray(alerts) ? alerts : [],
+              );
+            })
+            .catch((err) => {
+              console.error('Code watcher check failed:', err);
+            });
+        } else {
+          useRepoViewStore.getState().setWatcherAlerts(repoPath, []);
         }
       }
     } catch (error) {
@@ -152,27 +170,45 @@ export function useRepoLifecycle(
           gitService
             .getFileChanges()
             .then((result: any) => {
-              if (result === undefined) return null;
-              // Also refresh diff stats for the updated file lists
-              const allStaged = (result.stagedChanges || [])
-                .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
-                .filter(Boolean);
-              const allUnstaged = (result.unstagedChanges || [])
-                .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
-                .filter(Boolean);
-              if (allStaged.length > 0 || allUnstaged.length > 0) {
-                gitService
-                  .getDiffStats(allUnstaged, allStaged)
-                  .then((stats: DiffStatsResult) => {
-                    useRepoViewStore.getState().setDiffStats(repoPath, stats);
-                  })
-                  .catch(() => {
-                    // Non-critical: stats are a nice-to-have
-                  });
-              } else {
-                useRepoViewStore.getState().setDiffStats(repoPath, null);
+              // result may be undefined when the job was superseded.
+              // Fall back to repo cache for diff stats & watcher analysis.
+              const changes = result
+                ?? useRepositoryStore.getState().repoCache[repoPath]?.changes;
+              if (changes) {
+                const allStaged = (changes.stagedChanges || [])
+                  .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
+                  .filter(Boolean);
+                const allUnstaged = (changes.unstagedChanges || [])
+                  .map((c: any) => (c.path || c.file || '').replace(/.*?->\s*/, ''))
+                  .filter(Boolean);
+                if (allStaged.length > 0 || allUnstaged.length > 0) {
+                  gitService
+                    .getDiffStats(allUnstaged, allStaged)
+                    .then((stats: DiffStatsResult) => {
+                      useRepoViewStore.getState().setDiffStats(repoPath, stats);
+                    })
+                    .catch(() => {});
+                } else {
+                  useRepoViewStore.getState().setDiffStats(repoPath, null);
+                }
+
+                if (allStaged.length > 0) {
+                  gitService
+                    .checkCodeWatchers(allStaged)
+                    .then((alerts: WatcherAlert[]) => {
+                      useRepoViewStore.getState().setWatcherAlerts(
+                        repoPath,
+                        Array.isArray(alerts) ? alerts : [],
+                      );
+                    })
+                    .catch((err) => {
+                      console.error('Code watcher check failed:', err);
+                    });
+                } else {
+                  useRepoViewStore.getState().setWatcherAlerts(repoPath, []);
+                }
               }
-              return { changes: result };
+              return result !== undefined ? { changes: result } : null;
             })
             .catch((err: any) => {
               console.error('Failed to refresh file changes:', err);

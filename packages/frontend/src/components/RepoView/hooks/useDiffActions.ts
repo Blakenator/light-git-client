@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useRepositoryStore, useUiStore, useSettingsStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
+import { LineState } from '@light-git/shared';
 
 /**
  * Normalize diff data from backend format to frontend format.
- * Pure function, no hooks needed.
+ * Uses the shared LineState enum and shared field names throughout.
  */
 export function normalizeDiff(diffHeaders: any[]): any[] {
   if (!diffHeaders || !Array.isArray(diffHeaders)) return [];
@@ -18,18 +19,18 @@ export function normalizeDiff(diffHeaders: any[]): any[] {
       fromNumLines: hunk.fromNumLines || 0,
       toNumLines: hunk.toNumLines || 0,
       lines: (hunk.lines || []).map((line: any) => {
-        let state = 'unchanged';
-        if (line.state === 0 || line.state === 'ADDED' || line.state === 'added') {
-          state = 'added';
-        } else if (line.state === 1 || line.state === 'REMOVED' || line.state === 'removed') {
-          state = 'removed';
+        let state: LineState = LineState.SAME;
+        if (line.state === LineState.ADDED || line.state === 'ADDED' || line.state === 'added') {
+          state = LineState.ADDED;
+        } else if (line.state === LineState.REMOVED || line.state === 'REMOVED' || line.state === 'removed') {
+          state = LineState.REMOVED;
         }
 
         return {
           text: line.text || '',
           state,
-          oldLineNumber: line.fromLineNumber ?? line.oldLineNumber,
-          newLineNumber: line.toLineNumber ?? line.newLineNumber,
+          fromLineNumber: line.fromLineNumber ?? line.oldLineNumber,
+          toLineNumber: line.toLineNumber ?? line.newLineNumber,
         };
       }),
     }));
@@ -40,8 +41,8 @@ export function normalizeDiff(diffHeaders: any[]): any[] {
     if (additions === 0 && deletions === 0 && normalizedHunks.length > 0) {
       normalizedHunks.forEach((hunk: any) => {
         (hunk.lines || []).forEach((line: any) => {
-          if (line.state === 'added') additions++;
-          else if (line.state === 'removed') deletions++;
+          if (line.state === LineState.ADDED) additions++;
+          else if (line.state === LineState.REMOVED) deletions++;
         });
       });
     }

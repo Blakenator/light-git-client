@@ -5,6 +5,7 @@ export * from './api-types';
 // Models
 export * from './SettingsModel';
 export * from './code-watcher.model';
+export * from './code-watcher-analysis';
 export * from './notification.model';
 export * from './PreCommitStatus.model';
 
