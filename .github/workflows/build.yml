@@ -5,11 +5,12 @@ on:
     branches:
       - 'master'
       - 'testing/build'
+    tags:
+      - 'v*'
 
 jobs:
   release:
     runs-on: ${{ matrix.os }}
-    environment: signing
 
     strategy:
       matrix:
@@ -17,27 +18,60 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v3
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - name: Build/release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
-          github_token: ${{ secrets.github_token }}
+      - name: Install dependencies
+        run: pnpm install
 
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
-          release: true
-#          mac_certs: ${{ secrets.certs }}
-#          windows_certs: ${{ secrets.certs }}
-#          linux_certs: ${{ secrets.certs }}
-#          mac_certs_password: ${{ secrets.certs_password }}
-#          windows_certs_password: ${{ secrets.certs_password }}
-#          linux_certs_password: ${{ secrets.certs_password }}
+      # ──────────────────────────────────────────────────────
+      # Code Signing (optional — uncomment when certs are set up)
+      #
+      # macOS: Requires Apple Developer Program ($99/yr).
+      #   Set these repo secrets:
+      #     MAC_CERTS            — Base64-encoded .p12 certificate
+      #     MAC_CERTS_PASSWORD   — Password for the .p12 file
+      #     APPLE_ID             — Apple ID email
+      #     APPLE_ID_PASSWORD    — App-specific password
+      #     APPLE_TEAM_ID        — Apple Developer Team ID
+      #
+      # Windows: Free for open source via SignPath.org.
+      #   Set these repo secrets:
+      #     WIN_CSC_LINK         — Base64-encoded .pfx certificate
+      #     WIN_CSC_KEY_PASSWORD — Password for the .pfx file
+      # ──────────────────────────────────────────────────────
+
+      - name: Build, Package & Release (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: pnpm run release:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build, Package & Release (Windows)
+        if: matrix.os == 'windows-latest'
+        run: pnpm run release:windows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Uncomment when Windows code signing is configured:
+          # WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          # WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Build, Package & Release (macOS)
+        if: matrix.os == 'macos-latest'
+        run: pnpm run release:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Uncomment when macOS code signing is configured:
+          # CSC_LINK: ${{ secrets.MAC_CERTS }}
+          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}

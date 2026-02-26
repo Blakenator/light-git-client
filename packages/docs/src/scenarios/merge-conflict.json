@@ -1,0 +1,152 @@
+{
+  "loadSettings": {
+    "darkMode": true,
+    "rebasePull": false,
+    "openRepos": ["/mock/repo/light-git-client"],
+    "tabNames": ["light-git-client"],
+    "activeTab": 0,
+    "gitPath": "git",
+    "bashPath": "bash",
+    "showTrackingPath": false,
+    "commitMessageAutocomplete": false,
+    "diffIgnoreWhitespace": false,
+    "airplaneMode": false,
+    "mergetool": "sourcetree",
+    "expandStates": {},
+    "commandTimeoutSeconds": 10,
+    "codeWatchers": [],
+    "loadedCodeWatchers": [],
+    "codeWatcherPaths": [],
+    "includeUnchangedInWatcherAnalysis": true,
+    "username": "Blake Stacks",
+    "email": "blake@blakestacks.com",
+    "allowPrerelease": false,
+    "splitFilenameDisplay": false,
+    "commitAndPush": false,
+    "branchNamePrefix": "",
+    "configShortcuts": [],
+    "sectionLayouts": {}
+  },
+  "loadRepo": null,
+  "getVersion": "0.13.0",
+  "checkGitBashVersions": { "bash": true, "git": true },
+  "isUpdateDownloaded": { "downloaded": false, "version": "" },
+  "getFileChanges": {
+    "description": "",
+    "stagedChanges": [
+      { "change": "M", "file": "src/stores/settingsStore.ts", "staged": true }
+    ],
+    "unstagedChanges": [
+      { "change": "U", "file": "src/components/Header.tsx", "staged": false },
+      { "change": "U", "file": "src/utils/helpers.ts", "staged": false },
+      { "change": "M", "file": "src/App.tsx", "staged": false }
+    ],
+    "activeOperations": {
+      "MERGE": true,
+      "REBASE": false,
+      "CHERRY_PICK": false,
+      "REVERT": false
+    }
+  },
+  "getLocalBranches": [
+    {
+      "name": "main",
+      "isCurrentBranch": true,
+      "isRemote": false,
+      "currentHash": "a1b2c3d4e5f6",
+      "trackingPath": "origin/main",
+      "isTrackingPathGone": false,
+      "lastCommitText": "feat: add screenshot documentation tooling",
+      "lastCommitDate": "2026-02-10T14:30:00Z",
+      "ahead": 2,
+      "behind": 0
+    },
+    {
+      "name": "feature/user-auth",
+      "isCurrentBranch": false,
+      "isRemote": false,
+      "currentHash": "b2c3d4e5f6a7",
+      "trackingPath": "origin/feature/user-auth",
+      "isTrackingPathGone": false,
+      "lastCommitText": "wip: add login form component",
+      "lastCommitDate": "2026-02-09T10:15:00Z",
+      "ahead": 0,
+      "behind": 3
+    }
+  ],
+  "getRemoteBranches": [
+    {
+      "name": "origin/main",
+      "isCurrentBranch": false,
+      "isRemote": true,
+      "currentHash": "a1b2c3d4e5f6",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "feat: add screenshot documentation tooling",
+      "lastCommitDate": "2026-02-10T14:30:00Z",
+      "ahead": 0,
+      "behind": 0
+    },
+    {
+      "name": "origin/feature/user-auth",
+      "isCurrentBranch": false,
+      "isRemote": true,
+      "currentHash": "e5f6a7b8c9d0",
+      "trackingPath": "",
+      "isTrackingPathGone": false,
+      "lastCommitText": "feat: implement OAuth2 flow",
+      "lastCommitDate": "2026-02-09T12:00:00Z",
+      "ahead": 0,
+      "behind": 0
+    }
+  ],
+  "getStashes": [],
+  "getWorktrees": [
+    {
+      "path": "/mock/repo/light-git-client",
+      "isCurrent": true,
+      "name": "light-git-client",
+      "currentBranch": "main",
+      "currentHash": "a1b2c3d4e5f6"
+    }
+  ],
+  "getSubmodules": [],
+  "getCommitHistory": [
+    {
+      "hash": "a1b2c3d4e5f6",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-10T14:30:00Z",
+      "commitDate": "2026-02-10T14:30:00Z",
+      "message": "feat: add screenshot documentation tooling",
+      "currentTags": [],
+      "parentHashes": ["b2c3d4e5f6a7"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    },
+    {
+      "hash": "b2c3d4e5f6a7",
+      "authorName": "Blake Stacks",
+      "authorEmail": "blake@blakestacks.com",
+      "authorDate": "2026-02-09T10:15:00Z",
+      "commitDate": "2026-02-09T10:15:00Z",
+      "message": "refactor: migrate settings store to zustand",
+      "currentTags": [],
+      "parentHashes": ["c3d4e5f6a7b8"],
+      "graphBlockTargets": [{ "target": 0, "source": 0, "isCommit": true, "branchIndex": 0, "isMerge": false }]
+    }
+  ],
+  "getFileDiff": {
+    "content": {
+      "items": [],
+      "nextCursor": null,
+      "hasMore": false
+    },
+    "standardOutput": "",
+    "errorOutput": "",
+    "exitCode": 0
+  },
+  "getCommandHistory": [],
+  "getConfigItems": [],
+  "getDeletedStashes": [],
+  "saveSettings": null
+}

@@ -1,0 +1,135 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { ToastContainer, toast, TypeOptions, Id } from 'react-toastify';
+import { Tooltip } from 'react-bootstrap';
+import 'react-toastify/dist/ReactToastify.css';
+import { useUiStore, NotificationModel } from '../../../stores';
+import { TooltipTrigger } from '@light-git/core';
+
+// Map our notification types to react-toastify types
+const getToastType = (type: NotificationModel['type']): TypeOptions => {
+  switch (type) {
+    case 'success':
+      return 'success';
+    case 'warning':
+      return 'warning';
+    case 'error':
+      return 'error';
+    case 'info':
+      return 'info';
+    default:
+      return 'default';
+  }
+};
+
+// Custom content component for error toasts with a copy button
+const ErrorToastContent: React.FC<{ message: string }> = ({ message }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(message).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    },
+    [message],
+  );
+
+  return (
+    <div className="toast-error-content">
+      <span className="toast-error-message">{message}</span>
+      <TooltipTrigger
+        placement="top"
+        overlay={<Tooltip id="tooltip-copy-error-message">Copy error message</Tooltip>}
+      >
+        <button
+          className="toast-copy-btn"
+          onClick={handleCopy}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </TooltipTrigger>
+    </div>
+  );
+};
+
+// Component that syncs our store alerts with react-toastify
+const AlertSync: React.FC = () => {
+  const alerts = useUiStore((state) => state.alerts);
+  const dismissAlert = useUiStore((state) => state.dismissAlert);
+
+  // Track which alerts have been shown
+  const shownAlertsRef = React.useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    alerts.forEach((alert) => {
+      if (!shownAlertsRef.current.has(alert.id)) {
+        shownAlertsRef.current.add(alert.id);
+
+        const isError = alert.type === 'error';
+        const content = isError ? (
+          <ErrorToastContent message={alert.message} />
+        ) : (
+          alert.message
+        );
+
+        toast(content, {
+          type: getToastType(alert.type),
+          toastId: alert.id,
+          autoClose: isError ? false : alert.duration || 4000,
+          pauseOnHover: true,
+          closeOnClick: !isError,
+          onClose: () => {
+            dismissAlert(alert.id);
+            shownAlertsRef.current.delete(alert.id);
+          },
+        });
+      }
+    });
+
+    // Clean up alerts that were dismissed externally
+    shownAlertsRef.current.forEach((id) => {
+      if (!alerts.find((a) => a.id === id)) {
+        toast.dismiss(id);
+        shownAlertsRef.current.delete(id);
+      }
+    });
+  }, [alerts, dismissAlert]);
+
+  return null;
+};
+
+export const AlertToasts: React.FC = () => {
+  return (
+    <>
+      <AlertSync />
+      <ToastContainer
+        position="top-right"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+    </>
+  );
+};
+
+// Export a helper function to show toasts directly without going through the store
+export const showToast = {
+  success: (message: string) => toast.success(message),
+  error: (message: string) =>
+    toast.error(<ErrorToastContent message={message} />, {
+      autoClose: false,
+      closeOnClick: false,
+    }),
+  warning: (message: string) => toast.warning(message),
+  info: (message: string) => toast.info(message),
+};
+
+export default AlertToasts;

@@ -1,0 +1,23 @@
+---
+description: Use getIpcErrorMessage() for IPC error messages in frontend code
+globs: packages/frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# IPC Error Message Extraction
+
+super-ipc wraps backend errors as `AppError('error', { inner })`, so `error.message` is always the literal string `"error"`. Use the `getIpcErrorMessage` helper to extract the real message.
+
+```typescript
+import { getIpcErrorMessage } from '../../../utils/warningDetectors';
+
+// ❌ BAD — always shows "error"
+catch (error: any) {
+  addAlert(`Operation failed: ${error.message}`, 'error');
+}
+
+// ✅ GOOD — extracts inner.message
+catch (error: any) {
+  addAlert(`Operation failed: ${getIpcErrorMessage(error)}`, 'error');
+}
+```
