@@ -37,10 +37,11 @@ export function useBranchActions(repoPath: string) {
       await gitService.checkout(branch.name, false, andPull);
       addAlert(`Checked out ${branch.name}`, 'success');
     } catch (error: any) {
-      if (detectSubmoduleCheckout(error.message || '')) {
+      const errorMsg = getIpcErrorMessage(error);
+      if (detectSubmoduleCheckout(errorMsg)) {
         addAlert(`Checked out ${branch.name}`, 'success');
       } else {
-        addAlert(`Checkout failed: ${error.message}`, 'error');
+        addAlert(`Checkout failed: ${errorMsg}`, 'error');
       }
     }
   }, [gitService, addAlert]);
@@ -65,10 +66,11 @@ export function useBranchActions(repoPath: string) {
       await gitService.pull(force);
       addAlert('Pull successful', 'success');
     } catch (error: any) {
-      if (detectSubmoduleCheckout(error.message || '')) {
+      const errorMsg = getIpcErrorMessage(error);
+      if (detectSubmoduleCheckout(errorMsg)) {
         addAlert('Pull successful', 'success');
       } else {
-        addAlert(`Pull failed: ${error.message}`, 'error');
+        addAlert(`Pull failed: ${errorMsg}`, 'error');
       }
     }
   }, [gitService, addAlert]);
@@ -118,7 +120,7 @@ export function useBranchActions(repoPath: string) {
       );
     } catch (error: any) {
       addAlert(
-        `${options.rebase ? 'Rebase' : 'Merge'} failed: ${error.message}`,
+        `${options.rebase ? 'Rebase' : 'Merge'} failed: ${getIpcErrorMessage(error)}`,
         'error'
       );
     }
@@ -137,7 +139,7 @@ export function useBranchActions(repoPath: string) {
       await gitService.deleteBranch(branches);
       addAlert(`Deleted ${branches.length} branch(es)`, 'success');
     } catch (error: any) {
-      addAlert(`Prune failed: ${error.message}`, 'error');
+      addAlert(`Prune failed: ${getIpcErrorMessage(error)}`, 'error');
     }
   }, [gitService, addAlert]);
 
@@ -152,7 +154,7 @@ export function useBranchActions(repoPath: string) {
       await gitService.deleteBranch([branchToDelete]);
       addAlert(`Deleted branch ${branchToDelete.name}`, 'success');
     } catch (error: any) {
-      addAlert(`Delete failed: ${error.message}`, 'error');
+      addAlert(`Delete failed: ${getIpcErrorMessage(error)}`, 'error');
     }
     setBranchToDelete(null);
   }, [gitService, addAlert, branchToDelete]);
@@ -168,7 +170,7 @@ export function useBranchActions(repoPath: string) {
       await gitService.renameBranch(branchToRename.name, newName);
       addAlert(`Renamed branch to ${newName}`, 'success');
     } catch (error: any) {
-      addAlert(`Rename branch failed: ${error.message}`, 'error');
+      addAlert(`Rename branch failed: ${getIpcErrorMessage(error)}`, 'error');
     }
     setBranchToRename(null);
   }, [gitService, addAlert, branchToRename]);
@@ -178,7 +180,7 @@ export function useBranchActions(repoPath: string) {
       await gitService.createBranch(branchName);
       addAlert(`Created branch ${branchName}`, 'success');
     } catch (error: any) {
-      addAlert(`Create branch failed: ${error.message}`, 'error');
+      addAlert(`Create branch failed: ${getIpcErrorMessage(error)}`, 'error');
     }
   }, [gitService, addAlert]);
 
@@ -187,7 +189,7 @@ export function useBranchActions(repoPath: string) {
       await gitService.fastForward(branch);
       addAlert(`Fast-forwarded ${branch.name}`, 'success');
     } catch (error: any) {
-      addAlert(`Fast-forward failed: ${error.message}`, 'error');
+      addAlert(`Fast-forward failed: ${getIpcErrorMessage(error)}`, 'error');
     }
   }, [gitService, addAlert]);
 
@@ -203,7 +205,7 @@ export function useBranchActions(repoPath: string) {
       await gitService.checkout(branchName, toNewBranch, andPull);
       addAlert(`Checked out ${localBranchName}`, 'success');
     } catch (error: any) {
-      addAlert(`Checkout failed: ${error.message}`, 'error');
+      addAlert(`Checkout failed: ${getIpcErrorMessage(error)}`, 'error');
     }
   }, [gitService, addAlert]);
 
@@ -221,7 +223,7 @@ export function useBranchActions(repoPath: string) {
       });
       store.setShowDiff(repoPath, true);
     } catch (error: any) {
-      addAlert(`Failed to load premerge diff: ${error.message}`, 'error');
+      addAlert(`Failed to load premerge diff: ${getIpcErrorMessage(error)}`, 'error');
     }
   }, [gitService, addAlert, repoPath]);
 

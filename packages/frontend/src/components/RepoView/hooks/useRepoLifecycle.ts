@@ -132,7 +132,22 @@ export function useRepoLifecycle(
   // Auto-refresh affected areas when the job queue finishes
   useEffect(() => {
     const unsubscribe = onFinishQueue(({ affectedAreas, path }) => {
-      if (affectedAreas.size === 0 || path !== repoPath) return;
+      if (path !== repoPath) return;
+
+      // Refresh command history after any queued operation (regardless of affectedAreas)
+      gitService
+        .getCommandHistory()
+        .then((history: any) => {
+          const sorted = (history || []).sort((a: any, b: any) => {
+            const dateA = new Date(a.executedAt ?? a.timestamp).getTime() || 0;
+            const dateB = new Date(b.executedAt ?? b.timestamp).getTime() || 0;
+            return dateB - dateA;
+          });
+          useRepoViewStore.getState().setCommandHistory(repoPath, sorted);
+        })
+        .catch(() => {});
+
+      if (affectedAreas.size === 0) return;
 
       const activeBranch = useRepoViewStore
         .getState()

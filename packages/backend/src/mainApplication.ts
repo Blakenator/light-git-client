@@ -189,6 +189,11 @@ export class MainApplication extends GenericApplication {
 
   loadRepoInfo(repoPath: string): Promise<void> {
     this.gitClients[repoPath] = new GitClient(repoPath);
+    this.gitClients[repoPath].onCommandExecuted.subscribe((history) => {
+      if (this.window && !this.window.isDestroyed() && !this.window.webContents.isDestroyed()) {
+        this.window.webContents.send(SYNC_CHANNELS.CommandHistoryChanged, history);
+      }
+    });
     this.loadedRepos[repoPath] = this.gitClients[repoPath].checkIfGitRepo();
     return this.loadedRepos[repoPath];
   }

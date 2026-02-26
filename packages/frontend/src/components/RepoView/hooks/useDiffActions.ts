@@ -244,6 +244,7 @@ export function useDiffActions(repoPath: string) {
   commitInfoRef.current = commitInfo;
   const showDiffRef = useRef(showDiff);
   showDiffRef.current = showDiff;
+  const isDiffEmpty = currentDiff.length === 0;
 
   // Load the next page of file diffs
   const loadMoreDiffs = useCallback(async () => {
@@ -355,6 +356,30 @@ export function useDiffActions(repoPath: string) {
     // refreshSelectedFilesDiff falls into its "show all" branch).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stagedKey, unstagedKey, hasAnySelected]);
+
+  // Fallback: when the diff view is active but the diff is empty and there
+  // are actual changes, trigger a one-time refresh.  This catches edge cases
+  // where concurrent deselection across both staged/unstaged lists causes
+  // the primary refresh to be version-countered out.
+  const emptyDiffRetried = useRef(false);
+  useEffect(() => {
+    if (showDiff && isDiffEmpty && !commitInfo) {
+      if (!emptyDiffRetried.current && !_diffFetchInProgress) {
+        const current = useRepositoryStore.getState().getCacheFor(repoPath);
+        const hasChanges = (current?.changes?.stagedChanges?.length || 0) > 0 ||
+                          (current?.changes?.unstagedChanges?.length || 0) > 0;
+        if (hasChanges) {
+          emptyDiffRetried.current = true;
+          refreshDiffRef.current(
+            current?.selectedStagedChanges || {},
+            current?.selectedUnstagedChanges || {},
+          );
+        }
+      }
+    } else {
+      emptyDiffRetried.current = false;
+    }
+  }, [showDiff, isDiffEmpty, commitInfo, repoPath]);
 
   return {
     showDiff,
