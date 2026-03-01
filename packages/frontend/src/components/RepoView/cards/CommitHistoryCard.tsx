@@ -210,7 +210,34 @@ const BranchItemWithIcon = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  display: block;
+  display: flex;
+  align-items: center;
+`;
+
+const CurrentBranchIcon = styled.span`
+  color: ${({ theme }) => theme.colors.info};
+  display: inline-flex;
+  margin-right: 0.25em;
+`;
+
+const BranchCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  margin-right: 0.35em;
+  flex-shrink: 0;
+  pointer-events: none;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const SectionSelectAll = styled(Button).attrs({
+  variant: 'outline-secondary',
+})`
+  font-size: 0.7rem;
+  padding: 0 0.5rem;
+  white-space: nowrap;
 `;
 
 const SearchInput = styled(Form.Control)`
@@ -334,7 +361,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
     );
 
     const {
-      activeBranch,
+      activeBranches,
       handleLoadMoreCommits,
       handleClickCommit,
       handleCherryPick,
@@ -343,7 +370,9 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
       handleCreateBranchFromCommit,
       handleCopyHash,
       handleResetToCommit,
-      handleBranchChange,
+      handleBranchToggle,
+      handleClearBranches,
+      handleSetBranches,
     } = useCommitHistoryActions(repoPath, noMoreCommits);
 
     // Filter branches for the dropdown
@@ -367,15 +396,58 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
       );
     }, [commits, searchFilter]);
 
-    const handleBranchSelect = useCallback(
-      (branch: any | null) => {
-        handleBranchChange(branch);
-        setShowBranchDropdown(false);
-        setBranchFilter('');
-        setSearchedRemoteBranches(null);
-      },
-      [handleBranchChange],
+    const activeBranchNames = useMemo(
+      () => new Set(activeBranches.map((b: any) => b.name)),
+      [activeBranches],
     );
+
+    const handleBranchItemClick = useCallback(
+      (branch: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        handleBranchToggle(branch);
+      },
+      [handleBranchToggle],
+    );
+
+    const filteredLocalBranches = useMemo(
+      () => filteredBranches.filter((b: any) => localBranches.includes(b)),
+      [filteredBranches, localBranches],
+    );
+
+    const filteredRemoteBranches = useMemo(
+      () => filteredBranches.filter((b: any) => remoteBranches.includes(b)),
+      [filteredBranches, remoteBranches],
+    );
+
+    const handleSelectAllVisible = useCallback(() => {
+      handleSetBranches(filteredBranches);
+    }, [handleSetBranches, filteredBranches]);
+
+    const handleToggleSection = useCallback(
+      (sectionBranches: any[]) => {
+        const allSelected = sectionBranches.every((b: any) => activeBranchNames.has(b.name));
+        const currentNames = new Set(activeBranchNames);
+        let next: any[];
+        if (allSelected) {
+          next = activeBranches.filter(
+            (b: any) => !sectionBranches.some((sb: any) => sb.name === b.name),
+          );
+        } else {
+          const toAdd = sectionBranches.filter((b: any) => !currentNames.has(b.name));
+          next = [...activeBranches, ...toAdd];
+        }
+        handleSetBranches(next);
+      },
+      [activeBranches, activeBranchNames, handleSetBranches],
+    );
+
+    const handleClearAll = useCallback(() => {
+      handleClearBranches();
+      setShowBranchDropdown(false);
+      setBranchFilter('');
+      setSearchedRemoteBranches(null);
+    }, [handleClearBranches]);
 
     const currentBranch = useMemo(
       () => localBranches.find((b: any) => b.isCurrentBranch),
@@ -383,12 +455,12 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
     );
 
     const isCurrentBranchActive =
-      activeBranch && currentBranch && activeBranch.name === currentBranch.name;
+      currentBranch && activeBranchNames.has(currentBranch.name);
 
     const toggleCurrentBranchFilter = useCallback(() => {
       if (!currentBranch) return;
-      handleBranchChange(isCurrentBranchActive ? null : currentBranch);
-    }, [currentBranch, isCurrentBranchActive, handleBranchChange]);
+      handleBranchToggle(currentBranch);
+    }, [currentBranch, handleBranchToggle]);
 
     const toggleExpand = useCallback((hash: string, e?: React.MouseEvent) => {
       e?.stopPropagation();
@@ -518,24 +590,33 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
               <Dropdown
                 show={showBranchDropdown}
                 onToggle={(open) => setShowBranchDropdown(open)}
+                autoClose="outside"
                 as={ButtonGroup}
               >
                 <TooltipTrigger
                   placement="top"
                   overlay={
                     <Tooltip id="tooltip-active-branch">
-                      {activeBranch?.name || 'All branches'}
+                      {activeBranches.length === 0
+                        ? 'All branches'
+                        : activeBranches.length === 1
+                          ? activeBranches[0].name
+                          : `${activeBranches.length} branches`}
                     </Tooltip>
                   }
                 >
                   <Dropdown.Toggle
-                    variant={activeBranch ? 'primary' : 'secondary'}
+                    variant={activeBranches.length > 0 ? 'primary' : 'secondary'}
                     size="sm"
                   >
-                    {activeBranch && (
+                    {activeBranches.length > 0 && (
                       <>
                         <Icon name="fa-filter" className="me-1" />
-                        <BranchToggleText>{activeBranch.name}</BranchToggleText>
+                        <BranchToggleText>
+                          {activeBranches.length === 1
+                            ? activeBranches[0].name
+                            : `${activeBranches.length} branches`}
+                        </BranchToggleText>
                       </>
                     )}
                   </Dropdown.Toggle>
@@ -550,66 +631,112 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
                       autoFocus
                     />
                   </div>
+                  <div className="px-2 py-1 d-flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      className="flex-grow-1"
+                      onClick={handleSelectAllVisible}
+                    >
+                      Select all visible
+                    </Button>
+                    {activeBranches.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        className="flex-grow-1"
+                        onClick={handleClearAll}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
                   <Dropdown.Divider />
                   {currentBranch && (
                     <>
                       <Dropdown.Header>Current Branch</Dropdown.Header>
                       <Dropdown.Item
-                        active={activeBranch?.name === currentBranch.name}
-                        onClick={() => handleBranchSelect(currentBranch)}
+                        onClick={(e) => handleBranchItemClick(currentBranch, e)}
                       >
                         <BranchItemWithIcon>
-                          <Icon name="fa-shopping-cart" className="me-1" />
+                          <BranchCheckbox
+                            checked={activeBranchNames.has(currentBranch.name)}
+                            readOnly
+                          />
+                          <CurrentBranchIcon>
+                            <Icon name="fa-shopping-cart" />
+                          </CurrentBranchIcon>
                           {currentBranch.name}
                         </BranchItemWithIcon>
                       </Dropdown.Item>
                       <Dropdown.Divider />
                     </>
                   )}
-                  <Dropdown.Item onClick={() => handleBranchSelect(null)}>
-                    <BranchItemText>All branches</BranchItemText>
-                  </Dropdown.Item>
-                  <Dropdown.Divider />
                   {localBranches.length > 0 && (
                     <>
-                      <Dropdown.Header>Local</Dropdown.Header>
-                      {filteredBranches
-                        .filter((b: any) => localBranches.includes(b))
-                        .map((branch: any) => (
-                          <Dropdown.Item
-                            key={branch.name}
-                            active={activeBranch?.name === branch.name}
-                            onClick={() => handleBranchSelect(branch)}
+                      <SectionHeader>
+                        <Dropdown.Header>Local</Dropdown.Header>
+                        {filteredLocalBranches.length > 1 && (
+                          <SectionSelectAll
+                            size="sm"
+                            onClick={() => handleToggleSection(filteredLocalBranches)}
                           >
-                            {branch.isCurrentBranch ? (
-                              <BranchItemWithIcon>
-                                <Icon
-                                  name="fa-shopping-cart"
-                                  className="me-1"
-                                />
-                                {branch.name}
-                              </BranchItemWithIcon>
-                            ) : (
-                              <BranchItemText>{branch.name}</BranchItemText>
+                            {filteredLocalBranches.every((b: any) => activeBranchNames.has(b.name))
+                              ? 'Deselect all'
+                              : 'Select all'}
+                          </SectionSelectAll>
+                        )}
+                      </SectionHeader>
+                      {filteredLocalBranches.map((branch: any) => (
+                        <Dropdown.Item
+                          key={branch.name}
+                          onClick={(e) => handleBranchItemClick(branch, e)}
+                        >
+                          <BranchItemWithIcon>
+                            <BranchCheckbox
+                              checked={activeBranchNames.has(branch.name)}
+                              readOnly
+                            />
+                            {branch.isCurrentBranch && (
+                              <CurrentBranchIcon>
+                                <Icon name="fa-shopping-cart" />
+                              </CurrentBranchIcon>
                             )}
-                          </Dropdown.Item>
-                        ))}
+                            {branch.name}
+                          </BranchItemWithIcon>
+                        </Dropdown.Item>
+                      ))}
                     </>
                   )}
                   {remoteBranches.length > 0 && (
                     <>
-                      <Dropdown.Header>Remote</Dropdown.Header>
-                      {filteredBranches
-                        .filter((b: any) => remoteBranches.includes(b))
-                        .map((branch: any) => (
-                          <Dropdown.Item
-                            key={branch.name}
-                            active={activeBranch?.name === branch.name}
-                            onClick={() => handleBranchSelect(branch)}
+                      <SectionHeader>
+                        <Dropdown.Header>Remote</Dropdown.Header>
+                        {filteredRemoteBranches.length > 1 && (
+                          <SectionSelectAll
+                            size="sm"
+                            onClick={() => handleToggleSection(filteredRemoteBranches)}
                           >
-                            <BranchItemText>{branch.name}</BranchItemText>
-                          </Dropdown.Item>
-                        ))}
+                            {filteredRemoteBranches.every((b: any) => activeBranchNames.has(b.name))
+                              ? 'Deselect all'
+                              : 'Select all'}
+                          </SectionSelectAll>
+                        )}
+                      </SectionHeader>
+                      {filteredRemoteBranches.map((branch: any) => (
+                        <Dropdown.Item
+                          key={branch.name}
+                          onClick={(e) => handleBranchItemClick(branch, e)}
+                        >
+                          <BranchItemWithIcon>
+                            <BranchCheckbox
+                              checked={activeBranchNames.has(branch.name)}
+                              readOnly
+                            />
+                            {branch.name}
+                          </BranchItemWithIcon>
+                        </Dropdown.Item>
+                      ))}
                     </>
                   )}
                 </BranchDropdownMenu>

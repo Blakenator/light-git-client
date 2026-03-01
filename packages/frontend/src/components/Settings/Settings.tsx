@@ -38,7 +38,7 @@ export const Settings: React.FC = () => {
   );
 
   return (
-    <BsModal show={isVisible} onHide={handleClose} size="lg" centered>
+    <BsModal show={isVisible} onHide={handleClose} size="lg" centered scrollable>
       <BsModal.Header closeButton>
         <BsModal.Title>
           <Icon name="settings" className="me-2" />

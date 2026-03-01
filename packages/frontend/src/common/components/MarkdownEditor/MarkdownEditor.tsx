@@ -408,7 +408,8 @@ function AutocompletePlugin({ suggestions }: { suggestions: Suggestion[] }) {
       closeMenu: () => void,
     ) => {
       if (textNodeContainingQuery) {
-        textNodeContainingQuery.setTextContent(option.label + ' ');
+        const insertText = option.type === 'phrase' ? option.source : option.label;
+        textNodeContainingQuery.setTextContent(insertText + ' ');
         textNodeContainingQuery.select();
       }
       closeMenu();

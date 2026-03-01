@@ -1245,16 +1245,21 @@ export class GitClient {
   getCommitHistory(
     count: number,
     skip: number,
-    activeBranch: string,
+    activeBranches?: string[],
   ): Promise<CommitSummaryModel[]> {
     return new Promise<CommitSummaryModel[]>((resolve, reject) => {
       let args = [
         'rev-list',
         '-n',
         (count || 50) + '',
-        ' --branches' + (activeBranch ? '=*' + activeBranch : ''),
-        ' --remotes' + (activeBranch ? '=*' + activeBranch : ''),
       ];
+      if (activeBranches && activeBranches.length > 0) {
+        for (const b of activeBranches) {
+          args.push('--branches=*' + b, '--remotes=*' + b);
+        }
+      } else {
+        args.push('--branches', '--remotes');
+      }
       args = args.concat([
         '--skip=' + (skip || 0),
         `--pretty=format:${COMMIT_FORMAT}`,

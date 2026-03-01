@@ -115,7 +115,7 @@ export function useGitService(repoPath: string) {
   }, [runJob, createJobConfig]);
 
   const getCommitHistory = useCallback(
-    (count = 50, skip = 0, activeBranch?: string) => {
+    (count = 50, skip = 0, activeBranches?: string[]) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
@@ -125,7 +125,7 @@ export function useGitService(repoPath: string) {
               repoPath: rp,
               count,
               skip,
-              activeBranch,
+              activeBranches,
             }),
           [],
           { reorderable: true },

@@ -149,9 +149,9 @@ export function useRepoLifecycle(
 
       if (affectedAreas.size === 0) return;
 
-      const activeBranch = useRepoViewStore
+      const activeBranches = useRepoViewStore
         .getState()
-        .getActiveBranch(repoPath);
+        .getActiveBranches(repoPath);
       const promises: Promise<any>[] = [];
 
       if (affectedAreas.has(RepoArea.LOCAL_BRANCHES)) {
@@ -235,7 +235,7 @@ export function useRepoLifecycle(
         noMoreCommits.current = false;
         promises.push(
           gitService
-            .getCommitHistory(50, 0, activeBranch?.name)
+            .getCommitHistory(50, 0, activeBranches.length > 0 ? activeBranches.map((b: any) => b.name) : undefined)
             .then((result: any) =>
               result !== undefined ? { commitHistory: result } : null,
             )

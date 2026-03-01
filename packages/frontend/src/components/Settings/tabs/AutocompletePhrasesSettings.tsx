@@ -32,10 +32,9 @@ const KeywordInput = styled(Form.Control)`
   font-size: 0.875rem;
 `;
 
-const ValueTextarea = styled(Form.Control)`
+const ValueInput = styled(Form.Control)`
+  font-family: ${({ theme }) => theme.fonts.monospace};
   font-size: 0.875rem;
-  min-height: 36px;
-  resize: vertical;
 `;
 
 interface AutocompletePhrase {
@@ -132,12 +131,10 @@ export const AutocompletePhrasesSettings: React.FC<AutocompletePhrasesSettingsPr
                 />
               </td>
               <td>
-                <ValueTextarea
-                  as="textarea"
+                <ValueInput
                   size="sm"
-                  rows={1}
                   value={phrase.value}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     handleValueChange(index, e.target.value)
                   }
                   placeholder="replacement value"

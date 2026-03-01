@@ -74,6 +74,15 @@ let _diffFetchInProgress = false;
 let _diffFetchVersion = 0;
 
 /**
+ * Bump the diff-fetch version counter so any in-flight fetchDiffPage
+ * calls are silently discarded when their response arrives.
+ */
+export function invalidatePendingDiffFetches() {
+  _diffFetchVersion++;
+  _diffFetchInProgress = false;
+}
+
+/**
  * Lightweight hook providing only file-click and refresh actions.
  * Does NOT subscribe to diff display state (showDiff, currentDiff, etc.)
  * and does NOT register auto-refresh effects.

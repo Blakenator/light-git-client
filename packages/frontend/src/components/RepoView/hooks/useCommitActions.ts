@@ -9,6 +9,7 @@ import {
 } from '../../../utils/warningDetectors';
 import { useCodeWatcherAnalysis } from './useCodeWatcherAnalysis';
 import type { WatcherAlert } from './useCodeWatcherAnalysis';
+import { invalidatePendingDiffFetches } from './useDiffActions';
 
 /** Imperative read of repo cache (no subscription, no re-renders). */
 const getRepoCache = (repoPath: string) => useRepositoryStore.getState().repoCache[repoPath];
@@ -90,8 +91,13 @@ export function useCommitActions(repoPath: string) {
     }
 
     if (succeeded) {
+      invalidatePendingDiffFetches();
       store.setCommitMessage(repoPath, '');
       store.resetDiffState(repoPath);
+      useRepositoryStore.getState().updateRepoCache(repoPath, {
+        selectedStagedChanges: {},
+        selectedUnstagedChanges: {},
+      });
       addAlert(amend ? 'Commit amended' : 'Committed successfully', 'success');
     }
   }, [gitService, commitAndPush, addAlert, setPreCommitStatus, showModal, repoPath]);

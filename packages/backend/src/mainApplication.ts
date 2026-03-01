@@ -317,7 +317,7 @@ export class MainApplication extends GenericApplication {
         return await this.gitClients[args.repoPath].getCommitHistory(
           args.count,
           args.skip,
-          args.activeBranch,
+          args.activeBranches,
         );
       },
       [SYNC_CHANNELS.GetFileDiff]: async ({ args }) => {
