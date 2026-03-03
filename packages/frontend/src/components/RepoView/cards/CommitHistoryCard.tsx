@@ -296,6 +296,9 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
     const ignoreWhitespace = useSettingsStore(
       (state) => state.settings.diffIgnoreWhitespace,
     );
+    const branchNamePrefix = useSettingsStore(
+      (state) => state.settings.branchNamePrefix,
+    );
 
     const gitService = useGitService(repoPath);
 
@@ -441,6 +444,11 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
       },
       [activeBranches, activeBranchNames, handleSetBranches],
     );
+
+    const handleOnlyMine = useCallback(() => {
+      if (!branchNamePrefix) return;
+      setBranchFilter((prev) => (prev === branchNamePrefix ? '' : branchNamePrefix));
+    }, [branchNamePrefix]);
 
     const handleClearAll = useCallback(() => {
       handleClearBranches();
@@ -640,6 +648,16 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
                     >
                       Select all visible
                     </Button>
+                    {branchNamePrefix && (
+                      <Button
+                        size="sm"
+                        variant={branchFilter === branchNamePrefix ? 'primary' : 'outline-secondary'}
+                        className="flex-grow-1"
+                        onClick={handleOnlyMine}
+                      >
+                        Only Mine
+                      </Button>
+                    )}
                     {activeBranches.length > 0 && (
                       <Button
                         size="sm"

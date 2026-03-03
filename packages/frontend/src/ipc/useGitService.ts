@@ -776,7 +776,7 @@ export function useGitService(repoPath: string) {
   );
 
   // Composite operations
-  const refreshAll = useCallback(async () => {
+  const refreshAll = useCallback(async (activeBranchNames?: string[]) => {
     const [
       changes,
       localBranchesResult,
@@ -792,7 +792,7 @@ export function useGitService(repoPath: string) {
       getStashes(),
       getWorktrees(),
       getSubmodules(),
-      getCommitHistory(),
+      getCommitHistory(50, 0, activeBranchNames),
     ]);
 
     return {
