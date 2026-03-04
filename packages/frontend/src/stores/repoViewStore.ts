@@ -27,8 +27,8 @@ export interface RepoViewState {
   // Command history per repo
   commandHistory: { [repoPath: string]: any[] };
 
-  // Active branch filter per repo (for commit history)
-  activeBranch: { [repoPath: string]: any };
+  // Active branch filters per repo (for commit history)
+  activeBranches: { [repoPath: string]: any[] };
 }
 
 export interface RepoViewActions {
@@ -67,8 +67,8 @@ export interface RepoViewActions {
   setCommandHistory: (repoPath: string, history: any[]) => void;
 
   // Active branch actions
-  getActiveBranch: (repoPath: string) => any;
-  setActiveBranch: (repoPath: string, branch: any) => void;
+  getActiveBranches: (repoPath: string) => any[];
+  setActiveBranches: (repoPath: string, branches: any[]) => void;
 }
 
 export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, get) => ({
@@ -85,7 +85,7 @@ export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, ge
   commitMessage: {},
   activeOperation: {},
   commandHistory: {},
-  activeBranch: {},
+  activeBranches: {},
 
   // Diff actions
   getShowDiff: (repoPath) => get().showDiff[repoPath] || false,
@@ -165,8 +165,8 @@ export const useRepoViewStore = create<RepoViewState & RepoViewActions>((set, ge
   },
 
   // Active branch actions
-  getActiveBranch: (repoPath) => get().activeBranch[repoPath] || null,
-  setActiveBranch: (repoPath, branch) => {
-    set((state) => ({ activeBranch: { ...state.activeBranch, [repoPath]: branch } }));
+  getActiveBranches: (repoPath) => get().activeBranches[repoPath] || [],
+  setActiveBranches: (repoPath, branches) => {
+    set((state) => ({ activeBranches: { ...state.activeBranches, [repoPath]: branches } }));
   },
 }));

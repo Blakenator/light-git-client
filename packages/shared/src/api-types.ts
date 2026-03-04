@@ -53,7 +53,7 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
     result: StashModel[];
   };
   [SYNC_CHANNELS.GetCommitHistory]: {
-    props: { repoPath: string; count?: number; skip?: number; activeBranch?: string };
+    props: { repoPath: string; count?: number; skip?: number; activeBranches?: string[] };
     result: CommitSummaryModel[];
   };
   [SYNC_CHANNELS.GetFileDiff]: {

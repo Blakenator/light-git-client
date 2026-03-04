@@ -29,6 +29,8 @@ const SectionTitle = styled.h6`
 
 const StyledTable = styled(Table)`
   margin-bottom: 0;
+  table-layout: fixed;
+  width: 100%;
 
   th {
     user-select: none;
@@ -37,6 +39,8 @@ const StyledTable = styled(Table)`
 
   td {
     vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
@@ -63,6 +67,13 @@ const CellContent = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
+
+  & > :first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const EditIcon = styled.span`
@@ -85,7 +96,6 @@ const NewItemRow = styled.tr`
     background-color: ${({ theme }) => theme.colors.background};
   }
 `;
-
 
 interface GitConfigSettingsProps {
   settings: any;
@@ -573,10 +583,17 @@ export const GitConfigSettings: React.FC<GitConfigSettingsProps> = ({
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map((header) => {
+                  const widthMap: Record<string, string> = {
+                    key: '30%',
+                    value: '35%',
+                    sourceFile: '25%',
+                    actions: '10%',
+                  };
+                  return (
                   <th
                     key={header.id}
-                    style={header.id === 'actions' ? { width: '1%' } : undefined}
+                    style={{ width: widthMap[header.id] }}
                     onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
                   >
                     <SortableHeader $canSort={header.column.getCanSort()}>
@@ -588,7 +605,8 @@ export const GitConfigSettings: React.FC<GitConfigSettingsProps> = ({
                       )}
                     </SortableHeader>
                   </th>
-                ))}
+                  );
+                })}
               </tr>
             ))}
           </thead>

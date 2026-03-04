@@ -75,8 +75,8 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
     const autocompletePhrases = useSettingsStore(
       (state) => state.settings.autocompletePhrases,
     );
-    const activeBranch = useRepoViewStore(
-      (state) => state.activeBranch[repoPath] || null,
+    const activeBranches = useRepoViewStore(
+      (state) => state.activeBranches[repoPath] || [],
     );
 
     const {
@@ -95,10 +95,10 @@ export const CommitPanel: React.FC<CommitPanelProps> = React.memo(
 
     const currentBranchName = useMemo(
       () =>
-        activeBranch?.name ||
+        (activeBranches.length === 1 ? activeBranches[0]?.name : null) ||
         localBranches.find((b: any) => b.isCurrentBranch)?.name ||
         '',
-      [activeBranch, localBranches],
+      [activeBranches, localBranches],
     );
 
     const disabledReason =

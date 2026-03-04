@@ -34,7 +34,11 @@ export function useRepoLifecycle(
   const refreshRepo = useCallback(async () => {
     noMoreCommits.current = false;
     try {
-      const data = await gitService.refreshAll();
+      const activeBranches = useRepoViewStore.getState().getActiveBranches(repoPath);
+      const branchNames = activeBranches.length > 0
+        ? activeBranches.map((b: any) => b.name)
+        : undefined;
+      const data = await gitService.refreshAll(branchNames);
 
       // Filter out undefined values - these can occur when overlapping refreshes
       // cause the job scheduler to supersede (deduplicate) pending read jobs.
@@ -52,6 +56,17 @@ export function useRepoLifecycle(
 
       if (Object.keys(update).length > 0) {
         updateRepoCache(repoPath, update);
+      }
+
+      if (activeBranches.length > 0 && (update.localBranches || update.remoteBranches)) {
+        const allNames = new Set([
+          ...(update.localBranches || data.localBranches || []).map((b: any) => b.name),
+          ...(update.remoteBranches || data.remoteBranches || []).map((b: any) => b.name),
+        ]);
+        const pruned = activeBranches.filter((b: any) => allNames.has(b.name));
+        if (pruned.length !== activeBranches.length) {
+          useRepoViewStore.getState().setActiveBranches(repoPath, pruned);
+        }
       }
 
       // Fetch diff stats and code watcher alerts for the file lists.
@@ -149,9 +164,9 @@ export function useRepoLifecycle(
 
       if (affectedAreas.size === 0) return;
 
-      const activeBranch = useRepoViewStore
+      const activeBranches = useRepoViewStore
         .getState()
-        .getActiveBranch(repoPath);
+        .getActiveBranches(repoPath);
       const promises: Promise<any>[] = [];
 
       if (affectedAreas.has(RepoArea.LOCAL_BRANCHES)) {
@@ -235,7 +250,7 @@ export function useRepoLifecycle(
         noMoreCommits.current = false;
         promises.push(
           gitService
-            .getCommitHistory(50, 0, activeBranch?.name)
+            .getCommitHistory(50, 0, activeBranches.length > 0 ? activeBranches.map((b: any) => b.name) : undefined)
             .then((result: any) =>
               result !== undefined ? { commitHistory: result } : null,
             )
@@ -293,6 +308,22 @@ export function useRepoLifecycle(
           });
           if (Object.keys(update).length > 0) {
             updateRepoCache(repoPath, update);
+          }
+
+          if (update.localBranches || update.remoteBranches) {
+            const store = useRepoViewStore.getState();
+            const current = store.getActiveBranches(repoPath);
+            if (current.length > 0) {
+              const cache = useRepositoryStore.getState().repoCache[repoPath];
+              const allNames = new Set([
+                ...(cache?.localBranches || []).map((b: any) => b.name),
+                ...(cache?.remoteBranches || []).map((b: any) => b.name),
+              ]);
+              const pruned = current.filter((b: any) => allNames.has(b.name));
+              if (pruned.length !== current.length) {
+                store.setActiveBranches(repoPath, pruned);
+              }
+            }
           }
         });
       }

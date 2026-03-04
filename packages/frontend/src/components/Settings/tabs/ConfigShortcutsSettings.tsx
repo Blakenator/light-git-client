@@ -1,7 +1,28 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Form, Button, ListGroup, InputGroup, Badge, Row, Col, Alert, Tooltip } from 'react-bootstrap';
+import { Form, Button, ListGroup, InputGroup, Badge, Row, Col, Alert, Dropdown, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
 import { Icon, TooltipTrigger } from '@light-git/core';
+
+const MERGETOOL_PRESETS = [
+  { name: 'vscode', label: 'VS Code', cmd: 'code --wait --merge $REMOTE $LOCAL $BASE $MERGED' },
+  { name: 'meld', label: 'Meld', cmd: 'meld $LOCAL $BASE $REMOTE --output=$MERGED' },
+  { name: 'kdiff3', label: 'KDiff3', cmd: 'kdiff3 $BASE $LOCAL $REMOTE -o $MERGED' },
+  { name: 'bc', label: 'Beyond Compare', cmd: 'bcomp $LOCAL $REMOTE $BASE $MERGED' },
+  { name: 'p4merge', label: 'P4Merge', cmd: 'p4merge $BASE $LOCAL $REMOTE $MERGED' },
+  { name: 'opendiff', label: 'OpenDiff (FileMerge)', cmd: 'opendiff $LOCAL $REMOTE -ancestor $BASE -merge $MERGED', note: 'macOS only' },
+  { name: 'smerge', label: 'Sublime Merge', cmd: 'smerge mergetool $BASE $LOCAL $REMOTE -o $MERGED' },
+  { name: 'intellij', label: 'IntelliJ IDEA', cmd: 'idea merge $LOCAL $REMOTE $BASE $MERGED' },
+  { name: 'vimdiff', label: 'Vimdiff', cmd: 'vimdiff $LOCAL $REMOTE $MERGED' },
+  { name: 'tortoisemerge', label: 'TortoiseMerge', cmd: 'TortoiseMerge /base:$BASE /theirs:$REMOTE /mine:$LOCAL /merged:$MERGED', note: 'Windows only' },
+  { name: 'winmerge', label: 'WinMerge', cmd: 'WinMergeU -e -u -dl Local -dr Remote $LOCAL $REMOTE $MERGED', note: 'Windows only' },
+  { name: 'diffmerge', label: 'DiffMerge', cmd: 'diffmerge --merge --result=$MERGED $LOCAL $BASE $REMOTE' },
+] as const;
+
+const PresetNote = styled.span`
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-left: 0.5rem;
+`;
 
 const FormSection = styled.div`
   margin-bottom: 1.5rem;
@@ -154,6 +175,16 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
     [onChange]
   );
 
+  const handleMergetoolPreset = useCallback(
+    (preset: typeof MERGETOOL_PRESETS[number]) => {
+      setMergetoolName(preset.name);
+      setMergetoolCommand(preset.cmd);
+      onChange('mergetool', preset.name);
+      onChange('mergetoolCommand', preset.cmd);
+    },
+    [onChange]
+  );
+
   const handleShortcutChange = useCallback(
     (index: number, value: string) => {
     const updated = [...shortcuts];
@@ -238,12 +269,34 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
           </Col>
           <Col md={6}>
             <Form.Group className="mb-3">
+              <Form.Label>Presets</Form.Label>
+              <div>
+                <Dropdown>
+                  <Dropdown.Toggle variant="outline-secondary" size="sm">
+                    {MERGETOOL_PRESETS.find((p) => p.name === mergetoolName)?.label || 'Select a preset...'}
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    {MERGETOOL_PRESETS.map((preset) => (
+                      <Dropdown.Item
+                        key={preset.name}
+                        active={mergetoolName === preset.name}
+                        onClick={() => handleMergetoolPreset(preset)}
+                      >
+                        {preset.label}
+                        {'note' in preset && <PresetNote>{preset.note}</PresetNote>}
+                      </Dropdown.Item>
+                    ))}
+                  </Dropdown.Menu>
+                </Dropdown>
+              </div>
+            </Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Mergetool Name</Form.Label>
               <Form.Control
                 type="text"
                 value={mergetoolName}
                 onChange={(e) => handleMergetoolNameChange(e.target.value)}
-                placeholder="e.g., vscode, sourcetree"
+                placeholder="e.g., vscode, meld"
               />
             </Form.Group>
             <Form.Group className="mb-3">
