@@ -71,15 +71,15 @@ interface IconProps {
  * - All other names are Material Icons
  */
 export const Icon: React.FC<IconProps> = ({ name, className, size, onClick }) => {
-  const isFontAwesome = name.startsWith('fa-') || name.startsWith('fas-') || name.startsWith('far-');
+  const isFontAwesome = name.startsWith('fa-') || name.startsWith('fas-') || name.startsWith('far-') || name.startsWith('fab-');
 
   if (isFontAwesome) {
-    // Convert 'fa-code-branch' to 'code-branch' for FontAwesome
-    const iconName = name.replace(/^(fa[sr]?-)?/, '') as IconName;
+    const prefix = name.startsWith('fab-') ? 'fab' : name.startsWith('far-') ? 'far' : 'fas';
+    const iconName = name.replace(/^(fa[srb]?-)?/, '') as IconName;
     const faSize = size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : size === 'xl' ? '2x' : undefined;
     return (
       <FontAwesomeIcon
-        icon={['fas', iconName]}
+        icon={[prefix, iconName]}
         className={className}
         size={faSize}
         onClick={onClick}

@@ -15,6 +15,35 @@ import type { DiffStatsResult } from './git/diff-stat.model';
 import type { CommandOutputModel } from './common/command.output.model';
 import type { WatcherAlert } from './code-watcher-analysis';
 
+// ---- Update types ----
+
+export enum UpdateState {
+  Idle = 'idle',
+  Checking = 'checking',
+  NotAvailable = 'not-available',
+  Available = 'available',
+  Downloading = 'downloading',
+  Downloaded = 'downloaded',
+  Error = 'error',
+}
+
+export interface UpdateDownloadProgress {
+  percent: number;
+  bytesPerSecond: number;
+  transferred: number;
+  total: number;
+}
+
+export interface UpdateStatusInfo {
+  state: UpdateState;
+  version?: string;
+  releaseNotes?: string;
+  releaseUrl?: string;
+  downloadProgress?: UpdateDownloadProgress;
+  downloadedFilePath?: string;
+  error?: string;
+}
+
 // ---- Re-usable shapes ----
 
 interface RepoProps {
@@ -290,15 +319,25 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
   };
   [SYNC_CHANNELS.CheckForUpdates]: {
     props: void;
-    result: void;
+    result: UpdateStatusInfo;
   };
-  [SYNC_CHANNELS.IsUpdateDownloaded]: {
+  [SYNC_CHANNELS.GetUpdateStatus]: {
     props: void;
-    result: { downloaded: boolean; version: string };
+    result: UpdateStatusInfo;
+  };
+  [SYNC_CHANNELS.CancelDownloadUpdate]: {
+    props: void;
+    result: void;
   };
   [SYNC_CHANNELS.RestartAndInstallUpdate]: {
     props: void;
     result: void;
+  };
+
+  // --- Events (reply-only channels, not directly invoked) ---
+  [SYNC_CHANNELS.UpdateStatusChanged]: {
+    props: void;
+    result: UpdateStatusInfo;
   };
 
   // --- Code Watcher ---
@@ -332,5 +371,11 @@ export interface AppAsyncApi extends BackendAsyncApiType<ASYNC_CHANNELS> {
     initResult: void;
     progressResult: { out?: string; err?: string; done?: boolean };
     completeResult: { success: boolean };
+  };
+  [ASYNC_CHANNELS.DownloadUpdate]: {
+    props: void;
+    initResult: void;
+    progressResult: UpdateDownloadProgress;
+    completeResult: UpdateStatusInfo;
   };
 }

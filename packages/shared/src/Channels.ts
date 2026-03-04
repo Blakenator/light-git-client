@@ -64,7 +64,9 @@ export enum SYNC_CHANNELS {
   Fetch = 'fetch',
   GetCommandHistory = 'getCommandHistory',
   CommandHistoryChanged = 'commandHistoryChanged',
-  IsUpdateDownloaded = 'isUpdateDownloaded',
+  GetUpdateStatus = 'getUpdateStatus',
+  CancelDownloadUpdate = 'cancelDownloadUpdate',
+  UpdateStatusChanged = 'updateStatusChanged',
   RestartAndInstallUpdate = 'restartAndInstallUpdate',
   ResolveConflictUsing = 'resolveConflictUsing',
   OpenFileDialog = 'openFileDialog',
@@ -79,6 +81,7 @@ export enum SYNC_CHANNELS {
 export enum ASYNC_CHANNELS {
   Clone = 'clone',
   AddWorktree = 'addWorktree',
+  DownloadUpdate = 'downloadUpdate',
 }
 
 /**
@@ -150,7 +153,10 @@ export const Channels = {
   FETCH: SYNC_CHANNELS.Fetch,
   GETCOMMANDHISTORY: SYNC_CHANNELS.GetCommandHistory,
   COMMANDHISTORYCHANGED: SYNC_CHANNELS.CommandHistoryChanged,
-  ISUPDATEDOWNLOADED: SYNC_CHANNELS.IsUpdateDownloaded,
+  GETUPDATESTATUS: SYNC_CHANNELS.GetUpdateStatus,
+  CANCELDOWNLOADUPDATE: SYNC_CHANNELS.CancelDownloadUpdate,
+  UPDATESTATUSCHANGED: SYNC_CHANNELS.UpdateStatusChanged,
+  DOWNLOADUPDATE: ASYNC_CHANNELS.DownloadUpdate,
   RESTARTANDINSTALLUPDATE: SYNC_CHANNELS.RestartAndInstallUpdate,
   RESOLVECONFLICTUSING: SYNC_CHANNELS.ResolveConflictUsing,
   OPENFILEDIALOG: SYNC_CHANNELS.OpenFileDialog,

@@ -155,6 +155,17 @@ const HomePage: React.FC = () => {
     showModal('settings');
   }, [showModal]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ',' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        showModal('settings');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showModal]);
+
   const handleOpenRepoNewTab = useCallback((path: string) => {
     const { addTab } = useRepositoryStore.getState();
     addTab({ path, name: path.split('/').pop() || 'New Tab' });

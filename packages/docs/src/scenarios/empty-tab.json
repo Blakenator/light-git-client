@@ -29,6 +29,6 @@
   },
   "getVersion": "0.13.0",
   "checkGitBashVersions": { "bash": true, "git": true },
-  "isUpdateDownloaded": { "downloaded": false, "version": "" },
+  "getUpdateStatus": { "state": "idle" },
   "saveSettings": null
 }

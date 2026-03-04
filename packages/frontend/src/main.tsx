@@ -21,7 +21,9 @@ import 'highlight.js/styles/github-dark.css';
 // Import Font Awesome core
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
+import { faGithub } from '@fortawesome/free-brands-svg-icons';
 library.add(fas);
+library.add(faGithub);
 
 // Theme-aware wrapper component
 const ThemedApp: React.FC = () => {

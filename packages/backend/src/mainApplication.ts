@@ -8,7 +8,9 @@ import { GitClient } from './git/GitClient';
 import * as path from 'path';
 import { autoUpdater } from 'electron-updater';
 import { SYNC_CHANNELS, ASYNC_CHANNELS } from '@light-git/shared/src/Channels';
-import type { AppSyncApi, AppAsyncApi } from '@light-git/shared/src/api-types';
+import type { AppSyncApi, AppAsyncApi, UpdateStatusInfo } from '@light-git/shared/src/api-types';
+import { UpdateState } from '@light-git/shared/src/api-types';
+import type { CancellationToken } from 'electron-updater';
 import { GenericApplication } from './genericApplication';
 import { CodeWatcherModel } from '@light-git/shared/src/code-watcher.model';
 import { setupApiHandlers } from '@superflag/super-ipc-backend';
@@ -17,10 +19,10 @@ import type { BackendSyncHandlersType, BackendAsyncHandlersType } from '@superfl
 const opn = require('opn');
 
 export class MainApplication extends GenericApplication {
-  private updateDownloaded = false;
-  private updateDownloadedVersion: string;
-  private settings: SettingsModel = new SettingsModel();
+  private updateStatus: UpdateStatusInfo = { state: UpdateState.Idle };
   private userInitiatedUpdate = false;
+  private updateCancellationToken: CancellationToken | null = null;
+  private settings: SettingsModel = new SettingsModel();
   private isWatchingSettingsDir: fs.FSWatcher;
   private loadedRepos: { [key: string]: Promise<void> } = {};
   private gitClients: { [key: string]: GitClient } = {};
@@ -200,90 +202,117 @@ export class MainApplication extends GenericApplication {
 
   start() {
     super.start();
-    this.checkForUpdates();
     this.configureApp();
+    this.checkForUpdates();
     setupApiHandlers(app, this.getSyncHandlers(), this.getAsyncHandlers(), ipcMain);
   }
 
-  checkForUpdates() {
-    if (app.isPackaged) {
-      autoUpdater.allowPrerelease = this.settings.allowPrerelease;
-      autoUpdater.checkForUpdates().catch((error) => {
-        if (this.userInitiatedUpdate) {
-          this.notifier.notify({
-            title: this.notificationTitle,
-            message:
-              'An error occurred while updating, no changes were made. Check error log for more details',
-            icon: this.iconFile,
-          });
-        }
-        this.userInitiatedUpdate = false;
-        this.logger.error(error);
-      });
+  private pushUpdateStatus() {
+    if (this.window && !this.window.isDestroyed() && !this.window.webContents.isDestroyed()) {
+      this.window.webContents.send(SYNC_CHANNELS.UpdateStatusChanged, this.updateStatus);
     }
+  }
+
+  private extractReleaseNotes(info: any): string | undefined {
+    if (!info.releaseNotes) return undefined;
+    if (typeof info.releaseNotes === 'string') return info.releaseNotes;
+    if (Array.isArray(info.releaseNotes)) {
+      return info.releaseNotes.map((n: any) => n.note || '').join('\n');
+    }
+    return undefined;
+  }
+
+  checkForUpdates() {
+    autoUpdater.allowPrerelease = this.settings.allowPrerelease;
+    autoUpdater.checkForUpdates()
+      .then((result) => {
+        if (result) {
+          this.updateCancellationToken = result.cancellationToken;
+        } else {
+          this.updateStatus = { state: UpdateState.NotAvailable };
+          this.pushUpdateStatus();
+        }
+      })
+      .catch((error) => {
+        this.updateStatus = {
+          state: UpdateState.Error,
+          error: error?.message || String(error),
+        };
+        this.pushUpdateStatus();
+        this.logger.error(error);
+      })
+      .finally(() => {
+        this.userInitiatedUpdate = false;
+      });
   }
 
   configureApp() {
     app.setAppUserModelId('com.blakestacks.light-git-client');
     app.setAsDefaultProtocolClient('light-git');
 
-    autoUpdater.on('update-not-available', (info) => {
-      if (this.userInitiatedUpdate) {
-        this.notifier.notify({
-          title: this.notificationTitle,
-          message:
-            "You're currently running the latest version (" +
-            info.version +
-            ')! Enjoy!',
-          icon: this.iconFile,
-        });
-      }
-      this.userInitiatedUpdate = false;
+    autoUpdater.autoDownload = false;
+    autoUpdater.forceDevUpdateConfig = true;
+
+    autoUpdater.on('update-not-available', () => {
+      this.updateStatus = { state: UpdateState.NotAvailable };
+      this.pushUpdateStatus();
     });
+
     autoUpdater.on('update-available', (info) => {
-      if (!this.updateDownloaded && !this.updateDownloadedVersion) {
-        this.notifier.notify({
-          title: this.notificationTitle,
-          message:
-            'Version ' +
-            info.version +
-            ' is now available and is being downloaded',
-          icon: this.iconFile,
-        });
-        this.userInitiatedUpdate = false;
-        this.updateDownloadedVersion = info.version;
-      }
-    });
-    autoUpdater.on('error', (error) => {
+      this.updateStatus = {
+        state: UpdateState.Available,
+        version: info.version,
+        releaseNotes: this.extractReleaseNotes(info),
+        releaseUrl: `https://github.com/Blakenator/light-git-client/releases/tag/v${info.version}`,
+      };
+      this.pushUpdateStatus();
+
       if (this.userInitiatedUpdate) {
         this.notifier.notify({
           title: this.notificationTitle,
-          message:
-            'An error occurred while updating, no changes were made. Check error log for more details',
+          message: 'Version ' + info.version + ' is now available',
           icon: this.iconFile,
         });
-      }
-      this.userInitiatedUpdate = false;
-      this.logger.error(error);
-    });
-    autoUpdater.on('update-downloaded', (info) => {
-      if (!this.updateDownloaded) {
-        this.notifier.notify({
-          title: this.notificationTitle,
-          message:
-            'Version ' +
-            info.version +
-            ' will install the next time you start the app',
-          icon: this.iconFile,
-          wait: true,
-        });
-        this.userInitiatedUpdate = false;
-        this.updateDownloaded = true;
       }
     });
 
+    autoUpdater.on('download-progress', (progress) => {
+      this.updateStatus = {
+        ...this.updateStatus,
+        state: UpdateState.Downloading,
+        downloadProgress: {
+          percent: progress.percent,
+          bytesPerSecond: progress.bytesPerSecond,
+          transferred: progress.transferred,
+          total: progress.total,
+        },
+      };
+      this.pushUpdateStatus();
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+      this.updateStatus = {
+        state: UpdateState.Downloaded,
+        version: info.version,
+        releaseNotes: this.extractReleaseNotes(info),
+        releaseUrl: `https://github.com/Blakenator/light-git-client/releases/tag/v${info.version}`,
+        downloadedFilePath: info.downloadedFile ? path.dirname(info.downloadedFile) : undefined,
+      };
+      this.pushUpdateStatus();
+    });
+
+    autoUpdater.on('error', (error) => {
+      this.updateStatus = {
+        state: UpdateState.Error,
+        error: error?.message || String(error),
+      };
+      this.pushUpdateStatus();
+      this.logger.error(error);
+    });
+
     setInterval(() => {
-      if (!this.updateDownloaded) {
+      const s = this.updateStatus.state;
+      if (s !== UpdateState.Available && s !== UpdateState.Downloaded && s !== UpdateState.Downloading) {
         this.checkForUpdates();
       }
     }, 60 * 60 * 1000);
@@ -585,19 +614,34 @@ export class MainApplication extends GenericApplication {
       },
       [SYNC_CHANNELS.CheckForUpdates]: async () => {
         this.userInitiatedUpdate = true;
+        this.updateStatus = { state: UpdateState.Checking };
+        this.pushUpdateStatus();
         this.checkForUpdates();
+        return this.updateStatus;
       },
-      [SYNC_CHANNELS.IsUpdateDownloaded]: async () => {
-        return {
-          downloaded: this.updateDownloaded,
-          version: this.updateDownloadedVersion,
+      [SYNC_CHANNELS.GetUpdateStatus]: async () => {
+        return this.updateStatus;
+      },
+      [SYNC_CHANNELS.CancelDownloadUpdate]: async () => {
+        if (this.updateCancellationToken) {
+          this.updateCancellationToken.cancel();
+          this.updateCancellationToken = null;
+        }
+        this.updateStatus = {
+          ...this.updateStatus,
+          state: UpdateState.Available,
+          downloadProgress: undefined,
         };
+        this.pushUpdateStatus();
       },
       [SYNC_CHANNELS.RestartAndInstallUpdate]: async () => {
         autoUpdater.quitAndInstall();
       },
 
-      // --- Events ---
+      // --- Events (push-only, not directly invoked) ---
+      [SYNC_CHANNELS.UpdateStatusChanged]: async () => {
+        throw new Error('UpdateStatusChanged is a push-only channel and should not be invoked directly.');
+      },
       [SYNC_CHANNELS.CommandHistoryChanged]: async () => {
         throw new Error('CommandHistoryChanged is a push-only channel and should not be invoked directly.');
       },
@@ -653,6 +697,52 @@ export class MainApplication extends GenericApplication {
               onError(err);
             },
           });
+      },
+      [ASYNC_CHANNELS.DownloadUpdate]: async ({ handlers }) => {
+        const { onProgress, onComplete, onError } = handlers;
+
+        const progressHandler = (progress: any) => {
+          onProgress({
+            percent: progress.percent,
+            bytesPerSecond: progress.bytesPerSecond,
+            transferred: progress.transferred,
+            total: progress.total,
+          });
+        };
+
+        const downloadedHandler = (info: any) => {
+          cleanup();
+          onComplete({
+            state: UpdateState.Downloaded,
+            version: info.version,
+            releaseNotes: this.extractReleaseNotes(info),
+            releaseUrl: `https://github.com/Blakenator/light-git-client/releases/tag/v${info.version}`,
+            downloadedFilePath: info.downloadedFile ? path.dirname(info.downloadedFile) : undefined,
+          });
+        };
+
+        const errorHandler = (error: Error) => {
+          cleanup();
+          onError(error);
+        };
+
+        const cleanup = () => {
+          autoUpdater.off('download-progress', progressHandler);
+          autoUpdater.off('update-downloaded', downloadedHandler);
+          autoUpdater.off('error', errorHandler);
+        };
+
+        autoUpdater.on('download-progress', progressHandler);
+        autoUpdater.on('update-downloaded', downloadedHandler);
+        autoUpdater.on('error', errorHandler);
+
+        this.updateStatus = { ...this.updateStatus, state: UpdateState.Downloading };
+        this.pushUpdateStatus();
+
+        autoUpdater.downloadUpdate(this.updateCancellationToken).catch((err) => {
+          cleanup();
+          onError(err);
+        });
       },
     };
   }
