@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Modal as BsModal, Button, Tab, Tabs } from 'react-bootstrap';
+import React, { useCallback, useState } from 'react';
+import { Modal as BsModal, Button, Nav, Tab, Tabs } from 'react-bootstrap';
 import styled from 'styled-components';
 import { useSettingsStore, useUiStore } from '../../stores';
 import { Icon } from '@light-git/core';
@@ -13,9 +13,17 @@ const SettingsContainer = styled.div`
   min-height: 400px;
 `;
 
+const TopNav = styled(Nav)`
+  margin-bottom: 1rem;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  padding-bottom: 0.75rem;
+`;
+
 const TabContent = styled.div`
   padding: 1rem 0;
 `;
+
+type SettingsSection = 'global' | 'repo';
 
 export const Settings: React.FC = () => {
   const isVisible = useUiStore((state) => state.modals['settings'] || false);
@@ -24,6 +32,8 @@ export const Settings: React.FC = () => {
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const saveSettings = useSettingsStore((state) => state.saveSettings);
   const setTheme = useSettingsStore((state) => state.setTheme);
+
+  const [activeSection, setActiveSection] = useState<SettingsSection>('global');
 
   const handleClose = useCallback(() => {
     saveSettings();
@@ -47,49 +57,61 @@ export const Settings: React.FC = () => {
       </BsModal.Header>
       <BsModal.Body>
         <SettingsContainer>
-          <Tabs defaultActiveKey="general" className="mb-3">
-            <Tab eventKey="general" title="General">
-              <TabContent>
-                <GeneralSettings
-                  settings={settings}
-                  onChange={handleSettingChange}
-                  onThemeChange={setTheme}
-                />
-              </TabContent>
-            </Tab>
-            <Tab eventKey="codeWatchers" title="Code Watchers">
-              <TabContent>
-                <CodeWatcherSettings
-                  settings={settings}
-                  onChange={handleSettingChange}
-                />
-              </TabContent>
-            </Tab>
-            <Tab eventKey="shortcuts" title="Config Shortcuts">
-              <TabContent>
-                <ConfigShortcutsSettings
-                  settings={settings}
-                  onChange={handleSettingChange}
-                />
-              </TabContent>
-            </Tab>
-            <Tab eventKey="autocomplete" title="Autocomplete Phrases">
-              <TabContent>
-                <AutocompletePhrasesSettings
-                  settings={settings}
-                  onChange={handleSettingChange}
-                />
-              </TabContent>
-            </Tab>
-            <Tab eventKey="git" title="Git Config">
-              <TabContent>
-                <GitConfigSettings
-                  settings={settings}
-                  onChange={handleSettingChange}
-                />
-              </TabContent>
-            </Tab>
-          </Tabs>
+          <TopNav variant="pills" activeKey={activeSection} onSelect={(k) => setActiveSection(k as SettingsSection)}>
+            <Nav.Item>
+              <Nav.Link eventKey="global">Global Settings</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey="repo">Repo Settings</Nav.Link>
+            </Nav.Item>
+          </TopNav>
+
+          {activeSection === 'global' && (
+            <Tabs defaultActiveKey="general" className="mb-3">
+              <Tab eventKey="general" title="General">
+                <TabContent>
+                  <GeneralSettings
+                    settings={settings}
+                    onChange={handleSettingChange}
+                    onThemeChange={setTheme}
+                  />
+                </TabContent>
+              </Tab>
+              <Tab eventKey="codeWatchers" title="Code Watchers">
+                <TabContent>
+                  <CodeWatcherSettings
+                    settings={settings}
+                    onChange={handleSettingChange}
+                  />
+                </TabContent>
+              </Tab>
+              <Tab eventKey="autocomplete" title="Autocomplete Phrases">
+                <TabContent>
+                  <AutocompletePhrasesSettings
+                    settings={settings}
+                    onChange={handleSettingChange}
+                  />
+                </TabContent>
+              </Tab>
+              <Tab eventKey="git" title="Git Config">
+                <TabContent>
+                  <GitConfigSettings
+                    settings={settings}
+                    onChange={handleSettingChange}
+                  />
+                </TabContent>
+              </Tab>
+            </Tabs>
+          )}
+
+          {activeSection === 'repo' && (
+            <TabContent>
+              <ConfigShortcutsSettings
+                settings={settings}
+                onChange={handleSettingChange}
+              />
+            </TabContent>
+          )}
         </SettingsContainer>
       </BsModal.Body>
       <BsModal.Footer>
