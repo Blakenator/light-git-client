@@ -1,6 +1,8 @@
 // Channels & API Types
 export * from './Channels';
 export * from './api-types';
+export { UpdateState } from './api-types';
+export type { UpdateStatusInfo, UpdateDownloadProgress } from './api-types';
 
 // Models
 export * from './SettingsModel';

@@ -1,6 +1,6 @@
 {
   "name": "light-git-client",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "description": "A light git client",
   "author": {
     "name": "Blake Stacks",
@@ -14,7 +14,7 @@
   "private": true,
   "packageManager": "pnpm@10.29.2",
   "scripts": {
-    "start": "pnpm run build && concurrently -k -n dev,electron \"pnpm run dev\" \"wait-on http://localhost:4200 && cross-env VITE_DEV_SERVER_URL=http://localhost:4200 electron .\"",
+    "start": "pnpm run build && concurrently -k -n dev,electron \"pnpm run dev\" \"wait-on http://localhost:4200 && cross-env VITE_DEV_SERVER_URL=http://localhost:4200 nodemon --watch packages/backend/dist -e js --exec 'electron .'\"",
     "build": "pnpm -r --sort --filter=!@light-git/docs run build",
     "dev": "pnpm -r --parallel run dev",
     "electron:serve": "nodemon --ignore dist --ignore packages --watch packages/backend/src -e ts --exec \"pnpm --filter @light-git/backend run build && electron --inspect --remote-debugging-port=9223 .\"",

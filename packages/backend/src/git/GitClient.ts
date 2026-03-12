@@ -410,7 +410,7 @@ export class GitClient {
   fetch() {
     return this.simpleOperation(
       this.getGitPath(),
-      ['fetch', '-q', '-p'],
+      ['fetch', '-p'],
       'Fetch Remote Branches',
     );
   }
@@ -1817,7 +1817,7 @@ export class GitClient {
         stdout,
         start,
         new Date().getTime() - start.getTime(),
-        !!stderr,
+        code !== 0,
       );
       this.commandHistory = this.commandHistory
         .slice(Math.max(this.commandHistory.length - 300, 0))

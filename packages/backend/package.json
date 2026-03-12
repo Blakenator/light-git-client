@@ -5,7 +5,7 @@
   "main": "./dist/main.js",
   "scripts": {
     "build": "node esbuild.config.mjs",
-    "dev": "cp src/preload.js dist/ && tsc --watch"
+    "dev": "node esbuild.config.mjs --watch"
   },
   "dependencies": {
     "@light-git/shared": "workspace:*",

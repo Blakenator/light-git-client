@@ -85,12 +85,12 @@ export function useBranchActions(repoPath: string) {
   }, [showModal]);
 
   const handleRebase = useCallback((branch: any) => {
-    setActiveMergeInfo({ sourceBranch: branch, isRebase: true });
+    setActiveMergeInfo({ targetBranch: branch, isRebase: true });
     showModal('mergeBranch');
   }, [showModal]);
 
   const handleInteractiveRebase = useCallback((branch: any) => {
-    setActiveMergeInfo({ sourceBranch: branch, isRebase: true, isInteractive: true });
+    setActiveMergeInfo({ targetBranch: branch, isRebase: true, isInteractive: true });
     showModal('mergeBranch');
   }, [showModal]);
 
