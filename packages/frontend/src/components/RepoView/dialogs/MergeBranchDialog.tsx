@@ -144,8 +144,9 @@ export const MergeBranchDialog: React.FC<MergeBranchDialogProps> = ({
   // Reset state when modal opens
   useEffect(() => {
     if (isVisible) {
-      setSourceBranch(activeMergeInfo?.sourceBranch?.name || '');
-      setTargetBranch(activeMergeInfo?.targetBranch?.name || localBranches.find(b => b.isCurrentBranch)?.name || '');
+      const currentBranchName = localBranches.find(b => b.isCurrentBranch)?.name || '';
+      setSourceBranch(activeMergeInfo?.sourceBranch?.name || currentBranchName);
+      setTargetBranch(activeMergeInfo?.targetBranch?.name || currentBranchName);
       setIsRebase(activeMergeInfo?.isRebase || false);
       setIsInteractive(activeMergeInfo?.isInteractive || false);
       setSourceFilter('');

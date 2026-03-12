@@ -336,8 +336,8 @@ export function useGitService(repoPath: string) {
     [runJob, createJobConfig],
   );
 
-  const fetch = useCallback(
-    (prune = false) => {
+  const doFetch = useCallback(
+    (prune = true) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
@@ -777,6 +777,10 @@ export function useGitService(repoPath: string) {
 
   // Composite operations
   const refreshAll = useCallback(async (activeBranchNames?: string[]) => {
+    // Fetch from remote first (with prune) so deleted branches are cleaned up
+    // before we read the branch lists.
+    await doFetch().catch(() => {});
+
     const [
       changes,
       localBranchesResult,
@@ -805,6 +809,7 @@ export function useGitService(repoPath: string) {
       commitHistory: commitHistoryResult,
     };
   }, [
+    doFetch,
     getFileChanges,
     getLocalBranches,
     getRemoteBranches,
@@ -840,7 +845,7 @@ export function useGitService(repoPath: string) {
       checkout,
       push,
       pull,
-      fetch,
+      fetch: doFetch,
       mergeBranch,
       rebaseBranch,
       createBranch,
@@ -894,7 +899,7 @@ export function useGitService(repoPath: string) {
       checkout,
       push,
       pull,
-      fetch,
+      doFetch,
       mergeBranch,
       rebaseBranch,
       createBranch,
