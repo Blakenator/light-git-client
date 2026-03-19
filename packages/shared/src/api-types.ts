@@ -168,7 +168,7 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
     result: void;
   };
   [SYNC_CHANNELS.CreateBranch]: {
-    props: { repoPath: string; branchName: string };
+    props: { repoPath: string; branchName: string; startPoint?: string };
     result: void;
   };
   [SYNC_CHANNELS.DeleteBranch]: {
@@ -177,6 +177,10 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
   };
   [SYNC_CHANNELS.RenameBranch]: {
     props: { repoPath: string; oldName: string; newName: string };
+    result: void;
+  };
+  [SYNC_CHANNELS.SetUpstreamBranch]: {
+    props: { repoPath: string; localBranch: string; remoteBranch?: string };
     result: void;
   };
   [SYNC_CHANNELS.FastForwardBranch]: {

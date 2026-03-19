@@ -8,6 +8,7 @@ import { CodeWatcherSettings } from './tabs/CodeWatcherSettings';
 import { GitConfigSettings } from './tabs/GitConfigSettings';
 import { ConfigShortcutsSettings } from './tabs/ConfigShortcutsSettings';
 import { AutocompletePhrasesSettings } from './tabs/AutocompletePhrasesSettings';
+import { PushLockSettings } from './tabs/PushLockSettings';
 
 const SettingsContainer = styled.div`
   min-height: 400px;
@@ -105,12 +106,21 @@ export const Settings: React.FC = () => {
           )}
 
           {activeSection === 'repo' && (
-            <TabContent>
-              <ConfigShortcutsSettings
-                settings={settings}
-                onChange={handleSettingChange}
-              />
-            </TabContent>
+            <Tabs defaultActiveKey="config" className="mb-3">
+              <Tab eventKey="config" title="Config Shortcuts">
+                <TabContent>
+                  <ConfigShortcutsSettings
+                    settings={settings}
+                    onChange={handleSettingChange}
+                  />
+                </TabContent>
+              </Tab>
+              <Tab eventKey="pushLock" title="Push Lock">
+                <TabContent>
+                  <PushLockSettings />
+                </TabContent>
+              </Tab>
+            </Tabs>
           )}
         </SettingsContainer>
       </BsModal.Body>

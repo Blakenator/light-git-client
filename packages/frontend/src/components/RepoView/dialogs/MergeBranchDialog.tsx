@@ -3,6 +3,14 @@ import { Modal, Button, Form, ButtonGroup, Alert, Badge } from 'react-bootstrap'
 import styled from 'styled-components';
 import { useUiStore } from '../../../stores';
 import { Icon } from '@light-git/core';
+import {
+  BranchFilter,
+  BranchList,
+  BranchOption,
+  BranchName,
+  BranchSection,
+  SectionHeader,
+} from './BranchSelect.styles';
 
 const BranchSelectGroup = styled.div`
   display: flex;
@@ -28,66 +36,9 @@ const SwapButton = styled(Button)`
   flex-shrink: 0;
 `;
 
-const BranchFilter = styled(Form.Control)`
-  margin-bottom: 0.5rem;
-`;
-
-const BranchList = styled.div`
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius};
-`;
-
-const BranchOption = styled.div<{ $selected?: boolean; $current?: boolean }>`
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: ${({ $selected, theme }) =>
-    $selected ? theme.colors.primary : 'transparent'};
-  color: ${({ $selected }) => ($selected ? 'white' : 'inherit')};
-
-  &:hover {
-    background-color: ${({ $selected, theme }) =>
-      $selected ? theme.colors.primary : theme.colors.light};
-  }
-
-  ${({ $current }) =>
-    $current &&
-    `
-    font-weight: 600;
-  `}
-`;
-
-const BranchName = styled.span`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-`;
-
 const BranchColumn = styled.div`
   flex: 1 1 0;
   min-width: 0;
-`;
-
-const BranchSection = styled.div`
-  margin-bottom: 0.25rem;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const SectionHeader = styled.div`
-  padding: 0.375rem 0.75rem;
-  background-color: ${({ theme }) => theme.colors.light};
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.colors.secondary};
 `;
 
 interface BranchModel {

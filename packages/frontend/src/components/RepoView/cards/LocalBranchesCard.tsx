@@ -6,7 +6,7 @@ import { CardHeaderContent, CardFilterInput, CardHeaderButtons } from '../RepoVi
 import { BranchTreeItem } from '../../BranchTreeItem/BranchTreeItem';
 import { ConfirmModal } from '../../../common/components/ConfirmModal/ConfirmModal';
 import { InputModal } from '../../../common/components/InputModal/InputModal';
-import { PruneBranchDialog, MergeBranchDialog } from '../dialogs';
+import { PruneBranchDialog, MergeBranchDialog, CreateBranchDialog, ChangeRemoteDialog } from '../dialogs';
 import { useRepositoryStore, useSettingsStore } from '../../../stores';
 import { useBranchActions } from '../hooks';
 import type { BranchModel } from '@light-git/shared';
@@ -28,6 +28,8 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
   const stagedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.changes?.stagedChanges) ?? _EMPTY_ARR;
   const unstagedChanges = useRepositoryStore((state) => state.repoCache[repoPath]?.changes?.unstagedChanges) ?? _EMPTY_ARR;
   const branchNamePrefix = useSettingsStore((state) => state.settings.branchNamePrefix);
+  const pushLockedBranches = useSettingsStore((state) => state.settings.pushLockBranches?.[repoPath] ?? []);
+  const togglePushLockBranch = useSettingsStore((state) => state.togglePushLockBranch);
 
   const {
     activeMergeInfo,
@@ -50,6 +52,11 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
     handleCreateBranchSubmit,
     handleFastForward,
     handleBranchPremerge,
+    handleChangeRemote,
+    handleChangeRemoteSubmit,
+    handleMatchNameUpstream,
+    handleUnsetUpstream,
+    changeRemoteBranch,
   } = useBranchActions(repoPath);
 
   const currentBranch = useMemo(
@@ -67,8 +74,12 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
     [branches, handleCheckout]
   );
 
+  const handleTogglePushLock = useCallback((branch: any) => {
+    if (!branch.trackingPath) return;
+    togglePushLockBranch(repoPath, branch.trackingPath);
+  }, [repoPath, togglePushLockBranch]);
+
   const handleCopyBranchName = useCallback((branch: any) => {}, []);
-  const handlePrependClear = useCallback(() => {}, []);
   const noop = useCallback(() => {}, []);
 
   const headerContent = (
@@ -167,6 +178,9 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
             onBranchRename={(branch) => handleRenameBranch(branch as any)}
             onCopyBranchName={handleCopyBranchName}
             onViewChanges={(branch) => handleBranchPremerge(branch as any)}
+            pushLockedBranches={pushLockedBranches}
+            onTogglePushLock={handleTogglePushLock}
+            onChangeRemote={(branch) => handleChangeRemote(branch as any)}
           />
           {branches.length === 0 && (
             <div className="text-muted text-center py-2">No local branches found</div>
@@ -175,18 +189,10 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
       </LayoutCard>
 
       {/* Branch-related modals */}
-      <InputModal
-        modalId="createBranch"
-        title="Create Branch"
-        message="Create branch off current HEAD"
-        placeholder="Branch name..."
-        validPattern="[a-zA-Z0-9/._-]*[a-zA-Z0-9._-]"
-        invalidMessage="Please enter a valid branch name"
-        inputPrepend={branchNamePrefix}
-        showPrependClearButton={!!branchNamePrefix}
-        replaceChars={{ '\\s': '-' }}
-        onOk={handleCreateBranchSubmit}
-        onPrependClear={handlePrependClear}
+      <CreateBranchDialog
+        localBranches={branches}
+        branchNamePrefix={branchNamePrefix}
+        onSubmit={handleCreateBranchSubmit}
       />
 
       <PruneBranchDialog
@@ -201,6 +207,14 @@ export const LocalBranchesCard: React.FC<LocalBranchesCardProps> = React.memo(({
         hasUncommittedChanges={(stagedChanges.length || 0) + (unstagedChanges.length || 0) > 0}
         onMerge={handleMergeBranchSubmit}
         onCancel={noop}
+      />
+
+      <ChangeRemoteDialog
+        remoteBranches={remoteBranches}
+        targetBranch={changeRemoteBranch}
+        onSubmit={handleChangeRemoteSubmit}
+        onMatchName={handleMatchNameUpstream}
+        onUnset={handleUnsetUpstream}
       />
 
       <ConfirmModal

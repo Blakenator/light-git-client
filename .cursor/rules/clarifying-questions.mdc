@@ -1,0 +1,45 @@
+---
+description: Require clarifying questions before starting work or completing plans
+globs:
+alwaysApply: true
+---
+
+# Clarifying Questions Before Work
+
+Created By: Blake Stacks
+Last Edited: March 19, 2026
+
+## Rule
+
+Before starting implementation (Agent mode) or finalizing a plan (Plan mode), the agent MUST ask at least 3 clarifying questions about the work to be completed. Use the `AskQuestion` tool to present questions in a structured multiple-choice format when applicable. Fall back to inline text questions only when multiple-choice options don't make sense.
+
+## When This Applies
+
+- **Agent mode**: Before writing any code or making changes for a new feature or task
+- **Plan mode**: Before presenting the final plan
+
+## When This Does NOT Apply
+
+- Follow-up messages where the user has already answered clarifying questions
+- Simple, mechanically unambiguous tasks (e.g., "rename variable X to Y", "fix this typo")
+- Executing a pre-approved plan
+
+Note: Even when the user provides detailed requirements upfront, there are always assumptions worth validating. Do NOT skip clarifying questions just because the request seems thorough.
+
+## Question Quality Guidelines
+
+Questions should focus on genuinely reducing uncertainty. Tailor questions to this codebase's architecture (Electron main/renderer, IPC layer, Zustand stores, shared types).
+
+| Category | Example |
+| --- | --- |
+| **Scope** | "Should this change apply to both the backend GitClient and the frontend hook, or just one side?" |
+| **IPC boundary** | "Does this need a new IPC channel in api-types, or can it reuse an existing one?" |
+| **Store design** | "Should this state live in `repoViewStore` (shared across cards) or local `useState`?" |
+| **Component ownership** | "Should the modal live inside the card that triggers it, or be lifted to RepoView?" |
+| **Shared types** | "Do we need to add/update a model in `packages/shared` for this?" |
+| **Existing patterns** | "I see pattern X in the codebase -- should I follow it or deviate?" |
+| **Ambiguity** | "When you say Y, do you mean A or B?" |
+| **Testing** | "Should I add backend tests in `testing/` for this?" |
+| **Platform** | "Does this need to work across all platforms, or is it OS-specific?" |
+
+Avoid filler questions that don't genuinely reduce uncertainty.

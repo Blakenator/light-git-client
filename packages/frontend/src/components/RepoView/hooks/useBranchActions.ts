@@ -8,6 +8,7 @@ import {
   getIpcErrorMessage,
 } from '../../../utils/warningDetectors';
 import { normalizeDiff } from './useDiffActions';
+import { isBranchPushLocked } from '../../../utils/pushLock';
 
 export interface MergeInfo {
   sourceBranch?: any;
@@ -31,6 +32,7 @@ export function useBranchActions(repoPath: string) {
   const [activeMergeInfo, setActiveMergeInfo] = useState<MergeInfo | null>(null);
   const [branchToDelete, setBranchToDelete] = useState<any>(null);
   const [branchToRename, setBranchToRename] = useState<any>(null);
+  const [changeRemoteBranch, setChangeRemoteBranch] = useState<any>(null);
 
   const handleCheckout = useCallback(async (branch: any, andPull: boolean) => {
     try {
@@ -47,6 +49,10 @@ export function useBranchActions(repoPath: string) {
   }, [gitService, addAlert]);
 
   const handlePush = useCallback(async (branch: any, force: boolean) => {
+    if (isBranchPushLocked(repoPath, branch?.trackingPath)) {
+      addAlert(`Push blocked: branch "${branch.name}" is push-locked for this repo`, 'warning');
+      return;
+    }
     try {
       await gitService.push(branch, force);
       addAlert('Push successful', 'success');
@@ -59,7 +65,7 @@ export function useBranchActions(repoPath: string) {
         addAlert(`Push failed: ${errorMsg}`, 'error');
       }
     }
-  }, [gitService, addAlert]);
+  }, [gitService, addAlert, repoPath]);
 
   const handlePull = useCallback(async (branch: any, force: boolean) => {
     try {
@@ -175,14 +181,16 @@ export function useBranchActions(repoPath: string) {
     setBranchToRename(null);
   }, [gitService, addAlert, branchToRename]);
 
-  const handleCreateBranchSubmit = useCallback(async (branchName: string) => {
+  const handleCreateBranchSubmit = useCallback(async (branchName: string, sourceBranch?: string) => {
     try {
-      await gitService.createBranch(branchName);
+      const currentBranch = getRepoCache(repoPath)?.localBranches?.find((b: any) => b.isCurrentBranch);
+      const startPoint = sourceBranch && sourceBranch !== currentBranch?.name ? sourceBranch : undefined;
+      await gitService.createBranch(branchName, startPoint);
       addAlert(`Created branch ${branchName}`, 'success');
     } catch (error: any) {
       addAlert(`Create branch failed: ${getIpcErrorMessage(error)}`, 'error');
     }
-  }, [gitService, addAlert]);
+  }, [gitService, addAlert, repoPath]);
 
   const handleFastForward = useCallback(async (branch: any) => {
     try {
@@ -227,11 +235,54 @@ export function useBranchActions(repoPath: string) {
     }
   }, [gitService, addAlert, repoPath]);
 
+  const handleChangeRemote = useCallback((branch: any) => {
+    setChangeRemoteBranch(branch);
+    showModal('changeRemote');
+  }, [showModal]);
+
+  const handleChangeRemoteSubmit = useCallback(async (remoteBranch: string) => {
+    if (!changeRemoteBranch) return;
+    try {
+      await gitService.setUpstreamBranch(changeRemoteBranch.name, remoteBranch);
+      addAlert(`Upstream for ${changeRemoteBranch.name} set to ${remoteBranch}`, 'success');
+    } catch (error: any) {
+      addAlert(`Change remote failed: ${getIpcErrorMessage(error)}`, 'error');
+    }
+  }, [gitService, addAlert, changeRemoteBranch]);
+
+  const handleMatchNameUpstream = useCallback(async () => {
+    if (!changeRemoteBranch) return;
+    const target = `origin/${changeRemoteBranch.name}`;
+    const remoteBranches = getRepoCache(repoPath)?.remoteBranches ?? [];
+    const exists = remoteBranches.some((b: any) => b.name === target);
+    try {
+      if (exists) {
+        await gitService.setUpstreamBranch(changeRemoteBranch.name, target);
+      } else {
+        await gitService.push({ ...changeRemoteBranch, trackingPath: '' }, false);
+      }
+      addAlert(`Upstream for ${changeRemoteBranch.name} set to ${target}`, 'success');
+    } catch (error: any) {
+      addAlert(`Change remote failed: ${getIpcErrorMessage(error)}`, 'error');
+    }
+  }, [gitService, addAlert, changeRemoteBranch, repoPath]);
+
+  const handleUnsetUpstream = useCallback(async () => {
+    if (!changeRemoteBranch) return;
+    try {
+      await gitService.setUpstreamBranch(changeRemoteBranch.name);
+      addAlert(`Upstream removed for ${changeRemoteBranch.name}`, 'success');
+    } catch (error: any) {
+      addAlert(`Unset upstream failed: ${getIpcErrorMessage(error)}`, 'error');
+    }
+  }, [gitService, addAlert, changeRemoteBranch]);
+
   return {
     // Modal state
     activeMergeInfo,
     branchToDelete,
     branchToRename,
+    changeRemoteBranch,
     // Branch handlers
     handleCheckout,
     handlePush,
@@ -251,5 +302,9 @@ export function useBranchActions(repoPath: string) {
     handleFastForward,
     handleRemoteCheckout,
     handleBranchPremerge,
+    handleChangeRemote,
+    handleChangeRemoteSubmit,
+    handleMatchNameUpstream,
+    handleUnsetUpstream,
   };
 }

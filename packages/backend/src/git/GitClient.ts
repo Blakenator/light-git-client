@@ -423,10 +423,27 @@ export class GitClient {
     );
   }
 
-  createBranch(branchName: string) {
+  setUpstreamBranch(localBranch: string, remoteBranch?: string) {
+    if (remoteBranch) {
+      return this.simpleOperation(
+        this.getGitPath(),
+        ['branch', '--set-upstream-to=' + remoteBranch, localBranch],
+        'Set Upstream Branch',
+      );
+    }
     return this.simpleOperation(
       this.getGitPath(),
-      ['checkout', '-q', '-b', branchName],
+      ['branch', '--unset-upstream', localBranch],
+      'Unset Upstream Branch',
+    );
+  }
+
+  createBranch(branchName: string, startPoint?: string) {
+    const args = ['checkout', '-q', '-b', branchName];
+    if (startPoint) args.push(startPoint);
+    return this.simpleOperation(
+      this.getGitPath(),
+      args,
       'Create Branch',
     );
   }

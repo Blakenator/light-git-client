@@ -6,6 +6,7 @@ import {
   detectSubmoduleCheckout,
   getIpcErrorMessage,
 } from '../../../utils/warningDetectors';
+import { isBranchPushLocked } from '../../../utils/pushLock';
 
 /**
  * Hook providing title bar actions: push/pull current branch, refresh, discard, terminal, folder.
@@ -26,6 +27,10 @@ export function useRepoTitleActions(
   );
 
   const handlePush = useCallback(async (branch: any, force: boolean) => {
+    if (isBranchPushLocked(repoPath, branch?.trackingPath)) {
+      addAlert(`Push blocked: branch "${branch.name}" is push-locked for this repo`, 'warning');
+      return;
+    }
     try {
       await gitService.push(branch, force);
       addAlert('Push successful', 'success');
@@ -38,7 +43,7 @@ export function useRepoTitleActions(
         addAlert(`Push failed: ${errorMsg}`, 'error');
       }
     }
-  }, [gitService, addAlert]);
+  }, [gitService, addAlert, repoPath]);
 
   const handlePull = useCallback(async (branch: any, force: boolean) => {
     try {
