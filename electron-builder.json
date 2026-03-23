@@ -22,7 +22,7 @@
   ],
   "win": {
     "icon": "dist",
-    "target": ["nsis", "portable", "7z", "zip"]
+    "target": ["nsis", "portable", "7z"]
   },
   "portable": {
     "artifactName": "light-git-${version}-portable.${ext}"

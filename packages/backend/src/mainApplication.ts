@@ -251,7 +251,7 @@ export class MainApplication extends GenericApplication {
     app.setAsDefaultProtocolClient('light-git');
 
     autoUpdater.autoDownload = false;
-    autoUpdater.forceDevUpdateConfig = true;
+    autoUpdater.forceDevUpdateConfig = !app.isPackaged;
 
     autoUpdater.on('update-not-available', () => {
       this.updateStatus = { state: UpdateState.NotAvailable };
