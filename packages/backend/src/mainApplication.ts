@@ -447,13 +447,16 @@ export class MainApplication extends GenericApplication {
         await this.gitClients[args.repoPath].hardReset();
       },
       [SYNC_CHANNELS.CreateBranch]: async ({ args }) => {
-        await this.gitClients[args.repoPath].createBranch(args.branchName);
+        await this.gitClients[args.repoPath].createBranch(args.branchName, args.startPoint);
       },
       [SYNC_CHANNELS.DeleteBranch]: async ({ args }) => {
         await this.gitClients[args.repoPath].deleteBranch(args.branches);
       },
       [SYNC_CHANNELS.RenameBranch]: async ({ args }) => {
         await this.gitClients[args.repoPath].renameBranch(args.oldName, args.newName);
+      },
+      [SYNC_CHANNELS.SetUpstreamBranch]: async ({ args }) => {
+        await this.gitClients[args.repoPath].setUpstreamBranch(args.localBranch, args.remoteBranch);
       },
       [SYNC_CHANNELS.FastForwardBranch]: async ({ args }) => {
         await this.gitClients[args.repoPath].fastForward(args.branch);

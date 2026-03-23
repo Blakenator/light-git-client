@@ -384,12 +384,12 @@ export function useGitService(repoPath: string) {
   );
 
   const createBranch = useCallback(
-    (branchName: string) => {
+    (branchName: string, startPoint?: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
           SYNC_CHANNELS.CreateBranch,
-          () => invokeSync(SYNC_CHANNELS.CreateBranch, { repoPath: rp, branchName }),
+          () => invokeSync(SYNC_CHANNELS.CreateBranch, { repoPath: rp, branchName, startPoint }),
           [RepoArea.LOCAL_BRANCHES],
         ),
       );
@@ -424,6 +424,25 @@ export function useGitService(repoPath: string) {
               newName,
             }),
           [RepoArea.LOCAL_BRANCHES],
+        ),
+      );
+    },
+    [runJob, createJobConfig],
+  );
+
+  const setUpstreamBranch = useCallback(
+    (localBranch: string, remoteBranch?: string) => {
+      const rp = repoPathRef.current;
+      return runJob(
+        createJobConfig(
+          SYNC_CHANNELS.SetUpstreamBranch,
+          () =>
+            invokeSync(SYNC_CHANNELS.SetUpstreamBranch, {
+              repoPath: rp,
+              localBranch,
+              remoteBranch,
+            }),
+          [RepoArea.LOCAL_BRANCHES, RepoArea.REMOTE_BRANCHES],
         ),
       );
     },
@@ -851,6 +870,7 @@ export function useGitService(repoPath: string) {
       createBranch,
       deleteBranch,
       renameBranch,
+      setUpstreamBranch,
       fastForward,
       hardReset,
       undoFileChanges,
@@ -905,6 +925,7 @@ export function useGitService(repoPath: string) {
       createBranch,
       deleteBranch,
       renameBranch,
+      setUpstreamBranch,
       fastForward,
       hardReset,
       undoFileChanges,

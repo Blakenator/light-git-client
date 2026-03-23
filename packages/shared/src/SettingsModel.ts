@@ -67,6 +67,7 @@ export class SettingsModel {
       };
     };
   };
+  public pushLockBranches: { [repoPath: string]: string[] };
 
   constructor(
     darkMode: boolean = false,
@@ -98,6 +99,7 @@ export class SettingsModel {
         [cardId: string]: { visible: boolean; order: number; column: number };
       };
     } = {},
+    pushLockBranches: { [repoPath: string]: string[] } = {},
   ) {
     this.darkMode = darkMode;
     this.openRepos = openRepos;
@@ -124,6 +126,7 @@ export class SettingsModel {
     this.branchNamePrefix = branchNamePrefix;
     this.autocompletePhrases = autocompletePhrases;
     this.sectionLayouts = sectionLayouts;
+    this.pushLockBranches = pushLockBranches;
   }
 
   static sanitizePath(path) {
@@ -160,6 +163,7 @@ export class SettingsModel {
     res.branchNamePrefix = this.branchNamePrefix;
     res.autocompletePhrases = (this.autocompletePhrases || []).map((p) => ({ ...p }));
     res.sectionLayouts = JSON.parse(JSON.stringify(this.sectionLayouts || {}));
+    res.pushLockBranches = JSON.parse(JSON.stringify(this.pushLockBranches || {}));
     return res;
   }
 }

@@ -55,6 +55,7 @@ const defaultSettings: SettingsModel = {
   autocompletePhrases: [],
   configShortcuts: [],
   sectionLayouts: {},
+  pushLockBranches: {},
 };
 
 interface SettingsState {
@@ -71,6 +72,8 @@ interface SettingsActions {
   setTheme: (dark: boolean) => void;
   getSectionLayout: (repoPath: string) => RepoSectionLayout | undefined;
   setSectionLayout: (repoPath: string, layout: RepoSectionLayout) => void;
+  getPushLockedBranches: (repoPath: string) => string[];
+  togglePushLockBranch: (repoPath: string, branchName: string) => void;
 }
 
 export const useSettingsStore = create<SettingsState & SettingsActions>((set, get) => ({
@@ -149,6 +152,29 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
         },
       },
     }));
+    get().saveSettings();
+  },
+
+  getPushLockedBranches: (repoPath) => {
+    return get().settings.pushLockBranches?.[repoPath] ?? [];
+  },
+
+  togglePushLockBranch: (repoPath, branchName) => {
+    set((state) => {
+      const current = state.settings.pushLockBranches?.[repoPath] ?? [];
+      const updated = current.includes(branchName)
+        ? current.filter((b) => b !== branchName)
+        : [...current, branchName];
+      return {
+        settings: {
+          ...state.settings,
+          pushLockBranches: {
+            ...state.settings.pushLockBranches,
+            [repoPath]: updated,
+          },
+        },
+      };
+    });
     get().saveSettings();
   },
 }));

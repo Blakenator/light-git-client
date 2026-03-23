@@ -116,6 +116,11 @@ const WorktreeIndicator = styled.span`
   margin-left: 0.25rem;
 `;
 
+const PushLockIndicator = styled.span`
+  color: ${({ theme }) => theme.colors.warning};
+  margin-left: 0.25rem;
+`;
+
 const ExpandButton = styled.button<{ $visible: boolean }>`
   background: none;
   border: none;
@@ -181,6 +186,9 @@ interface BranchTreeItemProps {
   onBranchRename?: (branch: BranchModel) => void;
   onCopyBranchName?: (branch: BranchModel) => void;
   onViewChanges?: (branch: BranchModel) => void;
+  pushLockedBranches?: string[];
+  onTogglePushLock?: (branch: BranchModel) => void;
+  onChangeRemote?: (branch: BranchModel) => void;
 }
 
 interface TreeNodeData {
@@ -208,6 +216,9 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
   onBranchRename,
   onCopyBranchName,
   onViewChanges,
+  pushLockedBranches = [],
+  onTogglePushLock,
+  onChangeRemote,
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<{
     [key: string]: boolean;
@@ -339,6 +350,18 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
               <WorktreeIndicator>
                 <Icon name="fa-lock" size="sm" />
               </WorktreeIndicator>
+            </TooltipTrigger>
+          )}
+          {/* Push lock indicator */}
+          {branch.trackingPath && pushLockedBranches.includes(branch.trackingPath) && (
+            <TooltipTrigger
+              placement="top"
+              tooltip="Push-locked: pushes to this branch are blocked"
+              tooltipId={`tooltip-push-lock-${branch.name}`}
+            >
+              <PushLockIndicator>
+                <Icon name="fa-arrow-down-up-lock" size="sm" />
+              </PushLockIndicator>
             </TooltipTrigger>
           )}
           {/* Tracking path display */}
@@ -591,6 +614,25 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
                 <Dropdown.Item onClick={() => onPushClicked(branch, true)}>
                   <Icon name="fa-shield-alt" /> Force Push
                 </Dropdown.Item>
+                {onTogglePushLock && branch.trackingPath && (
+                  <Dropdown.Item
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTogglePushLock(branch);
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35em' }}
+                  >
+                    <Icon name="fa-lock" /> Lock Branch Pushes
+                    {pushLockedBranches.includes(branch.trackingPath) && (
+                      <Icon name="fa-check" className="ms-auto text-success" />
+                    )}
+                  </Dropdown.Item>
+                )}
+                {onChangeRemote && (
+                  <Dropdown.Item onClick={() => onChangeRemote(branch)}>
+                    <Icon name="fa-exchange-alt" /> Change Remote
+                  </Dropdown.Item>
+                )}
               </Dropdown.Menu>
             </Dropdown>
           )}

@@ -1,7 +1,10 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Form, Button, ListGroup, InputGroup, Badge, Row, Col, Alert, Dropdown, Tooltip } from 'react-bootstrap';
 import styled from 'styled-components';
 import { Icon, TooltipTrigger } from '@light-git/core';
+import { SYNC_CHANNELS, type ConfigItemModel } from '@light-git/shared';
+import { invokeSync } from '../../../ipc/invokeSync';
+import { useRepositoryStore } from '../../../stores';
 
 const MERGETOOL_PRESETS = [
   { name: 'vscode', label: 'VS Code', cmd: 'code --wait --merge $REMOTE $LOCAL $BASE $MERGED' },
@@ -142,6 +145,43 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
   const [mergetoolCommand, setMergetoolCommand] = useState(settings.mergetoolCommand || '');
   const [setGlobalDefaultUserConfig, setSetGlobalDefaultUserConfig] = useState(false);
   const [setGlobalDefaultMergetoolConfig, setSetGlobalDefaultMergetoolConfig] = useState(false);
+  const [originUrl, setOriginUrl] = useState('');
+  const [originUrlSourceFile, setOriginUrlSourceFile] = useState('');
+  const [originUrlSaving, setOriginUrlSaving] = useState(false);
+
+  const getActiveTab = useRepositoryStore((state) => state.getActiveTab);
+
+  useEffect(() => {
+    const activeTab = getActiveTab();
+    if (activeTab?.path) {
+      invokeSync(SYNC_CHANNELS.GetConfigItems, { repoPath: activeTab.path })
+        .then((items) => {
+          const originItem = items.find((i: ConfigItemModel) => i.key === 'remote.origin.url');
+          if (originItem) {
+            setOriginUrl(originItem.value);
+            setOriginUrlSourceFile(originItem.sourceFile);
+          }
+        })
+        .catch((err) => console.error('Failed to load origin URL:', err));
+    }
+  }, [getActiveTab]);
+
+  const handleOriginUrlSave = useCallback(() => {
+    const activeTab = getActiveTab();
+    if (!activeTab?.path) return;
+    setOriginUrlSaving(true);
+    const item: ConfigItemModel = {
+      key: 'remote.origin.url',
+      value: originUrl,
+      sourceFile: originUrlSourceFile,
+    };
+    invokeSync(SYNC_CHANNELS.SetConfigItem, { repoPath: activeTab.path, item })
+      .then(() => setOriginUrlSaving(false))
+      .catch((err) => {
+        console.error('Failed to save origin URL:', err);
+        setOriginUrlSaving(false);
+      });
+  }, [getActiveTab, originUrl, originUrlSourceFile]);
 
   const handleCredentialHelperChange = useCallback(
     (value: string) => {
@@ -239,57 +279,59 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
     <ShortcutsContainer>
       <FormSection>
         <SectionTitle>User Config</SectionTitle>
+        <Form.Group className="mb-3">
+          <Form.Label>Display Name</Form.Label>
+          <Form.Control
+            type="text"
+            value={settings.username || ''}
+            onChange={(e) => onChange('username', e.target.value)}
+            placeholder="Your name"
+          />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Display Email</Form.Label>
+          <Form.Control
+            type="email"
+            value={settings.email || ''}
+            onChange={(e) => onChange('email', e.target.value)}
+            placeholder="your@email.com"
+          />
+        </Form.Group>
+        <Form.Check
+          type="switch"
+          id="setting-globalDefaultUserConfig"
+          label="Set as Global Defaults"
+          checked={setGlobalDefaultUserConfig}
+          onChange={(e) => setSetGlobalDefaultUserConfig(e.target.checked)}
+        />
+      </FormSection>
+
+      <FormSection>
+        <SectionTitle>Mergetool</SectionTitle>
+        <Form.Group className="mb-3">
+          <Form.Label>Presets</Form.Label>
+          <div>
+            <Dropdown>
+              <Dropdown.Toggle variant="outline-secondary" size="sm">
+                {MERGETOOL_PRESETS.find((p) => p.name === mergetoolName)?.label || 'Select a preset...'}
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                {MERGETOOL_PRESETS.map((preset) => (
+                  <Dropdown.Item
+                    key={preset.name}
+                    active={mergetoolName === preset.name}
+                    onClick={() => handleMergetoolPreset(preset)}
+                  >
+                    {preset.label}
+                    {'note' in preset && <PresetNote>{preset.note}</PresetNote>}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
+        </Form.Group>
         <Row>
           <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Display Name</Form.Label>
-              <Form.Control
-                type="text"
-                value={settings.username || ''}
-                onChange={(e) => onChange('username', e.target.value)}
-                placeholder="Your name"
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Display Email</Form.Label>
-              <Form.Control
-                type="email"
-                value={settings.email || ''}
-                onChange={(e) => onChange('email', e.target.value)}
-                placeholder="your@email.com"
-              />
-            </Form.Group>
-            <Form.Check
-              type="switch"
-              id="setting-globalDefaultUserConfig"
-              label="Set as Global Defaults"
-              checked={setGlobalDefaultUserConfig}
-              onChange={(e) => setSetGlobalDefaultUserConfig(e.target.checked)}
-            />
-          </Col>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Presets</Form.Label>
-              <div>
-                <Dropdown>
-                  <Dropdown.Toggle variant="outline-secondary" size="sm">
-                    {MERGETOOL_PRESETS.find((p) => p.name === mergetoolName)?.label || 'Select a preset...'}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    {MERGETOOL_PRESETS.map((preset) => (
-                      <Dropdown.Item
-                        key={preset.name}
-                        active={mergetoolName === preset.name}
-                        onClick={() => handleMergetoolPreset(preset)}
-                      >
-                        {preset.label}
-                        {'note' in preset && <PresetNote>{preset.note}</PresetNote>}
-                      </Dropdown.Item>
-                    ))}
-                  </Dropdown.Menu>
-                </Dropdown>
-              </div>
-            </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Mergetool Name</Form.Label>
               <Form.Control
@@ -299,6 +341,8 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
                 placeholder="e.g., vscode, meld"
               />
             </Form.Group>
+          </Col>
+          <Col md={6}>
             <Form.Group className="mb-3">
               <Form.Label>Mergetool Command</Form.Label>
               <Form.Text className="text-muted d-block mb-1">
@@ -311,15 +355,40 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
                 placeholder="e.g., code --wait --merge $REMOTE $LOCAL $BASE $MERGED"
               />
             </Form.Group>
-            <Form.Check
-              type="switch"
-              id="setting-globalDefaultMergetoolConfig"
-              label="Set as Global Default"
-              checked={setGlobalDefaultMergetoolConfig}
-              onChange={(e) => setSetGlobalDefaultMergetoolConfig(e.target.checked)}
-            />
           </Col>
         </Row>
+        <Form.Check
+          type="switch"
+          id="setting-globalDefaultMergetoolConfig"
+          label="Set as Global Default"
+          checked={setGlobalDefaultMergetoolConfig}
+          onChange={(e) => setSetGlobalDefaultMergetoolConfig(e.target.checked)}
+        />
+      </FormSection>
+
+      <FormSection>
+        <SectionTitle>Origin URL</SectionTitle>
+        <Form.Group className="mb-3">
+          <Form.Label>Remote Origin URL</Form.Label>
+          <InputGroup>
+            <Form.Control
+              type="text"
+              value={originUrl}
+              onChange={(e) => setOriginUrl(e.target.value)}
+              placeholder="e.g., https://github.com/user/repo.git"
+            />
+            <Button
+              variant="outline-primary"
+              onClick={handleOriginUrlSave}
+              disabled={originUrlSaving}
+            >
+              {originUrlSaving ? 'Saving...' : 'Save'}
+            </Button>
+          </InputGroup>
+          <Form.Text className="text-muted">
+            The URL for the <code>origin</code> remote of the current repository.
+          </Form.Text>
+        </Form.Group>
       </FormSection>
 
       <FormSection>

@@ -10,6 +10,7 @@ import {
 import { useCodeWatcherAnalysis } from './useCodeWatcherAnalysis';
 import type { WatcherAlert } from './useCodeWatcherAnalysis';
 import { invalidatePendingDiffFetches } from './useDiffActions';
+import { isBranchPushLocked } from '../../../utils/pushLock';
 
 /** Imperative read of repo cache (no subscription, no re-renders). */
 const getRepoCache = (repoPath: string) => useRepositoryStore.getState().repoCache[repoPath];
@@ -50,9 +51,12 @@ export function useCommitActions(repoPath: string) {
       ? getRepoCache(repoPath)?.localBranches?.find((b: any) => b.isCurrentBranch)
       : undefined;
 
+    const pushLocked = commitAndPush && currentBranch && isBranchPushLocked(repoPath, currentBranch.trackingPath);
+    const effectiveCommitAndPush = commitAndPush && !pushLocked;
+
     let succeeded = false;
     try {
-      await gitService.commit(message, amend, commitAndPush, currentBranch);
+      await gitService.commit(message, amend, effectiveCommitAndPush, currentBranch);
       succeeded = true;
     } catch (error: any) {
       const errorMsg = getIpcErrorMessage(error);
@@ -63,9 +67,7 @@ export function useCommitActions(repoPath: string) {
           showModal('preCommit');
         } else {
           succeeded = true;
-          // Pre-commit succeeded but the backend rejected due to stderr output,
-          // so the push step in the backend was skipped. Push explicitly now.
-          if (commitAndPush) {
+          if (effectiveCommitAndPush) {
             try {
               await gitService.push(currentBranch, false);
             } catch (pushError: any) {
@@ -88,6 +90,10 @@ export function useCommitActions(repoPath: string) {
           addAlert(`Commit failed: ${errorMsg}`, 'error');
         }
       }
+    }
+
+    if (pushLocked && succeeded) {
+      addAlert(`Push blocked: branch "${currentBranch.name}" is push-locked for this repo`, 'warning');
     }
 
     if (succeeded) {
