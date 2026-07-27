@@ -4,8 +4,8 @@
   "commit": false,
   "fixed": [],
   "linked": [],
-  "access": "restricted",
-  "baseBranch": "build-fixes",
+  "access": "public",
+  "baseBranch": "master",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": ["@light-git/backend", "@light-git/frontend", "@light-git/core", "@light-git/shared", "@light-git/docs"]
 }

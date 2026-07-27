@@ -30,9 +30,13 @@
     "clean": "rimraf dist packages/*/dist packages/*/node_modules node_modules",
     "docs:dev": "pnpm --filter @light-git/docs dev",
     "docs:build": "pnpm --filter @light-git/docs build",
-    "docs:screenshots": "pnpm --filter @light-git/docs test"
+    "docs:screenshots": "pnpm --filter @light-git/docs test",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.1",
     "@electron/packager": "^18.3.6",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
