@@ -161,5 +161,9 @@ export class ChangeListComponent {
       (x) => (changes[x.file] = this.selectedChanges[x.file]),
     );
     this.selectedChanges = changes;
+    // Emit the cleaned-up selection so the parent's metadata stays in sync
+    // when the file list changes (e.g., after staging/unstaging operations).
+    // This ensures stale selections for removed files are propagated.
+    this.onSelectChanged.emit(this.selectedChanges);
   }
 }

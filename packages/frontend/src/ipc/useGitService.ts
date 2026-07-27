@@ -29,6 +29,7 @@ export function useGitService(repoPath: string) {
         reorderable?: boolean;
         immediate?: boolean;
         async?: boolean;
+        parallelizable?: boolean;
       } = {},
     ) => ({
       command,
@@ -49,7 +50,7 @@ export function useGitService(repoPath: string) {
         SYNC_CHANNELS.GetFileChanges,
         () => invokeSync(SYNC_CHANNELS.GetFileChanges, { repoPath: rp }),
         [],
-        { reorderable: true },
+        { reorderable: true, parallelizable: true },
       ),
     );
   }, [runJob, createJobConfig]);
@@ -61,7 +62,7 @@ export function useGitService(repoPath: string) {
         SYNC_CHANNELS.GetLocalBranches,
         () => invokeSync(SYNC_CHANNELS.GetLocalBranches, { repoPath: rp }),
         [],
-        { reorderable: true },
+        { reorderable: true, parallelizable: true },
       ),
     );
   }, [runJob, createJobConfig]);
@@ -73,7 +74,19 @@ export function useGitService(repoPath: string) {
         SYNC_CHANNELS.GetRemoteBranches,
         () => invokeSync(SYNC_CHANNELS.GetRemoteBranches, { repoPath: rp, limit, filter }),
         [],
-        { reorderable: true },
+        { reorderable: true, parallelizable: true },
+      ),
+    );
+  }, [runJob, createJobConfig]);
+
+  const getRemotes = useCallback(() => {
+    const rp = repoPathRef.current;
+    return runJob(
+      createJobConfig(
+        SYNC_CHANNELS.GetRemotes,
+        () => invokeSync(SYNC_CHANNELS.GetRemotes, { repoPath: rp }),
+        [],
+        { reorderable: true, parallelizable: true },
       ),
     );
   }, [runJob, createJobConfig]);
@@ -85,7 +98,7 @@ export function useGitService(repoPath: string) {
         SYNC_CHANNELS.GetStashes,
         () => invokeSync(SYNC_CHANNELS.GetStashes, { repoPath: rp }),
         [],
-        { reorderable: true },
+        { reorderable: true, parallelizable: true },
       ),
     );
   }, [runJob, createJobConfig]);
@@ -97,7 +110,7 @@ export function useGitService(repoPath: string) {
         SYNC_CHANNELS.GetWorktrees,
         () => invokeSync(SYNC_CHANNELS.GetWorktrees, { repoPath: rp }),
         [],
-        { reorderable: true },
+        { reorderable: true, parallelizable: true },
       ),
     );
   }, [runJob, createJobConfig]);
@@ -109,7 +122,7 @@ export function useGitService(repoPath: string) {
         SYNC_CHANNELS.GetSubmodules,
         () => invokeSync(SYNC_CHANNELS.GetSubmodules, { repoPath: rp }),
         [],
-        { reorderable: true },
+        { reorderable: true, parallelizable: true },
       ),
     );
   }, [runJob, createJobConfig]);
@@ -128,7 +141,7 @@ export function useGitService(repoPath: string) {
               activeBranches,
             }),
           [],
-          { reorderable: true },
+          { reorderable: true, parallelizable: true },
         ),
       );
     },
@@ -155,7 +168,7 @@ export function useGitService(repoPath: string) {
               maxLines,
             }),
           [],
-          { reorderable: true },
+          { reorderable: true, parallelizable: true },
         ),
       );
     },
@@ -175,7 +188,7 @@ export function useGitService(repoPath: string) {
               staged,
             }),
           [],
-          { reorderable: true },
+          { reorderable: true, parallelizable: true },
         ),
       );
     },
@@ -194,7 +207,7 @@ export function useGitService(repoPath: string) {
               stagedFiles,
             }),
           [],
-          { reorderable: true },
+          { reorderable: true, parallelizable: true },
         ),
       );
     },
@@ -209,7 +222,7 @@ export function useGitService(repoPath: string) {
           SYNC_CHANNELS.StashDiff,
           () => invokeSync(SYNC_CHANNELS.StashDiff, { repoPath: rp, index }),
           [],
-          { reorderable: true },
+          { reorderable: true, parallelizable: true },
         ),
       );
     },
@@ -224,7 +237,7 @@ export function useGitService(repoPath: string) {
           SYNC_CHANNELS.CommitDiff,
           () => invokeSync(SYNC_CHANNELS.CommitDiff, { repoPath: rp, hash }),
           [],
-          { reorderable: true },
+          { reorderable: true, parallelizable: true },
         ),
       );
     },
@@ -309,12 +322,12 @@ export function useGitService(repoPath: string) {
   );
 
   const push = useCallback(
-    (branch?: any, force = false) => {
+    (branch?: any, force = false, remote?: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
           SYNC_CHANNELS.Push,
-          () => invokeSync(SYNC_CHANNELS.Push, { repoPath: rp, branch, force }),
+          () => invokeSync(SYNC_CHANNELS.Push, { repoPath: rp, branch, force, remote }),
           [RepoArea.LOCAL_BRANCHES, RepoArea.REMOTE_BRANCHES, RepoArea.COMMIT_HISTORY],
         ),
       );
@@ -450,12 +463,12 @@ export function useGitService(repoPath: string) {
   );
 
   const fastForward = useCallback(
-    (branch: any) => {
+    (branch: any, remote?: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
           SYNC_CHANNELS.FastForwardBranch,
-          () => invokeSync(SYNC_CHANNELS.FastForwardBranch, { repoPath: rp, branch }),
+          () => invokeSync(SYNC_CHANNELS.FastForwardBranch, { repoPath: rp, branch, remote }),
           [RepoArea.LOCAL_BRANCHES],
         ),
       );
@@ -548,7 +561,7 @@ export function useGitService(repoPath: string) {
         SYNC_CHANNELS.GetDeletedStashes,
         () => invokeSync(SYNC_CHANNELS.GetDeletedStashes, { repoPath: rp }),
         [],
-        { reorderable: true },
+        { reorderable: true, parallelizable: true },
       ),
     );
   }, [runJob, createJobConfig]);
@@ -752,7 +765,7 @@ export function useGitService(repoPath: string) {
               branchHash,
             }),
           [],
-          { reorderable: true },
+          { reorderable: true, parallelizable: true },
         ),
       );
     },
@@ -832,6 +845,7 @@ export function useGitService(repoPath: string) {
     getFileChanges,
     getLocalBranches,
     getRemoteBranches,
+    getRemotes,
     getStashes,
     getWorktrees,
     getSubmodules,
@@ -845,6 +859,7 @@ export function useGitService(repoPath: string) {
       getFileChanges,
       getLocalBranches,
       getRemoteBranches,
+      getRemotes,
       getStashes,
       getWorktrees,
       getSubmodules,
@@ -902,6 +917,7 @@ export function useGitService(repoPath: string) {
       getFileChanges,
       getLocalBranches,
       getRemoteBranches,
+      getRemotes,
       getStashes,
       getWorktrees,
       getSubmodules,

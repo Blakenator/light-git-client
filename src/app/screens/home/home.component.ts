@@ -69,6 +69,7 @@ export class HomeComponent implements OnInit {
       name: name || TabDataService.basename(path),
     });
     this.activeTabIndex = this.tabService.tabCount() - 1;
+    this.cd.detectChanges();
     this.saveOpenRepos();
   }
 

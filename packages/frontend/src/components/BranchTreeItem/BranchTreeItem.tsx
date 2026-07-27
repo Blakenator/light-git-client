@@ -111,6 +111,10 @@ const TrackingInfo = styled.span`
   gap: 0.15rem;
 `;
 
+const TrackingInfoWarning = styled(TrackingInfo)`
+  color: ${({ theme }) => theme.colors.warning};
+`;
+
 const WorktreeIndicator = styled.span`
   color: ${({ theme }) => theme.colors.warning};
   margin-left: 0.25rem;
@@ -157,6 +161,7 @@ export interface BranchModel {
   isCurrentBranch?: boolean;
   isRemote?: boolean;
   trackingPath?: string;
+  isTrackingPathGone?: boolean;
   ahead?: number;
   behind?: number;
   hash?: string;
@@ -316,7 +321,7 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
     const isActionsExpanded = expandedActions[branch.name] || false;
     const branchInWorktree = isLocal && !branch.isCurrentBranch && isInWorktree(branch.name);
     // For remote branches, check if already checked out locally
-    const remoteBranchLocalName = !isLocal ? branch.name.replace(/^origin\//, '') : '';
+    const remoteBranchLocalName = !isLocal ? branch.name.replace(/^[^/]+\//, '') : '';
     const isRemoteCheckedOutLocally = !isLocal && localBranchNameSet.has(remoteBranchLocalName);
     const isRemoteCurrentLocal = !isLocal && currentLocalBranch === remoteBranchLocalName;
 
@@ -365,7 +370,7 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
             </TooltipTrigger>
           )}
           {/* Tracking path display */}
-          {isLocal && showTrackingPath && branch.trackingPath && (
+          {isLocal && showTrackingPath && branch.trackingPath && !branch.isTrackingPathGone && (
             <TooltipTrigger
               placement="top"
               tooltip={`Tracking: ${branch.trackingPath}`}
@@ -374,6 +379,17 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
               <TrackingInfo>
                 <Icon name="fa-cloud" size="sm" />
               </TrackingInfo>
+            </TooltipTrigger>
+          )}
+          {isLocal && showTrackingPath && branch.trackingPath && branch.isTrackingPathGone && (
+            <TooltipTrigger
+              placement="top"
+              tooltip={`Remote gone: ${branch.trackingPath}`}
+              tooltipId={`tooltip-gone-${branch.name}`}
+            >
+              <TrackingInfoWarning>
+                <Icon name="fa-unlink" size="sm" />
+              </TrackingInfoWarning>
             </TooltipTrigger>
           )}
           {isLocal && showTrackingPath && !branch.trackingPath && !branch.isRemote && (

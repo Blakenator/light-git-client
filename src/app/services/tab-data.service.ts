@@ -127,6 +127,7 @@ export class TabDataService {
           this.gitService.getCommitHistory(
             0,
             cache.commitHistoryActiveBranch?.name,
+            path,
           ),
         )
         .result.then((result) => (cache.commitHistory = result))
@@ -134,13 +135,13 @@ export class TabDataService {
     }
     if (affectedAreas.has(RepoArea.STASHES)) {
       this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getStashes())
+        .scheduleSimpleOperation(this.gitService.getStashes(path))
         .result.then((result) => (cache.stashes = result))
         .catch((err) => this.errorService.receiveError(err));
     }
     if (affectedAreas.has(RepoArea.WORKTREES)) {
       this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getWorktrees())
+        .scheduleSimpleOperation(this.gitService.getWorktrees(path))
         .result.then((result) => (cache.worktrees = result))
         .catch((err) => this.errorService.receiveError(err));
     }
@@ -149,8 +150,8 @@ export class TabDataService {
         .scheduleOperation<BranchModel[]>({
           name: 'get remote branches and fetch',
           jobs: [
-            this.gitService.fetch(false) as Job,
-            this.gitService.getRemoteBranches(),
+            this.gitService.fetch(false, path) as Job,
+            this.gitService.getRemoteBranches(path),
           ],
         })
         .result.then((result) => {
@@ -166,7 +167,7 @@ export class TabDataService {
     }
     if (affectedAreas.has(RepoArea.LOCAL_BRANCHES)) {
       this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getLocalBranches())
+        .scheduleSimpleOperation(this.gitService.getLocalBranches(path))
         .result.then((result) => {
           cache.localBranches = result;
           this._localBranchMap.set(
@@ -184,13 +185,13 @@ export class TabDataService {
     }
     if (affectedAreas.has(RepoArea.SUBMODULES)) {
       this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getSubmodules())
+        .scheduleSimpleOperation(this.gitService.getSubmodules(path))
         .result.then((result) => (cache.submodules = result))
         .catch((err) => this.errorService.receiveError(err));
     }
     if (affectedAreas.has(RepoArea.LOCAL_CHANGES)) {
       this.jobSchedulerService
-        .scheduleSimpleOperation(this.gitService.getFileChanges())
+        .scheduleSimpleOperation(this.gitService.getFileChanges(path))
         .result.then((result) => {
           cache.changes = { ...result, description: cache.changes.description };
           this._onFileDiff.next(path);

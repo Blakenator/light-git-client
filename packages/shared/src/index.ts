@@ -13,6 +13,7 @@ export * from './PreCommitStatus.model';
 
 // Git Models
 export * from './git/Branch.model';
+export * from './git/Remote.model';
 export * from './git/Commit.model';
 export * from './git/CommitSummary.model';
 export * from './git/Repository.model';

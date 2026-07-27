@@ -54,6 +54,8 @@ export interface JobConfig<T = any> {
   affectedAreas: RepoArea[];
   reorderable?: boolean;
   immediate?: boolean;
+  /** When true, this job can run concurrently with other parallelizable jobs on the same repo. */
+  parallelizable?: boolean;
 }
 
 // Deferred promise pattern
@@ -100,6 +102,11 @@ interface JobState {
   pastJobIds: string[];
   affectedAreas: Set<RepoArea>;
 
+  /** Track in-flight parallelizable jobs per channel. */
+  parallelCounts: Map<string, number>;
+  /** Gates that non-parallelizable jobs await when blocked by in-flight parallel jobs. */
+  parallelGates: Map<string, Deferred<void>>;
+
   // Subscribers for queue events
   onFinishQueueCallbacks: Array<
     (data: { affectedAreas: Set<RepoArea>; path: string }) => void
@@ -145,6 +152,8 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
   runningChannels: new Set(),
   pastJobIds: [],
   affectedAreas: new Set(),
+  parallelCounts: new Map(),
+  parallelGates: new Map(),
   onFinishQueueCallbacks: [],
   onStartQueueCallbacks: [],
 
@@ -296,28 +305,59 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
   },
 
   start: () => {
-    const { queues, runningChannels, onStartQueueCallbacks } = get();
+    const { queues, runningChannels, parallelCounts, onStartQueueCallbacks } =
+      get();
 
     queues.forEach((queue, channel) => {
-      if (!runningChannels.has(channel) && queue.length > 0) {
-        // Mark channel as running
+      if (queue.length === 0) return;
+
+      // Already processing this channel? Skip (the existing loop handles it).
+      if (
+        runningChannels.has(channel) ||
+        (parallelCounts.get(channel) || 0) > 0
+      )
+        return;
+
+      const firstJob = get().jobs.get(queue[0]);
+      if (!firstJob) return;
+
+      const isParallelizable = !!firstJob.config.parallelizable;
+
+      // For non-parallelizable jobs, acquire the write lock.
+      // For parallel-only, fire onStartQueue but don't take the lock.
+      if (!isParallelizable) {
         set((state) => ({
           runningChannels: new Set(state.runningChannels).add(channel),
         }));
+      }
 
-        // Notify subscribers
-        onStartQueueCallbacks.forEach((cb) => cb(channel));
+      // Notify subscribers (once per channel activation)
+      onStartQueueCallbacks.forEach((cb) => cb(channel));
 
-        // Process queue
-          const processQueue = async () => {
-          let currentQueue = get().queues.get(channel) || [];
+      const processQueue = async () => {
+        let currentQueue = get().queues.get(channel) || [];
 
-          while (currentQueue.length > 0) {
+        // Continue while there are queued jobs OR parallel jobs still in flight
+        while (
+          currentQueue.length > 0 ||
+          (get().parallelCounts.get(channel) || 0) > 0
+        ) {
+          if (currentQueue.length > 0) {
             await executeNextJob(channel);
-            currentQueue = get().queues.get(channel) || [];
+          } else {
+            // Queue empty but parallel jobs are in flight — wait for them
+            const gate = createDeferred<void>();
+            set((state) => ({
+              parallelGates: new Map(state.parallelGates).set(channel, gate),
+            }));
+            await gate.promise;
           }
+          currentQueue = get().queues.get(channel) || [];
+        }
 
-          // Mark channel as not running
+        // Only fire onFinishQueue if we held the write lock.
+        // For parallel-only channels, finishParallelJob handles it.
+        if (get().runningChannels.has(channel)) {
           const { affectedAreas, onFinishQueueCallbacks } = get();
           set((state) => {
             const newRunningChannels = new Set(state.runningChannels);
@@ -328,15 +368,118 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
             };
           });
 
-          // Notify subscribers
           onFinishQueueCallbacks.forEach((cb) =>
             cb({ affectedAreas, path: channel }),
           );
-        };
+        }
+      };
 
         processQueue();
-      }
     });
+
+    /**
+     * Shared completion handler for parallelizable jobs (fire-and-forget path).
+     */
+    function finishParallelJob(
+      channel: string,
+      job: Job,
+      result: any,
+      error: any,
+    ) {
+      const state = get();
+      const operation = state.operations.get(job.operationId);
+
+      set((state) => {
+        const newJobs = new Map(state.jobs);
+        const newOperations = new Map(state.operations);
+        const newAffectedAreas = new Set(state.affectedAreas);
+        const newParallelCounts = new Map(state.parallelCounts);
+
+        if (error) {
+          const updatedJob = { ...job, status: JobStatus.FAILED };
+          newJobs.set(job.id, updatedJob);
+
+          const op = newOperations.get(job.operationId);
+          if (op) {
+            op.deferred.reject(error);
+            newOperations.set(op.id, { ...op, status: JobStatus.FAILED });
+          }
+        } else {
+          const updatedJob = { ...job, status: JobStatus.SUCCEEDED };
+          newJobs.set(job.id, updatedJob);
+
+          // Check if all jobs in operation succeeded
+          const op = newOperations.get(job.operationId);
+          if (op) {
+            const allSucceeded = op.jobIds.every((id) => {
+              const j = newJobs.get(id);
+              return j && j.status === JobStatus.SUCCEEDED;
+            });
+            if (allSucceeded) {
+              op.deferred.resolve(result);
+              newOperations.set(op.id, {
+                ...op,
+                status: JobStatus.SUCCEEDED,
+              });
+            }
+          }
+        }
+
+        // Track affected areas
+        job.config.affectedAreas.forEach((area) =>
+          newAffectedAreas.add(area),
+        );
+
+        // Decrement parallel count
+        const newCount = (state.parallelCounts.get(channel) || 0) - 1;
+        if (newCount <= 0) {
+          newParallelCounts.delete(channel);
+        } else {
+          newParallelCounts.set(channel, newCount);
+        }
+
+        // Add to past jobs
+        const newPastJobIds = [...state.pastJobIds, job.id];
+
+        return {
+          jobs: newJobs,
+          operations: newOperations,
+          affectedAreas: newAffectedAreas,
+          parallelCounts: newParallelCounts,
+          pastJobIds: newPastJobIds,
+        };
+      });
+
+      // Resolve gate only when ALL parallel jobs are done
+      const afterSet = get();
+      const remainingParallel = afterSet.parallelCounts.get(channel) || 0;
+      if (remainingParallel === 0) {
+        const gate = afterSet.parallelGates.get(channel);
+        if (gate) {
+          gate.resolve();
+          set((state) => {
+            const newGates = new Map(state.parallelGates);
+            newGates.delete(channel);
+            return { parallelGates: newGates };
+          });
+        }
+      }
+
+      // If this was a parallel-only channel (no write lock) and everything is done,
+      // fire onFinishQueue so loading spinners / cache refresh work correctly.
+      const queueNow = afterSet.queues.get(channel);
+      if (
+        (!queueNow || queueNow.length === 0) &&
+        remainingParallel === 0 &&
+        !afterSet.runningChannels.has(channel)
+      ) {
+        const { affectedAreas, onFinishQueueCallbacks } = afterSet;
+        set(() => ({ affectedAreas: new Set() }));
+        onFinishQueueCallbacks.forEach((cb) =>
+          cb({ affectedAreas, path: channel }),
+        );
+      }
+    }
 
     async function executeNextJob(channel: string) {
       const state = get();
@@ -372,6 +515,36 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
         return;
       }
 
+      const isParallelizable = !!job.config.parallelizable;
+
+      // --- Non-parallelizable job: wait for in-flight parallel jobs first ---
+      if (!isParallelizable) {
+        const pCount = get().parallelCounts.get(channel) || 0;
+        if (pCount > 0) {
+          // Create a gate and wait for parallel jobs to finish
+          const gate = createDeferred<void>();
+          set((state) => ({
+            parallelGates: new Map(state.parallelGates).set(channel, gate),
+          }));
+          await gate.promise;
+
+          // After gate resolves, re-check operation status (may have failed)
+          const currentOp = get().operations.get(job.operationId);
+          if (currentOp && currentOp.status === JobStatus.FAILED) {
+            set((state) => {
+              const newJobs = new Map(state.jobs);
+              const newQueues = new Map(state.queues);
+              const updatedJob = { ...job, status: JobStatus.SKIPPED };
+              newJobs.set(job.id, updatedJob);
+              const q = newQueues.get(channel) || [];
+              newQueues.set(channel, q.slice(1));
+              return { jobs: newJobs, queues: newQueues };
+            });
+            return;
+          }
+        }
+      }
+
       // Mark job as in progress
       set((state) => {
         const newJobs = new Map(state.jobs);
@@ -387,6 +560,43 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
         return { jobs: newJobs, operations: newOperations };
       });
 
+      // --- Parallelizable: fire-and-forget (don't block the queue loop) ---
+      if (isParallelizable) {
+        // Increment parallel count
+        set((state) => ({
+          parallelCounts: new Map(state.parallelCounts).set(
+            channel,
+            (state.parallelCounts.get(channel) || 0) + 1,
+          ),
+        }));
+
+        // Remove from queue immediately (it's now in-flight)
+        set((state) => {
+          const newQueues = new Map(state.queues);
+          const q = newQueues.get(channel) || [];
+          newQueues.set(channel, q.slice(1));
+          return { queues: newQueues };
+        });
+
+        // Launch — don't await; completion handled by finishParallelJob
+        // Attach a no-op catch to job.deferred.promise to prevent unhandled
+        // rejections (callers use operation.deferred.promise, not job.deferred).
+        job.deferred.promise.catch(() => {});
+        job.config
+          .execute()
+          .then((result) => {
+            job.deferred.resolve(result);
+            finishParallelJob(channel, job, result, undefined);
+          })
+          .catch((error) => {
+            job.deferred.reject(error);
+            finishParallelJob(channel, job, undefined, error);
+          });
+
+        return; // Don't block the queue loop
+      }
+
+      // --- Non-parallelizable: await-based execution (existing behavior) ---
       try {
         const result = await job.config.execute();
 
@@ -492,7 +702,11 @@ export const useJobStore = create<JobState & JobActions>((set, get) => ({
   },
 
   isRunning: (path: string) => {
-    return get().runningChannels.has(path);
+    const state = get();
+    return (
+      state.runningChannels.has(path) ||
+      (state.parallelCounts.get(path) || 0) > 0
+    );
   },
 
   onFinishQueue: (callback) => {

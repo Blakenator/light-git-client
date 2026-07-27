@@ -1,0 +1,118 @@
+---
+description: Security hardening patterns for Electron apps — secrets management, IPC safety, input validation
+alwaysApply: true
+---
+
+# Security Hardening
+
+## Secrets & Configuration
+
+- Never hardcode API keys, tokens, or secrets as fallback defaults — use environment variables with fail-fast behavior
+- Development-only fallbacks must be explicitly gated on a development mode check — never silently fall back
+- All security-critical configuration must be validated at startup
+
+```typescript
+// ❌ BAD — hardcoded fallback
+const apiKey = process.env.MY_API_KEY || 'sk-default-dev-key-12345';
+
+// ✅ GOOD — fail fast
+const apiKey = process.env.MY_API_KEY;
+if (!apiKey) {
+  throw new Error('MY_API_KEY environment variable is required');
+}
+```
+
+## Electron Security
+
+### BrowserWindow Configuration
+
+All `BrowserWindow` instances must use secure defaults:
+
+- `contextIsolation: true` — always enabled, never disabled
+- `nodeIntegration: false` — always disabled for renderer windows
+- `webSecurity: true` — always enabled
+- `sandbox: true` — enable for any window that loads remote content
+- Use `preload` scripts via `contextBridge` for any main-process APIs needed in the renderer
+
+```typescript
+// ❌ BAD
+new BrowserWindow({
+  webPreferences: {
+    contextIsolation: false,
+    nodeIntegration: true,
+  }
+});
+
+// ✅ GOOD
+new BrowserWindow({
+  webPreferences: {
+    contextIsolation: true,
+    nodeIntegration: false,
+    webSecurity: true,
+    preload: path.join(__dirname, 'preload.js'),
+  }
+});
+```
+
+### IPC Safety
+
+- All IPC channel names must be defined in `packages/shared/src/` as typed constants — never use raw string literals for channel names
+- Validate all IPC inputs against shared type definitions — never trust data arriving from the renderer
+- Never expose raw `error.stack` or internal file paths over IPC channels
+- Use `getIpcErrorMessage()` to extract safe error messages from `super-ipc` wrapped errors (see `ipc-error-handling.mdc`)
+
+```typescript
+// ❌ BAD — raw error over IPC
+catch (error: any) {
+  return { error: error.stack };
+}
+
+// ✅ GOOD — sanitized error over IPC
+catch (error: any) {
+  return { error: getIpcErrorMessage(error) };
+}
+```
+
+### Shell & External URLs
+
+- Never pass user-controlled strings directly to `shell.openExternal` — validate URLs first
+- Only allow `https:` and `http:` protocols for external URLs
+- Use `shell.openPath` for local file paths instead of `shell.openExternal`
+
+```typescript
+// ❌ BAD — unvalidated URL
+shell.openExternal(userProvidedUrl);
+
+// ✅ GOOD — validated URL
+const url = new URL(userProvidedUrl);
+if (url.protocol === 'https:' || url.protocol === 'http:') {
+  shell.openExternal(url.href);
+}
+```
+
+### File System & Child Processes
+
+- Sanitize and validate all file paths before passing to `child_process.exec` / `spawn` / `execFile`
+- Use `execFile` with explicit argument arrays instead of `exec` with string interpolation whenever possible
+- Never construct shell commands by concatenating user input — always use argument arrays
+- Validate that file paths stay within expected directories (e.g., within the user's repository)
+
+```typescript
+// ❌ BAD — string interpolation in shell command
+exec(`git log ${userBranch}`);
+
+// ✅ GOOD — argument array
+execFile('git', ['log', userBranch]);
+```
+
+## Error Handling
+
+- Error responses to the renderer must never include raw `error.message`, `error.stack`, or internal system details
+- Log detailed errors on the backend with `electron-log`; surface only user-actionable messages to the frontend
+- Do not expose internal file paths, system usernames, or environment variable names in user-facing error messages
+
+## Updater Security
+
+- Auto-update feeds must use HTTPS URLs
+- Never disable signature verification for updates in production builds
+- Validate update metadata before applying

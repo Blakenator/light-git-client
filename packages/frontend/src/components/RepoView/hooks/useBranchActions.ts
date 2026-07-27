@@ -54,7 +54,8 @@ export function useBranchActions(repoPath: string) {
       return;
     }
     try {
-      await gitService.push(branch, force);
+      const remote = branch.trackingPath ? branch.trackingPath.replace(/\/.*$/, '') : undefined;
+      await gitService.push(branch, force, remote);
       addAlert('Push successful', 'success');
     } catch (error: any) {
       const errorMsg = getIpcErrorMessage(error);
@@ -203,7 +204,7 @@ export function useBranchActions(repoPath: string) {
 
   const handleRemoteCheckout = useCallback(async (branch: any) => {
     try {
-      const localBranchName = branch.name.replace('origin/', '');
+      const localBranchName = branch.name.replace(/^[^/]+\//, '');
       const localBranch = getRepoCache(repoPath)?.localBranches?.find(
         (b: any) => b.name === localBranchName
       );
@@ -250,16 +251,17 @@ export function useBranchActions(repoPath: string) {
     }
   }, [gitService, addAlert, changeRemoteBranch]);
 
-  const handleMatchNameUpstream = useCallback(async () => {
+  const handleMatchNameUpstream = useCallback(async (remoteName?: string) => {
     if (!changeRemoteBranch) return;
-    const target = `origin/${changeRemoteBranch.name}`;
+    const remote = remoteName || 'origin';
+    const target = `${remote}/${changeRemoteBranch.name}`;
     const remoteBranches = getRepoCache(repoPath)?.remoteBranches ?? [];
     const exists = remoteBranches.some((b: any) => b.name === target);
     try {
       if (exists) {
         await gitService.setUpstreamBranch(changeRemoteBranch.name, target);
       } else {
-        await gitService.push({ ...changeRemoteBranch, trackingPath: '' }, false);
+        await gitService.push({ ...changeRemoteBranch, trackingPath: '' }, false, remote);
       }
       addAlert(`Upstream for ${changeRemoteBranch.name} set to ${target}`, 'success');
     } catch (error: any) {

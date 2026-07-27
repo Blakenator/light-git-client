@@ -11,7 +11,17 @@ Last Edited: March 19, 2026
 
 ## Rule
 
-Before starting implementation (Agent mode) or finalizing a plan (Plan mode), the agent MUST ask at least 3 clarifying questions about the work to be completed. Use the `AskQuestion` tool to present questions in a structured multiple-choice format when applicable. Fall back to inline text questions only when multiple-choice options don't make sense.
+Before starting implementation (Agent mode) or finalizing a plan (Plan mode), the agent MUST ask at least 3 clarifying questions about the work to be completed.
+
+### Tool-Specific Instructions
+
+| Agent | Tool/Method |
+|-------|-------------|
+| **Cursor (Claude)** | Use `AskQuestion` (multiple-choice) or inline text fallback |
+| **Copilot Chat (DeepSeek)** | Use `vscode_askQuestions` tool for structured multiple-choice. Use inline text only when multiple-choice doesn't make sense. |
+| **Copilot CLI** | Ask inline text questions directly |
+
+Fall back to inline text questions only when multiple-choice options don't make sense.
 
 ## When This Applies
 
@@ -43,3 +53,49 @@ Questions should focus on genuinely reducing uncertainty. Tailor questions to th
 | **Platform** | "Does this need to work across all platforms, or is it OS-specific?" |
 
 Avoid filler questions that don't genuinely reduce uncertainty.
+
+## Plan Structure Requirements (Plan Mode)
+
+When producing a plan, it MUST follow this structure:
+
+### 1. Purpose / Why / Business Need (required, first section)
+
+Every plan MUST start with a `## Purpose` (or `## Why` / `## Business Need`) section that
+clearly explains:
+
+- **What problem this change solves** for the user, the business, or the system
+- **Why it matters now** — the cost of not doing it, or the value of doing it
+- **Who benefits** — which user persona, internal role, or downstream system
+
+This section is non-negotiable. It anchors every implementation decision later in the plan and
+prevents work that ships correctly but solves the wrong problem.
+
+If the purpose is not clear from the original prompt, the agent MUST ask clarifying questions
+until it is clear before writing the plan. Do NOT guess at the business need or paraphrase a
+generic motivation — ask. Acceptable signals that the purpose is clear:
+
+- The user explicitly stated the problem and the desired outcome
+- There is a linked issue, bug report, or prior conversation that spells out the motivation
+- The change is mechanically obvious (e.g., "fix this typo") and a one-line purpose suffices
+
+If none of those apply, ask questions like:
+
+- "What problem is this trying to solve for users?"
+- "What goes wrong today if we don't make this change?"
+- "Is this driven by a specific user report, a metric, a compliance need, or something else?"
+- "How will we know this change succeeded after it ships?"
+
+### 2. Implementation Sections (as needed)
+
+Standard plan sections — scope, approach, file-by-file changes, migrations, testing, rollout,
+risks, etc. Use whatever structure best fits the task.
+
+### 3. Final Audit Step (required, last section)
+
+Every plan MUST end with a `## Final Audit` section. The audit is performed AFTER all
+implementation work is believed complete and BEFORE declaring the task done.
+
+**Required: explicit TODO item.** The plan's implementation checklist (and any `manage_todo_list` /
+todo list created when the plan begins execution) MUST include the audit as its own distinct,
+final TODO item — not a sub-bullet, not an implicit "and then review", not a closing sentence.
+It is a real, trackable task with the same status lifecycle (pending → in_progress → completed).

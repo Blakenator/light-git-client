@@ -145,43 +145,20 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
   const [mergetoolCommand, setMergetoolCommand] = useState(settings.mergetoolCommand || '');
   const [setGlobalDefaultUserConfig, setSetGlobalDefaultUserConfig] = useState(false);
   const [setGlobalDefaultMergetoolConfig, setSetGlobalDefaultMergetoolConfig] = useState(false);
-  const [originUrl, setOriginUrl] = useState('');
-  const [originUrlSourceFile, setOriginUrlSourceFile] = useState('');
-  const [originUrlSaving, setOriginUrlSaving] = useState(false);
+  const [remoteUrls, setRemoteUrls] = useState<{ name: string; fetchUrl: string; pushUrl: string }[]>([]);
 
   const getActiveTab = useRepositoryStore((state) => state.getActiveTab);
 
   useEffect(() => {
     const activeTab = getActiveTab();
     if (activeTab?.path) {
-      invokeSync(SYNC_CHANNELS.GetConfigItems, { repoPath: activeTab.path })
-        .then((items) => {
-          const originItem = items.find((i: ConfigItemModel) => i.key === 'remote.origin.url');
-          if (originItem) {
-            setOriginUrl(originItem.value);
-            setOriginUrlSourceFile(originItem.sourceFile);
-          }
+      invokeSync(SYNC_CHANNELS.GetRemotes, { repoPath: activeTab.path })
+        .then((remotes) => {
+          setRemoteUrls(remotes);
         })
-        .catch((err) => console.error('Failed to load origin URL:', err));
+        .catch((err) => console.error('Failed to load remote URLs:', err));
     }
   }, [getActiveTab]);
-
-  const handleOriginUrlSave = useCallback(() => {
-    const activeTab = getActiveTab();
-    if (!activeTab?.path) return;
-    setOriginUrlSaving(true);
-    const item: ConfigItemModel = {
-      key: 'remote.origin.url',
-      value: originUrl,
-      sourceFile: originUrlSourceFile,
-    };
-    invokeSync(SYNC_CHANNELS.SetConfigItem, { repoPath: activeTab.path, item })
-      .then(() => setOriginUrlSaving(false))
-      .catch((err) => {
-        console.error('Failed to save origin URL:', err);
-        setOriginUrlSaving(false);
-      });
-  }, [getActiveTab, originUrl, originUrlSourceFile]);
 
   const handleCredentialHelperChange = useCallback(
     (value: string) => {
@@ -367,28 +344,28 @@ export const ConfigShortcutsSettings: React.FC<ConfigShortcutsSettingsProps> = (
       </FormSection>
 
       <FormSection>
-        <SectionTitle>Origin URL</SectionTitle>
-        <Form.Group className="mb-3">
-          <Form.Label>Remote Origin URL</Form.Label>
-          <InputGroup>
-            <Form.Control
-              type="text"
-              value={originUrl}
-              onChange={(e) => setOriginUrl(e.target.value)}
-              placeholder="e.g., https://github.com/user/repo.git"
-            />
-            <Button
-              variant="outline-primary"
-              onClick={handleOriginUrlSave}
-              disabled={originUrlSaving}
-            >
-              {originUrlSaving ? 'Saving...' : 'Save'}
-            </Button>
-          </InputGroup>
-          <Form.Text className="text-muted">
-            The URL for the <code>origin</code> remote of the current repository.
-          </Form.Text>
-        </Form.Group>
+        <SectionTitle>Remote URLs</SectionTitle>
+        {remoteUrls.length === 0 ? (
+          <Form.Text className="text-muted">No remotes configured for this repository.</Form.Text>
+        ) : (
+          remoteUrls.map((remote) => (
+            <Form.Group className="mb-3" key={remote.name}>
+              <Form.Label>
+                <strong>{remote.name}</strong>
+              </Form.Label>
+              <ListGroup className="mb-1">
+                <ListGroup.Item className="d-flex justify-content-between align-items-center py-1">
+                  <small className="text-muted">Fetch</small>
+                  <code style={{ fontSize: '0.8rem' }}>{remote.fetchUrl || '—'}</code>
+                </ListGroup.Item>
+                <ListGroup.Item className="d-flex justify-content-between align-items-center py-1">
+                  <small className="text-muted">Push</small>
+                  <code style={{ fontSize: '0.8rem' }}>{remote.pushUrl || '—'}</code>
+                </ListGroup.Item>
+              </ListGroup>
+            </Form.Group>
+          ))
+        )}
       </FormSection>
 
       <FormSection>

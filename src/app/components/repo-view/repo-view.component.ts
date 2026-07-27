@@ -96,6 +96,7 @@ export class RepoViewComponent implements OnDestroy {
   private firstNoRemoteErrorDisplayed = false;
   private commitMessageDebounce: number;
   private _shouldAmendCommit: boolean;
+  private _diffFetchVersion = 0;
 
   private readonly ON_WINDOW_FOCUS_TIMEOUT = 500;
   protected readonly ActiveOperation = ActiveOperation;
@@ -409,20 +410,63 @@ export class RepoViewComponent implements OnDestroy {
 
   getFileDiff() {
     // todo: move this to tab data service
-    let unstaged = Object.keys(this.getRepo().selectedUnstagedChanges)
-      .filter((x) => this.getRepo().selectedUnstagedChanges[x])
+    const repo = this.getRepo();
+    if (!repo) {
+      return;
+    }
+
+    // Sanitize selections: only keep files that actually exist in the current
+    // staged/unstaged change lists. This prevents stale selections from
+    // persisting after files are staged, unstaged, or otherwise changed.
+    const unstagedFileSet = new Set(
+      (repo.changes?.unstagedChanges ?? []).map((c) => c.file),
+    );
+    const stagedFileSet = new Set(
+      (repo.changes?.stagedChanges ?? []).map((c) => c.file),
+    );
+
+    // Clean up selectedUnstagedChanges: remove entries for files no longer
+    // in the unstaged list, and preserve selections only for current files.
+    const sanitizedUnstagedSelection: { [key: string]: boolean } = {};
+    for (const file of unstagedFileSet) {
+      sanitizedUnstagedSelection[file] =
+        !!repo.selectedUnstagedChanges?.[file];
+    }
+
+    // Clean up selectedStagedChanges similarly.
+    const sanitizedStagedSelection: { [key: string]: boolean } = {};
+    for (const file of stagedFileSet) {
+      sanitizedStagedSelection[file] =
+        !!repo.selectedStagedChanges?.[file];
+    }
+
+    // Persist the sanitized selections back so future calls stay consistent.
+    this.setRepoMetadata({
+      selectedUnstagedChanges: sanitizedUnstagedSelection,
+      selectedStagedChanges: sanitizedStagedSelection,
+    });
+
+    let unstaged = Object.keys(sanitizedUnstagedSelection)
+      .filter((x) => sanitizedUnstagedSelection[x])
       .map((x) => x.replace(/.*->\s*/, ''));
-    let staged = Object.keys(this.getRepo().selectedStagedChanges)
-      .filter((x) => this.getRepo().selectedStagedChanges[x])
+    let staged = Object.keys(sanitizedStagedSelection)
+      .filter((x) => sanitizedStagedSelection[x])
       .map((x) => x.replace(/.*->\s*/, ''));
     if (staged.length == 0 && unstaged.length == 0) {
       unstaged = ['.'];
       staged = ['.'];
     }
 
+    // Bump the version counter to discard stale responses from earlier calls.
+    const fetchVersion = ++this._diffFetchVersion;
+
     this.jobSchedulerService
       .scheduleSimpleOperation(this.gitService.getFileDiff(unstaged, staged))
       .result.then((diff) => {
+        // Discard the result if a newer fetch was initiated while this was in flight.
+        if (fetchVersion !== this._diffFetchVersion) {
+          return;
+        }
         this.getRepo().diff = diff.sort((a, b) => {
           if (a.stagedState != b.stagedState) {
             return a.stagedState == DiffHeaderStagedState.UNSTAGED ? 1 : -1;
@@ -781,6 +825,7 @@ export class RepoViewComponent implements OnDestroy {
     }
     this.getFileDiff();
     this.diffCommitInfo = undefined;
+    this.commitDiff = undefined;
     setTimeout(() => (this.showDiff = true), 300);
   }
 

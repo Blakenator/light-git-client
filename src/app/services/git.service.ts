@@ -76,82 +76,95 @@ export class GitService {
     }
   }
 
-  getConfigItems(): Job<ConfigItemModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETCONFIGITEMS,
-      reorderable: true,
-      execute: () =>
-        this.electronService.rpc(Channels.GETCONFIGITEMS, [
-          this.getRepo().path,
-        ]),
-    });
+  getConfigItems(repoPath?: string): Job<ConfigItemModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETCONFIGITEMS,
+        reorderable: true,
+        execute: () =>
+          this.electronService.rpc(Channels.GETCONFIGITEMS, [path]),
+      },
+      path,
+    );
   }
 
   setConfigItem(
     item: ConfigItemModel,
     rename?: ConfigItemModel,
+    repoPath?: string,
   ): Job<ConfigItemModel[]>[] {
+    const path = repoPath ?? this.getRepo().path;
     const result: Job<ConfigItemModel[]>[] = [];
     if (rename) {
       rename.value = '';
       result.push(
-        this.getJob({
-          affectedAreas: [RepoArea.SETTINGS],
-          command: Channels.SETCONFIGITEM,
-          execute: () =>
-            this.electronService.rpc(Channels.SETCONFIGITEM, [
-              this.getRepo().path,
-              rename,
-            ]),
-        }),
+        this.getJob(
+          {
+            affectedAreas: [RepoArea.SETTINGS],
+            command: Channels.SETCONFIGITEM,
+            execute: () =>
+              this.electronService.rpc(Channels.SETCONFIGITEM, [path, rename]),
+          },
+          path,
+        ),
       );
     }
     result.push(
-      this.getJob({
-        affectedAreas: [RepoArea.SETTINGS],
-        command: Channels.SETCONFIGITEM,
-        execute: () =>
-          this.electronService.rpc(Channels.SETCONFIGITEM, [
-            this.getRepo().path,
-            item,
-          ]),
-      }),
+      this.getJob(
+        {
+          affectedAreas: [RepoArea.SETTINGS],
+          command: Channels.SETCONFIGITEM,
+          execute: () =>
+            this.electronService.rpc(Channels.SETCONFIGITEM, [path, item]),
+        },
+        path,
+      ),
     );
     return result;
   }
 
-  mergeBranch(branch: string): Job<void> {
-    return this.getJob({
-      affectedAreas: [
-        RepoArea.LOCAL_BRANCHES,
-        RepoArea.LOCAL_CHANGES,
-        RepoArea.COMMIT_HISTORY,
-      ],
-      command: Channels.MERGEBRANCH,
-      execute: () =>
-        this.electronService.rpc(Channels.MERGEBRANCH, [
-          this.getRepo().path,
-          branch,
-        ]),
-    });
+  mergeBranch(branch: string, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [
+          RepoArea.LOCAL_BRANCHES,
+          RepoArea.LOCAL_CHANGES,
+          RepoArea.COMMIT_HISTORY,
+        ],
+        command: Channels.MERGEBRANCH,
+        execute: () =>
+          this.electronService.rpc(Channels.MERGEBRANCH, [path, branch]),
+      },
+      path,
+    );
   }
 
-  rebaseBranch(branch: string, interactive: boolean = false): Job<void> {
-    return this.getJob({
-      affectedAreas: [
-        RepoArea.LOCAL_BRANCHES,
-        RepoArea.LOCAL_CHANGES,
-        RepoArea.COMMIT_HISTORY,
-      ],
-      command: Channels.REBASEBRANCH,
-      execute: () =>
-        this.electronService.rpc(Channels.REBASEBRANCH, [
-          this.getRepo().path,
-          branch,
-          interactive,
-        ]),
-    });
+  rebaseBranch(
+    branch: string,
+    interactive: boolean = false,
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [
+          RepoArea.LOCAL_BRANCHES,
+          RepoArea.LOCAL_CHANGES,
+          RepoArea.COMMIT_HISTORY,
+        ],
+        command: Channels.REBASEBRANCH,
+        execute: () =>
+          this.electronService.rpc(Channels.REBASEBRANCH, [
+            path,
+            branch,
+            interactive,
+          ]),
+      },
+      path,
+    );
   }
 
   addWorktree(
@@ -199,145 +212,186 @@ export class GitService {
     filename: string,
     hunk: DiffHunkModel,
     changedText: string,
+    repoPath?: string,
   ): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.CHANGEHUNK,
-      execute: () =>
-        this.electronService.rpc(Channels.CHANGEHUNK, [
-          this.getRepo().path,
-          filename,
-          hunk,
-          changedText,
-        ]),
-    });
-  }
-
-  applyStash(index: number): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.APPLYSTASH,
-      execute: () =>
-        this.electronService.rpc(Channels.APPLYSTASH, [
-          this.getRepo().path,
-          index,
-        ]),
-    });
-  }
-
-  deleteStash(index: number): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.STASHES],
-      command: Channels.DELETESTASH,
-      execute: () =>
-        this.electronService.rpc(Channels.DELETESTASH, [
-          this.getRepo().path,
-          index,
-        ]),
-    });
-  }
-
-  updateSubmodules(branch: string, recursive: boolean): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.SUBMODULES],
-      command: Channels.UPDATESUBMODULES,
-      reorderable: true,
-      execute: () =>
-        this.handleAirplaneMode(
-          this.electronService.rpc(Channels.UPDATESUBMODULES, [
-            this.getRepo().path,
-            recursive,
-            branch,
-          ]),
-        ),
-    });
-  }
-
-  addSubmodule(url: string, path: string): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.SUBMODULES],
-      command: Channels.ADDSUBMODULE,
-      execute: () =>
-        this.handleAirplaneMode(
-          this.electronService.rpc(Channels.ADDSUBMODULE, [
-            this.getRepo().path,
-            url,
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.CHANGEHUNK,
+        execute: () =>
+          this.electronService.rpc(Channels.CHANGEHUNK, [
             path,
+            filename,
+            hunk,
+            changedText,
           ]),
-        ),
-    });
+      },
+      path,
+    );
   }
 
-  getFileDiff(unstaged: string[], staged: string[]): Job<DiffHeaderModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETFILEDIFF,
-      reorderable: true,
-      execute: () =>
-        this._crlfListener.detect(
-          this.electronService.rpc(Channels.GETFILEDIFF, [
-            this.getRepo().path,
-            unstaged,
-            staged,
-          ]),
-          false,
-        ),
-    });
+  applyStash(index: number, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.APPLYSTASH,
+        execute: () =>
+          this.electronService.rpc(Channels.APPLYSTASH, [path, index]),
+      },
+      path,
+    );
   }
 
-  getBranchPremerge(branchHash: string): Job<DiffHeaderModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETBRANCHPREMERGE,
-      reorderable: true,
-      execute: () =>
-        this.electronService.rpc(Channels.GETBRANCHPREMERGE, [
-          this.getRepo().path,
-          branchHash,
-        ]),
-    });
+  deleteStash(index: number, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.STASHES],
+        command: Channels.DELETESTASH,
+        execute: () =>
+          this.electronService.rpc(Channels.DELETESTASH, [path, index]),
+      },
+      path,
+    );
+  }
+
+  updateSubmodules(
+    branch: string,
+    recursive: boolean,
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.SUBMODULES],
+        command: Channels.UPDATESUBMODULES,
+        reorderable: true,
+        execute: () =>
+          this.handleAirplaneMode(
+            this.electronService.rpc(Channels.UPDATESUBMODULES, [
+              path,
+              recursive,
+              branch,
+            ]),
+          ),
+      },
+      path,
+    );
+  }
+
+  addSubmodule(url: string, path: string, repoPath?: string): Job<void> {
+    const rPath = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.SUBMODULES],
+        command: Channels.ADDSUBMODULE,
+        execute: () =>
+          this.handleAirplaneMode(
+            this.electronService.rpc(Channels.ADDSUBMODULE, [rPath, url, path]),
+          ),
+      },
+      rPath,
+    );
+  }
+
+  getFileDiff(
+    unstaged: string[],
+    staged: string[],
+    repoPath?: string,
+  ): Job<DiffHeaderModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETFILEDIFF,
+        reorderable: true,
+        execute: () =>
+          this._crlfListener.detect(
+            this.electronService.rpc(Channels.GETFILEDIFF, [
+              path,
+              unstaged,
+              staged,
+            ]),
+            false,
+          ),
+      },
+      path,
+    );
+  }
+
+  getBranchPremerge(
+    branchHash: string,
+    repoPath?: string,
+  ): Job<DiffHeaderModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETBRANCHPREMERGE,
+        reorderable: true,
+        execute: () =>
+          this.electronService.rpc(Channels.GETBRANCHPREMERGE, [
+            path,
+            branchHash,
+          ]),
+      },
+      path,
+    );
   }
 
   getCommitHistory(
     skip: number,
     activeBranch?: string,
+    repoPath?: string,
   ): Job<CommitSummaryModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETCOMMITHISTORY,
-      reorderable: true,
-      execute: () =>
-        this.electronService.rpc(Channels.GETCOMMITHISTORY, [
-          this.getRepo().path,
-          300,
-          skip,
-          activeBranch,
-        ]),
-    });
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETCOMMITHISTORY,
+        reorderable: true,
+        execute: () =>
+          this.electronService.rpc(Channels.GETCOMMITHISTORY, [
+            path,
+            300,
+            skip,
+            activeBranch,
+          ]),
+      },
+      path,
+    );
   }
 
-  getDeletedStashes(): Job<CommitSummaryModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETDELETEDSTASHES,
-      reorderable: true,
-      execute: () =>
-        this.electronService.rpc(Channels.GETDELETEDSTASHES, [
-          this.getRepo().path,
-        ]),
-    });
+  getDeletedStashes(repoPath?: string): Job<CommitSummaryModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETDELETEDSTASHES,
+        reorderable: true,
+        execute: () =>
+          this.electronService.rpc(Channels.GETDELETEDSTASHES, [path]),
+      },
+      path,
+    );
   }
 
-  restoreDeletedStash(stashHash: string): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_BRANCHES],
-      command: Channels.RESTOREDELETEDSTASH,
-      execute: () =>
-        this.electronService.rpc(Channels.RESTOREDELETEDSTASH, [
-          this.getRepo().path,
-          stashHash,
-        ]),
-    });
+  restoreDeletedStash(stashHash: string, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_BRANCHES],
+        command: Channels.RESTOREDELETEDSTASH,
+        execute: () =>
+          this.electronService.rpc(Channels.RESTOREDELETEDSTASH, [
+            path,
+            stashHash,
+          ]),
+      },
+      path,
+    );
   }
 
   loadRepo(repoPath: string): Job<void> {
@@ -357,151 +411,173 @@ export class GitService {
     });
   }
 
-  getCommitDiff(hash: string): Job<DiffHeaderModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.COMMITDIFF,
-      reorderable: true,
-      execute: () =>
-        this.electronService.rpc(Channels.COMMITDIFF, [
-          this.getRepo().path,
-          hash,
-        ]),
-    });
+  getCommitDiff(hash: string, repoPath?: string): Job<DiffHeaderModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.COMMITDIFF,
+        reorderable: true,
+        execute: () =>
+          this.electronService.rpc(Channels.COMMITDIFF, [path, hash]),
+      },
+      path,
+    );
   }
 
-  getStashDiff(stashIndex: number): Job<DiffHeaderModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.STASHDIFF,
-      execute: () =>
-        this.electronService.rpc(Channels.STASHDIFF, [
-          this.getRepo().path,
-          stashIndex,
-        ]),
-    });
+  getStashDiff(stashIndex: number, repoPath?: string): Job<DiffHeaderModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.STASHDIFF,
+        execute: () =>
+          this.electronService.rpc(Channels.STASHDIFF, [path, stashIndex]),
+      },
+      path,
+    );
   }
 
-  cherryPickCommit(hash: string): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES, RepoArea.COMMIT_HISTORY],
-      command: Channels.CHERRYPICKCOMMIT,
-      execute: () =>
-        this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [
-          this.getRepo().path,
-          hash,
-        ]),
-    });
+  cherryPickCommit(hash: string, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES, RepoArea.COMMIT_HISTORY],
+        command: Channels.CHERRYPICKCOMMIT,
+        execute: () =>
+          this.electronService.rpc(Channels.CHERRYPICKCOMMIT, [path, hash]),
+      },
+      path,
+    );
   }
 
-  fastForwardBranch(branch: BranchModel): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.COMMIT_HISTORY],
-      command: Channels.FASTFORWARDBRANCH,
-      execute: () =>
-        this.handleAirplaneMode(
-          this.electronService.rpc(Channels.FASTFORWARDBRANCH, [
-            this.getRepo().path,
-            branch,
-          ]),
-        ),
-    });
+  fastForwardBranch(
+    branch: BranchModel,
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.COMMIT_HISTORY],
+        command: Channels.FASTFORWARDBRANCH,
+        execute: () =>
+          this.handleAirplaneMode(
+            this.electronService.rpc(Channels.FASTFORWARDBRANCH, [
+              path,
+              branch,
+            ]),
+          ),
+      },
+      path,
+    );
   }
 
   checkout(
     branchOrHash: string,
     toNewBranch: boolean,
     andPull: boolean = false,
+    repoPath?: string,
   ): Job<void> {
-    return this.getJob({
-      affectedAreas: [
-        RepoArea.LOCAL_BRANCHES,
-        RepoArea.LOCAL_CHANGES,
-        RepoArea.COMMIT_HISTORY,
-      ],
-      command: Channels.CHECKOUT,
-      execute: () =>
-        this._submoduleCheckoutListener.detect(
-          this.electronService.rpc(Channels.CHECKOUT, [
-            this.getRepo().path,
-            branchOrHash,
-            toNewBranch,
-            andPull,
-          ]),
-          true,
-        ),
-    });
-  }
-
-  pull(force: boolean): Job<void> {
-    return this.getJob({
-      affectedAreas: [
-        RepoArea.LOCAL_CHANGES,
-        RepoArea.LOCAL_BRANCHES,
-        RepoArea.COMMIT_HISTORY,
-      ],
-      command: Channels.PULL,
-      execute: () =>
-        this.handleAirplaneMode(
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [
+          RepoArea.LOCAL_BRANCHES,
+          RepoArea.LOCAL_CHANGES,
+          RepoArea.COMMIT_HISTORY,
+        ],
+        command: Channels.CHECKOUT,
+        execute: () =>
           this._submoduleCheckoutListener.detect(
-            this.electronService.rpc(Channels.PULL, [
-              this.getRepo().path,
-              force,
+            this.electronService.rpc(Channels.CHECKOUT, [
+              path,
+              branchOrHash,
+              toNewBranch,
+              andPull,
             ]),
             true,
           ),
-        ),
-    });
+      },
+      path,
+    );
   }
 
-  push(branch: BranchModel, force: boolean): Job<void> {
-    return this.getJob({
-      affectedAreas: [
-        RepoArea.LOCAL_BRANCHES,
-        RepoArea.COMMIT_HISTORY,
-        RepoArea.REMOTE_BRANCHES,
-      ],
-      command: Channels.PUSH,
-      execute: () =>
-        this._remoteMessageListener.detect(
+  pull(force: boolean, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [
+          RepoArea.LOCAL_CHANGES,
+          RepoArea.LOCAL_BRANCHES,
+          RepoArea.COMMIT_HISTORY,
+        ],
+        command: Channels.PULL,
+        execute: () =>
           this.handleAirplaneMode(
-            this.electronService.rpc(Channels.PUSH, [
-              this.getRepo().path,
-              branch,
-              force,
-            ]),
+            this._submoduleCheckoutListener.detect(
+              this.electronService.rpc(Channels.PULL, [path, force]),
+              true,
+            ),
           ),
-          true,
-        ),
-    });
+      },
+      path,
+    );
   }
 
-  deleteFiles(files: string[]): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.DELETEFILES,
-      execute: () =>
-        this.electronService.rpc(Channels.DELETEFILES, [
-          this.getRepo().path,
-          files,
-        ]),
-    });
+  push(branch: BranchModel, force: boolean, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [
+          RepoArea.LOCAL_BRANCHES,
+          RepoArea.COMMIT_HISTORY,
+          RepoArea.REMOTE_BRANCHES,
+        ],
+        command: Channels.PUSH,
+        execute: () =>
+          this._remoteMessageListener.detect(
+            this.handleAirplaneMode(
+              this.electronService.rpc(Channels.PUSH, [path, branch, force]),
+            ),
+            true,
+          ),
+      },
+      path,
+    );
+  }
+
+  deleteFiles(files: string[], repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.DELETEFILES,
+        execute: () =>
+          this.electronService.rpc(Channels.DELETEFILES, [path, files]),
+      },
+      path,
+    );
   }
 
   setBulkGitSettings(
     config: { [key: string]: string | number },
     useGlobal: boolean,
+    repoPath?: string,
   ): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.SETTINGS],
-      command: Channels.SETGITSETTINGS,
-      execute: () =>
-        this.electronService.rpc(Channels.SETGITSETTINGS, [
-          this.getRepo().path,
-          config,
-          useGlobal,
-        ]),
-    });
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.SETTINGS],
+        command: Channels.SETGITSETTINGS,
+        execute: () =>
+          this.electronService.rpc(Channels.SETGITSETTINGS, [
+            path,
+            config,
+            useGlobal,
+          ]),
+      },
+      path,
+    );
   }
 
   checkGitBashVersions() {
@@ -536,175 +612,229 @@ export class GitService {
     });
   }
 
-  stage(files: string[]): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.GITSTAGE,
-      execute: () =>
-        this._crlfListener.detect(
-          this.electronService.rpc(Channels.GITSTAGE, [
-            this.getRepo().path,
-            files,
+  stage(files: string[], repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.GITSTAGE,
+        execute: () =>
+          this._crlfListener.detect(
+            this.electronService.rpc(Channels.GITSTAGE, [path, files]),
+            true,
+          ),
+      },
+      path,
+    );
+  }
+
+  unstage(files: string[], repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.GITUNSTAGE,
+        execute: () =>
+          this._crlfListener.detect(
+            this.electronService.rpc(Channels.GITUNSTAGE, [path, files]),
+            true,
+          ),
+      },
+      path,
+    );
+  }
+
+  createBranch(branchName: string, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.COMMIT_HISTORY],
+        command: Channels.CREATEBRANCH,
+        execute: () =>
+          this.electronService.rpc(Channels.CREATEBRANCH, [path, branchName]),
+      },
+      path,
+    );
+  }
+
+  deleteBranch(
+    branches: BranchModel[],
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.COMMIT_HISTORY],
+        command: Channels.DELETEBRANCH,
+        execute: () =>
+          this.electronService.rpc(Channels.DELETEBRANCH, [path, branches]),
+      },
+      path,
+    );
+  }
+
+  mergeFile(
+    file: string,
+    mergetool: string,
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.MERGE,
+        execute: () =>
+          this.electronService.rpc(Channels.MERGE, [path, file, mergetool]),
+      },
+      path,
+    );
+  }
+
+  deleteWorktree(
+    worktreeName: string,
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.WORKTREES],
+        command: Channels.DELETEWORKTREE,
+        execute: () =>
+          this.electronService.rpc(Channels.DELETEWORKTREE, [
+            path,
+            worktreeName,
           ]),
-          true,
-        ),
-    });
+      },
+      path,
+    );
   }
 
-  unstage(files: string[]): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.GITUNSTAGE,
-      execute: () =>
-        this._crlfListener.detect(
-          this.electronService.rpc(Channels.GITUNSTAGE, [
-            this.getRepo().path,
-            files,
-          ]),
-          true,
-        ),
-    });
+  stashChanges(
+    onlyUnstaged: boolean,
+    stashName: string,
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES, RepoArea.STASHES],
+        command: Channels.STASH,
+        execute: () =>
+          this._crlfListener.detect(
+            this.electronService.rpc(Channels.STASH, [
+              path,
+              onlyUnstaged,
+              stashName,
+            ]),
+            true,
+          ),
+      },
+      path,
+    );
   }
 
-  createBranch(branchName: string): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.COMMIT_HISTORY],
-      command: Channels.CREATEBRANCH,
-      execute: () =>
-        this.electronService.rpc(Channels.CREATEBRANCH, [
-          this.getRepo().path,
-          branchName,
-        ]),
-    });
-  }
-
-  deleteBranch(branches: BranchModel[]): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_BRANCHES, RepoArea.COMMIT_HISTORY],
-      command: Channels.DELETEBRANCH,
-      execute: () =>
-        this.electronService.rpc(Channels.DELETEBRANCH, [
-          this.getRepo().path,
-          branches,
-        ]),
-    });
-  }
-
-  mergeFile(file: string, mergetool: string): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.MERGE,
-      execute: () =>
-        this.electronService.rpc(Channels.MERGE, [
-          this.getRepo().path,
-          file,
-          mergetool,
-        ]),
-    });
-  }
-
-  deleteWorktree(worktreeName: string): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.WORKTREES],
-      command: Channels.DELETEWORKTREE,
-      execute: () =>
-        this.electronService.rpc(Channels.DELETEWORKTREE, [
-          this.getRepo().path,
-          worktreeName,
-        ]),
-    });
-  }
-
-  stashChanges(onlyUnstaged: boolean, stashName: string): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES, RepoArea.STASHES],
-      command: Channels.STASH,
-      execute: () =>
-        this._crlfListener.detect(
-          this.electronService.rpc(Channels.STASH, [
-            this.getRepo().path,
-            onlyUnstaged,
-            stashName,
-          ]),
-          true,
-        ),
-    });
-  }
-
-  fetch(refreshAreas: boolean = true): Job<void> {
-    return this.getJob({
-      affectedAreas: refreshAreas
-        ? [
-            RepoArea.LOCAL_BRANCHES,
-            RepoArea.REMOTE_BRANCHES,
-            RepoArea.COMMIT_HISTORY,
-            RepoArea.SUBMODULES,
-          ]
-        : [],
-      command: Channels.FETCH,
-      execute: () =>
-        this.handleAirplaneMode(
-          this.electronService.rpc(Channels.FETCH, [this.getRepo().path]),
-        ),
-    });
+  fetch(refreshAreas: boolean = true, repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: refreshAreas
+          ? [
+              RepoArea.LOCAL_BRANCHES,
+              RepoArea.REMOTE_BRANCHES,
+              RepoArea.COMMIT_HISTORY,
+              RepoArea.SUBMODULES,
+            ]
+          : [],
+        command: Channels.FETCH,
+        execute: () =>
+          this.handleAirplaneMode(
+            this.electronService.rpc(Channels.FETCH, [path]),
+          ),
+      },
+      path,
+    );
   }
 
   undoFileChanges(
     file: string[],
     revision: string,
     staged: boolean,
+    repoPath?: string,
   ): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.UNDOFILECHANGES,
-      execute: () =>
-        this._crlfListener.detect(
-          this.electronService.rpc(Channels.UNDOFILECHANGES, [
-            this.getRepo().path,
-            file,
-            revision,
-            staged,
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.UNDOFILECHANGES,
+        execute: () =>
+          this._crlfListener.detect(
+            this.electronService.rpc(Channels.UNDOFILECHANGES, [
+              path,
+              file,
+              revision,
+              staged,
+            ]),
+            true,
+          ),
+      },
+      path,
+    );
+  }
+
+  undoSubmoduleChanges(
+    submodules: SubmoduleModel[],
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.UNDOSUBMODULECHANGES,
+        execute: () =>
+          this.electronService.rpc(Channels.UNDOSUBMODULECHANGES, [
+            path,
+            submodules,
           ]),
-          true,
-        ),
-    });
+      },
+      path,
+    );
   }
 
-  undoSubmoduleChanges(submodules: SubmoduleModel[]): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.UNDOSUBMODULECHANGES,
-      execute: () =>
-        this.electronService.rpc(Channels.UNDOSUBMODULECHANGES, [
-          this.getRepo().path,
-          submodules,
-        ]),
-    });
+  resolveConflictsUsing(
+    file: string,
+    theirs: boolean,
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.RESOLVECONFLICTUSING,
+        execute: () =>
+          this._crlfListener.detect(
+            this.electronService.rpc(Channels.RESOLVECONFLICTUSING, [
+              path,
+              file,
+              theirs,
+            ]),
+            true,
+          ),
+      },
+      path,
+    );
   }
 
-  resolveConflictsUsing(file: string, theirs: boolean): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.RESOLVECONFLICTUSING,
-      execute: () =>
-        this._crlfListener.detect(
-          this.electronService.rpc(Channels.RESOLVECONFLICTUSING, [
-            this.getRepo().path,
-            file,
-            theirs,
-          ]),
-          true,
-        ),
-    });
-  }
-
-  hardReset(): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_CHANGES],
-      command: Channels.GETDELETEDSTASHES,
-      execute: () =>
-        this.electronService.rpc(Channels.HARDRESET, [this.getRepo().path]),
-    });
+  hardReset(repoPath?: string): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_CHANGES],
+        command: Channels.GETDELETEDSTASHES,
+        execute: () =>
+          this.electronService.rpc(Channels.HARDRESET, [path]),
+      },
+      path,
+    );
   }
 
   commit(
@@ -712,146 +842,186 @@ export class GitService {
     commitAndPush: boolean,
     amend: boolean,
     currentBranch: BranchModel,
+    repoPath?: string,
   ): Job<{ needsNewPushJob: boolean }> {
-    return this.getJob({
-      affectedAreas: [
-        RepoArea.LOCAL_CHANGES,
-        RepoArea.LOCAL_BRANCHES,
-        RepoArea.REMOTE_BRANCHES,
-        RepoArea.COMMIT_HISTORY,
-      ],
-      command: Channels.COMMIT,
-      execute: () =>
-        this._precommitStatusListener
-          .detect(
-            this._remoteMessageListener.detect(
-              this.electronService.rpc<CommandOutputModel>(Channels.COMMIT, [
-                this.getRepo().path,
-                description,
-                commitAndPush,
-                currentBranch,
-                amend,
-              ]),
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [
+          RepoArea.LOCAL_CHANGES,
+          RepoArea.LOCAL_BRANCHES,
+          RepoArea.REMOTE_BRANCHES,
+          RepoArea.COMMIT_HISTORY,
+        ],
+        command: Channels.COMMIT,
+        execute: () =>
+          this._precommitStatusListener
+            .detect(
+              this._remoteMessageListener.detect(
+                this.electronService.rpc<CommandOutputModel>(Channels.COMMIT, [
+                  path,
+                  description,
+                  commitAndPush,
+                  currentBranch,
+                  amend,
+                ]),
+                true,
+              ),
               true,
-            ),
+            )
+            .then(() => {
+              const lastValue = this._onPreCommitStatus.getValue();
+              // need to requeue a push operation because the precommit errors
+              return {
+                needsNewPushJob:
+                  commitAndPush &&
+                  lastValue &&
+                  lastValue.rules.length > 0 &&
+                  !lastValue.isError(),
+              };
+            }),
+      },
+      path,
+    );
+  }
+
+  getWorktrees(repoPath?: string): Job<WorktreeModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETWORKTREES,
+        execute: () =>
+          this.electronService.rpc(Channels.GETWORKTREES, [path]),
+      },
+      path,
+    );
+  }
+
+  getSubmodules(repoPath?: string): Job<SubmoduleModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETSUBMODULES,
+        execute: () =>
+          this.electronService.rpc(Channels.GETSUBMODULES, [path]),
+      },
+      path,
+    );
+  }
+
+  getLocalBranches(repoPath?: string): Job<BranchModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETLOCALBRANCHES,
+        execute: () =>
+          this.electronService.rpc(Channels.GETLOCALBRANCHES, [path]),
+      },
+      path,
+    );
+  }
+
+  getRemoteBranches(repoPath?: string): Job<BranchModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETREMOTEBRANCHES,
+        execute: () =>
+          this.electronService.rpc(Channels.GETREMOTEBRANCHES, [path]),
+      },
+      path,
+    );
+  }
+
+  getStashes(repoPath?: string): Job<StashModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETSTASHES,
+        execute: () =>
+          this.electronService.rpc(Channels.GETSTASHES, [path]),
+      },
+      path,
+    );
+  }
+
+  getFileChanges(repoPath?: string): Job<CommitModel> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETFILECHANGES,
+        execute: () =>
+          this.electronService.rpc(Channels.GETFILECHANGES, [path]),
+      },
+      path,
+    );
+  }
+
+  changeActiveOperation(
+    op: ActiveOperation,
+    abort: boolean,
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [
+          RepoArea.LOCAL_CHANGES,
+          RepoArea.LOCAL_BRANCHES,
+          RepoArea.LOCAL_BRANCHES,
+        ],
+        command: Channels.CHANGEACTIVEOPERATION,
+        execute: () =>
+          this._precommitStatusListener.detect(
+            this.electronService.rpc(Channels.CHANGEACTIVEOPERATION, [
+              path,
+              op,
+              abort,
+            ]),
             true,
-          )
-          .then(() => {
-            const lastValue = this._onPreCommitStatus.getValue();
-            // need to requeue a push operation because the precommit errors
-            return {
-              needsNewPushJob:
-                commitAndPush &&
-                lastValue &&
-                lastValue.rules.length > 0 &&
-                !lastValue.isError(),
-            };
-          }),
-    });
+          ),
+      },
+      path,
+    );
   }
 
-  getWorktrees(): Job<WorktreeModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETWORKTREES,
-      execute: () =>
-        this.electronService.rpc(Channels.GETWORKTREES, [this.getRepo().path]),
-    });
+  getCommandHistory(repoPath?: string): Job<CommandHistoryModel[]> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [],
+        command: Channels.GETCOMMANDHISTORY,
+        execute: () =>
+          this.electronService.rpc(Channels.GETCOMMANDHISTORY, [path]),
+      },
+      path,
+    );
   }
 
-  getSubmodules(): Job<SubmoduleModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETSUBMODULES,
-      execute: () =>
-        this.electronService.rpc(Channels.GETSUBMODULES, [this.getRepo().path]),
-    });
-  }
-
-  getLocalBranches(): Job<BranchModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETLOCALBRANCHES,
-      execute: () =>
-        this.electronService.rpc(Channels.GETLOCALBRANCHES, [
-          this.getRepo().path,
-        ]),
-    });
-  }
-
-  getRemoteBranches(): Job<BranchModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETREMOTEBRANCHES,
-      execute: () =>
-        this.electronService.rpc(Channels.GETREMOTEBRANCHES, [
-          this.getRepo().path,
-        ]),
-    });
-  }
-
-  getStashes(): Job<StashModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETSTASHES,
-      execute: () =>
-        this.electronService.rpc(Channels.GETSTASHES, [this.getRepo().path]),
-    });
-  }
-
-  getFileChanges(): Job<CommitModel> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETFILECHANGES,
-      execute: () =>
-        this.electronService.rpc(Channels.GETFILECHANGES, [
-          this.getRepo().path,
-        ]),
-    });
-  }
-
-  changeActiveOperation(op: ActiveOperation, abort: boolean): Job<void> {
-    return this.getJob({
-      affectedAreas: [
-        RepoArea.LOCAL_CHANGES,
-        RepoArea.LOCAL_BRANCHES,
-        RepoArea.LOCAL_BRANCHES,
-      ],
-      command: Channels.CHANGEACTIVEOPERATION,
-      execute: () =>
-        this._precommitStatusListener.detect(
-          this.electronService.rpc(Channels.CHANGEACTIVEOPERATION, [
-            this.getRepo().path,
-            op,
-            abort,
+  renameBranch(
+    branch: { oldName: string; newName: string },
+    repoPath?: string,
+  ): Job<void> {
+    const path = repoPath ?? this.getRepo().path;
+    return this.getJob(
+      {
+        affectedAreas: [RepoArea.LOCAL_BRANCHES],
+        command: Channels.RENAMEBRANCH,
+        execute: () =>
+          this.electronService.rpc(Channels.RENAMEBRANCH, [
+            path,
+            branch.oldName,
+            branch.newName,
           ]),
-          true,
-        ),
-    });
-  }
-
-  getCommandHistory(): Job<CommandHistoryModel[]> {
-    return this.getJob({
-      affectedAreas: [],
-      command: Channels.GETCOMMANDHISTORY,
-      execute: () =>
-        this.electronService.rpc(Channels.GETCOMMANDHISTORY, [
-          this.getRepo().path,
-        ]),
-    });
-  }
-
-  renameBranch(branch: { oldName: string; newName: string }): Job<void> {
-    return this.getJob({
-      affectedAreas: [RepoArea.LOCAL_BRANCHES],
-      command: Channels.RENAMEBRANCH,
-      execute: () =>
-        this.electronService.rpc(Channels.RENAMEBRANCH, [
-          this.getRepo().path,
-          branch.oldName,
-          branch.newName,
-        ]),
-    });
+      },
+      path,
+    );
   }
 
   private isAirplaneMode() {
@@ -864,7 +1034,18 @@ export class GitService {
     });
   }
 
-  private getJob<T>(config: Omit<JobConfig<T>, 'repoPath'>): Job<T> {
-    return new Job<T>({ ...config, repoPath: this.getRepo().path });
+  /**
+   * Creates a Job with an explicit repoPath, capturing it at call time
+   * rather than reading the active tab dynamically at execution time.
+   * This prevents cache pollution when switching between repos.
+   */
+  private getJob<T>(
+    config: Omit<JobConfig<T>, 'repoPath'>,
+    repoPath?: string,
+  ): Job<T> {
+    return new Job<T>({
+      ...config,
+      repoPath: repoPath ?? this.getRepo().path,
+    });
   }
 }

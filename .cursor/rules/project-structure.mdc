@@ -1,0 +1,74 @@
+---
+description: Project file structure — Electron monorepo with 5 packages
+alwaysApply: true
+---
+
+# Project Structure
+
+This is an Electron monorepo with five packages managed by pnpm workspaces.
+
+## Workspace Layout
+
+| Package | Framework | Purpose |
+|---------|-----------|---------|
+| `packages/backend/` | Node.js / Electron main process | Git operations, IPC handlers, file system access. Runs in the Electron main process. |
+| `packages/frontend/` | React 18 / Vite | Renderer UI. Zustand state management, React Router, react-bootstrap. |
+| `packages/core/` | TypeScript | Core git logic and abstractions shared between backend and frontend. |
+| `packages/shared/` | TypeScript | Shared IPC types, API type definitions, and utilities used by both main and renderer. |
+| `packages/docs/` | Documentation | Project documentation and screenshot automation (Playwright). |
+
+## Key Paths
+
+| Path | Purpose |
+|------|---------|
+| `packages/backend/src/main.ts` | Electron main process entry point |
+| `packages/backend/src/git/` | Git operation implementations |
+| `packages/backend/src/ipc/` | IPC handler registrations (super-ipc backend) |
+| `packages/frontend/src/components/` | React components, organized by feature |
+| `packages/frontend/src/stores/` | Zustand state stores |
+| `packages/frontend/src/hooks/` | Shared React hooks |
+| `packages/core/src/` | Core git abstractions |
+| `packages/shared/src/` | IPC channel definitions, shared types, API contracts |
+| `packages/docs/src/` | Documentation content |
+
+## IPC Architecture
+
+This project uses `super-ipc` for main/renderer communication:
+
+- **IPC channel types** are defined in `packages/shared/src/` — all channel names and payload types live here
+- **IPC handlers** are registered in `packages/backend/src/ipc/` — backend implements the handlers
+- **IPC hooks** in the frontend use `@superflag/super-ipc-react` — frontend consumes via React hooks
+- New IPC channels require changes in: shared types → backend handler → frontend hook
+- See `ipc-error-handling.mdc` for frontend error message extraction patterns
+
+## State Management
+
+- **Zustand** is the primary state management library for the frontend
+- Repository-scoped state lives in `useRepositoryStore` — keyed by `repoPath`
+- Cross-card shared view state lives in `repoViewStore` — also keyed by `repoPath`
+- Local UI state (filters, expanded items, modals) stays as React `useState` within individual cards
+- See `component-decomposition.mdc` for store selector patterns and performance rules
+
+## Build System
+
+| Package | Build Tool | Config |
+|---------|-----------|--------|
+| `packages/backend/` | esbuild | `esbuild.config.mjs` |
+| `packages/frontend/` | Vite | `vite.config.ts` |
+| `packages/core/` | TypeScript compiler | `tsconfig.json` |
+| `packages/shared/` | TypeScript compiler | `tsconfig.json` |
+| `packages/docs/` | VitePress / custom | — |
+
+## Testing
+
+| Package | Framework | Script |
+|---------|-----------|--------|
+| `packages/frontend/` | Vitest + React Testing Library | `pnpm run --filter @light-git/frontend test` |
+| `packages/backend/` | Jasmine + nyc | `pnpm run test-node` |
+
+## Code Style
+
+- TypeScript strict mode throughout all packages
+- Use `electron-log` for backend logging — never `console.log` in the main process
+- Follow existing patterns for IPC (super-ipc with typed channels)
+- Internal package dependencies use `workspace:*` protocol

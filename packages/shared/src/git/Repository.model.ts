@@ -1,4 +1,5 @@
 import { BranchModel } from './Branch.model';
+import { RemoteModel } from './Remote.model';
 import { WorktreeModel } from './worktree.model';
 import { StashModel } from './stash.model';
 import { SubmoduleModel } from './submodule.model';
@@ -9,7 +10,7 @@ import { DiffHeaderModel } from './diff.header.model';
 
 export class RepositoryModel {
   public path = '';
-  public remotes: string[] = [];
+  public remotes: RemoteModel[] = [];
 
   public remoteBranches: BranchModel[] = [];
   public localBranches: BranchModel[] = [];
