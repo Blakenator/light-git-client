@@ -7,7 +7,7 @@ import { CardHeaderContent, CardFilterInput } from '../RepoView.styles';
 import { useUiStore } from '../../../stores';
 import { useRepoViewStore } from '../../../stores/repoViewStore';
 import { useGitService } from '../../../ipc';
-import { useBackendListener } from '../../../ipc/useBackendListener';
+import { useBackendListener } from '@superflag/super-ipc-react';
 import { SYNC_CHANNELS } from '@light-git/shared';
 
 // ==================== Styled Components ====================

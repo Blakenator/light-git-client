@@ -31,10 +31,6 @@ export const useBackendAsync = createUseBackendAsyncHook<ASYNC_CHANNELS, AppAsyn
 
 export { invokeSync } from './invokeSync';
 
-// --- Push-only channel listener ---
-
-export { useBackendListener } from './useBackendListener';
-
 // --- Re-exports ---
 
 export type { AppSyncApi, AppAsyncApi } from '@light-git/shared';

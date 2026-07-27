@@ -6,8 +6,8 @@
  */
 interface ElectronApiBridge {
   invoke(channel: string, ...args: unknown[]): Promise<unknown>;
-  on(channel: string, callback: (...args: unknown[]) => void): void;
-  removeListener(channel: string, callback: (...args: unknown[]) => void): void;
+  on(channel: string, callback: (...args: unknown[]) => void): number;
+  removeListener(id: number): void;
 }
 
 declare global {

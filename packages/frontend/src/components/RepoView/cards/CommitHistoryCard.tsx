@@ -850,7 +850,7 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
                           >
                             <Icon name="fa-ellipsis-vertical" size="sm" />
                           </ActionsToggle>
-                          <Dropdown.Menu>
+                          <Dropdown.Menu popperConfig={{ strategy: 'fixed' }} renderOnMount>
                             <Dropdown.Item
                               onClick={() => handleClickCommit(commit.hash)}
                             >

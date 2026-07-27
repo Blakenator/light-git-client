@@ -57,11 +57,11 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@superflag/super-ipc-backend':
-        specifier: ^0.0.21
-        version: 0.0.21(electron@37.10.3)
+        specifier: ^0.0.23
+        version: 0.0.23(electron@37.10.3)
       '@superflag/super-ipc-preloader':
-        specifier: ^0.0.21
-        version: 0.0.21
+        specifier: ^0.0.22
+        version: 0.0.22
       electron-log:
         specifier: ^4.0.3
         version: 4.4.8
@@ -209,11 +209,11 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@superflag/super-ipc-core':
-        specifier: ^0.0.21
-        version: 0.0.21
+        specifier: ^0.1.0
+        version: 0.1.0
       '@superflag/super-ipc-react':
-        specifier: ^0.0.21
-        version: 0.0.21(electron@37.10.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.1.0
+        version: 0.1.0(electron@37.10.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -282,8 +282,8 @@ importers:
   packages/shared:
     dependencies:
       '@superflag/super-ipc-core':
-        specifier: ^0.0.21
-        version: 0.0.21
+        specifier: ^0.1.0
+        version: 0.1.0
       lodash:
         specifier: ^4.17.21
         version: 4.17.23
@@ -1278,19 +1278,19 @@ packages:
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
     engines: {node: '>=10'}
 
-  '@superflag/super-ipc-backend@0.0.21':
-    resolution: {integrity: sha512-oxqyN/HpAyuQ4JFaptGsPUfsvVo80kw3EX1aEM7ONA1fHXvuB9bgxuqe5OnsNDTuhRxLLr6fO7kwLwZUiWN95w==}
+  '@superflag/super-ipc-backend@0.0.23':
+    resolution: {integrity: sha512-QDROoP9UvGimXY0vEx2v0BCVb5sWHvZBICpI3Qu57euomo6weBbXD9Fof0FDNeeYXSeqjziatZIEDunwvUtf1g==}
     peerDependencies:
       electron: '>24'
 
-  '@superflag/super-ipc-core@0.0.21':
-    resolution: {integrity: sha512-KEk0LkjWPbvegzPaxQWiTA+MlSpIK6GQ+Ork8+8RprE7SZNEkW9ukCl6mYU9ClJiLNux5e+vXSvKP9sr9o5jcA==}
+  '@superflag/super-ipc-core@0.1.0':
+    resolution: {integrity: sha512-D+ShvuO07xV2BNtH+V6dqRnEXaimY7ntTAab92Gbcfm53RWsssVgMzIxH1x9FuLRDuUof+lL36aEBVtLy4K1lw==}
 
-  '@superflag/super-ipc-preloader@0.0.21':
-    resolution: {integrity: sha512-NGWaZUn2pdB5FfInZn0mYkU3TmXTzodeCfv7hguIjm7lwNTjXyTdhfwAyhL4cbNDDXDpbnhomNCgy5/n5ntynA==}
+  '@superflag/super-ipc-preloader@0.0.22':
+    resolution: {integrity: sha512-820L3ZzP2upBZtfQ0S7uywWsHsmpUsL5CTrw7N/a7MzUfa51SUpukjH5cWLMccXMnvXKbdYF30Xk03WZbO8P3Q==}
 
-  '@superflag/super-ipc-react@0.0.21':
-    resolution: {integrity: sha512-5LkeDxh9pRrcrQEYKv5FXE7XGtp6EyR981H0o4CweC+ZtAwA7e8UD49yFA3etH7t+la2wLIXJqSfQHB5SEROGw==}
+  '@superflag/super-ipc-react@0.1.0':
+    resolution: {integrity: sha512-rqrKDse2spMBF/aP3W3yd7+UE1px9xYGUkKa+0dUqtGxdKc0+QffNA2bqncCzOVmsabfJLlgzGXrNm0EztPUIA==}
     peerDependencies:
       electron: '>24'
       react: '>16.8'
@@ -5155,22 +5155,22 @@ snapshots:
 
   '@sindresorhus/is@4.6.0': {}
 
-  '@superflag/super-ipc-backend@0.0.21(electron@37.10.3)':
+  '@superflag/super-ipc-backend@0.0.23(electron@37.10.3)':
     dependencies:
-      '@superflag/super-ipc-core': 0.0.21
+      '@superflag/super-ipc-core': 0.1.0
       electron: 37.10.3
 
-  '@superflag/super-ipc-core@0.0.21': {}
+  '@superflag/super-ipc-core@0.1.0': {}
 
-  '@superflag/super-ipc-preloader@0.0.21':
+  '@superflag/super-ipc-preloader@0.0.22':
     dependencies:
       electron: 31.7.7
     transitivePeerDependencies:
       - supports-color
 
-  '@superflag/super-ipc-react@0.0.21(electron@37.10.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@superflag/super-ipc-react@0.1.0(electron@37.10.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@superflag/super-ipc-core': 0.0.21
+      '@superflag/super-ipc-core': 0.1.0
       electron: 37.10.3
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)

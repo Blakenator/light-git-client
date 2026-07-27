@@ -6,7 +6,7 @@ import type { UpdateStatusInfo, UpdateDownloadProgress } from '@light-git/shared
 import { UpdateState } from '@light-git/shared';
 import { Icon, TooltipTrigger } from '@light-git/core';
 import { invokeSync } from '../../../ipc/invokeSync';
-import { useBackendListener } from '../../../ipc/useBackendListener';
+import { useBackendListener } from '@superflag/super-ipc-react';
 import { useBackendAsync } from '../../../ipc';
 import { useUiStore } from '../../../stores';
 

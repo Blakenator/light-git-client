@@ -23,7 +23,7 @@ export function buildMockScript(scenarioData: Record<string, unknown>): string {
           }
           return Promise.resolve({ content: JSON.stringify(result) });
         },
-        on: function () {},
+        on: function () { return 0; },
         removeListener: function () {},
       };
 
