@@ -1,0 +1,90 @@
+---
+description: Mandate completion verification before marking work done
+alwaysApply: true
+---
+
+# Completion Gate
+
+Before any final "done" / completion message, run this gate.
+
+## 1. Trivial exemption
+
+Skip the gate when **either**:
+
+- Net diff across all changed files is under 10 lines, **or**
+- The original request was a single intent with no sub-steps (typo fix, rename, one-liner)
+
+Pure Q&A, explanations, and read-only investigation with no deliverable changes also skip the gate.
+
+## 2. Plan vs non-plan routing
+
+**Executing a plan** — a `manage_todo_list` exists with defined items:
+
+1. Walk the todo list item by item. For each item marked `completed`, verify the work was actually done by reading the relevant files or checking the diff.
+2. Run the **Applicable Rules Audit** (below) and include results in the completion report.
+3. If any todo marked `completed` has gaps, mark it back to `in-progress` and fix it.
+
+**Non-plan ad-hoc work:**
+
+1. Review what was asked vs what was done — re-read the user's original request and all corrections.
+2. Run the **Applicable Rules Audit** (below).
+3. Verify the diff matches the intended changes. Use `git diff --stat` to confirm scope.
+
+## 3. Applicable Rules Audit
+
+Build the audit list from **two sources** — use both, deduplicate, and verify every rule on the final list:
+
+### A. Requested rules (session)
+
+Always include rules/skills explicitly in play this session:
+
+- `always_applied_workspace_rules` and user always-on rules
+- Rules loaded via `read_file` or listed in `agent_requestable_workspace_rules` during the session
+- Rules/skills attached by the user (`@rule`, `@skill`, manually attached skills)
+- Rules/skills referenced in the plan, todos, or conversation
+
+### B. Discovered rules (scan)
+
+Also scan for rules that apply to the changes — do not skip the scan just because requested rules exist:
+
+1. **Collect changed paths** — `git diff --name-only` (staged + unstaged) or the file list from the work.
+2. **Scan workspace rules** — frontmatter of `.cursor/rules/**/*.mdc`:
+   - `alwaysApply: true` (if not already from A)
+   - `globs` matching any changed path
+   - Requestable rules when work signals match `description` (branch, PR, migration, tests, etc.)
+3. **Scan user rules** — same matching for `~/.cursor/rules/**/*.mdc`.
+
+### Verify and report
+
+For each rule on the combined list, read it and check compliance against the diff/work. In the completion report, list every rule with match reason and Pass / Fail / N/A:
+
+| Match reason | Meaning |
+| --- | --- |
+| requested | Loaded, attached, or cited this session |
+| always-on | `alwaysApply: true` |
+| glob | `globs` matched a changed path |
+| work-type | Requestable rule matched by work signals |
+
+## 4. Gap loop
+
+If the report is PARTIAL or Recommendation is not `READY`:
+
+1. **You** fix gaps (subagent is readonly — never delegate fixes).
+2. Re-run the same path once.
+3. If still not READY after the second pass, stop — report remaining gaps; do **not** claim complete.
+
+## 5. Final response
+
+Always append a **Plan Verification Report** to the final response (even when READY):
+
+- Completed Items
+- Partially Completed / Missing Items (if any)
+- Feedback Addressed
+- **Applicable Rules Audit** — each rule checked, match reason (requested / always-on / glob / work-type), and Pass / Fail / N/A
+- Recommendation (`READY` / `NEEDS ATTENTION` / `BLOCKED`)
+
+## Prohibitions
+
+- Do not skip verification because you "feel done"
+- Do not mark complete while Recommendation is `NEEDS ATTENTION` or `BLOCKED`
+- Do not delegate fixes to a subagent

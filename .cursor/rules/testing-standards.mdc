@@ -1,0 +1,165 @@
+---
+description: Universal testing standards — three-pass writing process, core principles, and anti-patterns for all packages. NON-NEGOTIABLE — tests are mandatory for every code change.
+alwaysApply: true
+---
+
+# Testing Standards — NON-NEGOTIABLE
+
+**Tests are mandatory for every code change.** You may never skip writing or updating tests, even for "small" or "obvious" changes. The only exception is pure Q&A / read-only investigation with zero code edits.
+
+## Before Marking Any Task Done
+
+Verify ALL of the following before declaring a task complete:
+
+1. **Tests written/updated** — every new or changed function, component, or IPC handler has corresponding tests
+2. **Tests run** — all tests pass
+3. **Three-pass process visible** — Pass 1 (pseudocode), Pass 2 (implementation), and Pass 3 (audit fixes) are distinct edits in the change history
+
+If any answer is no, the task is NOT done.
+
+## What MUST Have Tests
+
+- All new IPC channels and handlers in `packages/backend/src/`
+- All new functions in `packages/backend/src/git/` and `packages/core/src/`
+- All new React components in `packages/frontend/src/components/` with interactive behavior
+- All new Zustand store actions and selectors
+- All security-sensitive code (auth, input validation, file path handling, shell execution)
+
+## Test Writing Process (Three-Pass)
+
+The agent MUST write tests in three separate, sequential passes. All three passes must be visible as distinct edits — never collapse them into a single step. Write all passes sequentially without pausing for review in between.
+
+### Pass 1 — Structure and Intent
+
+Write the complete `describe` / `it` block hierarchy for the entire test file. Each `it` block contains **only** pseudocode comments describing:
+
+- **Why** — the business rule or invariant this test protects, stated as a user-facing or system-level guarantee (not "verify function X is called")
+- **Given** — the preconditions in domain terms (e.g., "a repository with two stashed changes", not "stub git.stash to return [...]")
+- **When** — the user action or system event that triggers the behavior
+- **Then** — the observable outcome a user or downstream system would see. Focus on *what changes* (data returned, state mutated, error surfaced), not *how* (which git command was called, which IPC method was used)
+
+All four labels are mandatory on every `it` block — even for trivial tests like auth guards. Consistency across the test suite is more valuable than saving a line on simple cases.
+
+After this pass the file should have its final `describe`/`it` structure with no real implementation — only comments inside each block.
+
+#### `it` description strings
+
+Prefer intent-level `it` descriptions that describe what the user or system experiences, not which internal function is exercised. For example, `'should show the stashed changes in chronological order'` is better than `'should call git.stash.list with --date-order'`. This is a soft guideline — don't block on it, but steer toward it when writing new tests.
+
+#### `describe` hierarchy
+
+Prefer grouping by user-facing scenario (e.g., `'when the user stages a file'`, `'when the repository has no commits'`, `'error handling'`) over mirroring the source code's function list. Scenario-based grouping makes the test file readable as a behavior specification. Deviate when the code under test is a low-level utility where function-based grouping is a more natural fit.
+
+#### Pseudocode quality rules
+
+**Prohibited in Pass 1 pseudocode:**
+
+- Framework/library method names (`git.stash`, `super-ipc call`, `zustand.getState`, `vi.spyOn`)
+- Specific counts or magic numbers from the implementation (`10 concurrent`, `60 seconds TTL`)
+- Internal data structure shapes or return types (`result is null`, `returns a Map`)
+- Any description that would need rewriting if the implementation changed but the observable behavior stayed the same
+
+**Exception — architecture/performance constraint tests:**
+
+Tests whose explicit purpose is to verify an implementation strategy (e.g., batching, concurrency limiting, caching) may use technical terms in pseudocode. Even for these tests, the **Why** label should still state the system-level motivation (e.g., "to avoid freezing the UI during large diffs"), and the **Then** label should describe the constraint being enforced, not just echo a function call.
+
+**Required:**
+
+- Every `Why` comment must be answerable with "because the user/system needs..." — if it can only be answered with "because the code calls...", it is too implementation-coupled
+- Every `Then` comment must describe a result observable from outside the function boundary
+
+**Litmus test:** Could a developer unfamiliar with the current implementation write correct test code from the pseudocode alone, even if the internals were refactored? If the pseudocode prescribes specific framework calls, the answer is no.
+
+#### Examples
+
+**Bad (implementation-coupled):**
+
+```typescript
+it('should batch fetch stashes for the repository', () => {
+  // Setup: 3 stashed changes in the repo with git stash list
+  // Action: call getStashes with the repoPath
+  // Expected: git.stash.list called once, stashes returned as array
+});
+```
+
+**Good (intent-level):**
+
+```typescript
+it('should retrieve all stashed changes for a repository', () => {
+  // Why: the stash panel must show a complete, ordered list of saved work
+  // Given: a repository with several stashed changes across different branches
+  // When: the user opens the stashes panel
+  // Then: all stashes are displayed with their messages, dates, and associated branch names
+});
+```
+
+### Pass 2 — Implementation
+
+Fill in each `it` block with real test code, using the pseudocode comments from Pass 1 as a guide. The comments ensure the implementation tests the **true intent** of each case rather than drifting toward whatever is easiest to write. **Always keep the pseudocode comments** above the implementation code — they serve as a permanent record of the test's intent for future reviewers.
+
+Implementation details (specific stub method names, exact argument shapes, call counts) belong exclusively in Pass 2 code. If the pseudocode from Pass 1 already dictates these details, the intent was not captured at the right level of abstraction.
+
+### Pass 3 — Audit (review only, no file output)
+
+After Pass 2 is complete, review every `it` block and verify the implementation against its pseudocode. For each test, check:
+
+1. **Given**: Does the test setup actually establish the preconditions described? A pseudocode "Given" that says "a repository with two unstaged changes" must result in setup code that creates two unstaged changes — not one, not three, not zero with a stub that returns two.
+2. **When**: Does the test exercise the trigger described? If the pseudocode says "when the user clicks commit," the test must simulate a click on the commit button, not call the commit function directly.
+3. **Then**: Does the test assert every outcome stated in the pseudocode? If the pseudocode says "the commit succeeded and the staging area was cleared," both the success assertion and the clear assertion must be present — not just one.
+4. **No unstated behavior**: Does the test assert things the pseudocode does not mention? Extra assertions are acceptable only if they tighten the contract (e.g., verifying no side effects). If they test unrelated behavior, either add a corresponding pseudocode line or move the assertion to a separate test.
+5. **Pseudocode quality**: Re-read each Why/Given/When/Then against the Pass 1 quality rules. Does the pseudocode avoid implementation-coupled language? Could a developer unfamiliar with the internals write the test from the pseudocode alone?
+
+**If any inconsistency is found**, fix it immediately:
+- If the implementation is wrong (missing an assertion, wrong setup), fix the implementation to match the pseudocode.
+- If the pseudocode is wrong (states something the test intentionally does not do), fix the pseudocode to match the actual intent, then re-check the implementation.
+- If both drifted, decide the correct intent first, update the pseudocode, then fix the implementation.
+
+This pass should be a quick scan — most issues are caught by reading the pseudocode and the first/last few lines of each `it` block. Do not skip this pass even when confident; the value is in catching the subtle mismatches that are invisible during writing but obvious during review.
+
+**Do not save audit results into the test file.** The audit is a review activity, not documentation. Any issues found are fixed in place (pseudocode or implementation), but the audit itself produces no new comments, block comments, or annotations in the file. The file's only persistent artifacts are the pseudocode comments (from Pass 1) and the test implementation (from Pass 2).
+
+### Maintaining Pseudocode in Existing Tests
+
+Pseudocode comments are living documentation. When touching a test file, follow these rules:
+
+1. **Keep pseudocode intact.** Never delete `Why` / `Given` / `When` / `Then` comments. They are part of the test, not scaffolding.
+2. **Update pseudocode when intent changes.** If the behavior under test changes (new requirements, refactored contract), update the pseudocode to match the new intent *before* changing the test code. The pseudocode should always describe the current intent, not a historical one.
+3. **Audit implementation against pseudocode.** When modifying an `it` block, re-read its pseudocode first. If the implementation no longer matches the stated intent, fix whichever is wrong — either the pseudocode drifted, or the implementation drifted.
+4. **Backfill missing pseudocode.** When editing a test file, scan for any `it` blocks that lack `Why` / `Given` / `When` / `Then` comments. Add pseudocode to those blocks in a separate pass before making your other changes. This keeps the file converging toward full coverage over time.
+
+### Using Pseudocode to Diagnose Failures
+
+When a test fails, the pseudocode is the primary tool for determining whether the failure reveals a **bug in the code** or a **bug in the test**. Follow this decision process:
+
+1. **Re-read the pseudocode.** Does the stated intent still describe a correct, desired behavior? In most cases it does — the pseudocode was written to capture a business rule or system guarantee that is unlikely to have changed.
+2. **Assume the code is wrong first.** If the pseudocode describes a valid business rule and the implementation exercises it faithfully, the failure most likely indicates a real bug in the production code. Investigate the code under test before touching the test.
+3. **Consider a test bug second.** If the test implementation doesn't actually match what the pseudocode says (e.g., wrong setup, wrong assertion, testing the wrong code path), the test itself has drifted from the intent. Fix the test to match the pseudocode.
+4. **Consider stale intent last.** Rarely, the pseudocode itself is wrong — it describes an outdated requirement or a misunderstood invariant. If you determine this is the case, update the pseudocode first to capture the corrected intent, then update the test implementation to match.
+
+The key insight: pseudocode anchors the intent independently from both the production code and the test code, so it serves as a tiebreaker when the two disagree.
+
+## Core Principle: Test Real Code, Not Mocks
+
+Every test must execute the **actual function/component** under test. Never create a local mock object and test its behavior directly — that only tests the mock, not the implementation.
+
+## Anti-Patterns
+
+### Mock-only testing
+
+When modifying tests, verify they actually test real functionality. Avoid:
+1. Creating a mock
+2. Calling the mock
+3. Testing the mock was called
+...without ever testing the actual function/endpoint.
+
+### Render-only tests
+
+Tests that only assert a component renders (`toBeTruthy()`, `toBeInTheDocument()` on a heading) without exercising any logic provide false coverage. Every component test must include at least one **functional assertion**: a user event (click, type, press) followed by a state/callback/DOM assertion.
+
+### Unstable references in renderHook callbacks
+
+When using `renderHook` (React Testing Library), never pass inline functions that create new references on every render. Extract them as stable references or use `useCallback`-equivalent patterns.
+
+### Duplicating shared mocks
+
+Check `packages/frontend/src/test/` (or equivalent test infrastructure) for existing shared mocks before creating new ones. Duplicating mocks creates maintenance drift.

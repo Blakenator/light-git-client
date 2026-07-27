@@ -1,0 +1,51 @@
+---
+description: Package management conventions using pnpm
+alwaysApply: true
+---
+
+# Package Management
+
+- Always use `pnpm` instead of `yarn`, `npm`, or `npx`
+- Use workspace protocol (`workspace:*`) for internal package dependencies
+- Run commands from the root when possible, using `pnpm run --filter` for workspace-specific commands
+
+```bash
+# ❌ BAD
+npm install lodash
+yarn add lodash
+npx tsc
+
+# ✅ GOOD
+pnpm add lodash
+pnpm run --filter @light-git/backend build
+pnpm run --filter @light-git/frontend test
+```
+
+## Build Commands (from repo root)
+
+```bash
+pnpm install --frozen-lockfile
+pnpm run build                          # Build all packages
+pnpm run --filter @light-git/backend build
+pnpm run --filter @light-git/frontend build
+pnpm run --filter @light-git/core build
+pnpm run --filter @light-git/shared build
+```
+
+## Test Commands (from repo root)
+
+```bash
+pnpm run --filter @light-git/frontend test          # Vitest (frontend)
+pnpm run --filter @light-git/frontend test:watch    # Vitest watch mode
+pnpm run test-node                                    # Jasmine (backend, via root script)
+```
+
+## Adding Dependencies
+
+```bash
+# Add to a specific package
+pnpm --filter @light-git/backend add some-package
+
+# Add workspace dependency
+pnpm --filter @light-git/frontend add @light-git/shared@workspace:*
+```
