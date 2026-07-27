@@ -146,12 +146,18 @@ const CountWrapper = styled.span<{ $spinning: boolean }>`
 
 // Derive a compact fingerprint of active jobs so the component only re-renders
 // when the set of jobs or their running state actually changes.
+// Includes both queued jobs AND in-flight parallel jobs (which are removed from
+// the queue immediately upon launch but still have IN_PROGRESS status).
 function selectActiveJobSummary(state: { queues: Map<string, string[]>; jobs: Map<string, Job>; runningChannels: Set<string> }) {
   let totalJobs = 0;
   let hasRunning = false;
+  const seen = new Set<string>();
   const ids: string[] = [];
+
+  // Collect jobs still sitting in queues
   state.queues.forEach((queue) => {
     queue.forEach((jobId) => {
+      seen.add(jobId);
       const job = state.jobs.get(jobId);
       if (job) {
         totalJobs++;
@@ -160,6 +166,16 @@ function selectActiveJobSummary(state: { queues: Map<string, string[]>; jobs: Ma
       }
     });
   });
+
+  // Also include in-flight parallel jobs (IN_PROGRESS but not in any queue)
+  state.jobs.forEach((job, jobId) => {
+    if (!seen.has(jobId) && job.status === JobStatus.IN_PROGRESS) {
+      totalJobs++;
+      ids.push(jobId);
+      hasRunning = true;
+    }
+  });
+
   return { totalJobs, hasRunning, ids };
 }
 
@@ -185,15 +201,28 @@ export const ActiveJobs: React.FC = () => {
 
   // Build the full job list only when we actually need it (tooltip hover).
   // The list is memoized on the ids fingerprint so it doesn't rebuild each render.
+  // Includes both queued jobs and in-flight parallel jobs.
   const activeJobs = useMemo(() => {
     const { queues, jobs } = useJobStore.getState();
+    const seen = new Set<string>();
     const result: Job[] = [];
+
+    // Collect jobs from queues
     queues.forEach((queue) => {
       queue.forEach((jobId) => {
+        seen.add(jobId);
         const job = jobs.get(jobId);
         if (job) result.push(job);
       });
     });
+
+    // Also include in-flight parallel jobs (IN_PROGRESS but not in any queue)
+    jobs.forEach((job, jobId) => {
+      if (!seen.has(jobId) && job.status === JobStatus.IN_PROGRESS) {
+        result.push(job);
+      }
+    });
+
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids]);
