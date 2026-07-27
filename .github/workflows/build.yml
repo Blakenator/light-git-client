@@ -3,6 +3,7 @@ name: Build/release
 on:
   push:
     branches:
+      - 'master'
       - 'testing/build'
     tags:
       - 'v*'
