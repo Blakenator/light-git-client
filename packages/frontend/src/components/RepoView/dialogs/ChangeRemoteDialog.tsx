@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Modal, Button, ButtonGroup, Form, Alert, Badge } from 'react-bootstrap';
+import { Modal, Button, ButtonGroup, Form, Alert, Badge, Dropdown } from 'react-bootstrap';
 import { useUiStore } from '../../../stores';
 import { Icon } from '@light-git/core';
 import {
@@ -18,18 +18,45 @@ interface BranchModel {
   trackingPath?: string;
 }
 
+interface RemoteInfo {
+  name: string;
+}
+
 type UpstreamMode = 'select' | 'unset' | 'matchName';
 
 interface ChangeRemoteDialogProps {
   remoteBranches: BranchModel[];
+  remotes?: RemoteInfo[];
   targetBranch?: BranchModel | null;
   onSubmit: (remoteBranch: string) => void;
   onUnset: () => void;
-  onMatchName: () => void;
+  onMatchName: (remoteName?: string) => void;
+}
+
+/**
+ * Extracts the remote name from a branch name or tracking path.
+ * e.g., "origin/main" → "origin", "upstream/feature/x" → "upstream"
+ */
+function extractRemoteName(ref: string): string {
+  const slashIndex = ref.indexOf('/');
+  if (slashIndex === -1) return 'origin';
+  return ref.substring(0, slashIndex);
+}
+
+/**
+ * Gets unique remote names from a list of remote branches.
+ */
+function getUniqueRemotes(branches: BranchModel[]): string[] {
+  const names = new Set<string>();
+  for (const b of branches) {
+    names.add(extractRemoteName(b.name));
+  }
+  return Array.from(names).sort();
 }
 
 export const ChangeRemoteDialog: React.FC<ChangeRemoteDialogProps> = ({
   remoteBranches,
+  remotes,
   targetBranch,
   onSubmit,
   onUnset,
@@ -41,10 +68,26 @@ export const ChangeRemoteDialog: React.FC<ChangeRemoteDialogProps> = ({
   const [mode, setMode] = useState<UpstreamMode>('select');
   const [selectedRemote, setSelectedRemote] = useState('');
   const [filter, setFilter] = useState('');
+  const [matchNameRemote, setMatchNameRemote] = useState('origin');
+
+  // Derive remote names from branches OR use passed-in remotes list
+  const availableRemotes = useMemo(() => {
+    if (remotes && remotes.length > 0) {
+      return remotes.map((r) => r.name).sort();
+    }
+    return getUniqueRemotes(remoteBranches);
+  }, [remotes, remoteBranches]);
+
+  // Extract current tracking remote from target branch
+  const currentRemote = useMemo(() => {
+    return targetBranch?.trackingPath
+      ? extractRemoteName(targetBranch.trackingPath)
+      : 'origin';
+  }, [targetBranch]);
 
   const matchNameTarget = useMemo(
-    () => (targetBranch ? `origin/${targetBranch.name}` : ''),
-    [targetBranch],
+    () => (targetBranch ? `${matchNameRemote}/${targetBranch.name}` : ''),
+    [targetBranch, matchNameRemote],
   );
 
   useEffect(() => {
@@ -52,8 +95,9 @@ export const ChangeRemoteDialog: React.FC<ChangeRemoteDialogProps> = ({
       setMode('select');
       setSelectedRemote(targetBranch?.trackingPath || '');
       setFilter('');
+      setMatchNameRemote(currentRemote);
     }
-  }, [isVisible, targetBranch]);
+  }, [isVisible, targetBranch, currentRemote]);
 
   const filteredBranches = useMemo(() => {
     if (!filter) return remoteBranches;
@@ -80,14 +124,14 @@ export const ChangeRemoteDialog: React.FC<ChangeRemoteDialogProps> = ({
     if (mode === 'unset') {
       onUnset();
     } else if (mode === 'matchName') {
-      onMatchName();
+      onMatchName(matchNameRemote);
     } else {
       if (selectedRemote) {
         onSubmit(selectedRemote);
       }
     }
     hideModal('changeRemote');
-  }, [mode, selectedRemote, onSubmit, onUnset, onMatchName, hideModal]);
+  }, [mode, selectedRemote, onSubmit, onUnset, onMatchName, hideModal, matchNameRemote]);
 
   return (
     <Modal show={isVisible} onHide={handleClose} size="lg" centered>
@@ -181,11 +225,26 @@ export const ChangeRemoteDialog: React.FC<ChangeRemoteDialogProps> = ({
         )}
 
         {mode === 'matchName' && targetBranch && (
-          <Alert variant="info" className="mb-3 d-flex align-items-center gap-2 flex-wrap">
-            <Icon name="fa-code-branch" size="sm" />
-            <span>Upstream will be set to</span>
-            <Badge bg="primary">{matchNameTarget}</Badge>
-          </Alert>
+          <>
+            {availableRemotes.length > 1 && (
+              <Form.Group className="mb-3">
+                <Form.Label>Remote</Form.Label>
+                <Form.Select
+                  value={matchNameRemote}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMatchNameRemote(e.target.value)}
+                >
+                  {availableRemotes.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            )}
+            <Alert variant="info" className="mb-3 d-flex align-items-center gap-2 flex-wrap">
+              <Icon name="fa-code-branch" size="sm" />
+              <span>Upstream will be set to</span>
+              <Badge bg="primary">{matchNameTarget}</Badge>
+            </Alert>
+          </>
         )}
 
         {mode === 'unset' && (

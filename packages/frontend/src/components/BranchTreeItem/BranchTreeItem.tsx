@@ -321,7 +321,7 @@ export const BranchTreeItem: React.FC<BranchTreeItemProps> = ({
     const isActionsExpanded = expandedActions[branch.name] || false;
     const branchInWorktree = isLocal && !branch.isCurrentBranch && isInWorktree(branch.name);
     // For remote branches, check if already checked out locally
-    const remoteBranchLocalName = !isLocal ? branch.name.replace(/^origin\//, '') : '';
+    const remoteBranchLocalName = !isLocal ? branch.name.replace(/^[^/]+\//, '') : '';
     const isRemoteCheckedOutLocally = !isLocal && localBranchNameSet.has(remoteBranchLocalName);
     const isRemoteCurrentLocal = !isLocal && currentLocalBranch === remoteBranchLocalName;
 

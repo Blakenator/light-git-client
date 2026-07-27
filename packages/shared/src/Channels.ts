@@ -4,6 +4,7 @@
 export enum SYNC_CHANNELS {
   GetFileChanges = 'getFileChanges',
   GetLocalBranches = 'getLocalBranches',
+  GetRemotes = 'getRemotes',
   GetRemoteBranches = 'getRemoteBranches',
   GetSubmodules = 'getSubmodules',
   GetWorktrees = 'getWorktrees',
@@ -93,6 +94,7 @@ export const Channels = {
   GETFILECHANGES: SYNC_CHANNELS.GetFileChanges,
   GETLOCALBRANCHES: SYNC_CHANNELS.GetLocalBranches,
   GETREMOTEBRANCHES: SYNC_CHANNELS.GetRemoteBranches,
+  GETREMOTES: SYNC_CHANNELS.GetRemotes,
   GETSUBMODULES: SYNC_CHANNELS.GetSubmodules,
   GETWORKTREES: SYNC_CHANNELS.GetWorktrees,
   GETSTASHES: SYNC_CHANNELS.GetStashes,

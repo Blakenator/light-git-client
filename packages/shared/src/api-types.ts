@@ -3,6 +3,7 @@ import { SYNC_CHANNELS, ASYNC_CHANNELS } from './Channels';
 import type { SettingsModel } from './SettingsModel';
 import type { CommitModel, ActiveOperation } from './git/Commit.model';
 import type { BranchModel } from './git/Branch.model';
+import type { RemoteModel } from './git/Remote.model';
 import type { CommitSummaryModel } from './git/CommitSummary.model';
 import type { StashModel } from './git/stash.model';
 import type { WorktreeModel } from './git/worktree.model';
@@ -64,6 +65,10 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
   [SYNC_CHANNELS.GetLocalBranches]: {
     props: RepoProps;
     result: BranchModel[];
+  };
+  [SYNC_CHANNELS.GetRemotes]: {
+    props: { repoPath: string };
+    result: RemoteModel[];
   };
   [SYNC_CHANNELS.GetRemoteBranches]: {
     props: { repoPath: string; limit?: number; filter?: string };
@@ -140,7 +145,7 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
     result: void;
   };
   [SYNC_CHANNELS.Push]: {
-    props: { repoPath: string; branch?: BranchModel; force?: boolean };
+    props: { repoPath: string; branch?: BranchModel; force?: boolean; remote?: string };
     result: void;
   };
   [SYNC_CHANNELS.Pull]: {
@@ -184,7 +189,7 @@ export interface AppSyncApi extends BackendSyncApiType<SYNC_CHANNELS> {
     result: void;
   };
   [SYNC_CHANNELS.FastForwardBranch]: {
-    props: { repoPath: string; branch: BranchModel };
+    props: { repoPath: string; branch: BranchModel; remote?: string };
     result: void;
   };
   [SYNC_CHANNELS.CherryPickCommit]: {

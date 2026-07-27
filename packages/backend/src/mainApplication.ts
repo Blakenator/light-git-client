@@ -333,6 +333,9 @@ export class MainApplication extends GenericApplication {
       [SYNC_CHANNELS.GetRemoteBranches]: async ({ args }) => {
         return await this.gitClients[args.repoPath].getRemoteBranches(args.limit, args.filter);
       },
+      [SYNC_CHANNELS.GetRemotes]: async ({ args }) => {
+        return await this.gitClients[args.repoPath].getRemotes();
+      },
       [SYNC_CHANNELS.GetSubmodules]: async ({ args }) => {
         return await this.gitClients[args.repoPath].getSubmodules();
       },
@@ -426,7 +429,7 @@ export class MainApplication extends GenericApplication {
         );
       },
       [SYNC_CHANNELS.Push]: async ({ args }) => {
-        await this.gitClients[args.repoPath].pushBranch(args.branch, args.force);
+        await this.gitClients[args.repoPath].pushBranch(args.branch, args.force, args.remote);
       },
       [SYNC_CHANNELS.Pull]: async ({ args }) => {
         await this.gitClients[args.repoPath].pull(args.force);
@@ -459,7 +462,7 @@ export class MainApplication extends GenericApplication {
         await this.gitClients[args.repoPath].setUpstreamBranch(args.localBranch, args.remoteBranch);
       },
       [SYNC_CHANNELS.FastForwardBranch]: async ({ args }) => {
-        await this.gitClients[args.repoPath].fastForward(args.branch);
+        await this.gitClients[args.repoPath].fastForward(args.branch, args.remote);
       },
       [SYNC_CHANNELS.CherryPickCommit]: async ({ args }) => {
         await this.gitClients[args.repoPath].cherryPickCommit(args.hash);

@@ -79,6 +79,18 @@ export function useGitService(repoPath: string) {
     );
   }, [runJob, createJobConfig]);
 
+  const getRemotes = useCallback(() => {
+    const rp = repoPathRef.current;
+    return runJob(
+      createJobConfig(
+        SYNC_CHANNELS.GetRemotes,
+        () => invokeSync(SYNC_CHANNELS.GetRemotes, { repoPath: rp }),
+        [],
+        { reorderable: true, parallelizable: true },
+      ),
+    );
+  }, [runJob, createJobConfig]);
+
   const getStashes = useCallback(() => {
     const rp = repoPathRef.current;
     return runJob(
@@ -310,12 +322,12 @@ export function useGitService(repoPath: string) {
   );
 
   const push = useCallback(
-    (branch?: any, force = false) => {
+    (branch?: any, force = false, remote?: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
           SYNC_CHANNELS.Push,
-          () => invokeSync(SYNC_CHANNELS.Push, { repoPath: rp, branch, force }),
+          () => invokeSync(SYNC_CHANNELS.Push, { repoPath: rp, branch, force, remote }),
           [RepoArea.LOCAL_BRANCHES, RepoArea.REMOTE_BRANCHES, RepoArea.COMMIT_HISTORY],
         ),
       );
@@ -451,12 +463,12 @@ export function useGitService(repoPath: string) {
   );
 
   const fastForward = useCallback(
-    (branch: any) => {
+    (branch: any, remote?: string) => {
       const rp = repoPathRef.current;
       return runJob(
         createJobConfig(
           SYNC_CHANNELS.FastForwardBranch,
-          () => invokeSync(SYNC_CHANNELS.FastForwardBranch, { repoPath: rp, branch }),
+          () => invokeSync(SYNC_CHANNELS.FastForwardBranch, { repoPath: rp, branch, remote }),
           [RepoArea.LOCAL_BRANCHES],
         ),
       );
@@ -833,6 +845,7 @@ export function useGitService(repoPath: string) {
     getFileChanges,
     getLocalBranches,
     getRemoteBranches,
+    getRemotes,
     getStashes,
     getWorktrees,
     getSubmodules,
@@ -846,6 +859,7 @@ export function useGitService(repoPath: string) {
       getFileChanges,
       getLocalBranches,
       getRemoteBranches,
+      getRemotes,
       getStashes,
       getWorktrees,
       getSubmodules,
@@ -903,6 +917,7 @@ export function useGitService(repoPath: string) {
       getFileChanges,
       getLocalBranches,
       getRemoteBranches,
+      getRemotes,
       getStashes,
       getWorktrees,
       getSubmodules,

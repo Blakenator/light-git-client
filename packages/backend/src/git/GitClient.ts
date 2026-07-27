@@ -1,5 +1,6 @@
 import { RepositoryModel } from '@light-git/shared/src/git/Repository.model';
 import { BranchModel } from '@light-git/shared/src/git/Branch.model';
+import { RemoteModel } from '@light-git/shared/src/git/Remote.model';
 import {
   ActiveOperation,
   ChangeType,
@@ -321,19 +322,29 @@ export class GitClient {
       );
     }
     if (remotes.length > 0) {
-      promises.push(
-        this.simpleOperation(
-          this.getGitPath(),
-          ['push', 'origin', '--delete', '--'].concat(
-            remotes.map((b) => b.name.replace(/^origin\//, '')),
-          ),
-          'Delete Remote Branches',
-        ).catch((error: string) => {
-          if (!error.match(/To\s+.*\r?\n\s+-\s+\[deleted]/i)) {
-            throw error;
-          }
-        }),
-      );
+      // Group remote branches by their remote name, then issue one delete per remote
+      const byRemote = new Map<string, string[]>();
+      for (const b of remotes) {
+        const remoteName = GitClient.extractRemoteFromBranchName(b.name);
+        const branchName = b.name.slice(remoteName.length + 1);
+        if (!byRemote.has(remoteName)) {
+          byRemote.set(remoteName, []);
+        }
+        byRemote.get(remoteName)!.push(branchName);
+      }
+      for (const [remote, branchNames] of byRemote) {
+        promises.push(
+          this.simpleOperation(
+            this.getGitPath(),
+            ['push', remote, '--delete', '--'].concat(branchNames),
+            'Delete Remote Branches',
+          ).catch((error: string) => {
+            if (!error.match(/To\s+.*\r?\n\s+-\s+\[deleted]/i)) {
+              throw error;
+            }
+          }),
+        );
+      }
     }
     return Promise.all(promises);
   }
@@ -413,6 +424,39 @@ export class GitClient {
       ['fetch', '-p'],
       'Fetch Remote Branches',
     );
+  }
+
+  getRemotes(): Promise<RemoteModel[]> {
+    return this.execute(
+      this.getGitPath(),
+      ['remote', '-v'],
+      'Get Remotes',
+    ).then((output) => {
+      const remotes: RemoteModel[] = [];
+      const remoteMap = new Map<string, RemoteModel>();
+      const lines = output.standardOutput.split('\n').filter((l) => l.trim());
+      for (const line of lines) {
+        const match = line.match(/^(\S+)\s+(\S+)\s+\((fetch|push)\)/);
+        if (match) {
+          const name = match[1];
+          const url = match[2];
+          const type = match[3];
+          if (!remoteMap.has(name)) {
+            remoteMap.set(name, new RemoteModel({ name }));
+          }
+          const remote = remoteMap.get(name)!;
+          if (type === 'fetch') {
+            remote.fetchUrl = url;
+          } else {
+            remote.pushUrl = url;
+          }
+        }
+      }
+      return Array.from(remoteMap.values());
+    }).catch((err) => {
+      // If no remotes are configured, return empty array
+      return [];
+    });
   }
 
   renameBranch(oldName: string, newName: string) {
@@ -933,7 +977,7 @@ export class GitClient {
         'checkout',
         '-q',
         tag,
-        toNewBranch ? '-b' + (branchName || tag.replace('origin/', '')) : '',
+        toNewBranch ? '-b' + (branchName || tag.replace(/^[^/]+\//, '')) : '',
       ],
       'Checkout',
     );
@@ -1087,14 +1131,17 @@ export class GitClient {
     );
   }
 
-  fastForward(branch: BranchModel) {
+  fastForward(branch: BranchModel, remote?: string) {
+    const remoteName = remote || GitClient.extractRemoteFromBranch(branch);
+    const trackingPath = branch.trackingPath || '';
+    const branchName = trackingPath.replace(/^[^/]+\//, '');
     return this.simpleOperation(
       this.getGitPath(),
       [
         'fetch',
         '-q',
-        'origin',
-        branch.trackingPath.replace(/^origin\//, '') + ':' + branch.name,
+        remoteName,
+        branchName + ':' + branch.name,
       ],
       'Fast-Forward Branch',
     );
@@ -1108,18 +1155,19 @@ export class GitClient {
     );
   }
 
-  pushBranch(branch: BranchModel, force: boolean) {
+  pushBranch(branch: BranchModel, force: boolean, remote?: string) {
+    const remoteName = remote || GitClient.extractRemoteFromBranch(branch);
+    const trackingPath = branch.trackingPath || '';
+    const upstreamRef = trackingPath.replace(/^[^/]+\//, '') || branch.name;
     return this.simpleOperation(
       this.getGitPath(),
       [
         'push',
         '-q',
-        'origin',
+        remoteName,
         !branch.trackingPath ? '-u' : '',
         branch
-          ? branch.name +
-            ':' +
-            (branch.trackingPath || branch.name).replace(/^origin\//, '')
+          ? branch.name + ':' + upstreamRef
           : '',
         force ? ' --force' : '',
       ],
@@ -1413,7 +1461,7 @@ export class GitClient {
       'worktree',
       'add',
       location,
-      branch.replace(/^origin\//, ''),
+      branch.replace(/^[^/]+\//, ''),
     ]);
   }
 
@@ -1886,6 +1934,33 @@ export class GitClient {
         reject(error);
       }
     });
+  }
+
+  /**
+   * Extracts the remote name from a branch name string.
+   * e.g., "origin/main" → "origin", "upstream/feature/x" → "upstream"
+   * Falls back to "origin" if no `/` separator is found.
+   */
+  static extractRemoteFromBranchName(branchName: string): string {
+    const slashIndex = branchName.indexOf('/');
+    if (slashIndex === -1) return 'origin';
+    return branchName.substring(0, slashIndex);
+  }
+
+  /**
+   * Extracts the remote name from a BranchModel's trackingPath.
+   * e.g., trackingPath "origin/main" → "origin"
+   * Falls back to extracting from the branch's own name, then to "origin".
+   */
+  static extractRemoteFromBranch(branch: BranchModel): string {
+    const trackingPath = branch.trackingPath || '';
+    if (trackingPath.includes('/')) {
+      return GitClient.extractRemoteFromBranchName(trackingPath);
+    }
+    if (branch.name.includes('/')) {
+      return GitClient.extractRemoteFromBranchName(branch.name);
+    }
+    return 'origin';
   }
 }
 

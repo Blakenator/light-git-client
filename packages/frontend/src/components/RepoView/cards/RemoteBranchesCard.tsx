@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Button, Tooltip } from 'react-bootstrap';
 import { TooltipTrigger } from '@light-git/core';
 import { LayoutCard } from '../../LayoutCard/LayoutCard';
@@ -13,6 +13,13 @@ const _EMPTY_ARR: any[] = [];
 
 const REMOTE_BRANCHES_DEFAULT_LIMIT = 200;
 const SEARCH_DEBOUNCE_MS = 300;
+
+/** Extracts the remote name from a branch name like "origin/main" → "origin" */
+function extractRemoteName(branchName: string): string {
+  const slashIndex = branchName.indexOf('/');
+  if (slashIndex === -1) return 'origin';
+  return branchName.substring(0, slashIndex);
+}
 
 interface RemoteBranchesCardProps {
   repoPath: string;
@@ -91,6 +98,21 @@ export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(
 
   const isTruncated = !filter && storeBranches.length >= REMOTE_BRANCHES_DEFAULT_LIMIT;
 
+  // Group branches by remote name for multi-remote support
+  const branchesByRemote = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    for (const branch of displayBranches) {
+      const remote = extractRemoteName(branch.name);
+      if (!groups.has(remote)) {
+        groups.set(remote, []);
+      }
+      groups.get(remote)!.push(branch);
+    }
+    return groups;
+  }, [displayBranches]);
+
+  const remoteNames = useMemo(() => Array.from(branchesByRemote.keys()).sort(), [branchesByRemote]);
+
   const headerContent = (
     <CardHeaderContent>
       <CardFilterInput
@@ -110,15 +132,38 @@ export const RemoteBranchesCard: React.FC<RemoteBranchesCardProps> = React.memo(
       headerContent={headerContent}
     >
       <div className="px-2">
-        <BranchTreeItem
-          branches={displayBranches as any}
-          isLocal={false}
-          filter={filter}
-          localBranches={localBranches as any}
-          onCheckoutClicked={handleCheckout}
-          onDeleteClicked={(branch) => handleDeleteBranch(branch as any)}
-          onCopyBranchName={handleCopyBranchName}
-        />
+        {remoteNames.map((remoteName) => {
+          const branches = branchesByRemote.get(remoteName) || [];
+          return (
+            <div key={remoteName}>
+              {remoteNames.length > 1 && (
+                <div
+                  className="d-flex align-items-center gap-1 py-1"
+                  style={{
+                    fontWeight: 600,
+                    fontSize: '0.85em',
+                    color: 'var(--bs-secondary, #6c757d)',
+                  }}
+                >
+                  <Icon name="fa-cloud" size="sm" />
+                  <span>{remoteName}</span>
+                  <span style={{ fontWeight: 400, fontSize: '0.8em' }}>
+                    ({branches.length})
+                  </span>
+                </div>
+              )}
+              <BranchTreeItem
+                branches={branches as any}
+                isLocal={false}
+                filter={remoteNames.length > 1 ? '' : filter}
+                localBranches={localBranches as any}
+                onCheckoutClicked={handleCheckout}
+                onDeleteClicked={(branch) => handleDeleteBranch(branch as any)}
+                onCopyBranchName={handleCopyBranchName}
+              />
+            </div>
+          );
+        })}
         {displayBranches.length === 0 && !isSearching && (
           <div className="text-muted text-center py-2">
             {filter ? 'No matching remote branches' : 'No remote branches found'}

@@ -293,6 +293,10 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
     const storeRemoteBranches = (useRepositoryStore(
       (state) => state.repoCache[repoPath]?.remoteBranches,
     ) ?? _EMPTY_ARR) as any[];
+    const remotes = (useRepositoryStore(
+      (state) => state.repoCache[repoPath]?.remotes,
+    ) ?? _EMPTY_ARR) as any[];
+    const remoteNames = useMemo(() => new Set(remotes.map((r: any) => r.name)), [remotes]);
     const ignoreWhitespace = useSettingsStore(
       (state) => state.settings.diffIgnoreWhitespace,
     );
@@ -492,17 +496,27 @@ export const CommitHistoryCard: React.FC<CommitHistoryCardProps> = React.memo(
       (tag: string): 'local' | 'remote' | 'tag' | 'head' => {
         if (tag.startsWith('HEAD')) return 'head';
         if (tag.startsWith('tag: ')) return 'tag';
-        if (tag.startsWith('origin/')) return 'remote';
+        // Check if tag starts with any known remote name
+        for (const remote of remoteNames) {
+          if (tag.startsWith(remote + '/')) return 'remote';
+        }
+        // Fallback: check if tag looks like a remote ref (contains /)
+        if (tag.includes('/') && !tag.startsWith('tag: ')) return 'remote';
         return 'local';
       },
-      [],
+      [remoteNames],
     );
 
     const getTagIcon = useCallback((tag: string): string | null => {
-      if (tag.startsWith('origin/')) return 'fa-cloud';
+      // Check if tag starts with any known remote name
+      for (const remote of remoteNames) {
+        if (tag.startsWith(remote + '/')) return 'fa-cloud';
+      }
+      // Fallback
+      if (tag.includes('/') && !tag.startsWith('tag: ')) return 'fa-cloud';
       if (tag.startsWith('tag: ')) return 'fa-tag';
       return null;
-    }, []);
+    }, [remoteNames]);
 
     const getTagLabel = useCallback((tag: string): string => {
       return tag.replace('tag: ', '');
