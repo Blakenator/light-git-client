@@ -161,6 +161,7 @@ export interface BranchModel {
   isCurrentBranch?: boolean;
   isRemote?: boolean;
   trackingPath?: string;
+  isTrackingPathGone?: boolean;
   ahead?: number;
   behind?: number;
   hash?: string;
